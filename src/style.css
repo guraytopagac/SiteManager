@@ -1,0 +1,115 @@
+[data-theme="dark"] {
+  --background-color-1: #0b111f;
+  --background-color-2: #1e293b;
+  --card-background-1: #334155;
+  --card-background-2: #111827;
+  --text-color: #ffffff;
+  --button-color: #686bc4;
+  --button-hover: #443eac;
+}
+
+[data-theme="light"] {
+  --background-color-1: #f1f5f9;
+  --background-color-2: #dbeafe;
+  --card-background-1: #ffffff;
+  --card-background-2: #e2e8f0;
+  --text-color: #1e293b;
+  --button-color: #3b82f6;
+  --button-hover: #2563eb;
+}
+
+body {
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  background: linear-gradient(0deg, var(--background-color-1), var(--background-color-2));
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.login-container,
+.register-container {
+  background: linear-gradient(135deg, var(--card-background-1), var(--card-background-2));
+  padding: 50px;
+  border-radius: 50px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  width: 800px;
+  text-align: center;
+  color: var(--text-color);
+}
+
+.title {
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  font-size: 35px;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.subtitle {
+  font-size: 24px;
+  margin-bottom: 30px;
+  font-weight: normal;
+}
+
+.login-form,
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#userName,
+#userPassword,
+#userEmail {
+  text-align: center;
+  width: 100%;
+  padding: 14px 0;
+  font-size: 18px;
+  border: 2px solid #8c94ad;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+#userName:focus,
+#userPassword:focus,
+#userEmail:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 5px rgba(59, 130, 246, 1);
+}
+
+#loginButton,
+#registerButton {
+  margin-top: 20px;
+  padding: 14px;
+  font-size: 18px;
+  color: #ffffff;
+  background: var(--button-color);
+  border: 3px solid var(--button-color);
+  border-radius: 15px;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+#loginButton:hover,
+#registerButton:hover {
+  background: var(--button-hover);
+}
+
+.footer {
+  margin-top: 20px;
+  font-size: 16px;
+  color: var(--text-color);
+}
+
+.footer a {
+  color: var(--button-color);
+  text-decoration: underline;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.footer a:hover {
+  color: var(--button-hover);
+}
