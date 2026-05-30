@@ -37,11 +37,13 @@
     }
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "electron-serve": "^3.0.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.15.1",
-    "sqlite3": "^6.0.1"
+    "sqlite3": "^6.0.1",
+    "sweetalert2": "^11.26.25"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

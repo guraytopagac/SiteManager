@@ -1,37 +1,26 @@
 // Libraries
 const path = require('path');
+const bcrypt = require('bcryptjs');
 const db = require('../database/db');
 const serve = require('electron-serve').default;
 const { app, ipcMain, dialog, BrowserWindow, Menu } = require('electron');
 
-// Part 1: Determine the database path based on the environment (development or production)
+// Variables
 let mainWindow;
 const loadURL = serve({ directory: path.join(__dirname, '..', 'dist') });
 const isDev = !app.isPackaged;
 
-// Part 2: Define the application menu with theme switching and developer tools
+// Menu
 const menuTemplate = [
     {
         label: 'Dosya',
         submenu: [
             {
                 label: 'Tema Değiştir',
-                submenu: [
-                    {
-                        label: 'Koyu',
-                        accelerator: 'CmdOrCtrl+Shift+K',
-                        click() {
-                            if (mainWindow) mainWindow.webContents.send('change-theme', 'dark');
-                        }
-                    },
-                    {
-                        label: 'Açık',
-                        accelerator: 'CmdOrCtrl+Shift+A',
-                        click() {
-                            if (mainWindow) mainWindow.webContents.send('change-theme', 'light');
-                        }
-                    }
-                ]
+                accelerator: 'CmdOrCtrl+Shift+T',
+                click() {
+                    mainWindow.webContents.send('toggle-theme');
+                }
             },
             {
                 label: "Yenile",
@@ -51,10 +40,13 @@ const menuTemplate = [
             {
                 label: "Hakkında",
                 click() {
-                    dialog.showMessageBox({
-                        title: "Hakkında",
-                        message: "Yardım ve destek için lütfen bizimle iletişime geçin: guraytopagac@gmail.com",
-                        buttons: ["Tamam"]
+                    dialog.showMessageBox(mainWindow, {
+                        type: 'info',
+                        title: 'Hakkında',
+                        message: 'Mavikent Site Yönetim Sistemi',
+                        detail: '\nDestek ve sorularınız için:\nguraytopagac@gmail.com',
+                        buttons: ['Tamam'],
+                        icon: path.join(__dirname, '../src/assets/icon.ico')
                     });
                 }
             }
@@ -62,7 +54,7 @@ const menuTemplate = [
     }
 ];
 
-// Part 3: Add developer tools menu item in development mode
+// Dev Mode
 if (isDev) {
     menuTemplate.push({
         label: "Geliştirici Araçları",
@@ -73,7 +65,7 @@ if (isDev) {
     });
 }
 
-// Part 4: Create the main application window and load the appropriate URL based on the environment
+// Main Window
 function createMainWindow() {
     const mainMenu = Menu.buildFromTemplate(menuTemplate);
     Menu.setApplicationMenu(mainMenu);
@@ -107,65 +99,67 @@ function createMainWindow() {
         mainWindow = null;
     });
 }
+app.whenReady().then(createMainWindow);
 
-// Part 5: Handle IPC events for login and registration, interacting with the SQLite database
-function handleLogin(event, credentials) {
-    const query = `SELECT * FROM users WHERE username = ? AND is_active = 1`;
-
-    db.get(query, [credentials.username], (err, user) => {
-        if (err) {
-            dialog.showErrorBox("Giriş Hatası", "Veri tabanı sorgusu sırasında bir hata oluştu.");
-            event.reply('login-response', { success: false });
-            return;
-        }
-        if (user && user.password_hash === credentials.password) {
-            db.run(`UPDATE users SET last_login = datetime('now') WHERE id = ?`, [user.id]);
-            event.reply('login-response', { success: true });
-        } else {
-            dialog.showErrorBox("Giriş Başarısız", "Kullanıcı adı veya şifre hatalı!");
-            event.reply('login-response', { success: false });
-        }
-    });
-}
-
-function handleRegister(event, userData) {
-    const query = `
-        INSERT INTO users (username, email, password_hash, role) 
-        VALUES (?, ?, ?, ?)
-    `;
-    db.run(query, [userData.username, userData.email, userData.password, 'manager'], function (err) {
-        if (err) {
-            if (err.message.includes('UNIQUE constraint failed')) {
-                dialog.showErrorBox("Kayıt Hatası", "Bu kullanıcı adı veya e-posta adresi zaten kullanımda!");
-            } else {
-                dialog.showErrorBox("Kayıt Hatası", "Veri tabanına kaydedilirken bir hata oluştu.");
+// IPC Functions
+ipcMain.handle('login', async (event, credentials) => {
+    return new Promise((resolve) => {
+        const query = `SELECT * FROM users WHERE username = ? AND is_active = 1`;
+        db.get(query, [credentials.username], (err, user) => {
+            if (err) return resolve({ success: false, message: "Veritabanı hatası. Lütfen hakkında kısmından bilgi alınız." });
+            if (user && bcrypt.compareSync(credentials.password, user.password_hash)) {
+                db.run(`UPDATE users SET last_login = datetime('now') WHERE id = ?`, [user.id]);
+                return resolve({ success: true, user });
             }
-            event.reply('register-response', { success: false });
-        } else {
-            dialog.showMessageBox({
-                title: "Kayıt Başarılı",
-                message: "Hesabınız başarıyla oluşturuldu! Giriş sayfasına yönlendiriliyorsunuz...",
-                buttons: ["Tamam"]
-            }).then(() => {
-                event.reply('register-response', { success: true });
-            });
-        }
+            resolve({ success: false, message: "Kullanıcı Adı / Şifre Hatalı!" });
+        });
     });
-}
-
-// Part 6: Set up application event listeners for ready, window-all-closed, and activate events
-app.on('ready', () => {
-    createMainWindow();
-    ipcMain.on('login', handleLogin);
-    ipcMain.on('register', handleRegister);
+});
+ipcMain.handle('register', async (event, userData) => {
+    return new Promise((resolve) => {
+        const query = `INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)`;
+        const hashedPassword = bcrypt.hashSync(userData.password, 10);
+        db.run(query, [userData.username, userData.email, hashedPassword, 'manager'], function (err) {
+            if (err) return resolve({ success: false, message: "Benzersiz Kullanıcı Adı / Email Gerekli!" });
+            resolve({ success: true, message: "Kayıt Başarılı!" });
+        });
+    });
+});
+ipcMain.handle('add-apartment', async (event, data) => {
+    return new Promise((resolve) => {
+        const query = `INSERT INTO apartments (apartment_no, floor, type, square_meters, due_amount) VALUES (?, ?, ?, ?, ?)`;
+        db.run(query, [data.apartment_no, data.floor, data.type, data.square_meters, data.due_amount], function (err) {
+            if (err) return resolve({ success: false, message: "Daire eklenemedi. Lütfen hakkında kısmından bilgi alınız." });
+            resolve({ success: true, message: "Daire eklendi." });
+        });
+    });
+});
+ipcMain.handle('get-stats', async () => {
+    return new Promise((resolve) => {
+        resolve({ success: true, payload: { cash: 12450, collections: 85, delays: 4200 } });
+    });
+});
+ipcMain.handle('get-apartments', async () => {
+    return new Promise((resolve) => {
+        db.all("SELECT * FROM apartments", [], (err, rows) => {
+            if (err) {
+                resolve({ success: false, message: "Veriler alınamadı." });
+            } else {
+                resolve({ success: true, data: rows });
+            }
+        });
+    });
 });
 
+
+// Quit when all windows are closed (except on macOS)
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
     }
 });
 
+// Re-create the window when the app icon is clicked (macOS behavior)
 app.on('activate', () => {
     if (mainWindow === null) {
         createMainWindow();

@@ -1,50 +1,59 @@
 // Libraries
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import "./Register.css";
+import Swal from 'sweetalert2';
 
-// Part 1: Define the Register component with state management for user registration fields
 function Register() {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const navigate = useNavigate();
 
-    useEffect(() => {
-        let unsubscribe;
-
-        if (window.electronAPI && window.electronAPI.onRegisterResponse) {
-            unsubscribe = window.electronAPI.onRegisterResponse((response) => {
-                if (response.success) {
-                    navigate('/');
-                }
-            });
-        }
-
-        return () => {
-            if (typeof unsubscribe === 'function') {
-                unsubscribe();
-            }
-        };
-    }, [navigate]);
-
-    const handleRegisterSubmit = (e) => {
+    const handleRegisterSubmit = async (e) => {
         e.preventDefault();
 
         if (username && email && password) {
-            if (window.electronAPI && window.electronAPI.register) {
-                window.electronAPI.register({ username, email, password });
+            const response = await window.electronAPI.register({ username, email, password });
+
+            if (response.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Başarılı!',
+                    text: response.message,
+                    confirmButtonText: 'Tamam',
+                    confirmButtonColor: '#059669',
+                    heightAuto: false
+                }).then(() => {
+                    navigate("/");
+                });
             } else {
-                console.error("Electron API (preload) tespit edilemedi!");
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Kayıt Başarısız',
+                    text: response.message,
+                    confirmButtonText: 'Tamam',
+                    confirmButtonColor: '#dc2626',
+                    heightAuto: false
+                });
             }
+        } else {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Eksik Alan',
+                text: 'Lütfen tüm alanları doldurun!',
+                confirmButtonColor: '#f59e0b',
+                heightAuto: false
+            });
         }
     };
 
     return (
-        <div className="register-container">
+        <div className="registerContainer">
             <h1 className="title">Mavikent Site Yönetimi</h1>
             <h2 className="subtitle">Yeni Hesap Oluştur</h2>
 
-            <form className="register-form" onSubmit={handleRegisterSubmit}>
+            <form className="registerForm" onSubmit={handleRegisterSubmit}>
                 <input
                     type="text"
                     id="userName"
@@ -72,7 +81,7 @@ function Register() {
                 <button type="submit" id="registerButton">Kayıt Ol</button>
             </form>
 
-            <p className="footer">
+            <p className="infoText">
                 Zaten bir hesabınız var mı?{' '}
                 <Link to="/">Giriş yapın</Link>
             </p>
@@ -80,5 +89,4 @@ function Register() {
     );
 }
 
-// Part 2: Export the Register component as the default export
 export default Register;

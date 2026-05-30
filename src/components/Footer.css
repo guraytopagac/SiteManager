@@ -1,0 +1,14 @@
+.footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 14px 0;
+    background: var(--card-background-1);
+    color: var(--text-color);
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 500;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    z-index: 1000;
+}

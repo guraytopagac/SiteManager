@@ -3,24 +3,25 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const { app } = require('electron');
 
+// Variables
 let dbPath;
 const isPackaged = app ? app.isPackaged : false;
 
-// Part 1: Determine the database path based on the environment (development or production)
+// Database Path
 if (!isPackaged) {
     dbPath = path.join(__dirname, '..', 'apartment.db');
 } else {
     dbPath = path.join(app.getPath('userData'), 'apartment.db');
 }
 
-// Part 2: Connect to the SQLite database and create the users table if it doesn't exist
+// Constructing Tables
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Veri tabanı bağlantı hatası:', err.message);
         return;
+    } else {
+        console.log('Successfully connected to the database.');
     }
-
-    console.log('Successfully connected to the database.');
 
     db.serialize(() => {
         db.run(`
@@ -32,12 +33,24 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 role TEXT DEFAULT 'manager',
                 is_active INTEGER DEFAULT 1,
                 last_login TEXT
-            )
-        `, (tableErr) => {
-            if (tableErr) console.error('Tablo oluşturma hatası:', tableErr.message);
+            );
+        `, (tableErr1) => {
+            if (tableErr1) console.error('Tablo oluşturma hatası:', tableErr1.message);
+        });
+
+        db.run(`
+            CREATE TABLE IF NOT EXISTS apartments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                apartment_no TEXT NOT NULL UNIQUE,
+                floor INTEGER,
+                type TEXT,
+                square_meters REAL,
+                due_amount REAL
+            );
+        `, (tableErr2) => {
+            if (tableErr2) console.error('Tablo oluşturma hatası:', tableErr2.message);
         });
     });
 });
 
-// Part 3: Export the database connection for use in other parts of the application
 module.exports = db;
