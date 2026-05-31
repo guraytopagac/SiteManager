@@ -13,15 +13,23 @@ function Login() {
     e.preventDefault();
 
     if (username && password) {
-      const response = await window.electronAPI.login({ username, password });
+      const { success, user, message } = await window.electronAPI.login({ username, password });
 
-      if (response.success) {
+      if (success) {
+        const { id, username: loggedInUsername, email, role, last_login } = user;
+        sessionStorage.setItem('currentUser', JSON.stringify({
+          id,
+          username: loggedInUsername,
+          email,
+          role,
+          last_login
+        }));
         navigate("/dashboard");
       } else {
         Swal.fire({
           icon: 'error',
           title: 'Giriş Başarısız',
-          text: response.message,
+          text: message,
           confirmButtonText: 'Tamam',
           confirmButtonColor: '#3b82f6',
           background: '#ffffff',
