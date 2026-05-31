@@ -102,14 +102,32 @@ function createMainWindow() {
 app.whenReady().then(createMainWindow);
 
 // IPC Functions
+function toSafeUser(user) {
+    return {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        last_login: user.last_login
+    };
+}
+
 ipcMain.handle('login', async (event, credentials) => {
     return new Promise((resolve) => {
-        const query = `SELECT * FROM users WHERE username = ? AND is_active = 1`;
+        const query = `
+            SELECT id, username, email, password_hash, role, last_login
+            FROM users
+            WHERE username = ? AND is_active = 1
+        `;
         db.get(query, [credentials.username], (err, user) => {
             if (err) return resolve({ success: false, message: "Veritabanı hatası. Lütfen hakkında kısmından bilgi alınız." });
             if (user && bcrypt.compareSync(credentials.password, user.password_hash)) {
-                db.run(`UPDATE users SET last_login = datetime('now') WHERE id = ?`, [user.id]);
-                return resolve({ success: true, user });
+                const currentLogin = new Date().toISOString();
+                db.run(`UPDATE users SET last_login = ? WHERE id = ?`, [currentLogin, user.id]);
+                return resolve({
+                    success: true,
+                    user: toSafeUser({ ...user, last_login: currentLogin })
+                });
             }
             resolve({ success: false, message: "Kullanıcı Adı / Şifre Hatalı!" });
         });
