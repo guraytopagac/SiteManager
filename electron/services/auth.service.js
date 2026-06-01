@@ -40,7 +40,7 @@ function login(credentials) {
 function register(userData) {
     return new Promise((resolve) => {
         const query = `INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)`;
-        const hashedPassword = bcrypt.hashSync(userData.password, 10);
+        const hashedPassword = bcrypt.hashSync(userData.password, 12);
 
         db.run(query, [userData.username, userData.email, hashedPassword, 'manager'], function (err) {
             if (err) return resolve({ success: false, message: "Benzersiz Kullanıcı Adı / Email Gerekli!" });
@@ -50,7 +50,4 @@ function register(userData) {
     });
 }
 
-module.exports = {
-    login,
-    register
-};
+module.exports = { login, register };

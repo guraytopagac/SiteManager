@@ -2,7 +2,7 @@
 const path = require('path');
 const serve = require('electron-serve').default;
 const { app, ipcMain, dialog, BrowserWindow, Menu } = require('electron');
-const registerIpcHandlers = require('./ipc');
+const registerIpcHandlers = require('./ipc/index.js');
 
 // Variables
 let mainWindow;
@@ -98,6 +98,7 @@ function createMainWindow() {
         mainWindow = null;
     });
 }
+
 app.whenReady().then(createMainWindow);
 
 // IPC Handlers

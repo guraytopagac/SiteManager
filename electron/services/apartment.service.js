@@ -24,7 +24,4 @@ function getApartments() {
     });
 }
 
-module.exports = {
-    addApartment,
-    getApartments
-};
+module.exports = { addApartment, getApartments };
