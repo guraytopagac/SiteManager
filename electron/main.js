@@ -98,12 +98,10 @@ function createMainWindow() {
         mainWindow = null;
     });
 }
-
 app.whenReady().then(createMainWindow);
 
 // IPC Handlers
 registerIpcHandlers(ipcMain);
-
 
 // Quit when all windows are closed (except on macOS)
 app.on('window-all-closed', () => {
