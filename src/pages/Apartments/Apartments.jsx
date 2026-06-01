@@ -6,20 +6,49 @@ function Apartments() {
     const navigate = useNavigate();
     const [apartments, setApartments] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState('');
 
     useEffect(() => {
         const fetchApartments = async () => {
-            const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
-            const response = await window.electronAPI.getApartments(currentUser.id);
-            if (response.success) {
-                setApartments(response.data);
+            const storedUser = sessionStorage.getItem('currentUser');
+
+            if (!storedUser) {
+                setErrorMessage('Oturum bilginiz bulunamadı. Lütfen tekrar giriş yapın.');
+                setLoading(false);
+                navigate('/', { replace: true });
+                return;
             }
-            setLoading(false);
+
+            try {
+                const currentUser = JSON.parse(storedUser);
+                const userId = currentUser?.id;
+
+                if (!userId) {
+                    setErrorMessage('Geçerli kullanıcı bilgisi bulunamadı. Lütfen tekrar giriş yapın.');
+                    setLoading(false);
+                    navigate('/', { replace: true });
+                    return;
+                }
+
+                const response = await window.electronAPI.getApartments(userId);
+                if (response.success) {
+                    setApartments(response.data);
+                } else {
+                    setErrorMessage(response.message || 'Daire listesi alınamadı.');
+                }
+            } catch {
+                setErrorMessage('Kullanıcı bilgisi okunamadı. Lütfen tekrar giriş yapın.');
+                navigate('/', { replace: true });
+            } finally {
+                setLoading(false);
+            }
         };
         fetchApartments();
-    }, []);
+    }, [navigate]);
 
     if (loading) return <div className="loading">Verileriniz Yükleniyor...</div>;
+
+    if (errorMessage) return <div className="loading">{errorMessage}</div>;
 
     return (
         <div className="apartments-container">
