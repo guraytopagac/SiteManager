@@ -9,7 +9,8 @@ function Apartments() {
 
     useEffect(() => {
         const fetchApartments = async () => {
-            const response = await window.electronAPI.getApartments();
+            const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+            const response = await window.electronAPI.getApartments(currentUser.id);
             if (response.success) {
                 setApartments(response.data);
             }

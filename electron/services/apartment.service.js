@@ -12,9 +12,9 @@ function addApartment(data) {
     });
 }
 
-function getApartments() {
+function getApartments(userId) {
     return new Promise((resolve) => {
-        db.all("SELECT * FROM apartments", [], (err, rows) => {
+        db.all("SELECT * FROM apartments WHERE manager_id = ?", [userId], (err, rows) => {
             if (err) {
                 resolve({ success: false, message: "Veriler alınamadı." });
             } else {
