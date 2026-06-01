@@ -24,7 +24,21 @@ function Login() {
           role,
           last_login
         }));
-        navigate("/dashboard");
+        Swal.fire({
+          icon: 'success',
+          title: loggedInUsername + "\n\nHoş Geldiniz",
+          text: message,
+          timer: 2500,
+          timerProgressBar: true,
+          showConfirmButton: false,
+          allowOutsideClick: false,
+          heightAuto: false,
+          showClass: {
+            popup: 'animate__animated animate__fadeInDown'
+          }
+        }).then(() => {
+          navigate("/dashboard");
+        });
       } else {
         Swal.fire({
           icon: 'error',

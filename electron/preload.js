@@ -7,6 +7,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     register: (userData) => ipcRenderer.invoke('register', userData),
     addApartment: (apartmentData) => ipcRenderer.invoke('add-apartment', apartmentData),
     getStats: () => ipcRenderer.invoke('get-stats'),
-    getApartments: () => ipcRenderer.invoke('get-apartments'),
+    getApartments: (userId) => ipcRenderer.invoke('get-apartments', userId),
     onToggleTheme: (callback) => ipcRenderer.on('toggle-theme', callback)
 });

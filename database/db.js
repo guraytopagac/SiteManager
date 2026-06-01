@@ -9,9 +9,9 @@ const isPackaged = app ? app.isPackaged : false;
 
 // Database Path
 if (!isPackaged) {
-    dbPath = path.join(__dirname, '..', 'apartment.db');
+    dbPath = path.join(__dirname, '..', 'database.db');
 } else {
-    dbPath = path.join(app.getPath('userData'), 'apartment.db');
+    dbPath = path.join(app.getPath('userData'), 'database.db');
 }
 
 // Constructing Tables
@@ -45,7 +45,9 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 floor INTEGER,
                 type TEXT,
                 square_meters REAL,
-                due_amount REAL
+                due_amount REAL,
+                manager_id INTEGER,
+                FOREIGN KEY(manager_id) REFERENCES users(id) ON DELETE CASCADE
             );
         `, (tableErr2) => {
             if (tableErr2) console.error('Tablo oluşturma hatası:', tableErr2.message);

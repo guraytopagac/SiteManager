@@ -45,7 +45,7 @@ function register(userData) {
         db.run(query, [userData.username, userData.email, hashedPassword, 'manager'], function (err) {
             if (err) return resolve({ success: false, message: "Benzersiz Kullanıcı Adı / Email Gerekli!" });
 
-            resolve({ success: true, message: "Kayıt Başarılı!" });
+            resolve({ success: true, message: "Hesabınız Oluşturuldu!" });
         });
     });
 }

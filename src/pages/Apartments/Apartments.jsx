@@ -18,7 +18,7 @@ function Apartments() {
         fetchApartments();
     }, []);
 
-    if (loading) return <div className="loading">Yükleniyor...</div>;
+    if (loading) return <div className="loading">Verileriniz Yükleniyor...</div>;
 
     return (
         <div className="apartments-container">

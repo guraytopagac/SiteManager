@@ -19,11 +19,16 @@ function Register() {
             if (response.success) {
                 Swal.fire({
                     icon: 'success',
-                    title: 'Başarılı!',
+                    title: 'Kayıt Başarılı!',
                     text: response.message,
-                    confirmButtonText: 'Tamam',
-                    confirmButtonColor: '#059669',
-                    heightAuto: false
+                    timer: 2500,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    allowOutsideClick: false,
+                    heightAuto: false,
+                    showClass: {
+                        popup: 'animate__animated animate__fadeInDown'
+                    }
                 }).then(() => {
                     navigate("/");
                 });
