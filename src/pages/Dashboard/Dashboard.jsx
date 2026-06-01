@@ -21,15 +21,15 @@ function Dashboard() {
             <div className="stat-grid">
                 <div className="stat-card" style={{ backgroundColor: '#059669' }}>
                     <h3>Kasa</h3>
-                    <p>12.450 ₺</p>
+                    <p>{stats.cash} ₺</p>
                 </div>
                 <div className="stat-card" style={{ backgroundColor: '#2563eb' }}>
                     <h3>Tahsilat</h3>
-                    <p>%85</p>
+                    <p>%{stats.collections}</p>
                 </div>
                 <div className="stat-card" style={{ backgroundColor: '#dc2626' }}>
                     <h3>Gecikme</h3>
-                    <p>4.200 ₺</p>
+                    <p>{stats.delays} ₺</p>
                 </div>
             </div>
 
@@ -48,11 +48,11 @@ function Dashboard() {
             <div className="category-group">
                 <h2 className="sectionHeader">Finansal İşlemler</h2>
                 <div className="action-grid">
+                    <div className="action-card" onClick={() => navigate('/add-income')}>
+                        <h4>Gelir Ekle</h4>
+                    </div>
                     <div className="action-card" onClick={() => navigate('/add-expense')}>
                         <h4>Gider Ekle</h4>
-                    </div>
-                    <div className="action-card" onClick={() => navigate('/add-due')}>
-                        <h4>Aidat Gir</h4>
                     </div>
                 </div>
             </div>

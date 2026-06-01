@@ -17,10 +17,7 @@ function AddApartment() {
         e.preventDefault();
         const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
         const userId = currentUser.id;
-        const response = await window.electronAPI.addApartment({
-            ...apartmentData,
-            manager_id: userId
-        });
+        const response = await window.electronAPI.addApartment({ ...apartmentData, manager_id: userId });
 
         if (response.success) {
             Swal.fire({
