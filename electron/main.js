@@ -1,9 +1,8 @@
 // Libraries
 const path = require('path');
-const bcrypt = require('bcryptjs');
-const db = require('../database/db');
 const serve = require('electron-serve').default;
 const { app, ipcMain, dialog, BrowserWindow, Menu } = require('electron');
+const registerIpcHandlers = require('./ipc');
 
 // Variables
 let mainWindow;
@@ -101,73 +100,8 @@ function createMainWindow() {
 }
 app.whenReady().then(createMainWindow);
 
-// IPC Functions
-function toSafeUser(user) {
-    return {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        last_login: user.last_login
-    };
-}
-
-ipcMain.handle('login', async (event, credentials) => {
-    return new Promise((resolve) => {
-        const query = `
-            SELECT id, username, email, password_hash, role, last_login
-            FROM users
-            WHERE username = ? AND is_active = 1
-        `;
-        db.get(query, [credentials.username], (err, user) => {
-            if (err) return resolve({ success: false, message: "Veritabanı hatası. Lütfen hakkında kısmından bilgi alınız." });
-            if (user && bcrypt.compareSync(credentials.password, user.password_hash)) {
-                const currentLogin = new Date().toISOString();
-                db.run(`UPDATE users SET last_login = ? WHERE id = ?`, [currentLogin, user.id]);
-                return resolve({
-                    success: true,
-                    user: toSafeUser({ ...user, last_login: currentLogin })
-                });
-            }
-            resolve({ success: false, message: "Kullanıcı Adı / Şifre Hatalı!" });
-        });
-    });
-});
-ipcMain.handle('register', async (event, userData) => {
-    return new Promise((resolve) => {
-        const query = `INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)`;
-        const hashedPassword = bcrypt.hashSync(userData.password, 10);
-        db.run(query, [userData.username, userData.email, hashedPassword, 'manager'], function (err) {
-            if (err) return resolve({ success: false, message: "Benzersiz Kullanıcı Adı / Email Gerekli!" });
-            resolve({ success: true, message: "Kayıt Başarılı!" });
-        });
-    });
-});
-ipcMain.handle('add-apartment', async (event, data) => {
-    return new Promise((resolve) => {
-        const query = `INSERT INTO apartments (apartment_no, floor, type, square_meters, due_amount) VALUES (?, ?, ?, ?, ?)`;
-        db.run(query, [data.apartment_no, data.floor, data.type, data.square_meters, data.due_amount], function (err) {
-            if (err) return resolve({ success: false, message: "Daire eklenemedi. Lütfen hakkında kısmından bilgi alınız." });
-            resolve({ success: true, message: "Daire eklendi." });
-        });
-    });
-});
-ipcMain.handle('get-stats', async () => {
-    return new Promise((resolve) => {
-        resolve({ success: true, payload: { cash: 12450, collections: 85, delays: 4200 } });
-    });
-});
-ipcMain.handle('get-apartments', async () => {
-    return new Promise((resolve) => {
-        db.all("SELECT * FROM apartments", [], (err, rows) => {
-            if (err) {
-                resolve({ success: false, message: "Veriler alınamadı." });
-            } else {
-                resolve({ success: true, data: rows });
-            }
-        });
-    });
-});
+// IPC Handlers
+registerIpcHandlers(ipcMain);
 
 
 // Quit when all windows are closed (except on macOS)
