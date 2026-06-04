@@ -3,10 +3,11 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // API
 contextBridge.exposeInMainWorld('electronAPI', {
+    onToggleTheme: (callback) => ipcRenderer.on('toggle-theme', callback),
     login: (credentials) => ipcRenderer.invoke('login', credentials),
     register: (userData) => ipcRenderer.invoke('register', userData),
-    addApartment: (apartmentData) => ipcRenderer.invoke('add-apartment', apartmentData),
     getStats: () => ipcRenderer.invoke('get-stats'),
+    addApartment: (apartmentData) => ipcRenderer.invoke('add-apartment', apartmentData),
     getApartments: (userId) => ipcRenderer.invoke('get-apartments', userId),
-    onToggleTheme: (callback) => ipcRenderer.on('toggle-theme', callback)
+    addIncome: (data) => ipcRenderer.invoke('add-income', data),
 });

@@ -23,6 +23,8 @@ const db = new sqlite3.Database(dbPath, (err) => {
         console.log('Successfully connected to the database.');
     }
 
+    db.run("PRAGMA foreign_keys = ON;");
+
     db.serialize(() => {
         db.run(`
             CREATE TABLE IF NOT EXISTS users (
@@ -35,7 +37,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 last_login TEXT
             );
         `, (tableErr1) => {
-            if (tableErr1) console.error('Tablo oluşturma hatası:', tableErr1.message);
+            if (tableErr1) console.error('Users tablosu oluşturma hatası:', tableErr1.message);
         });
 
         db.run(`
@@ -50,7 +52,20 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 FOREIGN KEY(manager_id) REFERENCES users(id) ON DELETE CASCADE
             );
         `, (tableErr2) => {
-            if (tableErr2) console.error('Tablo oluşturma hatası:', tableErr2.message);
+            if (tableErr2) console.error('Apartments tablosu oluşturma hatası:', tableErr2.message);
+        });
+
+        db.run(`
+            CREATE TABLE IF NOT EXISTS incomes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                amount REAL NOT NULL,
+                date TEXT NOT NULL,
+                description TEXT,
+                manager_id INTEGER,
+                FOREIGN KEY(manager_id) REFERENCES users(id) ON DELETE SET NULL
+            );
+        `, (tableErr3) => {
+            if (tableErr3) console.error('Incomes tablosu oluşturma hatası:', tableErr3.message);
         });
     });
 });

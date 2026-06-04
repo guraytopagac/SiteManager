@@ -6,6 +6,7 @@ import Register from './pages/Register/Register.jsx';
 import Dashboard from './pages/Dashboard/Dashboard.jsx';
 import AddApartment from './pages/AddApartment/AddApartment.jsx'
 import Apartments from './pages/Apartments/Apartments.jsx'
+import AddIncome from './pages/AddIncome/AddIncome.jsx';
 import Footer from './components/Footer.jsx';
 import './style.css';
 
@@ -32,6 +33,7 @@ function App() {
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/add-apartment" element={<AddApartment />} />
                     <Route path="/apartments" element={<Apartments />} />
+                    <Route path="/add-income" element={<AddIncome />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
                 <Footer />
