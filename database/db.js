@@ -67,6 +67,18 @@ const db = new sqlite3.Database(dbPath, (err) => {
         `, (tableErr3) => {
             if (tableErr3) console.error('Incomes tablosu oluşturma hatası:', tableErr3.message);
         });
+        db.run(`
+            CREATE TABLE IF NOT EXISTS expenses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                amount REAL NOT NULL,
+                date TEXT NOT NULL,
+                description TEXT,
+                manager_id INTEGER,
+                FOREIGN KEY(manager_id) REFERENCES users(id) ON DELETE SET NULL
+            );
+        `, (tableErr4) => {
+            if (tableErr4) console.error('Expenses tablosu oluşturma hatası:', tableErr4.message);
+        });
     });
 });
 

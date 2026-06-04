@@ -8,9 +8,14 @@ function Dashboard() {
 
     useEffect(() => {
         const fetchStats = async () => {
-            const data = await window.electronAPI.getStats();
-            if (data.success) {
-                setStats(data.payload);
+            const currentUserRaw = sessionStorage.getItem('currentUser');
+            if (currentUserRaw) {
+                const currentUser = JSON.parse(currentUserRaw);
+                const managerId = currentUser.id;
+                const data = await window.electronAPI.getStats(managerId);
+                if (data.success) {
+                    setStats(data.payload);
+                }
             }
         };
         fetchStats();

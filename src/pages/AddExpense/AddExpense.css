@@ -1,4 +1,4 @@
-.income-wrapper {
+.expense-wrapper {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -7,7 +7,7 @@
     padding: 20px;
 }
 
-.incomeContainer {
+.expenseContainer {
     background: var(--card-background-1);
     width: 100%;
     max-width: 440px;
@@ -17,7 +17,7 @@
     transition: all 0.3s ease;
 }
 
-.incomeContainer .title {
+.expenseContainer .title {
     color: var(--text-color);
     font-size: 26px;
     font-weight: 700;
@@ -26,7 +26,7 @@
     letter-spacing: 0.5px;
 }
 
-.incomeForm {
+.expenseForm {
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -70,7 +70,7 @@
     min-height: 110px;
 }
 
-#incomeButton,
+#expenseButton,
 #backButton {
     width: 100%;
     padding: 14px;
@@ -83,25 +83,24 @@
     transition: all 0.2s ease;
 }
 
-#incomeButton {
+#expenseButton {
     background-color: var(--button-color);
-    color: white;
+    color: #ffffff;
     margin-top: 5px;
 }
 
-#incomeButton:hover {
+#expenseButton:hover {
     background-color: var(--button-hover);
 }
 
-#incomeButton:active {
+#expenseButton:active {
     transform: scale(0.98);
 }
 
 #backButton {
-    background-color: transparent;
-    color: var(--text-color);
-    border: 1px solid var(--button-color);
-    transition: all 0.3s ease;
+    background-color: var(--button-color);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 #backButton:hover {
