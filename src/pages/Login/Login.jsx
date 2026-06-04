@@ -12,8 +12,10 @@ function Login() {
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
 
-    if (username && password) {
-      const { success, user, message } = await window.electronAPI.login({ username, password });
+    const cleanUsername = username.trim();
+
+    if (cleanUsername && password) {
+      const { success, user, message } = await window.electronAPI.login({ username: cleanUsername, password });
 
       if (success) {
         const { id, username: loggedInUsername, email, role, last_login } = user;
