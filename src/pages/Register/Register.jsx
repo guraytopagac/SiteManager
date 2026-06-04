@@ -1,4 +1,3 @@
-// Libraries
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import "./Register.css";
@@ -8,46 +7,77 @@ function Register() {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState(''); 
     const navigate = useNavigate();
 
     const handleRegisterSubmit = async (e) => {
         e.preventDefault();
 
-        if (username && email && password) {
-            const response = await window.electronAPI.register({ username, email, password });
+        const cleanUsername = username.trim();
+        const cleanEmail = email.trim();
 
-            if (response.success) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Kayıt Başarılı!',
-                    text: response.message,
-                    timer: 2500,
-                    timerProgressBar: true,
-                    showConfirmButton: false,
-                    allowOutsideClick: false,
-                    heightAuto: false,
-                    showClass: {
-                        popup: 'animate__animated animate__fadeInDown'
-                    }
-                }).then(() => {
-                    navigate("/");
-                });
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Kayıt Başarısız',
-                    text: response.message,
-                    confirmButtonText: 'Tamam',
-                    confirmButtonColor: '#dc2626',
-                    heightAuto: false
-                });
-            }
-        } else {
+        if (!cleanUsername || !cleanEmail || !password || !confirmPassword) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Eksik Alan',
                 text: 'Lütfen tüm alanları doldurun!',
                 confirmButtonColor: '#f59e0b',
+                heightAuto: false
+            });
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Şifreler Eşleşmiyor',
+                text: 'Girdiğiniz şifreler birbiriyle uyuşmuyor!',
+                confirmButtonColor: '#dc2626',
+                heightAuto: false
+            });
+            return;
+        }
+
+        if (password.length < 6) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Zayıf Şifre',
+                text: 'Şifre en az 6 karakterden oluşmalıdır!',
+                confirmButtonColor: '#f59e0b',
+                heightAuto: false
+            });
+            return;
+        }
+
+        const response = await window.electronAPI.register({ 
+            username: cleanUsername, 
+            email: cleanEmail, 
+            password 
+        });
+
+        if (response.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Kayıt Başarılı!',
+                text: response.message || 'Hesabınız başarıyla oluşturuldu.',
+                timer: 2500,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                allowOutsideClick: false,
+                heightAuto: false,
+                showClass: {
+                    popup: 'animate__animated animate__fadeInDown'
+                }
+            }).then(() => {
+                navigate("/");
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Kayıt Başarısız',
+                text: response.message || 'Bir hata oluştu.',
+                confirmButtonText: 'Tamam',
+                confirmButtonColor: '#dc2626',
                 heightAuto: false
             });
         }
@@ -83,6 +113,15 @@ function Register() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                 />
+                <input
+                    type="password"
+                    id="userConfirmPassword"
+                    placeholder="Şifrenizi tekrar girin"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                />
+
                 <button type="submit" id="registerButton">Kayıt Ol</button>
             </form>
 
