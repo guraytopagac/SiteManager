@@ -1,16 +1,29 @@
-// Libraries
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import "./Login.css";
 import Swal from 'sweetalert2';
+import logoImg from "../../assets/logo.png";
+import { useLoginLock } from '../../hooks/useLoginLock.js';
 
 function Login() {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
+  const { isLocked, remainingTime, handleFailedAttempt, resetLock } = useLoginLock(5, 5);
+
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
+
+    if (isLocked) {
+      Swal.fire({
+        title: 'Çok Fazla Hatalı Giriş!',
+        text: `Lütfen ${remainingTime} sonra tekrar deneyin.`,
+        icon: 'error',
+        heightAuto: false
+      });
+      return;
+    }
 
     const cleanUsername = username.trim();
 
@@ -18,40 +31,22 @@ function Login() {
       const { success, user, message } = await window.electronAPI.login({ username: cleanUsername, password });
 
       if (success) {
+        resetLock();
+
         const { id, username: loggedInUsername, email, role, last_login } = user;
-        sessionStorage.setItem('currentUser', JSON.stringify({
-          id,
-          username: loggedInUsername,
-          email,
-          role,
-          last_login
-        }));
+        sessionStorage.setItem('currentUser', JSON.stringify({ id, username: loggedInUsername, email, role, last_login }));
+
         Swal.fire({
           icon: 'success',
           title: loggedInUsername + "\n\nHoş Geldiniz",
           text: message,
           timer: 2500,
-          timerProgressBar: true,
-          showConfirmButton: false,
-          allowOutsideClick: false,
-          heightAuto: false,
-          showClass: {
-            popup: 'animate__animated animate__fadeInDown'
-          }
+          showConfirmButton: false
         }).then(() => {
           navigate("/dashboard");
         });
       } else {
-        Swal.fire({
-          icon: 'error',
-          title: 'Giriş Başarısız',
-          text: message,
-          confirmButtonText: 'Tamam',
-          confirmButtonColor: '#3b82f6',
-          background: '#ffffff',
-          allowOutsideClick: false,
-          heightAuto: false
-        })
+        handleFailedAttempt(message);
       }
     } else {
       Swal.fire('Uyarı', 'Lütfen tüm alanları doldurun!', 'warning');
@@ -61,33 +56,38 @@ function Login() {
   return (
     <div className="main-wrapper">
       <div className="loginContainer">
+        <div className="logo-container"><img src={logoImg} alt="Mavikent Logo" className="app-logo" /></div>
         <h1 className="title">Mavikent Site Yönetimi</h1>
         <h2 className="subtitle">Hoşgeldiniz!</h2>
 
         <form className="loginForm" onSubmit={handleLoginSubmit}>
           <input
             type="text"
-            id="userName"
             placeholder="Kullanıcı adınızı girin"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            disabled={isLocked}
             required
           />
           <input
             type="password"
-            id="userPassword"
             placeholder="Şifrenizi girin"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            disabled={isLocked}
             required
           />
-          <button type="submit" id="loginButton"> Giriş Yap </button>
+          <button
+            type="submit"
+            id="loginButton"
+            disabled={isLocked}
+            style={isLocked ? { backgroundColor: '#9ca3af', cursor: 'not-allowed' } : {}}
+          >
+            {isLocked ? `Kilitlendi (${remainingTime})` : 'Giriş Yap'}
+          </button>
         </form>
 
-        <p className="infoText">
-          Bir hesabınız yok mu?{' '}
-          <Link to="/register">Kayıt olun</Link>
-        </p>
+        <p className="infoText">Bir hesabınız yok mu? <Link to="/register">Kayıt olun</Link></p>
       </div>
     </div>
   );

@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import "./Register.css";
 import Swal from 'sweetalert2';
+import logoImg from "../../assets/logo.png";
 
 function Register() {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState(''); 
+    const [confirmPassword, setConfirmPassword] = useState('');
     const navigate = useNavigate();
 
     const handleRegisterSubmit = async (e) => {
@@ -49,10 +50,10 @@ function Register() {
             return;
         }
 
-        const response = await window.electronAPI.register({ 
-            username: cleanUsername, 
-            email: cleanEmail, 
-            password 
+        const response = await window.electronAPI.register({
+            username: cleanUsername,
+            email: cleanEmail,
+            password
         });
 
         if (response.success) {
@@ -85,6 +86,9 @@ function Register() {
 
     return (
         <div className="registerContainer">
+            <div className="logo-container">
+                <img src={logoImg} alt="Mavikent Logo" className="app-logo" />
+            </div>
             <h1 className="title">Mavikent Site Yönetimi</h1>
             <h2 className="subtitle">Yeni Hesap Oluştur</h2>
 
