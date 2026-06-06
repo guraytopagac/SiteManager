@@ -19,7 +19,7 @@
 }
 
 body {
-  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  font-family: "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS", sans-serif;
   background: linear-gradient(0deg, var(--background-color-1), var(--background-color-2));
   height: 100vh;
   overflow: hidden;

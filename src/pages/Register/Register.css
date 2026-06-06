@@ -1,77 +1,77 @@
 .registerContainer {
-    background: linear-gradient(135deg, var(--card-background-1), var(--card-background-2));
-    padding: 50px;
-    border-radius: 50px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    width: 800px;
-    text-align: center;
-    color: var(--text-color);
+  background: linear-gradient(135deg, var(--card-background-1), var(--card-background-2));
+  padding: 50px;
+  border-radius: 50px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  width: 800px;
+  text-align: center;
+  color: var(--text-color);
 }
 
 .title {
-    font-family: Verdana, Geneva, Tahoma, sans-serif;
-    font-size: 35px;
-    margin-bottom: 10px;
-    font-weight: bold;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  font-size: 35px;
+  margin-bottom: 10px;
+  font-weight: bold;
 }
 
 .subtitle {
-    font-size: 24px;
-    margin-bottom: 30px;
-    font-weight: normal;
+  font-size: 24px;
+  margin-bottom: 30px;
+  font-weight: normal;
 }
 
 .registerForm {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .registerForm input {
-    text-align: center;
-    width: 100%;
-    padding: 14px 0;
-    font-size: 18px;
-    border: 2px solid #8c94ad;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-    outline: none;
+  text-align: center;
+  width: 100%;
+  padding: 14px 0;
+  font-size: 18px;
+  border: 2px solid #8c94ad;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  outline: none;
 }
 
 .registerForm input:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 5px rgba(59, 130, 246, 1);
+  border-color: #3b82f6;
+  box-shadow: 0 0 5px rgba(59, 130, 246, 1);
 }
 
 .registerForm button {
-    margin-top: 20px;
-    padding: 14px;
-    font-size: 18px;
-    color: #ffffff;
-    background: var(--button-color);
-    border: 3px solid var(--button-color);
-    border-radius: 15px;
-    cursor: pointer;
-    transition: 0.3s ease;
+  margin-top: 20px;
+  padding: 14px;
+  font-size: 18px;
+  color: #ffffff;
+  background: var(--button-color);
+  border: 3px solid var(--button-color);
+  border-radius: 15px;
+  cursor: pointer;
+  transition: 0.3s ease;
 }
 
 .registerForm button:hover {
-    background: var(--button-hover);
+  background: var(--button-hover);
 }
 
 .infoText {
-    margin-top: 20px;
-    font-size: 16px;
-    color: var(--text-color);
+  margin-top: 20px;
+  font-size: 16px;
+  color: var(--text-color);
 }
 
 .infoText a {
-    color: var(--button-color);
-    text-decoration: underline;
-    font-weight: bold;
-    transition: all 0.3s ease;
+  color: var(--button-color);
+  text-decoration: underline;
+  font-weight: bold;
+  transition: all 0.3s ease;
 }
 
 .infoText a:hover {
-    color: var(--button-hover);
+  color: var(--button-hover);
 }

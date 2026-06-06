@@ -1,7 +1,7 @@
 // Libraries
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const { app } = require('electron');
+const sqlite3 = require("sqlite3").verbose();
+const path = require("path");
+const { app } = require("electron");
 
 // Variables
 let dbPath;
@@ -9,24 +9,25 @@ const isPackaged = app ? app.isPackaged : false;
 
 // Database Path
 if (!isPackaged) {
-    dbPath = path.join(__dirname, '..', 'database.db');
+  dbPath = path.join(__dirname, "..", "database.db");
 } else {
-    dbPath = path.join(app.getPath('userData'), 'database.db');
+  dbPath = path.join(app.getPath("userData"), "database.db");
 }
 
 // Constructing Tables
 const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Veri tabanı bağlantı hatası:', err.message);
-        return;
-    } else {
-        console.log('Successfully connected to the database.');
-    }
+  if (err) {
+    console.error("Veri tabanı bağlantı hatası:", err.message);
+    return;
+  } else {
+    console.log("Successfully connected to the database.");
+  }
 
-    db.run("PRAGMA foreign_keys = ON;");
+  db.run("PRAGMA foreign_keys = ON;");
 
-    db.serialize(() => {
-        db.run(`
+  db.serialize(() => {
+    db.run(
+      `
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE,
@@ -36,11 +37,14 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 is_active INTEGER DEFAULT 1,
                 last_login TEXT
             );
-        `, (tableErr1) => {
-            if (tableErr1) console.error('Users tablosu oluşturma hatası:', tableErr1.message);
-        });
+        `,
+      (tableErr1) => {
+        if (tableErr1) console.error("Users tablosu oluşturma hatası:", tableErr1.message);
+      },
+    );
 
-        db.run(`
+    db.run(
+      `
             CREATE TABLE IF NOT EXISTS apartments (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 apartment_no TEXT NOT NULL UNIQUE,
@@ -51,11 +55,14 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 manager_id INTEGER,
                 FOREIGN KEY(manager_id) REFERENCES users(id) ON DELETE CASCADE
             );
-        `, (tableErr2) => {
-            if (tableErr2) console.error('Apartments tablosu oluşturma hatası:', tableErr2.message);
-        });
+        `,
+      (tableErr2) => {
+        if (tableErr2) console.error("Apartments tablosu oluşturma hatası:", tableErr2.message);
+      },
+    );
 
-        db.run(`
+    db.run(
+      `
             CREATE TABLE IF NOT EXISTS incomes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 amount REAL NOT NULL,
@@ -64,10 +71,13 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 manager_id INTEGER,
                 FOREIGN KEY(manager_id) REFERENCES users(id) ON DELETE SET NULL
             );
-        `, (tableErr3) => {
-            if (tableErr3) console.error('Incomes tablosu oluşturma hatası:', tableErr3.message);
-        });
-        db.run(`
+        `,
+      (tableErr3) => {
+        if (tableErr3) console.error("Incomes tablosu oluşturma hatası:", tableErr3.message);
+      },
+    );
+    db.run(
+      `
             CREATE TABLE IF NOT EXISTS expenses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 amount REAL NOT NULL,
@@ -76,10 +86,12 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 manager_id INTEGER,
                 FOREIGN KEY(manager_id) REFERENCES users(id) ON DELETE SET NULL
             );
-        `, (tableErr4) => {
-            if (tableErr4) console.error('Expenses tablosu oluşturma hatası:', tableErr4.message);
-        });
-    });
+        `,
+      (tableErr4) => {
+        if (tableErr4) console.error("Expenses tablosu oluşturma hatası:", tableErr4.message);
+      },
+    );
+  });
 });
 
 module.exports = db;

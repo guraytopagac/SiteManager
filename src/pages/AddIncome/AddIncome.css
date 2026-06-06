@@ -1,113 +1,113 @@
 .income-wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100vw;
-    height: 100vh;
-    padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  padding: 20px;
 }
 
 .incomeContainer {
-    background: var(--card-background-1);
-    width: 100%;
-    max-width: 440px;
-    padding: 35px;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    transition: all 0.3s ease;
+  background: var(--card-background-1);
+  width: 100%;
+  max-width: 440px;
+  padding: 35px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
 }
 
 .incomeContainer .title {
-    color: var(--text-color);
-    font-size: 26px;
-    font-weight: 700;
-    margin-bottom: 25px;
-    text-align: center;
-    letter-spacing: 0.5px;
+  color: var(--text-color);
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 25px;
+  text-align: center;
+  letter-spacing: 0.5px;
 }
 
 .incomeForm {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .formGroup {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .formGroup label {
-    color: var(--text-color);
-    font-size: 14px;
-    font-weight: 600;
-    opacity: 0.9;
+  color: var(--text-color);
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.9;
 }
 
 .formGroup input,
 .formGroup textarea {
-    width: 100%;
-    padding: 12px 16px;
-    border: 1px solid var(--card-background-2);
-    border-radius: 10px;
-    font-size: 15px;
-    font-family: inherit;
-    color: var(--text-color);
-    background-color: var(--background-color-1);
-    transition: all 0.2s ease;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--card-background-2);
+  border-radius: 10px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--text-color);
+  background-color: var(--background-color-1);
+  transition: all 0.2s ease;
 }
 
 .formGroup input:focus,
 .formGroup textarea:focus {
-    outline: none;
-    border-color: var(--button-color);
-    box-shadow: 0 0 0 4px rgba(104, 107, 196, 0.2);
+  outline: none;
+  border-color: var(--button-color);
+  box-shadow: 0 0 0 4px rgba(104, 107, 196, 0.2);
 }
 
 .formGroup textarea {
-    resize: none;
-    min-height: 110px;
+  resize: none;
+  min-height: 110px;
 }
 
 #incomeButton,
 #backButton {
-    width: 100%;
-    padding: 14px;
-    border: none;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 0.2s ease;
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 #incomeButton {
-    background-color: var(--button-color);
-    color: white;
-    margin-top: 5px;
+  background-color: var(--button-color);
+  color: white;
+  margin-top: 5px;
 }
 
 #incomeButton:hover {
-    background-color: var(--button-hover);
+  background-color: var(--button-hover);
 }
 
 #incomeButton:active {
-    transform: scale(0.98);
+  transform: scale(0.98);
 }
 
 #backButton {
-    background-color: transparent;
-    color: var(--text-color);
-    border: 1px solid var(--button-color);
-    transition: all 0.3s ease;
+  background-color: transparent;
+  color: var(--text-color);
+  border: 1px solid var(--button-color);
+  transition: all 0.3s ease;
 }
 
 #backButton:hover {
-    background-color: var(--button-hover);
+  background-color: var(--button-hover);
 }
 
 #backButton:active {
-    transform: scale(0.98);
+  transform: scale(0.98);
 }
