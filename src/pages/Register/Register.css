@@ -9,7 +9,6 @@
 }
 
 .title {
-  font-family: Verdana, Geneva, Tahoma, sans-serif;
   font-size: 35px;
   margin-bottom: 10px;
   font-weight: bold;
@@ -19,6 +18,7 @@
   font-size: 24px;
   margin-bottom: 30px;
   font-weight: normal;
+  color: var(--text-secondary);
 }
 
 .registerForm {
@@ -32,15 +32,22 @@
   width: 100%;
   padding: 14px 0;
   font-size: 18px;
-  border: 2px solid #8c94ad;
+  background: var(--card-background-2);
+  color: var(--text-color);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   transition: all 0.3s ease;
   outline: none;
+  font-family: inherit;
+}
+
+.registerForm input::placeholder {
+  color: var(--text-secondary);
 }
 
 .registerForm input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 5px rgba(59, 130, 246, 1);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
 .registerForm button {
@@ -49,10 +56,12 @@
   font-size: 18px;
   color: #ffffff;
   background: var(--button-color);
-  border: 3px solid var(--button-color);
+  border: none;
   border-radius: 15px;
   cursor: pointer;
   transition: 0.3s ease;
+  font-family: inherit;
+  font-weight: 600;
 }
 
 .registerForm button:hover {
@@ -62,7 +71,7 @@
 .infoText {
   margin-top: 20px;
   font-size: 16px;
-  color: var(--text-color);
+  color: var(--text-secondary);
 }
 
 .infoText a {

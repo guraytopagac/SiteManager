@@ -4,7 +4,7 @@
   max-width: 1200px;
   margin: 0 auto;
   background: linear-gradient(0deg, var(--background-color-1), var(--background-color-2));
-  border: solid 1px white;
+  border: 1px solid var(--border-default);
   border-radius: 20px;
 }
 
@@ -19,8 +19,20 @@
   padding: 20px;
   border-radius: 12px;
   text-align: center;
-  color: var(--text-color);
-  border: 2px solid var(--card-background-1);
+  color: #ffffff;
+  border: 2px solid transparent;
+}
+
+.stat-card-kasa {
+  background-color: var(--stat-kasa);
+}
+
+.stat-card-tahsilat {
+  background-color: var(--stat-tahsilat);
+}
+
+.stat-card-gecikme {
+  background-color: var(--stat-gecikme);
 }
 
 .sectionHeader {
@@ -48,13 +60,13 @@
   text-align: center;
   cursor: pointer;
   color: var(--text-color);
-  border: 2px solid transparent;
+  border: 1px solid var(--border-default);
   transition: all 0.3s ease;
 }
 
 .action-card:hover {
   border-color: var(--button-color);
-  background-color: var(--card-background-2);
+  background-color: var(--accent-subtle);
 }
 
 .return-link {
@@ -79,7 +91,7 @@
 }
 
 .button-logout {
-  background-color: #dc2626;
+  background-color: var(--danger);
 }
 
 .button-logout:hover {

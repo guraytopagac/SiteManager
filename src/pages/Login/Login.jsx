@@ -96,7 +96,6 @@ function Login() {
             type="submit"
             id="loginButton"
             disabled={isLocked}
-            style={isLocked ? { backgroundColor: "#9ca3af", cursor: "not-allowed" } : {}}
           >
             {isLocked ? `Kilitlendi (${remainingTime})` : "Giriş Yap"}
           </button>

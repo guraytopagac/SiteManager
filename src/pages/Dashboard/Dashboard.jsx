@@ -43,15 +43,15 @@ function Dashboard() {
   return (
     <div className="dashboard-container">
       <div className="stat-grid">
-        <div className="stat-card" style={{ backgroundColor: "#059669" }}>
+        <div className="stat-card stat-card-kasa">
           <h3>Kasa</h3>
           <p>{stats.cash} ₺</p>
         </div>
-        <div className="stat-card" style={{ backgroundColor: "#2563eb" }}>
+        <div className="stat-card stat-card-tahsilat">
           <h3>Tahsilat</h3>
           <p>%{stats.collections}</p>
         </div>
-        <div className="stat-card" style={{ backgroundColor: "#dc2626" }}>
+        <div className="stat-card stat-card-gecikme">
           <h3>Gecikme</h3>
           <p>{stats.delays} ₺</p>
         </div>

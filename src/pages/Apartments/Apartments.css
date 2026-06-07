@@ -18,6 +18,7 @@
   background: var(--card-background-1);
   border-radius: 12px;
   overflow: hidden;
+  border: 1px solid var(--border-default);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
 }
 
@@ -38,7 +39,7 @@
 
 .apartment-table td {
   padding: 16px;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .apartment-table tbody tr {
@@ -51,7 +52,7 @@
 }
 
 .apartment-table tbody tr:hover {
-  background: rgba(100, 108, 255, 0.08);
+  background: var(--accent-subtle);
 }
 
 .apartment-table tbody tr:last-child td {
