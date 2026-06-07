@@ -7,6 +7,7 @@ function AddExpense() {
   const navigate = useNavigate();
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleExpenseSubmit = async (e) => {
     e.preventDefault();
@@ -42,7 +43,7 @@ function AddExpense() {
     const today = new Date().toISOString().split("T")[0];
 
     if (amount && cleanDescription) {
-      // Electron API üzerinden gider ekleme kanalını tetikliyoruz
+      setIsSubmitting(true);
       const response = await window.electronAPI.addExpense({
         amount: Number(amount),
         description: cleanDescription,
@@ -50,6 +51,7 @@ function AddExpense() {
         manager_id: managerId,
       });
 
+      setIsSubmitting(false);
       if (response.success) {
         Swal.fire({
           icon: "success",
@@ -108,8 +110,8 @@ function AddExpense() {
             />
           </div>
 
-          <button type="submit" id="expenseButton">
-            Gideri Kaydet
+          <button type="submit" id="expenseButton" disabled={isSubmitting}>
+            {isSubmitting ? "Kaydediliyor..." : "Gideri Kaydet"}
           </button>
           <button type="button" id="backButton" onClick={() => navigate("/dashboard")}>
             Geri Dön

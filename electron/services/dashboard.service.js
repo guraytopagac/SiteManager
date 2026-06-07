@@ -1,5 +1,11 @@
 const db = require("../../database/db");
 
+function queryGet(sql, params) {
+  return new Promise((resolve, reject) => {
+    db.get(sql, params, (err, row) => (err ? reject(err) : resolve(row)));
+  });
+}
+
 async function getStats(managerId) {
   if (!managerId) {
     return {
@@ -8,49 +14,38 @@ async function getStats(managerId) {
     };
   }
 
-  return new Promise((resolve) => {
-    db.serialize(async () => {
-      try {
-        await db.ready;
+  try {
+    const incomeRow = await queryGet(
+      `SELECT COALESCE(SUM(amount), 0) AS totalIncome FROM incomes WHERE manager_id = ?`,
+      [managerId],
+    );
 
-        const totalIncome = await new Promise((res, rej) => {
-          db.get(
-            `SELECT COALESCE(SUM(amount), 0) AS totalIncome FROM incomes WHERE manager_id = ?`,
-            [managerId],
-            (err, row) => (err ? rej(err) : res(Number(row.totalIncome || 0))),
-          );
-        });
+    const expenseRow = await queryGet(
+      `SELECT COALESCE(SUM(amount), 0) AS totalExpense FROM expenses WHERE manager_id = ?`,
+      [managerId],
+    );
 
-        const totalExpense = await new Promise((res, rej) => {
-          db.get(
-            `SELECT COALESCE(SUM(amount), 0) AS totalExpense FROM expenses WHERE manager_id = ?`,
-            [managerId],
-            (err, row) => (err ? rej(err) : res(Number(row.totalExpense || 0))),
-          );
-        });
+    const dueRow = await queryGet(
+      `SELECT COALESCE(SUM(due_amount), 0) AS totalDue FROM apartments WHERE manager_id = ?`,
+      [managerId],
+    );
 
-        const totalDue = await new Promise((res, rej) => {
-          db.get(
-            `SELECT COALESCE(SUM(due_amount), 0) AS totalDue FROM apartments WHERE manager_id = ?`,
-            [managerId],
-            (err, row) => (err ? rej(err) : res(Number(row.totalDue || 0))),
-          );
-        });
+    const totalIncome = Number(incomeRow.totalIncome || 0);
+    const totalExpense = Number(expenseRow.totalExpense || 0);
+    const totalDue = Number(dueRow.totalDue || 0);
 
-        const cash = Math.max(totalIncome - totalExpense, 0);
-        const delays = Math.max(totalDue - totalIncome, 0);
-        const collections = totalDue > 0 ? Math.min(Math.round((totalIncome / totalDue) * 100), 100) : 0;
+    const cash = Math.max(totalIncome - totalExpense, 0);
+    const delays = Math.max(totalDue - totalIncome, 0);
+    const collections = totalDue > 0 ? Math.min(Math.round((totalIncome / totalDue) * 100), 100) : 0;
 
-        resolve({
-          success: true,
-          payload: { cash, collections, delays },
-        });
-      } catch (err) {
-        console.error("Dashboard istatistikleri alınamadı:", err);
-        resolve({ success: false, message: "Dashboard verileri alınamadı." });
-      }
-    });
-  });
+    return {
+      success: true,
+      payload: { cash, collections, delays },
+    };
+  } catch (err) {
+    console.error("Dashboard istatistikleri alınamadı:", err);
+    return { success: false, message: "Dashboard verileri alınamadı." };
+  }
 }
 
 module.exports = { getStats };

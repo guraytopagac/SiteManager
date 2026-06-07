@@ -77,3 +77,19 @@
 .button:hover {
   background-color: var(--button-hover);
 }
+
+.button-logout {
+  background-color: #dc2626;
+}
+
+.button-logout:hover {
+  background-color: #b91c1c;
+}
+
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-color);
+  font-size: 1rem;
+  opacity: 0.7;
+}

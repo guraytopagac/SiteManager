@@ -7,6 +7,7 @@ function AddIncome() {
   const navigate = useNavigate();
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleIncomeSubmit = async (e) => {
     e.preventDefault();
@@ -42,6 +43,7 @@ function AddIncome() {
     const today = new Date().toISOString().split("T")[0];
 
     if (amount && cleanDescription) {
+      setIsSubmitting(true);
       const response = await window.electronAPI.addIncome({
         amount: Number(amount),
         description: cleanDescription,
@@ -49,6 +51,7 @@ function AddIncome() {
         manager_id: managerId,
       });
 
+      setIsSubmitting(false);
       if (response.success) {
         Swal.fire({
           icon: "success",
@@ -107,8 +110,8 @@ function AddIncome() {
             />
           </div>
 
-          <button type="submit" id="incomeButton">
-            Geliri Kaydet
+          <button type="submit" id="incomeButton" disabled={isSubmitting}>
+            {isSubmitting ? "Kaydediliyor..." : "Geliri Kaydet"}
           </button>
           <button type="button" id="backButton" onClick={() => navigate("/dashboard")}>
             Geri Dön

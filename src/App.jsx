@@ -11,6 +11,7 @@ import Apartments from "./pages/Apartments/Apartments.jsx";
 import AddIncome from "./pages/AddIncome/AddIncome.jsx";
 import AddExpense from "./pages/AddExpense/AddExpense.jsx";
 import Footer from "./components/Footer.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 // Global Styles
 import "./style.css";
@@ -38,11 +39,46 @@ function App() {
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/add-apartment" element={<AddApartment />} />
-          <Route path="/apartments" element={<Apartments />} />
-          <Route path="/add-income" element={<AddIncome />} />
-          <Route path="/add-expense" element={<AddExpense />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/add-apartment"
+            element={
+              <ProtectedRoute>
+                <AddApartment />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/apartments"
+            element={
+              <ProtectedRoute>
+                <Apartments />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/add-income"
+            element={
+              <ProtectedRoute>
+                <AddIncome />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/add-expense"
+            element={
+              <ProtectedRoute>
+                <AddExpense />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <Footer />

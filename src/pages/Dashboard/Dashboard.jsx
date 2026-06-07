@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 import "./Dashboard.css";
 
 function Dashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState({ cash: 0, collections: 0, delays: 0 });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -15,11 +17,28 @@ function Dashboard() {
         const data = await window.electronAPI.getStats(managerId);
         if (data.success) {
           setStats(data.payload);
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Veriler Yüklenemedi",
+            text: data.message || "İstatistikler alınırken bir hata oluştu.",
+            confirmButtonColor: "#dc2626",
+            heightAuto: false,
+          });
         }
       }
+      setLoading(false);
     };
     fetchStats();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="dashboard-container">
+        <div className="loading">İstatistikler yükleniyor...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-container">
@@ -77,8 +96,14 @@ function Dashboard() {
       <hr style={{ margin: "40px 0", opacity: 0.2 }} />
 
       <div className="return-link">
-        <button onClick={() => navigate("/")} className="button">
-          Geri Dön
+        <button
+          onClick={() => {
+            sessionStorage.clear();
+            navigate("/", { replace: true });
+          }}
+          className="button button-logout"
+        >
+          Çıkış Yap
         </button>
       </div>
     </div>
