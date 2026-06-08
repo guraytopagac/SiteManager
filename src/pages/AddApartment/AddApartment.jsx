@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AddApartment.css";
-import Swal from "sweetalert2";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
+import { alert } from "../../utils/alert";
 
 function AddApartment() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
   const [apartmentData, setApartmentData] = useState({
     apartment_no: "",
     floor: "",
@@ -15,7 +17,6 @@ function AddApartment() {
 
   const handleAddApartment = async (e) => {
     e.preventDefault();
-    const currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "{}");
     const userId = currentUser.id;
     const response = await window.electronAPI.addApartment({
       ...apartmentData,
@@ -23,22 +24,10 @@ function AddApartment() {
     });
 
     if (response.success) {
-      Swal.fire({
-        icon: "success",
-        title: "Başarılı!",
-        text: response.message,
-        confirmButtonText: "Tamam",
-        heightAuto: false,
-      }).then(() => {
-        navigate("/dashboard");
-      });
+      await alert.success("Başarılı!", response.message);
+      navigate("/dashboard");
     } else {
-      Swal.fire({
-        icon: "error",
-        title: "Hata",
-        text: response.message,
-        heightAuto: false,
-      });
+      alert.error("Hata", response.message);
     }
   };
 

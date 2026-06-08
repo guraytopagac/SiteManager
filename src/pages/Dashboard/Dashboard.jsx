@@ -1,36 +1,30 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Swal from "sweetalert2";
 import "./Dashboard.css";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
+import { alert } from "../../utils/alert";
 
 function Dashboard() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
   const [stats, setStats] = useState({ cash: 0, collections: 0, delays: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
-      const currentUserRaw = sessionStorage.getItem("currentUser");
-      if (currentUserRaw) {
-        const currentUser = JSON.parse(currentUserRaw);
+      if (currentUser.id) {
         const managerId = currentUser.id;
         const data = await window.electronAPI.getStats(managerId);
         if (data.success) {
           setStats(data.payload);
         } else {
-          Swal.fire({
-            icon: "error",
-            title: "Veriler Yüklenemedi",
-            text: data.message || "İstatistikler alınırken bir hata oluştu.",
-            confirmButtonColor: "#dc2626",
-            heightAuto: false,
-          });
+          alert.error("Veriler Yüklenemedi", data.message || "İstatistikler alınırken bir hata oluştu.");
         }
       }
       setLoading(false);
     };
     fetchStats();
-  }, []);
+  }, [currentUser.id]);
 
   if (loading) {
     return (

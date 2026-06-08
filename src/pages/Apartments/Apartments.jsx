@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import "./Apartments.css";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 
 const MONTHS = [
   "Ocak",
@@ -307,7 +308,7 @@ function Apartments() {
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedDue, setSelectedDue] = useState(null);
 
-  const currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "{}");
+  const currentUser = useCurrentUser();
 
   const fetchDues = useCallback(async () => {
     setLoading(true);

@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Swal from "sweetalert2";
 import "./AddExpense.css";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
+import { alert } from "../../utils/alert";
 
 function AddExpense() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -15,67 +17,39 @@ function AddExpense() {
     const cleanDescription = description.trim();
 
     if (Number(amount) <= 0) {
-      Swal.fire({
-        icon: "warning",
-        title: "Geçersiz Miktar",
-        text: "Gider miktarı 0'dan büyük olmalıdır!",
-        confirmButtonColor: "#f59e0b",
-        heightAuto: false,
-      });
+      alert.warning("Geçersiz Miktar", "Gider miktarı 0'dan büyük olmalıdır!");
       return;
     }
 
-    const currentUserRaw = sessionStorage.getItem("currentUser");
-    if (!currentUserRaw) {
-      Swal.fire({
-        icon: "error",
-        title: "Oturum Hatası",
-        text: "Yönetici bilgisi bulunamadı. Lütfen tekrar giriş yapın.",
-        confirmButtonColor: "#dc2626",
-        heightAuto: false,
-      });
-      return;
-    }
-
-    const currentUser = JSON.parse(currentUserRaw);
     const managerId = currentUser.id;
+    if (!managerId) {
+      alert.error("Oturum Hatası", "Yönetici bilgisi bulunamadı. Lütfen tekrar giriş yapın.");
+      return;
+    }
+
+    if (!amount || !cleanDescription) {
+      alert.warning("Uyarı", "Lütfen tüm alanları doldurun!");
+      return;
+    }
 
     const today = new Date().toISOString().split("T")[0];
 
-    if (amount && cleanDescription) {
-      setIsSubmitting(true);
-      const response = await window.electronAPI.addExpense({
-        amount: Number(amount),
-        description: cleanDescription,
-        date: today,
-        manager_id: managerId,
-      });
+    setIsSubmitting(true);
+    const response = await window.electronAPI.addExpense({
+      amount: Number(amount),
+      description: cleanDescription,
+      date: today,
+      manager_id: managerId,
+    });
 
-      setIsSubmitting(false);
-      if (response.success) {
-        Swal.fire({
-          icon: "success",
-          title: "Gider Eklendi!",
-          text: response.message || "Gider kaydı başarıyla oluşturuldu.",
-          timer: 2000,
-          timerProgressBar: true,
-          showConfirmButton: false,
-          heightAuto: false,
-        });
-        setAmount("");
-        setDescription("");
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Hata Oluştu",
-          text: response.message || "Gider kaydedilemedi.",
-          confirmButtonText: "Tamam",
-          confirmButtonColor: "#dc2626",
-          heightAuto: false,
-        });
-      }
+    setIsSubmitting(false);
+
+    if (response.success) {
+      alert.success("Gider Eklendi!", response.message || "Gider kaydı başarıyla oluşturuldu.");
+      setAmount("");
+      setDescription("");
     } else {
-      Swal.fire("Uyarı", "Lütfen tüm alanları doldurun!", "warning");
+      alert.error("Hata Oluştu", response.message || "Gider kaydedilemedi.");
     }
   };
 

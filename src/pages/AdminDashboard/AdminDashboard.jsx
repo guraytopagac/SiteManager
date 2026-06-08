@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Swal from "sweetalert2";
 import "./AdminDashboard.css";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
+import { alert } from "../../utils/alert";
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -10,7 +11,7 @@ function AdminDashboard() {
   const [formData, setFormData] = useState({ username: "", email: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const currentUser = JSON.parse(sessionStorage.getItem("currentUser"));
+  const currentUser = useCurrentUser();
 
   const fetchManagers = async () => {
     const response = await window.electronAPI.getManagers();
@@ -28,13 +29,7 @@ function AdminDashboard() {
     e.preventDefault();
 
     if (formData.password.length < 6) {
-      Swal.fire({
-        icon: "warning",
-        title: "Geçersiz Şifre",
-        text: "Şifre en az 6 karakter olmalıdır.",
-        confirmButtonColor: "#d97706",
-        heightAuto: false,
-      });
+      alert.warning("Geçersiz Şifre", "Şifre en az 6 karakter olmalıdır.");
       return;
     }
 
@@ -43,24 +38,11 @@ function AdminDashboard() {
     setIsSubmitting(false);
 
     if (response.success) {
-      Swal.fire({
-        icon: "success",
-        title: "Yönetici Oluşturuldu",
-        text: response.message,
-        timer: 2000,
-        showConfirmButton: false,
-        heightAuto: false,
-      });
+      alert.success("Yönetici Oluşturuldu", response.message);
       setFormData({ username: "", email: "", password: "" });
       fetchManagers();
     } else {
-      Swal.fire({
-        icon: "error",
-        title: "Hata",
-        text: response.message,
-        confirmButtonColor: "var(--danger)",
-        heightAuto: false,
-      });
+      alert.error("Hata", response.message);
     }
   };
 
@@ -70,37 +52,22 @@ function AdminDashboard() {
       ? `"${manager.username}" hesabını aktif etmek istiyor musunuz?`
       : `"${manager.username}" hesabını deaktif etmek istiyor musunuz? Bu yönetici giriş yapamaz hale gelir.`;
 
-    const result = await Swal.fire({
-      title: willActivate ? "Hesabı Aktif Et" : "Hesabı Deaktif Et",
-      text: confirmText,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: willActivate ? "Aktif Et" : "Deaktif Et",
-      cancelButtonText: "Vazgeç",
-      confirmButtonColor: willActivate ? "var(--button-color)" : "var(--danger)",
-      heightAuto: false,
-    });
+    const result = await alert.confirm(
+      willActivate ? "Hesabı Aktif Et" : "Hesabı Deaktif Et",
+      confirmText,
+      willActivate ? "Aktif Et" : "Deaktif Et",
+      !willActivate,
+    );
 
     if (!result.isConfirmed) return;
 
     const response = await window.electronAPI.updateManagerStatus(manager.id, willActivate);
 
     if (response.success) {
-      Swal.fire({
-        icon: "success",
-        title: response.message,
-        timer: 1800,
-        showConfirmButton: false,
-        heightAuto: false,
-      });
+      alert.success(response.message, "", 1800);
       fetchManagers();
     } else {
-      Swal.fire({
-        icon: "error",
-        title: "Hata",
-        text: response.message,
-        heightAuto: false,
-      });
+      alert.error("Hata", response.message);
     }
   };
 

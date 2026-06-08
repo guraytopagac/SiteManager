@@ -3,70 +3,54 @@ import { useNavigate } from "react-router-dom";
 import "./Login.css";
 import Swal from "sweetalert2";
 import logoImg from "../../assets/logo.png";
-import { useLoginLock } from "../../hooks/useLoginLock.js";
+import { alert } from "../../utils/alert";
 
 function Login() {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-
-  const { isLocked, remainingTime, handleFailedAttempt, resetLock } = useLoginLock(5, 5);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
 
-    if (isLocked) {
-      Swal.fire({
-        title: "Çok Fazla Hatalı Giriş!",
-        text: `Lütfen ${remainingTime} sonra tekrar deneyin.`,
-        icon: "error",
-        heightAuto: false,
-      });
+    const cleanUsername = username.trim();
+
+    if (!cleanUsername || !password) {
+      alert.warning("Uyarı", "Lütfen tüm alanları doldurun!");
       return;
     }
 
-    const cleanUsername = username.trim();
+    setIsSubmitting(true);
+    const { success, user, message } = await window.electronAPI.login({
+      username: cleanUsername,
+      password,
+    });
+    setIsSubmitting(false);
 
-    if (cleanUsername && password) {
-      const { success, user, message } = await window.electronAPI.login({
-        username: cleanUsername,
-        password,
+    if (success) {
+      const { id, username: loggedInUsername, email, role, last_login } = user;
+      sessionStorage.setItem(
+        "currentUser",
+        JSON.stringify({ id, username: loggedInUsername, email, role, last_login }),
+      );
+
+      Swal.fire({
+        icon: "success",
+        title: loggedInUsername + "\n\nHoş Geldiniz",
+        text: message,
+        timer: 2000,
+        showConfirmButton: false,
+        heightAuto: false,
+      }).then(() => {
+        if (role === "admin") {
+          navigate("/admin-dashboard");
+        } else {
+          navigate("/dashboard");
+        }
       });
-
-      if (success) {
-        resetLock();
-
-        const { id, username: loggedInUsername, email, role, last_login } = user;
-        sessionStorage.setItem(
-          "currentUser",
-          JSON.stringify({
-            id,
-            username: loggedInUsername,
-            email,
-            role,
-            last_login,
-          }),
-        );
-
-        Swal.fire({
-          icon: "success",
-          title: loggedInUsername + "\n\nHoş Geldiniz",
-          text: message,
-          timer: 2000,
-          showConfirmButton: false,
-          heightAuto: false,
-        }).then(() => {
-          if (role === "admin") {
-            navigate("/admin-dashboard");
-          } else {
-            navigate("/dashboard");
-          }
-        });
-      } else {
-        handleFailedAttempt(message);
-      }
     } else {
-      Swal.fire("Uyarı", "Lütfen tüm alanları doldurun!", "warning");
+      alert.error("Giriş Başarısız", message);
     }
   };
 
@@ -85,7 +69,6 @@ function Login() {
             placeholder="Kullanıcı adınızı girin"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            disabled={isLocked}
             required
           />
           <input
@@ -93,11 +76,10 @@ function Login() {
             placeholder="Şifrenizi girin"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            disabled={isLocked}
             required
           />
-          <button type="submit" id="loginButton" disabled={isLocked}>
-            {isLocked ? `Kilitlendi (${remainingTime})` : "Giriş Yap"}
+          <button type="submit" id="loginButton" disabled={isSubmitting}>
+            {isSubmitting ? "Giriş yapılıyor..." : "Giriş Yap"}
           </button>
         </form>
       </div>
