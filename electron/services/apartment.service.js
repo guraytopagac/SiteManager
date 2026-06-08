@@ -78,4 +78,17 @@ function deleteApartment(id) {
   });
 }
 
-module.exports = { addApartment, getApartments, updateApartment, deleteApartment };
+function bulkUpdateDueAmount(managerId, amount) {
+  return new Promise((resolve) => {
+    db.run(
+      `UPDATE apartments SET due_amount = ? WHERE manager_id = ?`,
+      [amount, managerId],
+      function (err) {
+        if (err) return resolve({ success: false, message: "Toplu güncelleme başarısız." });
+        resolve({ success: true, message: `${this.changes} dairenin aidat tutarı güncellendi.`, count: this.changes });
+      },
+    );
+  });
+}
+
+module.exports = { addApartment, getApartments, updateApartment, deleteApartment, bulkUpdateDueAmount };

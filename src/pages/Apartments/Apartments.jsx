@@ -368,6 +368,78 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
   );
 }
 
+function BulkUpdateModal({ currentUser, onClose, onSaved }) {
+  const [amount, setAmount] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const parsed = parseFloat(amount);
+    if (!parsed || parsed <= 0) {
+      alert.warning("Geçersiz Tutar", "Lütfen geçerli bir aidat tutarı girin.");
+      return;
+    }
+
+    const confirm = await alert.confirm(
+      "Toplu Aidat Güncelleme",
+      `Tüm dairelerin aidat tutarı ${parsed.toLocaleString("tr-TR")} ₺ olarak güncellenecek. Onaylıyor musunuz?`,
+      "Evet, Güncelle",
+    );
+    if (!confirm.isConfirmed) return;
+
+    setIsSubmitting(true);
+    const res = await window.electronAPI.bulkUpdateDueAmount(currentUser.id, parsed);
+    setIsSubmitting(false);
+
+    if (res.success) {
+      await alert.success("Güncellendi", res.message);
+      onSaved();
+    } else {
+      alert.error("Hata", res.message);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box modal-box-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3 className="modal-title">Toplu Aidat Güncelleme</h3>
+          <button className="modal-close-btn" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+        <p className="modal-description">
+          Tüm dairelerinizin aidat tutarını tek seferde güncelleyin. Bu işlem mevcut daire aidat tutarlarını
+          değiştirir; önceki ödeme kayıtları etkilenmez.
+        </p>
+        <form onSubmit={handleSubmit}>
+          <div className="form-row">
+            <label>Yeni Aidat Tutarı (₺)</label>
+            <input
+              type="number"
+              min="1"
+              step="0.01"
+              placeholder="Örn: 2000"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="button button-secondary" onClick={onClose}>
+              İptal
+            </button>
+            <button type="submit" className="button" disabled={isSubmitting}>
+              {isSubmitting ? "Güncelleniyor..." : "Güncelle"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function Apartments() {
   const navigate = useNavigate();
   const now = new Date();
@@ -380,6 +452,7 @@ function Apartments() {
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedDue, setSelectedDue] = useState(null);
   const [editingApartment, setEditingApartment] = useState(null);
+  const [showBulkUpdate, setShowBulkUpdate] = useState(false);
 
   const fetchDues = useCallback(async () => {
     setLoading(true);
@@ -451,7 +524,11 @@ function Apartments() {
     <div className="apartments-container">
       <div className="apartments-header">
         <h2>Daire Listesi</h2>
-        <div className="month-selector">
+        <div className="header-actions">
+          <button className="button button-secondary button-sm" onClick={() => setShowBulkUpdate(true)}>
+            Toplu Aidat Güncelle
+          </button>
+          <div className="month-selector">
           <select value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))}>
             {MONTHS.map((name, i) => (
               <option key={i + 1} value={i + 1}>
@@ -466,6 +543,7 @@ function Apartments() {
               </option>
             ))}
           </select>
+          </div>
         </div>
       </div>
 
@@ -561,6 +639,17 @@ function Apartments() {
           onClose={() => setEditingApartment(null)}
           onSaved={() => {
             setEditingApartment(null);
+            fetchDues();
+          }}
+        />
+      )}
+
+      {showBulkUpdate && (
+        <BulkUpdateModal
+          currentUser={currentUser}
+          onClose={() => setShowBulkUpdate(false)}
+          onSaved={() => {
+            setShowBulkUpdate(false);
             fetchDues();
           }}
         />

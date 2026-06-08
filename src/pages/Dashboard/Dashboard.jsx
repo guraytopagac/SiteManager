@@ -13,8 +13,7 @@ function Dashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       if (currentUser.id) {
-        const managerId = currentUser.id;
-        const data = await window.electronAPI.getStats(managerId);
+        const data = await window.electronAPI.getStats(currentUser.id);
         if (data.success) {
           setStats(data.payload);
         } else {
@@ -25,6 +24,33 @@ function Dashboard() {
     };
     fetchStats();
   }, [currentUser.id]);
+
+  const handleBackup = async () => {
+    const response = await window.electronAPI.backupDatabase();
+    if (response.success) {
+      alert.success("Yedek Alındı", response.message);
+    } else if (response.message !== "İptal edildi.") {
+      alert.error("Hata", response.message);
+    }
+  };
+
+  const handleRestore = async () => {
+    const confirm = await alert.confirm(
+      "Yedek Yükle",
+      "Mevcut veritabanı seçtiğiniz yedekle değiştirilecek. Uygulama yeniden başlatılacak. Devam etmek istiyor musunuz?",
+      "Evet, Yükle",
+      true,
+    );
+    if (!confirm.isConfirmed) return;
+
+    const response = await window.electronAPI.restoreDatabase();
+    if (response.success) {
+      await alert.success("Geri Yüklendi", response.message);
+      window.location.reload();
+    } else if (response.message !== "İptal edildi.") {
+      alert.error("Hata", response.message);
+    }
+  };
 
   if (loading) {
     return (
@@ -51,41 +77,58 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className="category-group">
-        <h2 className="sectionHeader">Daire İşlemleri</h2>
-        <div className="action-grid">
-          <div className="action-card" onClick={() => navigate("/add-apartment")}>
-            <h4>Yeni Daire Ekle</h4>
-          </div>
-          <div className="action-card" onClick={() => navigate("/apartments")}>
-            <h4>Mevcut Daireleri Görüntüle</h4>
-          </div>
-        </div>
-      </div>
-
-      <div className="category-group">
-        <h2 className="sectionHeader">Finansal İşlemler</h2>
-        <div className="action-grid">
-          <div className="action-card" onClick={() => navigate("/add-income")}>
-            <h4>Gelir Ekle</h4>
-          </div>
-          <div className="action-card" onClick={() => navigate("/add-expense")}>
-            <h4>Gider Ekle</h4>
-          </div>
-          <div className="action-card" onClick={() => navigate("/transactions")}>
-            <h4>İşlem Geçmişi</h4>
+      <div className="category-grid">
+        <div className="category-group">
+          <h2 className="sectionHeader">Daire İşlemleri</h2>
+          <div className="action-grid">
+            <div className="action-card" onClick={() => navigate("/add-apartment")}>
+              <h4>Yeni Daire Ekle</h4>
+            </div>
+            <div className="action-card" onClick={() => navigate("/apartments")}>
+              <h4>Mevcut Daireleri Görüntüle</h4>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="category-group">
-        <h2 className="sectionHeader">Çeşitli</h2>
-        <div className="action-grid">
-          <div className="action-card" onClick={() => navigate("/send-announcement")}>
-            <h4>Duyuru Gönder</h4>
+        <div className="category-group">
+          <h2 className="sectionHeader">Finansal İşlemler</h2>
+          <div className="action-grid">
+            <div className="action-card" onClick={() => navigate("/add-income")}>
+              <h4>Gelir Ekle</h4>
+            </div>
+            <div className="action-card" onClick={() => navigate("/add-expense")}>
+              <h4>Gider Ekle</h4>
+            </div>
+            <div className="action-card" onClick={() => navigate("/transactions")}>
+              <h4>İşlem Geçmişi</h4>
+            </div>
           </div>
-          <div className="action-card" onClick={() => navigate("/reports")}>
-            <h4>PDF Raporu</h4>
+        </div>
+
+        <div className="category-group">
+          <h2 className="sectionHeader">Sistem</h2>
+          <div className="action-grid">
+            <div className="action-card" onClick={handleBackup}>
+              <h4>Yedek Al</h4>
+            </div>
+            <div className="action-card" onClick={handleRestore}>
+              <h4>Yedek Yükle</h4>
+            </div>
+          </div>
+        </div>
+
+        <div className="category-group">
+          <h2 className="sectionHeader">Çeşitli</h2>
+          <div className="action-grid">
+            <div className="action-card" onClick={() => navigate("/send-announcement")}>
+              <h4>Duyuru Gönder</h4>
+            </div>
+            <div className="action-card" onClick={() => navigate("/reports")}>
+              <h4>PDF Raporu</h4>
+            </div>
+            <div className="action-card" onClick={() => navigate("/profile")}>
+              <h4>Profilim</h4>
+            </div>
           </div>
         </div>
       </div>

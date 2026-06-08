@@ -28,4 +28,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getManagers: () => ipcRenderer.invoke("get-managers"),
   createManager: (data) => ipcRenderer.invoke("create-manager", data),
   updateManagerStatus: (id, isActive) => ipcRenderer.invoke("update-manager-status", { id, isActive }),
+  changePassword: (userId, oldPassword, newPassword) =>
+    ipcRenderer.invoke("change-password", { userId, oldPassword, newPassword }),
+
+  bulkUpdateDueAmount: (managerId, amount) => ipcRenderer.invoke("bulk-update-due-amount", { managerId, amount }),
+
+  backupDatabase: () => ipcRenderer.invoke("backup-database"),
+  restoreDatabase: () => ipcRenderer.invoke("restore-database"),
 });

@@ -78,4 +78,20 @@ function updateManagerStatus(id, isActive) {
   });
 }
 
-module.exports = { login, getManagers, createManager, updateManagerStatus };
+function changePassword(userId, oldPassword, newPassword) {
+  return new Promise((resolve) => {
+    db.get(`SELECT password_hash FROM users WHERE id = ?`, [userId], (err, user) => {
+      if (err || !user) return resolve({ success: false, message: "Kullanıcı bulunamadı." });
+      if (!bcrypt.compareSync(oldPassword, user.password_hash))
+        return resolve({ success: false, message: "Mevcut şifre hatalı." });
+
+      const newHash = bcrypt.hashSync(newPassword, 12);
+      db.run(`UPDATE users SET password_hash = ? WHERE id = ?`, [newHash, userId], function (err2) {
+        if (err2) return resolve({ success: false, message: "Şifre güncellenemedi." });
+        resolve({ success: true, message: "Şifre başarıyla değiştirildi." });
+      });
+    });
+  });
+}
+
+module.exports = { login, getManagers, createManager, updateManagerStatus, changePassword };
