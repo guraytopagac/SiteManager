@@ -1,5 +1,42 @@
 # Mavikent Site Yönetimi Uygulaması — Proje Dokümantasyonu
 
+## 0. Claude İçin Dosya Okuma Kısıtlamaları
+
+> Bu bölüm Claude Code'a hangi dosya ve klasörleri **okumayacağını** söyler.
+> Aşağıdaki yolları asla okuma, içeriklerini analiz etme, listeleyerek gezme.
+
+### Okunmayacak Klasörler ve Dosyalar
+
+```
+# Bağımlılıklar — npm paketleri, binary'ler, kaynak koduyla ilgisi yok
+node_modules/
+
+# Derleme çıktıları — Vite'ın ürettiği, elle yazılmış kod değil
+dist/
+dist_electron/
+
+# SQLite veritabanı — binary format, okunabilir değil; şema db.js'te
+database.db
+
+# Bağımlılık kilit dosyası — 10.000+ satır, otomatik üretilir
+package-lock.json
+
+# Electron önbelleği — indirilen binary'ler, proje koduyla ilgisi yok
+.cache/
+```
+
+### Neden Bu Kurallar Var
+
+| Yol                      | Neden hariç                                                                   |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| `node_modules/`          | Binlerce dosya, tüm context'i tüketir; paket API'si `package.json`'dan okunur |
+| `dist/` `dist_electron/` | `npm run build` çıktısı; `src/` ve `electron/` bunların kaynağı               |
+| `database.db`            | Binary SQLite dosyası; şema zaten `database/db.js`'te okunabilir formatta     |
+| `package-lock.json`      | Otomatik üretilir, 10.000+ satır; bağımlılık bilgisi `package.json`'da yeter  |
+| `.cache/`                | Electron ve Vite önbelleği, geçici dosyalar                                   |
+
+---
+
 ## 1. Proje Genel Bakış
 
 **Proje Adı:** Mavikent Site Yönetimi Uygulaması  
@@ -11,15 +48,15 @@
 
 ## 2. Teknik Stack
 
-| Katman           | Teknoloji      |
-| ---------------- | -------------- |
-| Masaüstü Çerçeve | Electron.js    |
-| Arayüz           | React          |
-| Stil             | CSS            |
-| Veritabanı       | SQLite         |
-| Paket Yöneticisi | npm            |
-| Build Aracı      | Vite           |
-| UI Bildirimleri  | SweetAlert2    |
+| Katman           | Teknoloji   |
+| ---------------- | ----------- |
+| Masaüstü Çerçeve | Electron.js |
+| Arayüz           | React       |
+| Stil             | CSS         |
+| Veritabanı       | SQLite      |
+| Paket Yöneticisi | npm         |
+| Build Aracı      | Vite        |
+| UI Bildirimleri  | SweetAlert2 |
 
 ---
 
@@ -186,15 +223,15 @@ expenses (id, amount, date, description, manager_id → users.id)
 
 ## 7. electronAPI (preload.js — Mevcut)
 
-| Metod              | IPC Kanalı       | Açıklama                        |
-| ------------------ | ---------------- | ------------------------------- |
-| `onToggleTheme`    | `toggle-theme`   | Light/dark tema değişikliği     |
-| `login`            | `login`          | Kullanıcı girişi                |
-| `register`         | `register`       | Yeni kullanıcı kaydı            |
-| `getStats`         | `get-stats`      | Dashboard istatistikleri        |
-| `addApartment`     | `add-apartment`  | Yeni daire ekle                 |
-| `getApartments`    | `get-apartments` | Daire listesi getir             |
-| `addIncome`        | `add-income`     | Gelir kaydı ekle                |
+| Metod           | IPC Kanalı       | Açıklama                    |
+| --------------- | ---------------- | --------------------------- |
+| `onToggleTheme` | `toggle-theme`   | Light/dark tema değişikliği |
+| `login`         | `login`          | Kullanıcı girişi            |
+| `register`      | `register`       | Yeni kullanıcı kaydı        |
+| `getStats`      | `get-stats`      | Dashboard istatistikleri    |
+| `addApartment`  | `add-apartment`  | Yeni daire ekle             |
+| `getApartments` | `get-apartments` | Daire listesi getir         |
+| `addIncome`     | `add-income`     | Gelir kaydı ekle            |
 
 > **Not:** `addExpense` IPC handler'ı henüz eklenmemiştir.
 
@@ -202,28 +239,30 @@ expenses (id, amount, date, description, manager_id → users.id)
 
 ## 8. Uygulama Rotaları (Mevcut)
 
-| Rota              | Bileşen        | Durum      |
-| ----------------- | -------------- | ---------- |
-| `/`               | Login          | ✅ Tamamlandı |
-| `/register`       | Register       | ✅ Tamamlandı |
-| `/dashboard`      | Dashboard      | ✅ Tamamlandı |
-| `/add-apartment`  | AddApartment   | ✅ Tamamlandı |
-| `/apartments`     | Apartments     | ✅ Tamamlandı |
-| `/add-income`     | AddIncome      | ✅ Tamamlandı |
-| `/add-expense`    | AddExpense     | 🔧 UI var, IPC eksik |
-| `/send-announcement` | —           | ❌ Henüz yok |
-| `/reports`        | —              | ❌ Henüz yok |
+| Rota                 | Bileşen      | Durum                |
+| -------------------- | ------------ | -------------------- |
+| `/`                  | Login        | ✅ Tamamlandı        |
+| `/register`          | Register     | ✅ Tamamlandı        |
+| `/dashboard`         | Dashboard    | ✅ Tamamlandı        |
+| `/add-apartment`     | AddApartment | ✅ Tamamlandı        |
+| `/apartments`        | Apartments   | ✅ Tamamlandı        |
+| `/add-income`        | AddIncome    | ✅ Tamamlandı        |
+| `/add-expense`       | AddExpense   | 🔧 UI var, IPC eksik |
+| `/send-announcement` | —            | ❌ Henüz yok         |
+| `/reports`           | —            | ❌ Henüz yok         |
 
 ---
 
 ## 9. Dashboard (Mevcut Durum)
 
 3 istatistik kartı:
+
 - **Kasa:** Toplam gelir - toplam gider
 - **Tahsilat:** Aidat tahsilat yüzdesi (%)
 - **Gecikme:** Gecikmiş aidat toplam tutarı (₺)
 
 Hızlı erişim butonları (4 kategori grubu):
+
 - Daire İşlemleri → Yeni Daire Ekle, Mevcut Daireleri Görüntüle
 - Finansal İşlemler → Gelir Ekle, Gider Ekle
 - Çeşitli → Duyuru Gönder, PDF Raporu
@@ -232,33 +271,37 @@ Hızlı erişim butonları (4 kategori grubu):
 
 ## 10. Electron Menüsü
 
-| Menü     | Öğe              | Kısayol          |
-| -------- | ---------------- | ---------------- |
-| Dosya    | Tema Değiştir    | Ctrl+Shift+T     |
-| Dosya    | Yenile           | Ctrl+R           |
-| Dosya    | Çıkış            | Ctrl+Q           |
-| Yardım   | Hakkında         | —                |
-| (Dev)    | Geliştirici Araçları | F12          |
+| Menü   | Öğe                  | Kısayol      |
+| ------ | -------------------- | ------------ |
+| Dosya  | Tema Değiştir        | Ctrl+Shift+T |
+| Dosya  | Yenile               | Ctrl+R       |
+| Dosya  | Çıkış                | Ctrl+Q       |
+| Yardım | Hakkında             | —            |
+| (Dev)  | Geliştirici Araçları | F12          |
 
 ---
 
 ## 11. Modüller — Planlanan / Eksik
 
 ### 11.1 Aidat Takibi ❌ (Henüz yok)
+
 - Aylık otomatik borç kaydı oluşturma
 - Ödeme işaretleme
 - Gecikmiş aidat tespiti
 
 ### 11.2 Borç / Alacak Takibi ❌ (Henüz yok)
+
 - Sakin bazında borç hesaplama
 - Gecikme günü hesaplama
 
 ### 11.3 Raporlar ve PDF Export ❌ (Henüz yok)
+
 - Aylık/yıllık özet
 - Daire bazlı rapor
 - PDF dışa aktarma
 
 ### 11.4 Bildirim / Duyuru Yönetimi ❌ (Henüz yok)
+
 - Uygulama içi duyuru gönderme
 - SMS/e-posta entegrasyonu
 

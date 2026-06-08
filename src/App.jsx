@@ -4,8 +4,8 @@ import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom"
 
 // Pages & Components
 import Login from "./pages/Login/Login.jsx";
-import Register from "./pages/Register/Register.jsx";
 import Dashboard from "./pages/Dashboard/Dashboard.jsx";
+import AdminDashboard from "./pages/AdminDashboard/AdminDashboard.jsx";
 import AddApartment from "./pages/AddApartment/AddApartment.jsx";
 import Apartments from "./pages/Apartments/Apartments.jsx";
 import AddIncome from "./pages/AddIncome/AddIncome.jsx";
@@ -38,11 +38,18 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route
+            path="/admin-dashboard"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="manager">
                 <Dashboard />
               </ProtectedRoute>
             }
@@ -50,7 +57,7 @@ function App() {
           <Route
             path="/add-apartment"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="manager">
                 <AddApartment />
               </ProtectedRoute>
             }
@@ -58,7 +65,7 @@ function App() {
           <Route
             path="/apartments"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="manager">
                 <Apartments />
               </ProtectedRoute>
             }
@@ -66,7 +73,7 @@ function App() {
           <Route
             path="/add-income"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="manager">
                 <AddIncome />
               </ProtectedRoute>
             }
@@ -74,7 +81,7 @@ function App() {
           <Route
             path="/add-expense"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="manager">
                 <AddExpense />
               </ProtectedRoute>
             }

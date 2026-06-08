@@ -56,7 +56,11 @@ function Login() {
           showConfirmButton: false,
           heightAuto: false,
         }).then(() => {
-          navigate("/dashboard");
+          if (role === "admin") {
+            navigate("/admin-dashboard");
+          } else {
+            navigate("/dashboard");
+          }
         });
       } else {
         handleFailedAttempt(message);
@@ -92,18 +96,10 @@ function Login() {
             disabled={isLocked}
             required
           />
-          <button
-            type="submit"
-            id="loginButton"
-            disabled={isLocked}
-          >
+          <button type="submit" id="loginButton" disabled={isLocked}>
             {isLocked ? `Kilitlendi (${remainingTime})` : "Giriş Yap"}
           </button>
         </form>
-
-        <p className="infoText">
-          Bir hesabınız yok mu? <Link to="/register">Kayıt olun</Link>
-        </p>
       </div>
     </div>
   );

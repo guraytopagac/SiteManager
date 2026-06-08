@@ -1,5 +1,6 @@
 const db = require("../../database/db");
 
+// Add Apartment function
 function addApartment(data) {
   return new Promise((resolve) => {
     const query = `INSERT INTO apartments (apartment_no, floor, type, square_meters, due_amount, manager_id) VALUES (?, ?, ?, ?, ?, ?)`;
@@ -19,6 +20,7 @@ function addApartment(data) {
   });
 }
 
+// Get Apartments function
 function getApartments(userId) {
   return new Promise((resolve) => {
     db.all("SELECT * FROM apartments WHERE manager_id = ?", [userId], (err, rows) => {

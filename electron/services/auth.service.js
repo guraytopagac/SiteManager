@@ -58,4 +58,40 @@ function register(userData) {
   });
 }
 
-module.exports = { login, register };
+function getManagers() {
+  return new Promise((resolve) => {
+    db.all(
+      `SELECT id, username, email, is_active, last_login FROM users WHERE role = 'manager' ORDER BY id ASC`,
+      [],
+      (err, rows) => {
+        if (err) return resolve({ success: false, message: "Yönetici listesi alınamadı." });
+        resolve({ success: true, data: rows });
+      },
+    );
+  });
+}
+
+function createManager(data) {
+  return new Promise((resolve) => {
+    const query = `INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)`;
+    const hashedPassword = bcrypt.hashSync(data.password, 12);
+
+    db.run(query, [data.username, data.email, hashedPassword, "manager"], function (err) {
+      if (err) return resolve({ success: false, message: "Bu kullanıcı adı veya e-posta zaten kullanımda." });
+      resolve({ success: true, message: "Yönetici hesabı başarıyla oluşturuldu." });
+    });
+  });
+}
+
+function updateManagerStatus(id, isActive) {
+  return new Promise((resolve) => {
+    db.run(`UPDATE users SET is_active = ? WHERE id = ? AND role = 'manager'`, [isActive ? 1 : 0, id], function (err) {
+      if (err) return resolve({ success: false, message: "İşlem gerçekleştirilemedi." });
+      if (this.changes === 0) return resolve({ success: false, message: "Yönetici bulunamadı." });
+      const msg = isActive ? "Yönetici hesabı aktif edildi." : "Yönetici hesabı deaktif edildi.";
+      resolve({ success: true, message: msg });
+    });
+  });
+}
+
+module.exports = { login, register, getManagers, createManager, updateManagerStatus };

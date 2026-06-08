@@ -2,6 +2,8 @@
   "name": "site-manager",
   "private": true,
   "version": "1.0.0",
+  "description": "Mavikent Site Yönetimi Uygulaması",
+  "author": "Güray Topağaç",
   "type": "commonjs",
   "main": "electron/main.js",
   "scripts": {
@@ -30,10 +32,11 @@
       "icon": "src/assets/icon.ico"
     },
     "nsis": {
+      "perMachine": true,
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "Mavikent Site Yönetimi"
+      "shortcutName": "Mavikent Site Yonetimi"
     }
   },
   "dependencies": {

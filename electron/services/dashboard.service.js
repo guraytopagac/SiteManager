@@ -43,7 +43,7 @@ async function getStats(managerId) {
       payload: { cash, collections, delays },
     };
   } catch (err) {
-    console.error("Dashboard istatistikleri alınamadı:", err);
+    console.error("Dashboard statistics could not be retrieved:", err);
     return { success: false, message: "Dashboard verileri alınamadı." };
   }
 }

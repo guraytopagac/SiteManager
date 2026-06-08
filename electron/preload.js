@@ -16,4 +16,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getApartments: (userId) => ipcRenderer.invoke("get-apartments", userId),
   addIncome: (data) => ipcRenderer.invoke("add-income", data),
   addExpense: (data) => ipcRenderer.invoke("add-expense", data),
+  getManagers: () => ipcRenderer.invoke("get-managers"),
+  createManager: (data) => ipcRenderer.invoke("create-manager", data),
+  updateManagerStatus: (id, isActive) => ipcRenderer.invoke("update-manager-status", { id, isActive }),
 });
