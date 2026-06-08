@@ -13,11 +13,9 @@ function toSafeUser(user) {
 
 function login(credentials) {
   return new Promise((resolve) => {
-    const query = `
-            SELECT id, username, email, password_hash, role, last_login
-            FROM users
-            WHERE username = ? AND is_active = 1
-        `;
+    const query = `SELECT id, username, email, password_hash, role, last_login
+                   FROM users
+                   WHERE username = ? AND is_active = 1`;
 
     db.get(query, [credentials.username], (err, user) => {
       if (err)
@@ -44,7 +42,10 @@ function login(credentials) {
 function getManagers() {
   return new Promise((resolve) => {
     db.all(
-      `SELECT id, username, email, is_active, last_login FROM users WHERE role = 'manager' ORDER BY id ASC`,
+      `SELECT id, username, email, is_active, last_login 
+       FROM users 
+       WHERE role = 'manager' 
+       ORDER BY id ASC`,
       [],
       (err, rows) => {
         if (err) return resolve({ success: false, message: "Yönetici listesi alınamadı." });

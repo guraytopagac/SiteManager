@@ -100,6 +100,52 @@ const db = new sqlite3.Database(dbPath, (err) => {
       },
     );
 
+    // Dues Table
+    db.run(
+      `
+            CREATE TABLE IF NOT EXISTS dues (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                apartment_id INTEGER NOT NULL,
+                year INTEGER NOT NULL,
+                month INTEGER NOT NULL,
+                due_amount REAL NOT NULL,
+                paid_amount REAL DEFAULT 0,
+                status TEXT DEFAULT 'unpaid',
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY(apartment_id) REFERENCES apartments(id) ON DELETE CASCADE,
+                UNIQUE(apartment_id, year, month)
+            );
+        `,
+      (tableErr5) => {
+        if (tableErr5) console.error("Dues table creation error:", tableErr5.message);
+      },
+    );
+
+    // Due Payments Table
+    db.run(
+      `
+            CREATE TABLE IF NOT EXISTS due_payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                due_id INTEGER NOT NULL,
+                amount REAL NOT NULL,
+                payment_method TEXT NOT NULL,
+                payment_date TEXT NOT NULL,
+                receipt_path TEXT,
+                note TEXT,
+                collected_by INTEGER NOT NULL,
+                is_cancelled INTEGER DEFAULT 0,
+                cancelled_at TEXT,
+                cancel_reason TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY(due_id) REFERENCES dues(id) ON DELETE CASCADE,
+                FOREIGN KEY(collected_by) REFERENCES users(id) ON DELETE RESTRICT
+            );
+        `,
+      (tableErr6) => {
+        if (tableErr6) console.error("Due payments table creation error:", tableErr6.message);
+      },
+    );
+
     // Seed admin account if no admins exist
     db.get(`SELECT COUNT(*) AS count FROM users WHERE role = 'admin'`, (err, row) => {
       if (err) return;

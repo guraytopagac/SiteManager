@@ -3,7 +3,8 @@ const db = require("../../database/db");
 // Add Apartment function
 function addApartment(data) {
   return new Promise((resolve) => {
-    const query = `INSERT INTO apartments (apartment_no, floor, type, square_meters, due_amount, manager_id) VALUES (?, ?, ?, ?, ?, ?)`;
+    const query = ` INSERT INTO apartments (apartment_no, floor, type, square_meters, due_amount, manager_id)
+                    VALUES (?, ?, ?, ?, ?, ?)`;
 
     db.run(
       query,

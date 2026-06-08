@@ -41,6 +41,7 @@ function AddApartment() {
       });
     }
   };
+
   return (
     <div className="form-container">
       <h2>Yeni Daire Ekle</h2>

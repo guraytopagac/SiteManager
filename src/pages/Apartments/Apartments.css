@@ -6,12 +6,81 @@
   color: var(--text-color);
 }
 
-.apartments-container h2 {
-  margin-bottom: 25px;
+.apartments-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.apartments-header h2 {
   font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.month-selector {
+  display: flex;
+  gap: 10px;
+}
+
+.month-selector select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  background: var(--card-background-1);
+  color: var(--text-color);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* Summary Bar */
+.dues-summary {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 20px;
+  border-radius: 10px;
+  border: 1px solid var(--border-default);
+  background: var(--card-background-1);
+  min-width: 110px;
+  flex: 1;
+}
+
+.summary-count {
+  font-size: 1.4rem;
   font-weight: 700;
 }
 
+.summary-label {
+  font-size: 0.78rem;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+.summary-item.paid .summary-count {
+  color: #16a34a;
+}
+.summary-item.partial .summary-count {
+  color: #d97706;
+}
+.summary-item.unpaid .summary-count {
+  color: #dc2626;
+}
+.summary-item.total .summary-count {
+  color: var(--button-color);
+}
+
+/* Table */
 .apartment-table {
   width: 100%;
   border-collapse: collapse;
@@ -59,6 +128,297 @@
   border-bottom: none;
 }
 
+/* Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition:
+    opacity 0.2s,
+    transform 0.15s;
+  white-space: nowrap;
+}
+
+.status-badge:hover {
+  opacity: 0.82;
+  transform: translateY(-1px);
+}
+
+.status-paid {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-partial {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.status-unpaid {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+[data-theme="dark"] .status-paid {
+  background: #14532d;
+  color: #86efac;
+}
+[data-theme="dark"] .status-partial {
+  background: #451a03;
+  color: #fcd34d;
+}
+[data-theme="dark"] .status-unpaid {
+  background: #450a0a;
+  color: #fca5a5;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-box {
+  background: var(--card-background-1);
+  border-radius: 14px;
+  padding: 32px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  color: var(--text-color);
+}
+
+/* Modal Content */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.modal-subtitle {
+  font-size: 0.82rem;
+  opacity: 0.55;
+  margin: 0 0 2px;
+}
+
+.modal-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--text-color);
+  opacity: 0.5;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: opacity 0.2s;
+}
+
+.modal-close-btn:hover {
+  opacity: 1;
+}
+
+.modal-due-summary {
+  display: flex;
+  gap: 12px;
+  background: var(--background-color-2);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+.due-summary-item {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  font-size: 0.85rem;
+}
+
+.due-summary-item span {
+  opacity: 0.6;
+  margin-bottom: 2px;
+}
+.due-summary-item strong {
+  font-size: 1rem;
+}
+
+.color-paid {
+  color: #16a34a;
+}
+.color-unpaid {
+  color: #dc2626;
+}
+
+.modal-section-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 12px;
+}
+
+/* Payment Form */
+.payment-form {
+  border-top: 1px solid var(--border-default);
+  padding-top: 16px;
+  margin-bottom: 20px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.form-row label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+.form-row input,
+.form-row select,
+.form-row textarea {
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  background: var(--background-color-2);
+  color: var(--text-color);
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.receipt-name {
+  font-size: 0.78rem;
+  opacity: 0.6;
+  margin-top: 2px;
+}
+
+.paid-notice {
+  text-align: center;
+  padding: 14px;
+  background: #dcfce7;
+  color: #15803d;
+  border-radius: 10px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+[data-theme="dark"] .paid-notice {
+  background: #14532d;
+  color: #86efac;
+}
+
+/* Payment History */
+.payment-history {
+  border-top: 1px solid var(--border-default);
+  padding-top: 16px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.history-empty {
+  font-size: 0.85rem;
+  opacity: 0.5;
+  text-align: center;
+  padding: 12px 0;
+}
+
+.history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item {
+  background: var(--background-color-2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  position: relative;
+}
+
+.history-item.cancelled {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.history-main {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.history-amount {
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.history-method {
+  font-size: 0.8rem;
+  background: var(--card-background-1);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  padding: 1px 7px;
+}
+
+.history-date {
+  font-size: 0.82rem;
+  opacity: 0.55;
+}
+
+.history-meta {
+  font-size: 0.78rem;
+  opacity: 0.6;
+}
+
+.cancel-reason {
+  color: #dc2626;
+}
+
+.cancel-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: 1px solid #dc2626;
+  color: #dc2626;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.cancel-btn:hover {
+  background: #dc2626;
+  color: white;
+}
+
+/* Misc */
 .return-link {
   display: flex;
   justify-content: flex-end;
