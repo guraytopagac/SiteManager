@@ -77,9 +77,3 @@
   background: var(--text-disabled);
   cursor: not-allowed;
 }
-
-.infoText {
-  margin-top: 20px;
-  font-size: 16px;
-  color: var(--text-secondary);
-}

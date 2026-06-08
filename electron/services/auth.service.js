@@ -41,23 +41,6 @@ function login(credentials) {
   });
 }
 
-function register(userData) {
-  return new Promise((resolve) => {
-    const query = `INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)`;
-    const hashedPassword = bcrypt.hashSync(userData.password, 12);
-
-    db.run(query, [userData.username, userData.email, hashedPassword, "manager"], function (err) {
-      if (err)
-        return resolve({
-          success: false,
-          message: "Benzersiz Kullanıcı Adı / Email Gerekli!",
-        });
-
-      resolve({ success: true, message: "Hesabınız Oluşturuldu!" });
-    });
-  });
-}
-
 function getManagers() {
   return new Promise((resolve) => {
     db.all(
@@ -94,4 +77,4 @@ function updateManagerStatus(id, isActive) {
   });
 }
 
-module.exports = { login, register, getManagers, createManager, updateManagerStatus };
+module.exports = { login, getManagers, createManager, updateManagerStatus };

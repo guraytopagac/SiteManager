@@ -10,7 +10,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
     };
   },
   login: (credentials) => ipcRenderer.invoke("login", credentials),
-  register: (userData) => ipcRenderer.invoke("register", userData),
   getStats: (managerId) => ipcRenderer.invoke("get-stats", managerId),
   addApartment: (apartmentData) => ipcRenderer.invoke("add-apartment", apartmentData),
   getApartments: (userId) => ipcRenderer.invoke("get-apartments", userId),
