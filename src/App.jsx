@@ -10,6 +10,7 @@ import AddApartment from "./pages/AddApartment/AddApartment.jsx";
 import Apartments from "./pages/Apartments/Apartments.jsx";
 import AddIncome from "./pages/AddIncome/AddIncome.jsx";
 import AddExpense from "./pages/AddExpense/AddExpense.jsx";
+import Transactions from "./pages/Transactions/Transactions.jsx";
 import Footer from "./components/Footer.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
@@ -83,6 +84,14 @@ function App() {
             element={
               <ProtectedRoute requiredRole="manager">
                 <AddExpense />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/transactions"
+            element={
+              <ProtectedRoute requiredRole="manager">
+                <Transactions />
               </ProtectedRoute>
             }
           />

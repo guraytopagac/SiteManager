@@ -57,6 +57,9 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 type TEXT,
                 square_meters REAL,
                 due_amount REAL,
+                resident_name TEXT,
+                resident_phone TEXT,
+                resident_email TEXT,
                 manager_id INTEGER,
                 FOREIGN KEY(manager_id) REFERENCES users(id) ON DELETE CASCADE
             );
@@ -150,7 +153,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     db.get(`SELECT COUNT(*) AS count FROM users WHERE role = 'admin'`, (err, row) => {
       if (err) return;
       if (row.count === 0) {
-        const hashedPassword = bcrypt.hashSync("admin123", 12);
+        const hashedPassword = bcrypt.hashSync("admin", 12);
         db.run(
           `INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)`,
           ["admin", "admin@mavikent.com", hashedPassword, "admin"],

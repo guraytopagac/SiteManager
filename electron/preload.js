@@ -11,14 +11,20 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   login: (credentials) => ipcRenderer.invoke("login", credentials),
   getStats: (managerId) => ipcRenderer.invoke("get-stats", managerId),
+
   addApartment: (apartmentData) => ipcRenderer.invoke("add-apartment", apartmentData),
   getApartments: (userId) => ipcRenderer.invoke("get-apartments", userId),
+  updateApartment: (id, data) => ipcRenderer.invoke("update-apartment", { id, data }),
+  deleteApartment: (id) => ipcRenderer.invoke("delete-apartment", id),
+
   addIncome: (data) => ipcRenderer.invoke("add-income", data),
   addExpense: (data) => ipcRenderer.invoke("add-expense", data),
+  getTransactions: (managerId) => ipcRenderer.invoke("get-transactions", managerId),
   getDuesForMonth: (managerId, year, month) => ipcRenderer.invoke("get-dues-for-month", { managerId, year, month }),
   recordPayment: (dueId, paymentData) => ipcRenderer.invoke("record-payment", { dueId, paymentData }),
   cancelPayment: (paymentId, reason) => ipcRenderer.invoke("cancel-payment", { paymentId, reason }),
   getPaymentHistory: (dueId) => ipcRenderer.invoke("get-payment-history", { dueId }),
+
   getManagers: () => ipcRenderer.invoke("get-managers"),
   createManager: (data) => ipcRenderer.invoke("create-manager", data),
   updateManagerStatus: (id, isActive) => ipcRenderer.invoke("update-manager-status", { id, isActive }),

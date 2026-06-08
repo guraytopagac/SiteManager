@@ -30,7 +30,8 @@ function getDuesForMonth(managerId, year, month) {
 
     const query = `
       SELECT d.id, d.apartment_id, d.year, d.month, d.due_amount, d.paid_amount, d.status,
-             a.apartment_no, a.floor, a.type, a.square_meters
+             a.apartment_no, a.floor, a.type, a.square_meters,
+             a.resident_name, a.resident_phone, a.resident_email
       FROM dues d
       JOIN apartments a ON d.apartment_id = a.id
       WHERE a.manager_id = ? AND d.year = ? AND d.month = ?

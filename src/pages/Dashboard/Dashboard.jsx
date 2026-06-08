@@ -72,6 +72,9 @@ function Dashboard() {
           <div className="action-card" onClick={() => navigate("/add-expense")}>
             <h4>Gider Ekle</h4>
           </div>
+          <div className="action-card" onClick={() => navigate("/transactions")}>
+            <h4>İşlem Geçmişi</h4>
+          </div>
         </div>
       </div>
 

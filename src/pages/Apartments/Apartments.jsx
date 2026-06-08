@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import "./Apartments.css";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
+import { alert } from "../../utils/alert";
 
 const MONTHS = [
   "Ocak",
@@ -32,9 +33,120 @@ const PAYMENT_METHOD_LABELS = {
   other: "Diğer",
 };
 
+const APARTMENT_TYPES = ["1+1", "2+1", "3+1", "4+1"];
 const today = new Date().toISOString().slice(0, 10);
 
-// ─── Payment Modal ────────────────────────────────────────────────────────────
+function EditModal({ apartment, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    apartment_no: apartment.apartment_no || "",
+    floor: apartment.floor ?? "",
+    type: apartment.type || "1+1",
+    square_meters: apartment.square_meters ?? "",
+    due_amount: apartment.due_amount ?? "",
+    resident_name: apartment.resident_name || "",
+    resident_phone: apartment.resident_phone || "",
+    resident_email: apartment.resident_email || "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const set = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const res = await window.electronAPI.updateApartment(apartment.id, {
+      ...form,
+      floor: Number(form.floor),
+      square_meters: form.square_meters ? Number(form.square_meters) : null,
+      due_amount: Number(form.due_amount),
+    });
+    setIsSubmitting(false);
+
+    if (res.success) {
+      await alert.success("Güncellendi", res.message);
+      onSaved();
+    } else {
+      alert.error("Hata", res.message);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3 className="modal-title">Daireyi Düzenle</h3>
+          <button className="modal-close-btn" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <h4 className="modal-section-title">Daire Bilgileri</h4>
+
+          <div className="edit-form-grid">
+            <div className="form-row">
+              <label>Daire No</label>
+              <input type="text" value={form.apartment_no} onChange={set("apartment_no")} required />
+            </div>
+            <div className="form-row">
+              <label>Kat</label>
+              <input type="number" value={form.floor} onChange={set("floor")} required />
+            </div>
+            <div className="form-row">
+              <label>Tip</label>
+              <select value={form.type} onChange={set("type")}>
+                {APARTMENT_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-row">
+              <label>m²</label>
+              <input type="number" step="0.1" value={form.square_meters} onChange={set("square_meters")} />
+            </div>
+            <div className="form-row">
+              <label>Aidat (₺)</label>
+              <input type="number" step="0.01" value={form.due_amount} onChange={set("due_amount")} required />
+            </div>
+          </div>
+
+          <h4 className="modal-section-title" style={{ marginTop: 16 }}>
+            Sakin Bilgileri
+          </h4>
+
+          <div className="form-row">
+            <label>Ad Soyad</label>
+            <input type="text" placeholder="İsteğe bağlı" value={form.resident_name} onChange={set("resident_name")} />
+          </div>
+          <div className="form-row">
+            <label>Telefon</label>
+            <input type="tel" placeholder="İsteğe bağlı" value={form.resident_phone} onChange={set("resident_phone")} />
+          </div>
+          <div className="form-row">
+            <label>E-posta</label>
+            <input
+              type="email"
+              placeholder="İsteğe bağlı"
+              value={form.resident_email}
+              onChange={set("resident_email")}
+            />
+          </div>
+
+          <div className="modal-actions">
+            <button type="button" className="button button-secondary" onClick={onClose}>
+              İptal
+            </button>
+            <button type="submit" className="button" disabled={isSubmitting}>
+              {isSubmitting ? "Kaydediliyor..." : "Kaydet"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
   const [amount, setAmount] = useState("");
@@ -68,23 +180,13 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
 
     const parsedAmount = parseFloat(amount);
     if (!parsedAmount || parsedAmount <= 0) {
-      Swal.fire({
-        icon: "warning",
-        title: "Geçersiz Tutar",
-        text: "Lütfen geçerli bir tutar girin.",
-        heightAuto: false,
-      });
+      alert.warning("Geçersiz Tutar", "Lütfen geçerli bir tutar girin.");
       return;
     }
 
     const remaining = due.due_amount - due.paid_amount;
     if (parsedAmount > remaining + 0.01) {
-      Swal.fire({
-        icon: "warning",
-        title: "Fazla Ödeme",
-        text: `Kalan borç ${remaining.toLocaleString("tr-TR")} ₺. Daha fazlası girilemez.`,
-        heightAuto: false,
-      });
+      alert.warning("Fazla Ödeme", `Kalan borç ${remaining.toLocaleString("tr-TR")} ₺. Daha fazlası girilemez.`);
       return;
     }
 
@@ -97,18 +199,10 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
       note: note || null,
       collected_by: currentUser.id,
     });
-
     setIsSubmitting(false);
 
     if (res.success) {
-      Swal.fire({
-        icon: "success",
-        title: "Kaydedildi",
-        text: res.message,
-        timer: 1800,
-        showConfirmButton: false,
-        heightAuto: false,
-      });
+      alert.success("Kaydedildi", res.message);
       setAmount("");
       setNote("");
       setReceiptPath("");
@@ -117,7 +211,7 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
       onPaymentSaved();
       fetchHistory();
     } else {
-      Swal.fire({ icon: "error", title: "Hata", text: res.message, heightAuto: false });
+      alert.error("Hata", res.message);
     }
   };
 
@@ -127,16 +221,13 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
       input: "textarea",
       inputLabel: "İptal Nedeni",
       inputPlaceholder: "Lütfen iptal nedenini yazın...",
-      inputAttributes: { required: true },
       showCancelButton: true,
       confirmButtonText: "İptal Et",
       cancelButtonText: "Vazgeç",
       confirmButtonColor: "#dc2626",
       heightAuto: false,
       preConfirm: (val) => {
-        if (!val || !val.trim()) {
-          Swal.showValidationMessage("İptal nedeni zorunludur.");
-        }
+        if (!val?.trim()) Swal.showValidationMessage("İptal nedeni zorunludur.");
         return val?.trim();
       },
     });
@@ -145,18 +236,11 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
 
     const res = await window.electronAPI.cancelPayment(paymentId, reason);
     if (res.success) {
-      Swal.fire({
-        icon: "success",
-        title: "İptal Edildi",
-        text: res.message,
-        timer: 1800,
-        showConfirmButton: false,
-        heightAuto: false,
-      });
+      alert.success("İptal Edildi", res.message, 1800);
       onPaymentSaved();
       fetchHistory();
     } else {
-      Swal.fire({ icon: "error", title: "Hata", text: res.message, heightAuto: false });
+      alert.error("Hata", res.message);
     }
   };
 
@@ -166,7 +250,6 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
         <div className="modal-header">
           <div>
             <p className="modal-subtitle">
@@ -179,7 +262,6 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
           </button>
         </div>
 
-        {/* Due summary */}
         <div className="modal-due-summary">
           <div className="due-summary-item">
             <span>Aidat</span>
@@ -197,11 +279,9 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
           </div>
         </div>
 
-        {/* Payment Form */}
         {!isPaid && (
           <form className="payment-form" onSubmit={handleSubmit}>
             <h4 className="modal-section-title">Ödeme Ekle</h4>
-
             <div className="form-row">
               <label>Ödeme Yöntemi</label>
               <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
@@ -212,7 +292,6 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
                 ))}
               </select>
             </div>
-
             <div className="form-row">
               <label>Ödenen Tutar (₺)</label>
               <input
@@ -226,12 +305,10 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
                 required
               />
             </div>
-
             <div className="form-row">
               <label>Ödeme Tarihi</label>
               <input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} required />
             </div>
-
             <div className="form-row">
               <label>Açıklama / Not</label>
               <textarea
@@ -241,7 +318,6 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
                 onChange={(e) => setNote(e.target.value)}
               />
             </div>
-
             {paymentMethod === "transfer" && (
               <div className="form-row">
                 <label>Dekont Yükle</label>
@@ -249,7 +325,6 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
                 {receiptPath && <span className="receipt-name">{receiptPath.split(/[\\/]/).pop()}</span>}
               </div>
             )}
-
             <button type="submit" className="button" disabled={isSubmitting} style={{ width: "100%", marginTop: 8 }}>
               {isSubmitting ? "Kaydediliyor..." : "Ödemeyi Kaydet"}
             </button>
@@ -258,10 +333,8 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
 
         {isPaid && <div className="paid-notice">Bu aya ait aidat tamamen ödenmiştir.</div>}
 
-        {/* Payment History */}
         <div className="payment-history">
           <h4 className="modal-section-title">Ödeme Geçmişi</h4>
-
           {historyLoading ? (
             <p className="history-empty">Yükleniyor...</p>
           ) : history.length === 0 ? (
@@ -295,11 +368,10 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
-
 function Apartments() {
   const navigate = useNavigate();
   const now = new Date();
+  const currentUser = useCurrentUser();
 
   const [dues, setDues] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -307,8 +379,7 @@ function Apartments() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedDue, setSelectedDue] = useState(null);
-
-  const currentUser = useCurrentUser();
+  const [editingApartment, setEditingApartment] = useState(null);
 
   const fetchDues = useCallback(async () => {
     setLoading(true);
@@ -320,13 +391,11 @@ function Apartments() {
     }
 
     const response = await window.electronAPI.getDuesForMonth(currentUser.id, selectedYear, selectedMonth);
-
     if (response.success) {
       setDues(response.data);
     } else {
       setErrorMessage(response.message || "Veriler alınamadı.");
     }
-
     setLoading(false);
   }, [currentUser?.id, selectedYear, selectedMonth, navigate]);
 
@@ -334,16 +403,37 @@ function Apartments() {
     fetchDues();
   }, [fetchDues]);
 
-  // After a payment is saved/cancelled, refresh the due row in state
   const handlePaymentSaved = useCallback(async () => {
     if (!currentUser?.id) return;
     const response = await window.electronAPI.getDuesForMonth(currentUser.id, selectedYear, selectedMonth);
     if (response.success) {
       setDues(response.data);
-      // Keep modal open but update the selectedDue with fresh data
       setSelectedDue((prev) => (prev ? response.data.find((d) => d.id === prev.id) || prev : null));
     }
   }, [currentUser?.id, selectedYear, selectedMonth]);
+
+  const handleDelete = async (due) => {
+    const result = await Swal.fire({
+      title: "Daireyi Sil",
+      html: `<b>Daire ${due.apartment_no}</b> silinecek.<br/>Bu daireye ait tüm aidat kayıtları da kalıcı olarak silinir.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Evet, Sil",
+      cancelButtonText: "Vazgeç",
+      confirmButtonColor: "#dc2626",
+      heightAuto: false,
+    });
+
+    if (!result.isConfirmed) return;
+
+    const res = await window.electronAPI.deleteApartment(due.apartment_id);
+    if (res.success) {
+      await alert.success("Silindi", res.message);
+      fetchDues();
+    } else {
+      alert.error("Hata", res.message);
+    }
+  };
 
   const totalDue = dues.reduce((sum, d) => sum + d.due_amount, 0);
   const totalPaid = dues.reduce((sum, d) => sum + d.paid_amount, 0);
@@ -352,9 +442,7 @@ function Apartments() {
   const unpaidCount = dues.filter((d) => d.status === "unpaid").length;
 
   const yearOptions = [];
-  for (let y = now.getFullYear(); y >= now.getFullYear() - 3; y--) {
-    yearOptions.push(y);
-  }
+  for (let y = now.getFullYear(); y >= now.getFullYear() - 3; y--) yearOptions.push(y);
 
   if (loading) return <div className="loading">Verileriniz Yükleniyor...</div>;
   if (errorMessage) return <div className="loading">{errorMessage}</div>;
@@ -407,15 +495,17 @@ function Apartments() {
             <th>Kat</th>
             <th>Tip</th>
             <th>m²</th>
+            <th>Sakin</th>
             <th>Aidat</th>
             <th>Ödenen</th>
             <th>Durum</th>
+            <th>İşlem</th>
           </tr>
         </thead>
         <tbody>
           {dues.length === 0 ? (
             <tr>
-              <td colSpan={7} style={{ textAlign: "center", padding: "32px", opacity: 0.6 }}>
+              <td colSpan={9} style={{ textAlign: "center", padding: "32px", opacity: 0.6 }}>
                 Kayıtlı daire bulunamadı.
               </td>
             </tr>
@@ -426,11 +516,20 @@ function Apartments() {
                 <td>{due.floor}</td>
                 <td>{due.type}</td>
                 <td>{due.square_meters}</td>
+                <td className="resident-cell">{due.resident_name || <span className="resident-empty">—</span>}</td>
                 <td>{due.due_amount.toLocaleString("tr-TR")} ₺</td>
                 <td>{due.paid_amount.toLocaleString("tr-TR")} ₺</td>
                 <td>
                   <button className={`status-badge status-${due.status}`} onClick={() => setSelectedDue(due)}>
                     {STATUS_LABELS[due.status]}
+                  </button>
+                </td>
+                <td className="action-cell">
+                  <button className="action-btn edit-btn" onClick={() => setEditingApartment(due)} title="Düzenle">
+                    ✏️
+                  </button>
+                  <button className="action-btn delete-btn" onClick={() => handleDelete(due)} title="Sil">
+                    🗑️
                   </button>
                 </td>
               </tr>
@@ -453,6 +552,17 @@ function Apartments() {
           currentUser={currentUser}
           onClose={() => setSelectedDue(null)}
           onPaymentSaved={handlePaymentSaved}
+        />
+      )}
+
+      {editingApartment && (
+        <EditModal
+          apartment={editingApartment}
+          onClose={() => setEditingApartment(null)}
+          onSaved={() => {
+            setEditingApartment(null);
+            fetchDues();
+          }}
         />
       )}
     </div>

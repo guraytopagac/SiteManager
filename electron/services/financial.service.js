@@ -48,4 +48,19 @@ function addExpense(data) {
   });
 }
 
-module.exports = { addIncome, addExpense };
+function getTransactions(managerId) {
+  return new Promise((resolve) => {
+    const query = `
+      SELECT id, amount, date, description, 'income' AS type FROM incomes WHERE manager_id = ?
+      UNION ALL
+      SELECT id, amount, date, description, 'expense' AS type FROM expenses WHERE manager_id = ?
+      ORDER BY date DESC, id DESC
+    `;
+    db.all(query, [managerId, managerId], (err, rows) => {
+      if (err) return resolve({ success: false, message: "İşlem geçmişi alınamadı." });
+      resolve({ success: true, data: rows });
+    });
+  });
+}
+
+module.exports = { addIncome, addExpense, getTransactions };
