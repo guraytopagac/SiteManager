@@ -164,16 +164,14 @@ function AdminDashboard() {
                 />
               </div>
             </div>
-
             <button type="submit" className="btn-create" disabled={isSubmitting}>
               {isSubmitting ? "Oluşturuluyor..." : "Yönetici Oluştur"}
             </button>
-            <br />
-            <button className="btn-logout" onClick={handleLogout}>
-              Çıkış Yap
-            </button>
           </form>
         </section>
+        <button className="btn-logout" onClick={handleLogout}>
+          Çıkış Yap
+        </button>
       </div>
     </div>
   );

@@ -9,13 +9,13 @@
 }
 
 .title {
-  font-size: 35px;
+  font-size: 40px;
   margin-bottom: 10px;
   font-weight: bold;
 }
 
 .subtitle {
-  font-size: 24px;
+  font-size: 30px;
   margin-bottom: 30px;
   font-weight: normal;
   color: var(--text-secondary);
@@ -35,7 +35,7 @@
   background: var(--card-background-2);
   color: var(--text-color);
   border: 1px solid var(--border-default);
-  border-radius: 8px;
+  border-radius: 10px;
   transition: all 0.3s ease;
   outline: none;
   font-family: inherit;
@@ -57,7 +57,7 @@
 
 .loginForm button {
   margin-top: 20px;
-  padding: 14px;
+  padding: 14px 0px;
   font-size: 18px;
   color: #ffffff;
   background: var(--button-color);

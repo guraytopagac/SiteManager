@@ -34,7 +34,6 @@ function Login() {
         "currentUser",
         JSON.stringify({ id, username: loggedInUsername, email, role, last_login }),
       );
-
       Swal.fire({
         icon: "success",
         title: loggedInUsername + "\n\nHoş Geldiniz",
@@ -55,34 +54,29 @@ function Login() {
   };
 
   return (
-    <div className="main-wrapper">
-      <div className="loginContainer">
-        <div className="logo-container">
-          <img src={logoImg} alt="Mavikent Logo" className="app-logo" />
-        </div>
-        <h1 className="title">Mavikent Site Yönetimi</h1>
-        <h2 className="subtitle">Hoşgeldiniz!</h2>
-
-        <form className="loginForm" onSubmit={handleLoginSubmit}>
-          <input
-            type="text"
-            placeholder="Kullanıcı adınızı girin"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Şifrenizi girin"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          <button type="submit" id="loginButton" disabled={isSubmitting}>
-            {isSubmitting ? "Giriş yapılıyor..." : "Giriş Yap"}
-          </button>
-        </form>
-      </div>
+    <div className="loginContainer">
+      <img src={logoImg} alt="Mavikent Logo" />
+      <h1 className="title">Mavikent Site Yönetimi</h1>
+      <h2 className="subtitle">Hoşgeldiniz!</h2>
+      <form className="loginForm" onSubmit={handleLoginSubmit}>
+        <input
+          type="text"
+          placeholder="Kullanıcı adınızı girin"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Şifrenizi girin"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        <button type="submit" id="loginButton" disabled={isSubmitting}>
+          {isSubmitting ? "Giriş yapılıyor..." : "Giriş Yap"}
+        </button>
+      </form>
     </div>
   );
 }

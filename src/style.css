@@ -1,70 +1,55 @@
-/* ─── DARK TEMA: Midnight Teal ───────────────────────────────────────────── */
 [data-theme="dark"] {
-  /* Arka planlar */
   --background-color-1: #070e1a;
   --background-color-2: #0d1626;
   --card-background-1: #132035;
   --card-background-2: #1a2d45;
 
-  /* Metin */
   --text-color: #e2f0f9;
   --text-secondary: #7a9bb5;
   --text-disabled: #3d5a70;
 
-  /* Kenarlıklar */
   --border-default: #1e3350;
   --border-focus: #14b8a6;
 
-  /* Buton / Vurgu */
   --button-color: #14b8a6;
   --button-hover: #0d9488;
   --accent-subtle: rgba(20, 184, 166, 0.12);
 
-  /* Durum renkleri */
   --success: #34d399;
   --danger: #f87171;
   --warning: #fbbf24;
 
-  /* Dashboard stat kartları */
   --stat-kasa: #059669;
   --stat-tahsilat: #0e7490;
   --stat-gecikme: #dc2626;
 }
 
-/* ─── LIGHT TEMA: Slate Pro ──────────────────────────────────────────────── */
 [data-theme="light"] {
-  /* Arka planlar */
   --background-color-1: #f8fafc;
   --background-color-2: #f1f5f9;
   --card-background-1: #ffffff;
   --card-background-2: #e2e8f0;
 
-  /* Metin */
   --text-color: #0f172a;
   --text-secondary: #64748b;
   --text-disabled: #cbd5e1;
 
-  /* Kenarlıklar */
   --border-default: #e2e8f0;
   --border-focus: #4f6ef7;
 
-  /* Buton / Vurgu */
   --button-color: #4f6ef7;
   --button-hover: #3b57e8;
   --accent-subtle: rgba(79, 110, 247, 0.08);
 
-  /* Durum renkleri */
   --success: #16a34a;
   --danger: #dc2626;
   --warning: #d97706;
 
-  /* Dashboard stat kartları */
   --stat-kasa: #059669;
   --stat-tahsilat: #2563eb;
   --stat-gecikme: #dc2626;
 }
 
-/* ─── GLOBAL ─────────────────────────────────────────────────────────────── */
 * {
   margin: 0;
   padding: 0;

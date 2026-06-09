@@ -10,9 +10,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 32px;
   padding-bottom: 20px;
   border-bottom: 2px solid var(--border-default);
+  margin-bottom: 32px;
 }
 
 .admin-title {
@@ -35,7 +35,7 @@
 }
 
 .section-heading {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-color);
   margin-bottom: 18px;
@@ -53,18 +53,18 @@
 
 .manager-table th {
   background: var(--card-background-2);
-  padding: 11px 14px;
-  text-align: left;
+  padding: 12px 0px;
+  text-align: center;
   font-size: 11px;
   font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  border-bottom: 1px solid var(--border-default);
+  letter-spacing: 0.08em;
+  border-bottom: 2px solid var(--border-default);
 }
 
 .manager-table td {
-  padding: 13px 14px;
+  padding: 14px;
   font-size: 14px;
   color: var(--text-color);
   border-bottom: 1px solid var(--border-default);
@@ -76,7 +76,7 @@
 
 .manager-table tbody tr {
   background: var(--card-background-1);
-  transition: background 0.15s ease;
+  transition: background 0.2s ease;
 }
 
 .manager-table tbody tr:hover {
