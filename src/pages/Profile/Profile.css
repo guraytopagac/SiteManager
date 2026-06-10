@@ -6,7 +6,7 @@
   color: var(--text-color);
 }
 
-.page-title {
+.profile-container .page-title {
   font-size: 2rem;
   font-weight: 700;
   margin: 0 0 24px;
@@ -83,19 +83,19 @@
   gap: 16px;
 }
 
-.input-group {
+.profile-container .input-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.input-group label {
+.profile-container .input-group label {
   font-size: 0.88rem;
   font-weight: 600;
   color: var(--text-secondary);
 }
 
-.input-group input {
+.profile-container .input-group input {
   height: 44px;
   padding: 0 12px;
   border-radius: 9px;
@@ -107,31 +107,31 @@
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.input-group input::placeholder {
+.profile-container .input-group input::placeholder {
   color: var(--text-secondary);
   opacity: 0.5;
 }
 
-.input-group input:focus {
+.profile-container .input-group input:focus {
   outline: none;
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
 /* Actions */
-.form-actions {
+.profile-container .form-actions {
   display: flex;
   justify-content: center;
 }
 
-.return-link {
+.profile-container .return-link {
   display: flex;
   justify-content: center;
   margin-top: 8px;
 }
 
-.btn-primary,
-.btn-secondary {
+.profile-container .btn-primary,
+.profile-container .btn-secondary {
   min-width: 160px;
   height: 44px;
   border-radius: 9px;
@@ -142,29 +142,29 @@
   transition: all 0.2s ease;
 }
 
-.btn-primary {
+.profile-container .btn-primary {
   border: none;
   background: var(--button-color);
   color: white;
 }
 
-.btn-primary:hover:not(:disabled) {
+.profile-container .btn-primary:hover:not(:disabled) {
   background: var(--button-hover);
   transform: translateY(-1px);
 }
 
-.btn-primary:disabled {
+.profile-container .btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.btn-secondary {
+.profile-container .btn-secondary {
   background: transparent;
   border: 1px solid var(--border-default);
   color: var(--text-secondary);
 }
 
-.btn-secondary:hover {
+.profile-container .btn-secondary:hover {
   border-color: var(--button-color);
   color: var(--button-color);
 }

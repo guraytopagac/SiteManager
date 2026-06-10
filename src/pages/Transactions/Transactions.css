@@ -190,12 +190,12 @@
 }
 
 /* Misc */
-.return-link {
+.transactions-container .return-link {
   display: flex;
   justify-content: center;
 }
 
-.button {
+.transactions-container .button {
   min-width: 140px;
   padding: 12px 24px;
   border: none;
@@ -208,12 +208,12 @@
   transition: all 0.25s ease;
 }
 
-.button:hover {
+.transactions-container .button:hover {
   background: var(--button-hover);
   transform: translateY(-2px);
 }
 
-.loading {
+.transactions-container .loading {
   display: flex;
   justify-content: center;
   align-items: center;

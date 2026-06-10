@@ -76,13 +76,13 @@
   background-color: var(--accent-subtle);
 }
 
-.return-link {
+.dashboard-container .return-link {
   display: flex;
   justify-content: center;
   margin-top: 20px;
 }
 
-.button {
+.dashboard-container .button {
   background-color: var(--button-color);
   color: #ffffff;
   border: none;
@@ -93,19 +93,19 @@
   font-weight: bold;
 }
 
-.button:hover {
+.dashboard-container .button:hover {
   background-color: var(--button-hover);
 }
 
-.button-logout {
+.dashboard-container .button-logout {
   background-color: var(--danger);
 }
 
-.button-logout:hover {
+.dashboard-container .button-logout:hover {
   background-color: #b91c1c;
 }
 
-.loading {
+.dashboard-container .loading {
   text-align: center;
   padding: 60px 20px;
   color: var(--text-color);

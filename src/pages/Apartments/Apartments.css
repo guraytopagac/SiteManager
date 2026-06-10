@@ -248,17 +248,6 @@
   border-top: 1px solid var(--border-default);
 }
 
-.button-secondary {
-  background: transparent;
-  border: 1px solid var(--border-default);
-  color: var(--text-color);
-}
-
-.button-secondary:hover {
-  background: var(--accent-subtle);
-  transform: translateY(-2px);
-}
-
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -340,22 +329,22 @@
   margin-bottom: 20px;
 }
 
-.form-row {
+.apartments-container .form-row {
   display: flex;
   flex-direction: column;
   gap: 5px;
   margin-bottom: 12px;
 }
 
-.form-row label {
+.apartments-container .form-row label {
   font-size: 0.85rem;
   font-weight: 600;
   opacity: 0.75;
 }
 
-.form-row input,
-.form-row select,
-.form-row textarea {
+.apartments-container .form-row input,
+.apartments-container .form-row select,
+.apartments-container .form-row textarea {
   padding: 9px 12px;
   border-radius: 8px;
   border: 1px solid var(--border-default);
@@ -477,13 +466,13 @@
   color: white;
 }
 
-.return-link {
+.apartments-container .return-link {
   display: flex;
   justify-content: center;
   margin-top: 30px;
 }
 
-.button {
+.apartments-container .button {
   min-width: 140px;
   padding: 12px 24px;
   border: none;
@@ -496,16 +485,16 @@
   transition: all 0.25s ease;
 }
 
-.button:hover {
+.apartments-container .button:hover {
   background: var(--button-hover);
   transform: translateY(-2px);
 }
 
-.button:active {
+.apartments-container .button:active {
   transform: translateY(0);
 }
 
-.loading {
+.apartments-container .loading {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -536,13 +525,13 @@
 }
 
 /* Secondary & small button variants */
-.button-secondary {
+.apartments-container .button-secondary {
   background: transparent;
   border: 1px solid var(--border-default);
   color: var(--text-secondary);
 }
 
-.button-secondary:hover {
+.apartments-container .button-secondary:hover {
   border-color: var(--button-color);
   color: var(--button-color);
   background: transparent;
