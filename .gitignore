@@ -20,6 +20,7 @@ out/
 
 # Local databases
 *.db
+*.db-*
 *.sqlite
 
 # Local env files

@@ -30,6 +30,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   backupDatabase: () => ipcRenderer.invoke("backup-database"),
   restoreDatabase: () => ipcRenderer.invoke("restore-database"),
 
+  getReportData: (managerId, year, month) => ipcRenderer.invoke("get-report-data", { managerId, year, month }),
+  saveReportFile: (filename, buffer) => ipcRenderer.invoke("save-report-file", { filename, buffer }),
+
   onToggleTheme: (callback) => {
     ipcRenderer.on("toggle-theme", callback);
     return () => {

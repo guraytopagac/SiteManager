@@ -12,6 +12,7 @@ import AddIncome from "./pages/AddIncome/AddIncome.jsx";
 import AddExpense from "./pages/AddExpense/AddExpense.jsx";
 import Transactions from "./pages/Transactions/Transactions.jsx";
 import Profile from "./pages/Profile/Profile.jsx";
+import Reports from "./pages/Reports/Reports.jsx";
 import Footer from "./components/Footer.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
@@ -101,6 +102,14 @@ function App() {
             element={
               <ProtectedRoute requiredRole="manager">
                 <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute requiredRole="manager">
+                <Reports />
               </ProtectedRoute>
             }
           />

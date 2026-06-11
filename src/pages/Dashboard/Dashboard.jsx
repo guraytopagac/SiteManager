@@ -124,7 +124,7 @@ function Dashboard() {
               <h4>Duyuru Gönder</h4>
             </div>
             <div className="action-card" onClick={() => navigate("/reports")}>
-              <h4>PDF Raporu</h4>
+              <h4>Raporlar</h4>
             </div>
             <div className="action-card" onClick={() => navigate("/profile")}>
               <h4>Profilim</h4>
