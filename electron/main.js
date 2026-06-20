@@ -1,8 +1,15 @@
 // Libraries
+const db = require("../database/db");
+const fs = require("fs");
 const path = require("path");
 const serve = require("electron-serve").default;
-const { app, ipcMain, dialog, BrowserWindow, Menu } = require("electron");
 const registerIpcHandlers = require("./ipc/index.js");
+const { autoUpdater } = require("electron-updater");
+const { runMigrations } = require("../database/migrate");
+const { seedAdminAccount } = require("../database/seed");
+const { app, ipcMain, dialog, clipboard, BrowserWindow, Menu } = require("electron");
+
+runMigrations(db);
 
 // Variables
 let mainWindow;
@@ -102,16 +109,61 @@ function createMainWindow() {
   mainWindow.once("ready-to-show", () => {
     mainWindow.maximize();
     mainWindow.show();
+    if (!isDev) autoUpdater.checkForUpdates();
   });
 
   mainWindow.on("closed", () => (mainWindow = null));
 }
-app.whenReady().then(createMainWindow);
+app.whenReady().then(async () => {
+  createMainWindow();
+
+  const generatedPassword = seedAdminAccount(db);
+  if (generatedPassword) {
+    const { response } = await dialog.showMessageBox(mainWindow, {
+      type: "info",
+      title: "İlk Kurulum — Admin Hesabı",
+      message: "Admin hesabı oluşturuldu.",
+      detail: `Kullanıcı adı : admin\nŞifre         : ${generatedPassword}\n\nBu şifreyi not alın — bir daha gösterilmeyecek.\nGiriş yaptıktan sonra şifrenizi değiştirmeniz önerilir.`,
+      buttons: ["Şifreyi Kopyala", "Masaüstüne Kaydet (.txt)", "Tamam"],
+      defaultId: 0,
+      cancelId: 2,
+    });
+
+    if (response === 0) {
+      clipboard.writeText(generatedPassword);
+      await dialog.showMessageBox(mainWindow, {
+        type: "info",
+        title: "Kopyalandı",
+        message: "Şifre panoya kopyalandı.",
+        buttons: ["Tamam"],
+      });
+    } else if (response === 1) {
+      const desktopPath = app.getPath("desktop");
+      const filePath = path.join(desktopPath, "mavikent-admin-sifresi.txt");
+      fs.writeFileSync(
+        filePath,
+        `Mavikent Site Yönetimi — Admin Hesabı\n\nKullanıcı adı : admin\nŞifre         : ${generatedPassword}\n\nGiriş yaptıktan sonra bu dosyayı silin.\n`,
+        "utf8",
+      );
+      await dialog.showMessageBox(mainWindow, {
+        type: "info",
+        title: "Kaydedildi",
+        message: "Şifre masaüstüne kaydedildi.",
+        detail: filePath,
+        buttons: ["Tamam"],
+      });
+    }
+  }
+});
 
 // IPC Handlers
 registerIpcHandlers(ipcMain);
 
 // App Events
+app.on("before-quit", () => {
+  db.close();
+});
+
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
@@ -122,4 +174,35 @@ app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createMainWindow();
   }
+});
+
+// Auto updater
+autoUpdater.on("update-available", () => {
+  dialog.showMessageBox(mainWindow, {
+    type: "info",
+    title: "Güncelleme Mevcut",
+    message: "Yeni bir sürüm bulundu.",
+    detail: "Güncelleme arka planda indiriliyor, hazır olduğunda bildirim alacaksınız.",
+    buttons: ["Tamam"],
+  });
+});
+
+autoUpdater.on("update-downloaded", () => {
+  dialog
+    .showMessageBox(mainWindow, {
+      type: "info",
+      title: "Güncelleme Hazır",
+      message: "Güncelleme indirildi.",
+      detail: "Uygulamayı yeniden başlatmak ve güncellemeyi yüklemek ister misiniz?",
+      buttons: ["Şimdi Yeniden Başlat", "Daha Sonra"],
+      defaultId: 0,
+      cancelId: 1,
+    })
+    .then(({ response }) => {
+      if (response === 0) autoUpdater.quitAndInstall();
+    });
+});
+
+autoUpdater.on("error", (err) => {
+  console.error("Güncelleme hatası:", err.message);
 });

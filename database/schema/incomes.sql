@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS incomes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  amount REAL NOT NULL,
+  date TEXT NOT NULL,
+  description TEXT,
+  manager_id INTEGER,
+  FOREIGN KEY(manager_id) REFERENCES users(id) ON DELETE SET NULL
+);
