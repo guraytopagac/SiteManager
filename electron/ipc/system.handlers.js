@@ -1,14 +1,10 @@
 const fs = require("fs");
-const path = require("path");
 const { app, dialog } = require("electron");
-
-function getDbPath() {
-  return app.isPackaged ? path.join(app.getPath("userData"), "database.db") : path.join(__dirname, "../../database.db");
-}
+const db = require("../../database/db");
 
 function registerSystemHandlers(ipcMain) {
   ipcMain.handle("backup-database", async () => {
-    const dbPath = getDbPath();
+    const dbPath = db.name;
 
     const { filePath, canceled } = await dialog.showSaveDialog({
       title: "Veritabanı Yedeğini Kaydet",
@@ -26,7 +22,7 @@ function registerSystemHandlers(ipcMain) {
     });
   });
 
-  ipcMain.handle("restore-database", async (event) => {
+  ipcMain.handle("restore-database", async () => {
     const { filePaths, canceled } = await dialog.showOpenDialog({
       title: "Yedek Dosyasını Seç",
       filters: [{ name: "SQLite Veritabanı", extensions: ["db"] }],
@@ -35,7 +31,7 @@ function registerSystemHandlers(ipcMain) {
 
     if (canceled || !filePaths.length) return { success: false, message: "İptal edildi." };
 
-    const dbPath = getDbPath();
+    const dbPath = db.name;
 
     return new Promise((resolve) => {
       const tempBackup = dbPath + ".bak";
@@ -49,6 +45,10 @@ function registerSystemHandlers(ipcMain) {
           }
           fs.unlink(tempBackup, () => {});
           resolve({ success: true, message: "Veritabanı başarıyla geri yüklendi. Uygulama yeniden başlatılıyor..." });
+          setTimeout(() => {
+            app.relaunch();
+            app.exit();
+          }, 1500);
         });
       });
     });

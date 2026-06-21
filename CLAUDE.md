@@ -97,14 +97,28 @@ Claude, hiçbir zaman:
 ```
 SiteManager/
 ├── database/                           # Veritabanı bağlantısı ve konfigürasyon dosyaları
-│   └── db.js                           # Veritabanı bağlantı mantığı ve tablo oluşturma
+│   ├── migrations/                     # SQL migration dosyaları (001_, 002_, ...)
+│   │   └── 001_initial_schema.sql      # Baseline migration kaydı
+│   ├── schema/                         # Tablo şema dosyaları (migrate.js tarafından yüklenir)
+│   │   ├── apartments.sql
+│   │   ├── due_payments.sql
+│   │   ├── dues.sql
+│   │   ├── expenses.sql
+│   │   ├── incomes.sql
+│   │   └── users.sql
+│   ├── db.js                           # Veritabanı bağlantı mantığı (WAL, pragma, integrity check)
+│   ├── migrate.js                      # Schema yükleyici ve migration runner
+│   └── seed.js                         # İlk kurulumda admin hesabı oluşturma
 │
 ├── electron/                           # Electron.js ana süreç (main process) dosyaları
 │   ├── ipc/                            # Renderer ve Main süreçleri arası iletişim (IPC) handlerları
 │   │   ├── apartment.handlers.js
 │   │   ├── auth.handlers.js
 │   │   ├── dashboard.handlers.js
+│   │   ├── dues.handlers.js
 │   │   ├── financial.handlers.js
+│   │   ├── report.handlers.js
+│   │   ├── system.handlers.js
 │   │   └── index.js                    # IPC handler'ların ana merkezi
 │   │
 │   ├── services/                       # Veritabanı ile doğrudan konuşan iş mantığı katmanı
@@ -125,39 +139,23 @@ SiteManager/
 │   │
 │   ├── components/                     # Yeniden kullanılabilir UI ve layout bileşenleri
 │   │   ├── Footer.css
-│   │   └── Footer.jsx
+│   │   ├── Footer.jsx
+│   │   └── ProtectedRoute.jsx          # Rol bazlı rota koruma bileşeni
 │   │
 │   ├── hooks/                          # Özel React hook'ları
 │   │   └── useLoginLock.js
 │   │
 │   ├── pages/                          # Sayfa bazlı bileşenler
 │   │   ├── AddApartment/               # Daire ekleme sayfası
-│   │   │   ├── AddApartment.jsx
-│   │   │   └── AddApartment.css
-│   │   │
 │   │   ├── AddExpense/                 # Gider ekleme sayfası
-│   │   │   ├── AddExpense.jsx
-│   │   │   └── AddExpense.css
-│   │   │
 │   │   ├── AddIncome/                  # Gelir ekleme sayfası
-│   │   │   ├── AddIncome.jsx
-│   │   │   └── AddIncome.css
-│   │   │
+│   │   ├── AdminDashboard/             # Admin yönetim paneli (manager hesap yönetimi)
 │   │   ├── Apartments/                 # Daireler listeleme sayfası
-│   │   │   ├── Apartments.jsx
-│   │   │   └── Apartments.css
-│   │   │
-│   │   ├── Dashboard/                  # Ana özet ve işlem ekranı
-│   │   │   ├── Dashboard.jsx
-│   │   │   └── Dashboard.css
-│   │   │
+│   │   ├── Dashboard/                  # Manager ana ekranı (aidat, kasa, istatistikler)
 │   │   ├── Login/                      # Giriş yapma ekranı
-│   │   │   ├── Login.jsx
-│   │   │   └── Login.css
-│   │   │
-│   │   └── Register/                   # Kayıt olma ekranı
-│   │       ├── Register.jsx
-│   │       └── Register.css
+│   │   ├── Profile/                    # Kullanıcı profili ve şifre değiştirme
+│   │   ├── Reports/                    # Rapor görüntüleme ve PDF export
+│   │   └── Transactions/               # Gelir/gider işlem geçmişi
 │   │
 │   ├── App.jsx                         # Ana uygulama rotaları ve bileşen yapısı
 │   ├── main.jsx                        # React DOM giriş noktası
@@ -203,53 +201,114 @@ SiteManager/
 
 ## 6. Veritabanı Şeması (Mevcut)
 
+Şemalar `database/schema/` klasöründe ayrı `.sql` dosyaları olarak tutulur; `migrate.js` bunları yükler.
+
 ```sql
 -- Kullanıcı tablosu
 users (id, username, email, password_hash, role, is_active, last_login)
 
--- Daire tablosu
-apartments (id, apartment_no, floor, type, square_meters, due_amount, manager_id → users.id)
+-- Daire tablosu (sakin bilgileri dahil)
+apartments (id, apartment_no, floor, type, square_meters, due_amount,
+            resident_name, resident_phone, resident_email,
+            manager_id → users.id, created_at)
+
+-- Aidat tablosu (ay bazlı borç takibi)
+dues (id, apartment_id → apartments.id, year, month, due_amount,
+      paid_amount, status ∈ {unpaid, partial, paid}, created_at)
+      UNIQUE(apartment_id, year, month)
+
+-- Aidat ödeme kalemleri (iptal desteği ile)
+due_payments (id, due_id → dues.id, amount, payment_method ∈ {cash, bank_transfer, card, other},
+              payment_date, receipt_path, note, collected_by → users.id,
+              is_cancelled, cancelled_at, cancel_reason, created_at)
 
 -- Gelir tablosu
-incomes (id, amount, date, description, manager_id → users.id)
+incomes (id, amount, date, description, manager_id → users.id, created_at)
 
 -- Gider tablosu
-expenses (id, amount, date, description, manager_id → users.id)
+expenses (id, amount, date, description, manager_id → users.id, created_at)
 ```
-
-> **Not:** Aidat takibi için ayrı bir tablo henüz oluşturulmamıştır.
 
 ---
 
 ## 7. electronAPI (preload.js — Mevcut)
 
-| Metod           | IPC Kanalı       | Açıklama                    |
-| --------------- | ---------------- | --------------------------- |
-| `onToggleTheme` | `toggle-theme`   | Light/dark tema değişikliği |
-| `login`         | `login`          | Kullanıcı girişi            |
-| `register`      | `register`       | Yeni kullanıcı kaydı        |
-| `getStats`      | `get-stats`      | Dashboard istatistikleri    |
-| `addApartment`  | `add-apartment`  | Yeni daire ekle             |
-| `getApartments` | `get-apartments` | Daire listesi getir         |
-| `addIncome`     | `add-income`     | Gelir kaydı ekle            |
+### Daire İşlemleri
+| Metod                | IPC Kanalı              | Açıklama                          |
+| -------------------- | ----------------------- | --------------------------------- |
+| `addApartment`       | `add-apartment`         | Yeni daire ekle                   |
+| `getApartments`      | `get-apartments`        | Daire listesi getir               |
+| `updateApartment`    | `update-apartment`      | Daire bilgisi güncelle            |
+| `deleteApartment`    | `delete-apartment`      | Daire sil                         |
+| `bulkUpdateDueAmount`| `bulk-update-due-amount`| Tüm dairelerin aidat tutarını güncelle |
 
-> **Not:** `addExpense` IPC handler'ı henüz eklenmemiştir.
+### Kullanıcı / Auth
+| Metod                | IPC Kanalı              | Açıklama                          |
+| -------------------- | ----------------------- | --------------------------------- |
+| `login`              | `login`                 | Kullanıcı girişi                  |
+| `getManagers`        | `get-managers`          | Manager listesi (admin)           |
+| `createManager`      | `create-manager`        | Yeni manager oluştur (admin)      |
+| `updateManagerStatus`| `update-manager-status` | Manager aktif/pasif yap (admin)   |
+| `changePassword`     | `change-password`       | Şifre değiştir                    |
+
+### Dashboard
+| Metod      | IPC Kanalı  | Açıklama                 |
+| ---------- | ----------- | ------------------------ |
+| `getStats` | `get-stats` | Dashboard istatistikleri |
+
+### Aidat
+| Metod              | IPC Kanalı           | Açıklama                        |
+| ------------------ | -------------------- | ------------------------------- |
+| `getDuesForMonth`  | `get-dues-for-month` | Aylık aidat listesi             |
+| `recordPayment`    | `record-payment`     | Ödeme kaydet                    |
+| `cancelPayment`    | `cancel-payment`     | Ödemeyi iptal et                |
+| `getPaymentHistory`| `get-payment-history`| Aidat ödeme geçmişi             |
+
+### Finansal
+| Metod            | IPC Kanalı        | Açıklama              |
+| ---------------- | ----------------- | --------------------- |
+| `addIncome`      | `add-income`      | Gelir kaydı ekle      |
+| `addExpense`     | `add-expense`     | Gider kaydı ekle      |
+| `getTransactions`| `get-transactions`| Gelir/gider listesi   |
+
+### Veritabanı
+| Metod             | IPC Kanalı         | Açıklama          |
+| ----------------- | ------------------ | ----------------- |
+| `backupDatabase`  | `backup-database`  | Veritabanı yedekle |
+| `restoreDatabase` | `restore-database` | Yedekten geri yükle|
+
+### Raporlar
+| Metod           | IPC Kanalı        | Açıklama                  |
+| --------------- | ----------------- | ------------------------- |
+| `getReportData` | `get-report-data` | Rapor verisi getir        |
+| `saveReportFile`| `save-report-file`| Raporu diske kaydet       |
+
+### Events
+| Metod           | IPC Kanalı     | Açıklama                    |
+| --------------- | -------------- | --------------------------- |
+| `onToggleTheme` | `toggle-theme` | Light/dark tema değişikliği |
 
 ---
 
 ## 8. Uygulama Rotaları (Mevcut)
 
-| Rota                 | Bileşen      | Durum                |
-| -------------------- | ------------ | -------------------- |
-| `/`                  | Login        | ✅ Tamamlandı        |
-| `/register`          | Register     | ✅ Tamamlandı        |
-| `/dashboard`         | Dashboard    | ✅ Tamamlandı        |
-| `/add-apartment`     | AddApartment | ✅ Tamamlandı        |
-| `/apartments`        | Apartments   | ✅ Tamamlandı        |
-| `/add-income`        | AddIncome    | ✅ Tamamlandı        |
-| `/add-expense`       | AddExpense   | 🔧 UI var, IPC eksik |
-| `/send-announcement` | —            | ❌ Henüz yok         |
-| `/reports`           | —            | ❌ Henüz yok         |
+Rotalar `ProtectedRoute` bileşeniyle rol bazlı korunur.
+
+| Rota                 | Bileşen        | Rol       | Durum         |
+| -------------------- | -------------- | --------- | ------------- |
+| `/`                  | Login          | —         | ✅ Tamamlandı |
+| `/admin-dashboard`   | AdminDashboard | admin     | ✅ Tamamlandı |
+| `/dashboard`         | Dashboard      | manager   | ✅ Tamamlandı |
+| `/add-apartment`     | AddApartment   | manager   | ✅ Tamamlandı |
+| `/apartments`        | Apartments     | manager   | ✅ Tamamlandı |
+| `/add-income`        | AddIncome      | manager   | ✅ Tamamlandı |
+| `/add-expense`       | AddExpense     | manager   | ✅ Tamamlandı |
+| `/transactions`      | Transactions   | manager   | ✅ Tamamlandı |
+| `/profile`           | Profile        | manager   | ✅ Tamamlandı |
+| `/reports`           | Reports        | manager   | ✅ Tamamlandı |
+| `/send-announcement` | —              | —         | ❌ Henüz yok  |
+
+> **Not:** `/register` rotası kaldırıldı; manager hesapları artık AdminDashboard üzerinden admin tarafından oluşturuluyor.
 
 ---
 
@@ -281,26 +340,36 @@ Hızlı erişim butonları (4 kategori grubu):
 
 ---
 
-## 11. Modüller — Planlanan / Eksik
+## 11. Modüller — Durum
 
-### 11.1 Aidat Takibi ❌ (Henüz yok)
+### 11.1 Aidat Takibi ✅ (Tamamlandı)
 
-- Aylık otomatik borç kaydı oluşturma
-- Ödeme işaretleme
-- Gecikmiş aidat tespiti
+- `dues` tablosu: ay bazlı borç kaydı (UNIQUE apartment+year+month)
+- `due_payments` tablosu: ödeme kalemleri, iptal desteği
+- IPC: `getDuesForMonth`, `recordPayment`, `cancelPayment`, `getPaymentHistory`
 
-### 11.2 Borç / Alacak Takibi ❌ (Henüz yok)
+### 11.2 Daire ve Sakin Yönetimi ✅ (Tamamlandı)
 
-- Sakin bazında borç hesaplama
-- Gecikme günü hesaplama
+- Sakin bilgileri (resident_name, phone, email) apartments tablosunda
+- Daire ekleme, güncelleme, silme, toplu aidat güncelleme
 
-### 11.3 Raporlar ve PDF Export ❌ (Henüz yok)
+### 11.3 Finansal İşlemler ✅ (Tamamlandı)
 
-- Aylık/yıllık özet
-- Daire bazlı rapor
-- PDF dışa aktarma
+- Gelir/gider ekleme ve listeleme (`Transactions` sayfası)
+- Veritabanı yedekleme ve geri yükleme
 
-### 11.4 Bildirim / Duyuru Yönetimi ❌ (Henüz yok)
+### 11.4 Raporlar ✅ (Kısmen Tamamlandı)
+
+- `Reports` sayfası mevcut
+- `getReportData` ve `saveReportFile` IPC'leri tanımlı
+- PDF export implementasyonu durumu belirsiz (servis katmanı kontrol edilmeli)
+
+### 11.5 Admin Paneli ✅ (Tamamlandı)
+
+- `AdminDashboard`: manager hesabı oluşturma, aktif/pasif yapma
+- İlk kurulumda otomatik admin seed (`database/seed.js`)
+
+### 11.6 Bildirim / Duyuru Yönetimi ❌ (Henüz yok)
 
 - Uygulama içi duyuru gönderme
 - SMS/e-posta entegrasyonu

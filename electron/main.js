@@ -9,81 +9,118 @@ const { runMigrations } = require("../database/migrate");
 const { seedAdminAccount } = require("../database/seed");
 const { app, ipcMain, dialog, clipboard, BrowserWindow, Menu } = require("electron");
 
-runMigrations(db);
-
 // Variables
 let mainWindow;
 const loadURL = serve({ directory: path.join(__dirname, "..", "dist") });
 const isDev = !app.isPackaged;
 
-// Menu
-const menuTemplate = [
-  ...(process.platform === "darwin"
-    ? [
-        {
-          label: app.name,
-        },
-      ]
-    : []),
-  {
-    label: "Dosya",
-    submenu: [
-      {
-        label: "Tema Değiştir",
-        accelerator: "CmdOrCtrl+Shift+T",
-        click() {
-          mainWindow.webContents.send("toggle-theme");
-        },
-      },
-      {
-        label: "Yenile",
-        role: "reload",
-        accelerator: "CmdOrCtrl+R",
-      },
-      {
-        label: "Çıkış",
-        role: "quit",
-        accelerator: "CmdOrCtrl+Q",
-      },
-    ],
-  },
-  {
-    label: "Yardım",
-    submenu: [
-      {
-        label: "Hakkında",
-        click() {
-          dialog.showMessageBox(mainWindow, {
-            type: "info",
-            title: "Hakkında",
-            message: "Mavikent Site Yönetim Sistemi",
-            detail: "\nDestek ve sorularınız için:\nguraytopagac@gmail.com",
-            buttons: ["Tamam"],
-            icon: path.join(__dirname, "../src/assets/icon.ico"),
-          });
-        },
-      },
-    ],
-  },
-];
-
-// Dev Mode
-if (isDev) {
-  menuTemplate.push({
-    label: "Geliştirici Araçları",
-    accelerator: "F12",
-    click(item, focusedWindow) {
-      if (focusedWindow) focusedWindow.toggleDevTools();
-    },
+async function handleSeedResult(seedResult) {
+  if (!seedResult || !mainWindow) return;
+  const { username, password } = seedResult;
+  const { response } = await dialog.showMessageBox(mainWindow, {
+    type: "info",
+    title: "İlk Kurulum — Admin Hesabı",
+    message: "Admin hesabı oluşturuldu.",
+    detail: `Kullanıcı adı : ${username}\nŞifre         : ${password}\n\nBu şifreyi not alın — bir daha gösterilmeyecek.\nGiriş yaptıktan sonra şifrenizi değiştirmeniz önerilir.`,
+    buttons: ["Şifreyi Kopyala", "Masaüstüne Kaydet (.txt)", "Tamam"],
+    defaultId: 0,
+    cancelId: 2,
   });
+
+  if (response === 0) {
+    clipboard.writeText(password);
+    await dialog.showMessageBox(mainWindow, {
+      type: "info",
+      title: "Kopyalandı",
+      message: "Şifre panoya kopyalandı.",
+      buttons: ["Tamam"],
+    });
+  } else if (response === 1) {
+    const desktopPath = app.getPath("desktop");
+    const filePath = path.join(desktopPath, "mavikent-admin-sifresi.txt");
+    try {
+      fs.writeFileSync(
+        filePath,
+        `Mavikent Site Yönetimi — Admin Hesabı\n\nKullanıcı adı : ${username}\nŞifre         : ${password}\n\nGiriş yaptıktan sonra bu dosyayı silin.\n`,
+        "utf8",
+      );
+      await dialog.showMessageBox(mainWindow, {
+        type: "info",
+        title: "Kaydedildi",
+        message: "Şifre masaüstüne kaydedildi.",
+        detail: filePath,
+        buttons: ["Tamam"],
+      });
+    } catch (err) {
+      await dialog.showMessageBox(mainWindow, {
+        type: "error",
+        title: "Kayıt Hatası",
+        message: "Dosya oluşturulamadı.",
+        detail: err.message,
+        buttons: ["Tamam"],
+      });
+    }
+  }
 }
 
 // Main Window
 function createMainWindow() {
+  const iconPath = path.join(__dirname, "../src/assets/icon.ico");
+  const menuTemplate = [
+    {
+      label: "Dosya",
+      submenu: [
+        {
+          label: "Tema Değiştir",
+          accelerator: "CmdOrCtrl+Shift+T",
+          click() {
+            mainWindow.webContents.send("toggle-theme");
+          },
+        },
+        {
+          label: "Yenile",
+          role: "reload",
+          accelerator: "CmdOrCtrl+R",
+        },
+        {
+          label: "Çıkış",
+          role: "quit",
+          accelerator: "CmdOrCtrl+Q",
+        },
+      ],
+    },
+    {
+      label: "Yardım",
+      submenu: [
+        {
+          label: "Hakkında",
+          click() {
+            dialog.showMessageBox(mainWindow, {
+              type: "info",
+              title: "Hakkında",
+              message: "Mavikent Site Yönetim Sistemi",
+              detail: "\nDestek ve sorularınız için:\nguraytopagac@gmail.com",
+              buttons: ["Tamam"],
+              icon: iconPath,
+            });
+          },
+        },
+      ],
+    },
+  ];
+
+  if (isDev) {
+    menuTemplate.push({
+      label: "Geliştirici Araçları",
+      accelerator: "F12",
+      click(item, focusedWindow) {
+        if (focusedWindow) focusedWindow.toggleDevTools();
+      },
+    });
+  }
+
   const mainMenu = Menu.buildFromTemplate(menuTemplate);
   Menu.setApplicationMenu(mainMenu);
-
-  const iconPath = path.join(__dirname, "../src/assets/icon.ico");
 
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -106,53 +143,28 @@ function createMainWindow() {
     loadURL(mainWindow);
   }
 
-  mainWindow.once("ready-to-show", () => {
+  mainWindow.once("ready-to-show", async () => {
     mainWindow.maximize();
     mainWindow.show();
+    try {
+      const seedResult = await seedAdminAccount(db);
+      await handleSeedResult(seedResult);
+    } catch (err) {
+      dialog.showErrorBox("Başlatma Hatası", err.message);
+    }
     if (!isDev) autoUpdater.checkForUpdates();
   });
 
   mainWindow.on("closed", () => (mainWindow = null));
 }
+
 app.whenReady().then(async () => {
-  createMainWindow();
-
-  const generatedPassword = seedAdminAccount(db);
-  if (generatedPassword) {
-    const { response } = await dialog.showMessageBox(mainWindow, {
-      type: "info",
-      title: "İlk Kurulum — Admin Hesabı",
-      message: "Admin hesabı oluşturuldu.",
-      detail: `Kullanıcı adı : admin\nŞifre         : ${generatedPassword}\n\nBu şifreyi not alın — bir daha gösterilmeyecek.\nGiriş yaptıktan sonra şifrenizi değiştirmeniz önerilir.`,
-      buttons: ["Şifreyi Kopyala", "Masaüstüne Kaydet (.txt)", "Tamam"],
-      defaultId: 0,
-      cancelId: 2,
-    });
-
-    if (response === 0) {
-      clipboard.writeText(generatedPassword);
-      await dialog.showMessageBox(mainWindow, {
-        type: "info",
-        title: "Kopyalandı",
-        message: "Şifre panoya kopyalandı.",
-        buttons: ["Tamam"],
-      });
-    } else if (response === 1) {
-      const desktopPath = app.getPath("desktop");
-      const filePath = path.join(desktopPath, "mavikent-admin-sifresi.txt");
-      fs.writeFileSync(
-        filePath,
-        `Mavikent Site Yönetimi — Admin Hesabı\n\nKullanıcı adı : admin\nŞifre         : ${generatedPassword}\n\nGiriş yaptıktan sonra bu dosyayı silin.\n`,
-        "utf8",
-      );
-      await dialog.showMessageBox(mainWindow, {
-        type: "info",
-        title: "Kaydedildi",
-        message: "Şifre masaüstüne kaydedildi.",
-        detail: filePath,
-        buttons: ["Tamam"],
-      });
-    }
+  try {
+    runMigrations(db);
+    createMainWindow();
+  } catch (err) {
+    dialog.showErrorBox("Başlatma Hatası", err.message);
+    app.quit();
   }
 });
 
@@ -177,32 +189,37 @@ app.on("activate", () => {
 });
 
 // Auto updater
-autoUpdater.on("update-available", () => {
-  dialog.showMessageBox(mainWindow, {
-    type: "info",
-    title: "Güncelleme Mevcut",
-    message: "Yeni bir sürüm bulundu.",
-    detail: "Güncelleme arka planda indiriliyor, hazır olduğunda bildirim alacaksınız.",
-    buttons: ["Tamam"],
-  });
-});
-
-autoUpdater.on("update-downloaded", () => {
-  dialog
-    .showMessageBox(mainWindow, {
+if (!isDev) {
+  autoUpdater.on("update-available", () => {
+    if (!mainWindow) return;
+    dialog.showMessageBox(mainWindow, {
       type: "info",
-      title: "Güncelleme Hazır",
-      message: "Güncelleme indirildi.",
-      detail: "Uygulamayı yeniden başlatmak ve güncellemeyi yüklemek ister misiniz?",
-      buttons: ["Şimdi Yeniden Başlat", "Daha Sonra"],
-      defaultId: 0,
-      cancelId: 1,
-    })
-    .then(({ response }) => {
-      if (response === 0) autoUpdater.quitAndInstall();
+      title: "Güncelleme Mevcut",
+      message: "Yeni bir sürüm bulundu.",
+      detail: "Güncelleme arka planda indiriliyor, hazır olduğunda bildirim alacaksınız.",
+      buttons: ["Tamam"],
     });
-});
+  });
 
-autoUpdater.on("error", (err) => {
-  console.error("Güncelleme hatası:", err.message);
-});
+  autoUpdater.on("update-downloaded", async () => {
+    if (!mainWindow) return;
+    try {
+      const { response } = await dialog.showMessageBox(mainWindow, {
+        type: "info",
+        title: "Güncelleme Hazır",
+        message: "Güncelleme indirildi.",
+        detail: "Uygulamayı yeniden başlatmak ve güncellemeyi yüklemek ister misiniz?",
+        buttons: ["Şimdi Yeniden Başlat", "Daha Sonra"],
+        defaultId: 0,
+        cancelId: 1,
+      });
+      if (response === 0) autoUpdater.quitAndInstall();
+    } catch (err) {
+      console.error("Güncelleme dialog hatası:", err.message);
+    }
+  });
+
+  autoUpdater.on("error", (err) => {
+    console.error("Güncelleme hatası:", err.message);
+  });
+}

@@ -1,11 +1,16 @@
-const { dialog } = require("electron");
+const path = require("path");
 const fs = require("fs");
+const { dialog } = require("electron");
 const reportService = require("../services/report.service");
 
 function registerReportHandlers(ipcMain) {
-  ipcMain.handle("get-report-data", (event, { managerId, year, month }) =>
-    reportService.getReportData(managerId, year, month),
-  );
+  ipcMain.handle("get-report-data", async (event, { managerId, year, month }) => {
+    try {
+      return await reportService.getReportData(managerId, year, month);
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  });
 
   ipcMain.handle("save-report-file", async (event, { filename, buffer }) => {
     try {
@@ -19,7 +24,8 @@ function registerReportHandlers(ipcMain) {
 
       if (canceled || !filePath) return { success: false, message: "İptal edildi." };
 
-      fs.writeFileSync(filePath, Buffer.from(buffer));
+      const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+      fs.writeFileSync(filePath, buf);
       return { success: true, message: `Rapor kaydedildi: ${filePath}` };
     } catch (err) {
       console.error("Save report error:", err);
