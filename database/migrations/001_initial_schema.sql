@@ -1,6 +1,6 @@
--- Mevcut şemanın migration kaydı.
--- Bu tablolar db.js içinde zaten CREATE TABLE IF NOT EXISTS ile oluşturuluyor;
--- bu dosya yalnızca migration geçmişini kayıt altına almak için eklendi.
--- İlerideki şema değişiklikleri 002_, 003_... dosyalarına yazılmalıdır.
+-- Initial schema migration record.
+-- Tables are created by the schema loader (migrate.js → loadSchema).
+-- This entry exists only to anchor the migration history.
+-- Future schema changes should go into 002_, 003_... files.
 
-SELECT 1; -- no-op: tablolar db.js tarafından zaten oluşturulmuş
+-- no-op: tables are already created by the schema loader; this file only registers the baseline in migration history.

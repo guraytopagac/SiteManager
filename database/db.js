@@ -8,31 +8,33 @@ const dbPath = isPackaged
   ? path.join(app?.getPath("userData") ?? __dirname, "database.db")
   : path.join(__dirname, "..", "database.db");
 
-const db = new Database(dbPath);
+if (isPackaged) {
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+}
+
+let db;
+try {
+  db = new Database(dbPath);
+} catch (e) {
+  throw new Error(`Veritabanı açılamadı (${dbPath}): ${e.message}`);
+}
 
 db.pragma("foreign_keys = ON");
 db.pragma("journal_mode = WAL");
+db.pragma("synchronous = NORMAL");
 db.pragma("busy_timeout = 3000");
+db.pragma("wal_autocheckpoint = 0");
+db.pragma("cache_size = -32000");
 
-// Tablolar foreign key bağımlılık sırasına göre yüklenir
-const schemaFiles = [
-  "users.sql",
-  "apartments.sql",
-  "incomes.sql",
-  "expenses.sql",
-  "dues.sql",
-  "due_payments.sql",
-];
-
-const schemaDir = path.join(__dirname, "schema");
-for (const file of schemaFiles) {
-  try {
-    const sql = fs.readFileSync(path.join(schemaDir, file), "utf8");
-    db.exec(sql);
-  } catch (e) {
-    throw new Error(`Schema yüklenemedi: ${file} — ${e.message}`);
-  }
+const integrityResult = db.pragma("quick_check", { simple: true });
+if (integrityResult !== "ok") {
+  throw new Error(`Veritabanı bütünlük hatası (${dbPath}): ${integrityResult}`);
 }
+
+app?.on("before-quit", () => {
+  db.pragma("wal_checkpoint(TRUNCATE)");
+  db.close();
+});
 
 if (!isPackaged) console.log("DB bağlantısı kuruldu.");
 
