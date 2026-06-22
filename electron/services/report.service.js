@@ -1,27 +1,39 @@
 const db = require("../../database/db");
 
+const ALLOWED_TABLES = new Set(["incomes", "expenses"]);
+
+function fetchByMonth(table, managerId, startDate, endDate) {
+  if (!ALLOWED_TABLES.has(table)) throw new Error(`İzinsiz tablo: ${table}`);
+  return db
+    .prepare(
+      `SELECT id, amount, date, description
+       FROM ${table}
+       WHERE manager_id = ? AND date BETWEEN ? AND ?
+       ORDER BY date ASC`,
+    )
+    .all(managerId, startDate, endDate);
+}
+
 function getReportData(managerId, year, month) {
   try {
+    if (!managerId) return { success: false, message: "Yetkisiz işlem." };
+    if (!year || !month || isNaN(year) || isNaN(month)) {
+      return { success: false, message: "Geçersiz yıl veya ay." };
+    }
+    if (year < 2000 || year > 2100) {
+      return { success: false, message: "Geçersiz yıl." };
+    }
+    if (month < 1 || month > 12) {
+      return { success: false, message: "Geçersiz ay." };
+    }
+
     const yearStr = String(year);
     const monthStr = String(month).padStart(2, "0");
+    const startDate = `${yearStr}-${monthStr}-01`;
+    const endDate = new Date(year, month, 0).toISOString().split("T")[0];
 
-    const incomes = db
-      .prepare(
-        `SELECT id, amount, date, description
-         FROM incomes
-         WHERE manager_id = ? AND strftime('%Y', date) = ? AND strftime('%m', date) = ?
-         ORDER BY date ASC`,
-      )
-      .all(managerId, yearStr, monthStr);
-
-    const expenses = db
-      .prepare(
-        `SELECT id, amount, date, description
-         FROM expenses
-         WHERE manager_id = ? AND strftime('%Y', date) = ? AND strftime('%m', date) = ?
-         ORDER BY date ASC`,
-      )
-      .all(managerId, yearStr, monthStr);
+    const incomes = fetchByMonth("incomes", managerId, startDate, endDate);
+    const expenses = fetchByMonth("expenses", managerId, startDate, endDate);
 
     const dues = db
       .prepare(
@@ -44,7 +56,7 @@ function getReportData(managerId, year, month) {
       data: { incomes, expenses, dues, totalIncome, totalExpense, totalDue, totalPaid },
     };
   } catch (err) {
-    console.error("Report data error:", err);
+    console.error("[report] getReportData:", err);
     return { success: false, message: "Rapor verileri alınamadı." };
   }
 }

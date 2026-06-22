@@ -7,7 +7,8 @@
   "type": "commonjs",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"vite\" \"npm run electron:dev\"",
+    "electron:dev": "wait-on http://localhost:5173 && electron .",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -17,14 +18,16 @@
   },
   "build": {
     "appId": "com.mavikent.sitemanager",
-    "productName": "Mavikent Site Yonetimi",
+    "productName": "Mavikent Site Yönetimi",
     "directories": {
-      "output": "C:\\builds\\SiteManager"
+      "output": "dist_electron"
     },
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "database/**/*",
+      "database/*.js",
+      "database/schema/**/*",
+      "database/migrations/**/*",
       "package.json"
     ],
     "win": {
@@ -36,7 +39,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "Mavikent Site Yonetimi"
+      "shortcutName": "Mavikent Site Yönetimi"
     },
     "publish": {
       "provider": "github",
@@ -51,11 +54,12 @@
     "electron-updater": "^6.8.9",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
+    "prop-types": "^15.8.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.15.1",
     "sweetalert2": "^11.26.25",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-latest/xlsx-latest.tgz"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.4",
@@ -63,6 +67,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.1.2",
     "electron": "^41.0.0",
     "electron-builder": "^26.8.1",
     "eslint": "^10.3.0",
@@ -70,6 +75,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
     "prettier": "3.8.3",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "wait-on": "^8.0.3"
   }
 }

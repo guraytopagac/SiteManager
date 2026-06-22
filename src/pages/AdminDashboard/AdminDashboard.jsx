@@ -73,6 +73,7 @@ function AdminDashboard() {
 
   const handleLogout = () => {
     sessionStorage.clear();
+    window.dispatchEvent(new Event("user-session-changed"));
     navigate("/", { replace: true });
   };
 

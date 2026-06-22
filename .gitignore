@@ -17,11 +17,22 @@ dist-ssr/
 # Electron build outputs (ASAR and Installer files)
 dist_electron/
 out/
+release/
+releases/
+*.exe
+*.blockmap
 
 # Local databases
 *.db
 *.db-*
+*.db.bak
 *.sqlite
+
+# Electron cache
+.cache/
+
+# Generated assets
+public/
 
 # Local env files
 *.local

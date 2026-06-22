@@ -6,9 +6,7 @@ const DEFAULT_ADMIN_EMAIL = "admin@mavikent.com";
 const BCRYPT_SALT_ROUNDS = 12;
 
 async function seedAdminAccount(db) {
-  const { count } = db
-    .prepare(`SELECT COUNT(*) AS count FROM users WHERE role = 'admin' AND is_active = 1`)
-    .get();
+  const { count } = db.prepare(`SELECT COUNT(*) AS count FROM users WHERE role = 'admin' AND is_active = 1`).get();
   if (count > 0) return null;
 
   const randomPassword = crypto.randomBytes(8).toString("hex");

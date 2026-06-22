@@ -3,6 +3,8 @@ const { app, dialog } = require("electron");
 const db = require("../../database/db");
 
 function registerSystemHandlers(ipcMain) {
+  ipcMain.handle("get-app-version", () => app.getVersion());
+
   ipcMain.handle("backup-database", async () => {
     const dbPath = db.name;
 
@@ -14,12 +16,12 @@ function registerSystemHandlers(ipcMain) {
 
     if (canceled || !filePath) return { success: false, message: "İptal edildi." };
 
-    return new Promise((resolve) => {
-      fs.copyFile(dbPath, filePath, (err) => {
-        if (err) return resolve({ success: false, message: "Yedek alınamadı: " + err.message });
-        resolve({ success: true, message: "Yedek başarıyla alındı." });
-      });
-    });
+    try {
+      await fs.promises.copyFile(dbPath, filePath);
+      return { success: true, message: "Yedek başarıyla alındı." };
+    } catch {
+      return { success: false, message: "Yedek alınamadı." };
+    }
   });
 
   ipcMain.handle("restore-database", async () => {
@@ -31,27 +33,36 @@ function registerSystemHandlers(ipcMain) {
 
     if (canceled || !filePaths.length) return { success: false, message: "İptal edildi." };
 
-    const dbPath = db.name;
-
-    return new Promise((resolve) => {
-      const tempBackup = dbPath + ".bak";
-      fs.copyFile(dbPath, tempBackup, (backupErr) => {
-        if (backupErr) return resolve({ success: false, message: "Mevcut veritabanı korunamadı." });
-
-        fs.copyFile(filePaths[0], dbPath, (err) => {
-          if (err) {
-            fs.copyFile(tempBackup, dbPath, () => {});
-            return resolve({ success: false, message: "Geri yükleme başarısız: " + err.message });
-          }
-          fs.unlink(tempBackup, () => {});
-          resolve({ success: true, message: "Veritabanı başarıyla geri yüklendi. Uygulama yeniden başlatılıyor..." });
-          setTimeout(() => {
-            app.relaunch();
-            app.exit();
-          }, 1500);
-        });
-      });
+    const { response } = await dialog.showMessageBox({
+      type: "warning",
+      buttons: ["Geri Yükle", "İptal"],
+      defaultId: 1,
+      message: "Mevcut veritabanının üzerine yazılacak. Emin misiniz?",
     });
+
+    if (response !== 0) return { success: false, message: "İptal edildi." };
+
+    const dbPath = db.name;
+    const tempBackup = dbPath + ".bak";
+
+    try {
+      await fs.promises.copyFile(dbPath, tempBackup);
+    } catch {
+      return { success: false, message: "Mevcut veritabanı korunamadı." };
+    }
+
+    try {
+      await fs.promises.copyFile(filePaths[0], dbPath);
+      await fs.promises.unlink(tempBackup).catch(() => {});
+      setTimeout(() => {
+        app.relaunch();
+        app.exit();
+      }, 1500);
+      return { success: true, message: "Veritabanı başarıyla geri yüklendi. Uygulama yeniden başlatılıyor..." };
+    } catch {
+      await fs.promises.copyFile(tempBackup, dbPath).catch(() => {});
+      return { success: false, message: "Geri yükleme başarısız." };
+    }
   });
 }
 

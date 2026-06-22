@@ -1,22 +1,25 @@
 const db = require("../../database/db");
 
+function buildApartmentParams(data) {
+  return [
+    data.apartment_no,
+    data.floor,
+    data.type,
+    data.square_meters,
+    data.due_amount,
+    data.resident_name || null,
+    data.resident_phone || null,
+    data.resident_email || null,
+  ];
+}
+
 function addApartment(data) {
   try {
     db.prepare(
       `INSERT INTO apartments (apartment_no, floor, type, square_meters, due_amount, manager_id,
                                resident_name, resident_phone, resident_email)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(
-      data.apartment_no,
-      data.floor,
-      data.type,
-      data.square_meters,
-      data.due_amount,
-      data.manager_id,
-      data.resident_name || null,
-      data.resident_phone || null,
-      data.resident_email || null,
-    );
+    ).run(...buildApartmentParams(data), data.manager_id);
     return { success: true, message: "Daire eklendi." };
   } catch {
     return { success: false, message: "Daire eklenemedi. Daire numarası benzersiz olmalıdır." };
@@ -25,7 +28,13 @@ function addApartment(data) {
 
 function getApartments(userId) {
   try {
-    const data = db.prepare(`SELECT * FROM apartments WHERE manager_id = ?`).all(userId);
+    const data = db
+      .prepare(
+        `SELECT id, apartment_no, floor, type, square_meters, due_amount,
+                resident_name, resident_phone, resident_email, created_at
+         FROM apartments WHERE manager_id = ?`,
+      )
+      .all(userId);
     return { success: true, data };
   } catch {
     return { success: false, message: "Veriler alınamadı." };
@@ -39,19 +48,9 @@ function updateApartment(id, data) {
         `UPDATE apartments
          SET apartment_no = ?, floor = ?, type = ?, square_meters = ?, due_amount = ?,
              resident_name = ?, resident_phone = ?, resident_email = ?
-         WHERE id = ?`,
+         WHERE id = ? AND manager_id = ?`,
       )
-      .run(
-        data.apartment_no,
-        data.floor,
-        data.type,
-        data.square_meters,
-        data.due_amount,
-        data.resident_name || null,
-        data.resident_phone || null,
-        data.resident_email || null,
-        id,
-      );
+      .run(...buildApartmentParams(data), id, data.manager_id);
     if (result.changes === 0) return { success: false, message: "Daire bulunamadı." };
     return { success: true, message: "Daire başarıyla güncellendi." };
   } catch {
@@ -59,9 +58,9 @@ function updateApartment(id, data) {
   }
 }
 
-function deleteApartment(id) {
+function deleteApartment(id, managerId) {
   try {
-    const result = db.prepare(`DELETE FROM apartments WHERE id = ?`).run(id);
+    const result = db.prepare(`DELETE FROM apartments WHERE id = ? AND manager_id = ?`).run(id, managerId);
     if (result.changes === 0) return { success: false, message: "Daire bulunamadı." };
     return { success: true, message: "Daire ve ilgili tüm aidat kayıtları silindi." };
   } catch {

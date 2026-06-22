@@ -64,5 +64,5 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding-bottom: 50px;
+  padding-bottom: var(--footer-height, 50px);
 }

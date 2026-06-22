@@ -1,25 +1,41 @@
-// Libraries
 import js from "@eslint/js";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import { defineConfig, globalIgnores } from "eslint/config";
 
-// Part 1: Define the ESLint configuration for the project, including global ignores and specific rules for JavaScript and React files
+const commonRules = {
+  "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+  "no-console": ["warn", { allow: ["error", "warn"] }],
+};
+
 export default defineConfig([
   globalIgnores(["dist", "dist_electron", "out", "node_modules"]),
   {
-    files: ["**/*.{js,jsx}"],
+    files: ["src/**/*.{js,jsx}"],
     extends: [js.configs.recommended, reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
     languageOptions: {
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-      },
+      globals: { ...globals.browser },
       parserOptions: {
         ecmaFeatures: { jsx: true },
       },
     },
-    rules: {},
+    rules: commonRules,
+  },
+  {
+    files: ["electron/**/*.js"],
+    extends: [js.configs.recommended],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+    rules: commonRules,
+  },
+  {
+    files: ["database/**/*.js"],
+    extends: [js.configs.recommended],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+    rules: commonRules,
   },
 ]);

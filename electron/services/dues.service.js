@@ -1,32 +1,30 @@
 const db = require("../../database/db");
 
-const insertDueStmt = db.prepare(
-  `INSERT OR IGNORE INTO dues (apartment_id, year, month, due_amount) VALUES (?, ?, ?, ?)`,
-);
+class DuesError extends Error {}
 
-const ensureDuesForMonth = db.transaction((apartments, year, month) => {
+const insertDue = db.prepare(`INSERT OR IGNORE INTO dues (apartment_id, year, month, due_amount) VALUES (?, ?, ?, ?)`);
+
+const getDuesTransaction = db.transaction((managerId, year, month) => {
+  const apartments = db.prepare(`SELECT id, due_amount FROM apartments WHERE manager_id = ?`).all(managerId);
   for (const apt of apartments) {
-    insertDueStmt.run(apt.id, year, month, apt.due_amount);
+    insertDue.run(apt.id, year, month, apt.due_amount);
   }
+  return db
+    .prepare(
+      `SELECT d.id, d.apartment_id, d.year, d.month, d.due_amount, d.paid_amount, d.status,
+              a.apartment_no, a.floor, a.type, a.square_meters,
+              a.resident_name, a.resident_phone, a.resident_email
+       FROM dues d
+       JOIN apartments a ON d.apartment_id = a.id
+       WHERE a.manager_id = ? AND d.year = ? AND d.month = ?
+       ORDER BY a.apartment_no ASC`,
+    )
+    .all(managerId, year, month);
 });
 
 function getDuesForMonth(managerId, year, month) {
   try {
-    const apartments = db.prepare(`SELECT id, due_amount FROM apartments WHERE manager_id = ?`).all(managerId);
-    ensureDuesForMonth(apartments, year, month);
-
-    const data = db
-      .prepare(
-        `SELECT d.id, d.apartment_id, d.year, d.month, d.due_amount, d.paid_amount, d.status,
-                a.apartment_no, a.floor, a.type, a.square_meters,
-                a.resident_name, a.resident_phone, a.resident_email
-         FROM dues d
-         JOIN apartments a ON d.apartment_id = a.id
-         WHERE a.manager_id = ? AND d.year = ? AND d.month = ?
-         ORDER BY a.apartment_no ASC`,
-      )
-      .all(managerId, year, month);
-
+    const data = getDuesTransaction(managerId, year, month);
     return { success: true, data };
   } catch {
     return { success: false, message: "Aidat verileri alınamadı." };
@@ -35,7 +33,12 @@ function getDuesForMonth(managerId, year, month) {
 
 const recordPaymentTx = db.transaction((dueId, paymentData) => {
   const due = db.prepare(`SELECT id, due_amount, paid_amount FROM dues WHERE id = ?`).get(dueId);
-  if (!due) throw new Error("Aidat kaydı bulunamadı.");
+  if (!due) throw new DuesError("Aidat kaydı bulunamadı.");
+
+  const remaining = parseFloat((due.due_amount - due.paid_amount).toFixed(2));
+  if (paymentData.amount > remaining) {
+    throw new DuesError(`Fazla ödeme yapılamaz. Kalan borç: ${remaining}₺`);
+  }
 
   const { amount, payment_method, payment_date, receipt_path, note, collected_by } = paymentData;
 
@@ -55,14 +58,15 @@ function recordPayment(dueId, paymentData) {
     recordPaymentTx(dueId, paymentData);
     return { success: true, message: "Ödeme başarıyla kaydedildi." };
   } catch (err) {
-    return { success: false, message: err.message || "Ödeme kaydedilemedi." };
+    if (err instanceof DuesError) return { success: false, message: err.message };
+    return { success: false, message: "Ödeme kaydedilemedi." };
   }
 }
 
 const cancelPaymentTx = db.transaction((paymentId, reason) => {
   const payment = db.prepare(`SELECT id, due_id, amount, is_cancelled FROM due_payments WHERE id = ?`).get(paymentId);
-  if (!payment) throw new Error("Ödeme kaydı bulunamadı.");
-  if (payment.is_cancelled) throw new Error("Bu ödeme zaten iptal edilmiş.");
+  if (!payment) throw new DuesError("Ödeme kaydı bulunamadı.");
+  if (payment.is_cancelled) throw new DuesError("Bu ödeme zaten iptal edilmiş.");
 
   db.prepare(`UPDATE due_payments SET is_cancelled = 1, cancelled_at = ?, cancel_reason = ? WHERE id = ?`).run(
     new Date().toISOString(),
@@ -75,7 +79,7 @@ const cancelPaymentTx = db.transaction((paymentId, reason) => {
     .get(payment.due_id);
 
   const due = db.prepare(`SELECT due_amount FROM dues WHERE id = ?`).get(payment.due_id);
-  if (!due) throw new Error("Aidat kaydı bulunamadı.");
+  if (!due) throw new DuesError("Aidat kaydı bulunamadı.");
 
   const newPaidAmount = parseFloat(Number(total).toFixed(2));
   const newStatus = newPaidAmount >= due.due_amount ? "paid" : newPaidAmount > 0 ? "partial" : "unpaid";
@@ -88,7 +92,8 @@ function cancelPayment(paymentId, reason) {
     cancelPaymentTx(paymentId, reason);
     return { success: true, message: "Ödeme başarıyla iptal edildi." };
   } catch (err) {
-    return { success: false, message: err.message || "Ödeme iptal edilemedi." };
+    if (err instanceof DuesError) return { success: false, message: err.message };
+    return { success: false, message: "Ödeme iptal edilemedi." };
   }
 }
 

@@ -1,13 +1,24 @@
-// Libraries
+import path from "path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// Part 1: Export the Vite configuration for the project, including the React plugin and build settings
 export default defineConfig({
   plugins: [react()],
   base: "./",
+  resolve: {
+    alias: { "@": path.resolve(__dirname, "./src") },
+  },
+  server: {
+    port: 5173,
+    strictPort: true,
+  },
+  preview: {
+    port: 5173,
+    strictPort: true,
+  },
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    sourcemap: process.env.NODE_ENV !== "production" ? "inline" : false,
   },
 });

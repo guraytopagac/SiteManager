@@ -32,6 +32,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   addExpense: (data) => ipcRenderer.invoke("add-expense", data),
   getTransactions: (managerId) => ipcRenderer.invoke("get-transactions", managerId),
 
+  // System
+  getAppVersion: () => ipcRenderer.invoke("get-app-version"),
+
   // Database
   backupDatabase: () => ipcRenderer.invoke("backup-database"),
   restoreDatabase: () => ipcRenderer.invoke("restore-database"),

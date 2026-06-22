@@ -139,6 +139,7 @@ function Dashboard() {
         <button
           onClick={() => {
             sessionStorage.clear();
+            window.dispatchEvent(new Event("user-session-changed"));
             navigate("/", { replace: true });
           }}
           className="button button-logout"

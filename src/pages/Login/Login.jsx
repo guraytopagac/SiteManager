@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
 import Swal from "sweetalert2";
-import logoImg from "../../assets/logo.png";
+import logoImgWebp from "../../assets/images/logo.webp";
+import logoImgPng from "../../assets/images/logo.png";
 import { alert } from "../../utils/alert";
 
 function Login() {
@@ -55,7 +56,10 @@ function Login() {
 
   return (
     <div className="loginContainer">
-      <img src={logoImg} alt="Mavikent Logo" />
+      <picture>
+        <source srcSet={logoImgWebp} type="image/webp" />
+        <img src={logoImgPng} alt="Mavikent Logo" />
+      </picture>
       <h1 className="title">Mavikent Site Yönetimi</h1>
       <h2 className="subtitle">Hoşgeldiniz!</h2>
       <form className="loginForm" onSubmit={handleLoginSubmit}>

@@ -1,21 +1,24 @@
+import PropTypes from "prop-types";
+import { memo } from "react";
 import { Navigate } from "react-router-dom";
+import { useCurrentUser } from "../hooks/useCurrentUser";
 
-function ProtectedRoute({ children, requiredRole }) {
-  const currentUserRaw = sessionStorage.getItem("currentUser");
+const ProtectedRoute = memo(function ProtectedRoute({ children, requiredRole }) {
+  const currentUser = useCurrentUser();
 
-  if (!currentUserRaw) {
-    return <Navigate to="/" replace />;
-  }
+  if (!currentUser?.id || !currentUser?.role) return <Navigate to="/" replace />;
 
-  if (requiredRole) {
-    const currentUser = JSON.parse(currentUserRaw);
-    if (currentUser.role !== requiredRole) {
-      const redirectTo = currentUser.role === "admin" ? "/admin-dashboard" : "/dashboard";
-      return <Navigate to={redirectTo} replace />;
-    }
+  if (requiredRole && currentUser.role !== requiredRole) {
+    const redirectTo = currentUser.role === "admin" ? "/admin-dashboard" : "/dashboard";
+    return <Navigate to={redirectTo} replace />;
   }
 
   return children;
-}
+});
+
+ProtectedRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+  requiredRole: PropTypes.string,
+};
 
 export default ProtectedRoute;

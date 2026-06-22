@@ -1,14 +1,19 @@
-const path = require("path");
 const fs = require("fs");
 const { dialog } = require("electron");
 const reportService = require("../services/report.service");
 
 function registerReportHandlers(ipcMain) {
   ipcMain.handle("get-report-data", async (event, { managerId, year, month }) => {
+    if (!managerId || typeof managerId !== "number") {
+      return { success: false, message: "Geçersiz kullanıcı ID." };
+    }
+    if (!year || !month || month < 1 || month > 12) {
+      return { success: false, message: "Geçersiz tarih bilgisi." };
+    }
     try {
       return await reportService.getReportData(managerId, year, month);
     } catch (err) {
-      return { success: false, message: err.message };
+      return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });
 

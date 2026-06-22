@@ -1,14 +1,42 @@
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 .footer {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --footer-height: calc(28px + var(--safe-bottom));
+
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
-  padding: 14px 0;
+  padding: 14px 0 calc(14px + var(--safe-bottom));
   background: var(--card-background-1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--text-color);
   text-align: center;
-  font-size: 1rem;
+  font-size: clamp(0.75rem, 1vw, 1rem);
   font-weight: 500;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  z-index: 1000;
+  border-top: 1px solid var(--border-default);
+  z-index: var(--z-footer, 1000);
+  will-change: transform, opacity;
+  animation: slideUp 0.3s ease-out;
+}
+
+.footer.loaded {
+  will-change: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .footer {
+    animation: none;
+  }
 }

@@ -1,6 +1,9 @@
 const bcrypt = require("bcryptjs");
 const db = require("../../database/db");
 
+const BCRYPT_ROUNDS = 12;
+const DUMMY_HASH = "$2a$12$invalidhashfortimingattackprotection";
+
 function toSafeUser(user) {
   return {
     id: user.id,
@@ -19,7 +22,12 @@ function login(credentials) {
       )
       .get(credentials.username);
 
-    if (user && bcrypt.compareSync(credentials.password, user.password_hash)) {
+    if (!user) {
+      bcrypt.compareSync(credentials.password, DUMMY_HASH);
+      return { success: false, message: "Kullanıcı Adı / Şifre Hatalı!" };
+    }
+
+    if (bcrypt.compareSync(credentials.password, user.password_hash)) {
       const currentLogin = new Date().toISOString();
       db.prepare(`UPDATE users SET last_login = ? WHERE id = ?`).run(currentLogin, user.id);
       return { success: true, user: toSafeUser({ ...user, last_login: currentLogin }) };
@@ -44,7 +52,7 @@ function getManagers() {
 
 function createManager(data) {
   try {
-    const hashedPassword = bcrypt.hashSync(data.password, 12);
+    const hashedPassword = bcrypt.hashSync(data.password, BCRYPT_ROUNDS);
     db.prepare(`INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)`).run(
       data.username,
       data.email,
@@ -76,8 +84,10 @@ function changePassword(userId, oldPassword, newPassword) {
     if (!user) return { success: false, message: "Kullanıcı bulunamadı." };
     if (!bcrypt.compareSync(oldPassword, user.password_hash))
       return { success: false, message: "Mevcut şifre hatalı." };
+    if (bcrypt.compareSync(newPassword, user.password_hash))
+      return { success: false, message: "Yeni şifre eski şifreyle aynı olamaz." };
 
-    const newHash = bcrypt.hashSync(newPassword, 12);
+    const newHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
     db.prepare(`UPDATE users SET password_hash = ? WHERE id = ?`).run(newHash, userId);
     return { success: true, message: "Şifre başarıyla değiştirildi." };
   } catch {

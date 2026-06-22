@@ -5,14 +5,7 @@ const MIGRATIONS_DIR = path.join(__dirname, "migrations");
 const SCHEMA_DIR = path.join(__dirname, "schema");
 
 // Tablolar foreign key bağımlılık sırasına göre yüklenir
-const SCHEMA_FILES = [
-  "users.sql",
-  "apartments.sql",
-  "incomes.sql",
-  "expenses.sql",
-  "dues.sql",
-  "due_payments.sql",
-];
+const SCHEMA_FILES = ["users.sql", "apartments.sql", "incomes.sql", "expenses.sql", "dues.sql", "due_payments.sql"];
 
 function loadSchema(db) {
   for (const file of SCHEMA_FILES) {
