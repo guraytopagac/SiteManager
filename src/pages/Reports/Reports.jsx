@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -31,13 +31,19 @@ function fmt(amount) {
   return Number(amount).toLocaleString("tr-TR", { minimumFractionDigits: 2 }) + " ₺";
 }
 
+function buildFinanceRows(data) {
+  return [
+    ...data.incomes.map((r) => ({ ...r, rowType: "income" })),
+    ...data.expenses.map((r) => ({ ...r, rowType: "expense" })),
+  ].sort((a, b) => a.date.localeCompare(b.date));
+}
+
 function Reports() {
   const navigate = useNavigate();
   const currentUser = useCurrentUser();
 
-  const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [year, setYear] = useState(() => new Date().getFullYear());
+  const [month, setMonth] = useState(() => new Date().getMonth() + 1);
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("finance");
@@ -45,15 +51,25 @@ function Reports() {
   const fetchReport = async () => {
     if (!currentUser?.id) return;
     setLoading(true);
-    const response = await window.electronAPI.getReportData(currentUser.id, year, month);
-    setLoading(false);
-    if (response.success) {
-      setReportData(response.data);
-      setActiveTab("finance");
-    } else {
-      alert.error("Hata", response.message || "Rapor verileri alınamadı.");
+    try {
+      const response = await window.electronAPI.getReportData(currentUser.id, year, month);
+      if (response.success) {
+        setReportData(response.data);
+        setActiveTab("finance");
+      } else {
+        alert.error("Hata", response.message || "Rapor verileri alınamadı.");
+      }
+    } catch {
+      alert.error("Hata", "Beklenmedik bir hata oluştu.");
+    } finally {
+      setLoading(false);
     }
   };
+
+  const collectionRate =
+    reportData && reportData.totalDue > 0 ? Math.round((reportData.totalPaid / reportData.totalDue) * 100) : 0;
+
+  const financeRows = useMemo(() => (reportData ? buildFinanceRows(reportData) : []), [reportData]);
 
   const buildPdf = () => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -77,7 +93,7 @@ function Reports() {
           fmt(reportData.totalIncome),
           fmt(reportData.totalExpense),
           fmt(reportData.totalIncome - reportData.totalExpense),
-          reportData.totalDue > 0 ? `%${Math.round((reportData.totalPaid / reportData.totalDue) * 100)}` : "—",
+          reportData.totalDue > 0 ? `%${collectionRate}` : "—",
         ],
       ],
       styles: { fontSize: 9, halign: "center" },
@@ -89,10 +105,12 @@ function Reports() {
     doc.setFontSize(11);
     doc.text("Gelir / Gider Detayi", 14, doc.lastAutoTable.finalY + 10);
 
-    const financeRows = [
-      ...reportData.incomes.map((r) => [r.date, "Gelir", r.description, fmt(r.amount)]),
-      ...reportData.expenses.map((r) => [r.date, "Gider", r.description, `-${fmt(r.amount)}`]),
-    ].sort((a, b) => a[0].localeCompare(b[0]));
+    const financeRows = buildFinanceRows(reportData).map((r) => [
+      r.date,
+      r.rowType === "income" ? "Gelir" : "Gider",
+      r.description,
+      r.rowType === "income" ? fmt(r.amount) : `-${fmt(r.amount)}`,
+    ]);
 
     autoTable(doc, {
       startY: doc.lastAutoTable.finalY + 13,
@@ -144,19 +162,19 @@ function Reports() {
       ["Net Kasa", reportData.totalIncome - reportData.totalExpense],
       ["Toplam Aidat", reportData.totalDue],
       ["Tahsil Edilen", reportData.totalPaid],
-      [
-        "Tahsilat Oranı",
-        reportData.totalDue > 0 ? `%${Math.round((reportData.totalPaid / reportData.totalDue) * 100)}` : "—",
-      ],
+      ["Tahsilat Oranı", reportData.totalDue > 0 ? `%${collectionRate}` : "—"],
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), "Özet");
 
     const financeRows = [
       ["Tarih", "Tür", "Açıklama", "Tutar (₺)"],
-      ...reportData.incomes.map((r) => [r.date, "Gelir", r.description, Number(r.amount)]),
-      ...reportData.expenses.map((r) => [r.date, "Gider", r.description, -Number(r.amount)]),
+      ...buildFinanceRows(reportData).map((r) => [
+        r.date,
+        r.rowType === "income" ? "Gelir" : "Gider",
+        r.description,
+        r.rowType === "income" ? Number(r.amount) : -Number(r.amount),
+      ]),
     ];
-    financeRows.sort((a, b) => (a[0] < b[0] ? -1 : 1));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(financeRows), "Gelir-Gider");
 
     const duesRows = [
@@ -208,9 +226,6 @@ function Reports() {
     }
   };
 
-  const collectionRate =
-    reportData && reportData.totalDue > 0 ? Math.round((reportData.totalPaid / reportData.totalDue) * 100) : 0;
-
   return (
     <div className="reports-container">
       <div className="reports-header">
@@ -239,7 +254,7 @@ function Reports() {
               ))}
             </select>
           </div>
-          <button className="button button-primary" onClick={fetchReport} disabled={loading}>
+          <button className="button button-primary" onClick={fetchReport} disabled={loading} aria-busy={loading}>
             {loading ? "Yükleniyor..." : "Raporu Göster"}
           </button>
         </div>
@@ -301,7 +316,7 @@ function Reports() {
                   <th>Tarih</th>
                   <th>Tür</th>
                   <th>Açıklama</th>
-                  <th style={{ textAlign: "right" }}>Tutar</th>
+                  <th className="amount-header">Tutar</th>
                 </tr>
               </thead>
               <tbody>
@@ -312,26 +327,21 @@ function Reports() {
                     </td>
                   </tr>
                 ) : (
-                  [
-                    ...reportData.incomes.map((r) => ({ ...r, rowType: "income" })),
-                    ...reportData.expenses.map((r) => ({ ...r, rowType: "expense" })),
-                  ]
-                    .sort((a, b) => a.date.localeCompare(b.date))
-                    .map((r) => (
-                      <tr key={`${r.rowType}-${r.id}`}>
-                        <td className="date-cell">{r.date}</td>
-                        <td>
-                          <span className={`type-badge type-${r.rowType}`}>
-                            {r.rowType === "income" ? "Gelir" : "Gider"}
-                          </span>
-                        </td>
-                        <td>{r.description}</td>
-                        <td className={`amount-cell amount-${r.rowType}`} style={{ textAlign: "right" }}>
-                          {r.rowType === "income" ? "+" : "-"}
-                          {fmt(r.amount)}
-                        </td>
-                      </tr>
-                    ))
+                  financeRows.map((r) => (
+                    <tr key={`${r.rowType}-${r.id}`}>
+                      <td className="date-cell">{r.date}</td>
+                      <td>
+                        <span className={`type-badge type-${r.rowType}`}>
+                          {r.rowType === "income" ? "Gelir" : "Gider"}
+                        </span>
+                      </td>
+                      <td>{r.description}</td>
+                      <td className={`amount-cell amount-${r.rowType}`}>
+                        {r.rowType === "income" ? "+" : "-"}
+                        {fmt(r.amount)}
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>
@@ -345,8 +355,8 @@ function Reports() {
                   <th>Kat</th>
                   <th>Tip</th>
                   <th>Sakin</th>
-                  <th style={{ textAlign: "right" }}>Aidat</th>
-                  <th style={{ textAlign: "right" }}>Ödenen</th>
+                  <th className="amount-header">Aidat</th>
+                  <th className="amount-header">Ödenen</th>
                   <th>Durum</th>
                 </tr>
               </thead>
@@ -358,14 +368,14 @@ function Reports() {
                     </td>
                   </tr>
                 ) : (
-                  reportData.dues.map((d, i) => (
-                    <tr key={i}>
+                  reportData.dues.map((d) => (
+                    <tr key={`due-${d.apartment_no}-${d.floor}`}>
                       <td>{d.apartment_no}</td>
                       <td>{d.floor}</td>
                       <td>{d.type}</td>
                       <td>{d.resident_name || "—"}</td>
-                      <td style={{ textAlign: "right" }}>{fmt(d.due_amount)}</td>
-                      <td style={{ textAlign: "right" }}>{fmt(d.paid_amount)}</td>
+                      <td className="amount-cell">{fmt(d.due_amount)}</td>
+                      <td className="amount-cell">{fmt(d.paid_amount)}</td>
                       <td>
                         <span className={`status-badge status-${d.status}`}>
                           {DUE_STATUS_LABELS[d.status] || d.status}
@@ -386,7 +396,7 @@ function Reports() {
         </div>
       )}
 
-      <hr style={{ margin: "40px 0", opacity: 0.2 }} />
+      <hr className="reports-divider" />
 
       <div className="return-link">
         <button onClick={() => navigate("/dashboard")} className="button button-back">

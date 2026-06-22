@@ -4,35 +4,60 @@ import "./AddApartment.css";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { alert } from "../../utils/alert";
 
+const INITIAL_DATA = {
+  apartment_no: "",
+  floor: "",
+  type: "1+1",
+  square_meters: "",
+  due_amount: "",
+  resident_name: "",
+  resident_phone: "",
+  resident_email: "",
+};
+
 function AddApartment() {
   const navigate = useNavigate();
   const currentUser = useCurrentUser();
-  const [apartmentData, setApartmentData] = useState({
-    apartment_no: "",
-    floor: "",
-    type: "1+1",
-    square_meters: "",
-    due_amount: "",
-    resident_name: "",
-    resident_phone: "",
-    resident_email: "",
-  });
+  const [submitting, setSubmitting] = useState(false);
+  const [apartmentData, setApartmentData] = useState(INITIAL_DATA);
 
   const set = (field) => (e) => setApartmentData((prev) => ({ ...prev, [field]: e.target.value }));
 
   const handleAddApartment = async (e) => {
     e.preventDefault();
+
+    if (!apartmentData.apartment_no.trim()) {
+      return alert.error("Hata", "Daire numarası boş bırakılamaz.");
+    }
+    if (Number(apartmentData.due_amount) <= 0) {
+      return alert.error("Hata", "Aidat tutarı sıfırdan büyük olmalıdır.");
+    }
+
+    setSubmitting(true);
     const response = await window.electronAPI.addApartment({
       ...apartmentData,
       manager_id: currentUser.id,
     });
+    setSubmitting(false);
 
     if (response.success) {
-      await alert.success("Başarılı!", response.message);
-      navigate("/dashboard");
+      const result = await alert.confirm("Başarılı!", response.message, "Başka Daire Ekle", false, "Dashboard'a Dön");
+      if (result.isConfirmed) {
+        setApartmentData(INITIAL_DATA);
+      } else {
+        navigate("/dashboard");
+      }
     } else {
       alert.error("Hata", response.message);
     }
+  };
+
+  const handleCancel = () => {
+    const hasData = Object.entries(apartmentData).some(([k, v]) => v !== "" && !(k === "type" && v === "1+1"));
+    if (!hasData) return navigate("/dashboard");
+    alert.confirm("İptal", "Girilen bilgiler kaybolacak. Emin misiniz?", "Evet, Çık").then((r) => {
+      if (r.isConfirmed) navigate("/dashboard");
+    });
   };
 
   return (
@@ -44,15 +69,28 @@ function AddApartment() {
           <div className="form-grid">
             <div className="input-group">
               <label>Daire No</label>
-              <input type="text" required placeholder="Örn: 5" onChange={set("apartment_no")} />
+              <input
+                type="text"
+                required
+                placeholder="Örn: 5"
+                value={apartmentData.apartment_no}
+                onChange={set("apartment_no")}
+              />
             </div>
             <div className="input-group">
               <label>Kat</label>
-              <input type="number" required placeholder="Örn: 2" onChange={set("floor")} />
+              <input
+                type="number"
+                required
+                min="0"
+                placeholder="Örn: 2"
+                value={apartmentData.floor}
+                onChange={set("floor")}
+              />
             </div>
             <div className="input-group">
               <label>Daire Tipi</label>
-              <select onChange={set("type")}>
+              <select value={apartmentData.type} onChange={set("type")}>
                 <option value="1+1">1+1</option>
                 <option value="2+1">2+1</option>
                 <option value="3+1">3+1</option>
@@ -60,12 +98,28 @@ function AddApartment() {
               </select>
             </div>
             <div className="input-group">
-              <label>Metrekare</label>
-              <input type="number" step="0.1" placeholder="Örn: 85" onChange={set("square_meters")} />
+              <label>
+                Metrekare <span className="optional-label">(isteğe bağlı)</span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                placeholder="Örn: 85"
+                value={apartmentData.square_meters}
+                onChange={set("square_meters")}
+              />
             </div>
             <div className="input-group span-full">
               <label>Aidat Tutarı (₺)</label>
-              <input type="number" required placeholder="Örn: 1500" onChange={set("due_amount")} />
+              <input
+                type="number"
+                required
+                min="1"
+                placeholder="Örn: 1500"
+                value={apartmentData.due_amount}
+                onChange={set("due_amount")}
+              />
             </div>
           </div>
         </div>
@@ -77,25 +131,40 @@ function AddApartment() {
           <div className="form-grid">
             <div className="input-group span-full">
               <label>Ad Soyad</label>
-              <input type="text" placeholder="Sakin adı soyadı" onChange={set("resident_name")} />
+              <input
+                type="text"
+                placeholder="Sakin adı soyadı"
+                value={apartmentData.resident_name}
+                onChange={set("resident_name")}
+              />
             </div>
             <div className="input-group">
               <label>Telefon</label>
-              <input type="tel" placeholder="0555 000 00 00" onChange={set("resident_phone")} />
+              <input
+                type="tel"
+                placeholder="0555 000 00 00"
+                value={apartmentData.resident_phone}
+                onChange={set("resident_phone")}
+              />
             </div>
             <div className="input-group">
               <label>E-posta</label>
-              <input type="email" placeholder="ornek@email.com" onChange={set("resident_email")} />
+              <input
+                type="email"
+                placeholder="ornek@email.com"
+                value={apartmentData.resident_email}
+                onChange={set("resident_email")}
+              />
             </div>
           </div>
         </div>
 
         <div className="form-actions">
-          <button type="button" className="btn-secondary" onClick={() => navigate("/dashboard")}>
+          <button type="button" className="btn-secondary" onClick={handleCancel}>
             İptal
           </button>
-          <button type="submit" className="btn-primary">
-            Kaydet
+          <button type="submit" className="btn-primary" disabled={submitting}>
+            {submitting ? "Kaydediliyor..." : "Kaydet"}
           </button>
         </div>
       </form>

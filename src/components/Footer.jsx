@@ -8,7 +8,10 @@ const Footer = memo(function Footer() {
   const footerRef = useRef(null);
 
   useEffect(() => {
-    window.electronAPI?.getAppVersion?.().then(setVersion).catch(() => setVersion(""));
+    window.electronAPI
+      ?.getAppVersion?.()
+      .then(setVersion)
+      .catch(() => setVersion(""));
   }, []);
 
   const handleAnimationEnd = useCallback(() => {

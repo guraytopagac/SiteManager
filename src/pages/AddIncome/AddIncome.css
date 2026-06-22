@@ -1,3 +1,5 @@
+@import "../../components/FormShared.css";
+
 .income-wrapper {
   display: flex;
   justify-content: center;
@@ -15,7 +17,9 @@
   border-radius: 16px;
   border: 1px solid var(--border-default);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
+  transition:
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
 }
 
 .incomeContainer .title {
@@ -33,51 +37,7 @@
   gap: 20px;
 }
 
-.formGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.formGroup label {
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.formGroup input,
-.formGroup textarea {
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid var(--border-default);
-  border-radius: 10px;
-  font-size: 15px;
-  font-family: inherit;
-  color: var(--text-color);
-  background-color: var(--card-background-2);
-  transition: all 0.2s ease;
-}
-
-.formGroup input::placeholder,
-.formGroup textarea::placeholder {
-  color: var(--text-secondary);
-  opacity: 0.6;
-}
-
-.formGroup input:focus,
-.formGroup textarea:focus {
-  outline: none;
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px var(--accent-subtle);
-}
-
-.formGroup textarea {
-  resize: none;
-  min-height: 110px;
-}
-
-#incomeButton,
-#backButton {
+.submitButton {
   width: 100%;
   padding: 14px;
   border: none;
@@ -86,39 +46,24 @@
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-#incomeButton {
   background-color: var(--button-color);
   color: white;
   margin-top: 5px;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
 }
 
-#incomeButton:hover:not(:disabled) {
+.submitButton:hover:not(:disabled) {
   background-color: var(--button-hover);
 }
 
-#incomeButton:disabled {
+.submitButton:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-#incomeButton:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-#backButton {
-  background-color: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border-default);
-}
-
-#backButton:hover {
-  border-color: var(--button-color);
-  color: var(--button-color);
-}
-
-#backButton:active {
+.submitButton:active:not(:disabled) {
   transform: scale(0.98);
 }

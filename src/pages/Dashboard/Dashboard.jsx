@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
@@ -9,24 +9,31 @@ function Dashboard() {
   const currentUser = useCurrentUser();
   const [stats, setStats] = useState({ cash: 0, collections: 0, delays: 0 });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [busyAction, setBusyAction] = useState(null);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      if (currentUser.id) {
-        const data = await window.electronAPI.getStats(currentUser.id);
-        if (data.success) {
-          setStats(data.payload);
-        } else {
-          alert.error("Veriler Yüklenemedi", data.message || "İstatistikler alınırken bir hata oluştu.");
-        }
-      }
-      setLoading(false);
-    };
-    fetchStats();
+  const fetchStats = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    const data = await window.electronAPI.getStats(currentUser.id);
+    if (data.success) {
+      setStats(data.payload);
+    } else {
+      setError(true);
+      alert.error("Veriler Yüklenemedi", data.message || "İstatistikler alınırken bir hata oluştu.");
+    }
+    setLoading(false);
   }, [currentUser.id]);
 
+  useEffect(() => {
+    if (!currentUser.id) return;
+    fetchStats();
+  }, [fetchStats, currentUser.id]);
+
   const handleBackup = async () => {
+    setBusyAction("backup");
     const response = await window.electronAPI.backupDatabase();
+    setBusyAction(null);
     if (response.success) {
       alert.success("Yedek Alındı", response.message);
     } else if (response.message !== "İptal edildi.") {
@@ -43,13 +50,23 @@ function Dashboard() {
     );
     if (!confirm.isConfirmed) return;
 
+    setBusyAction("restore");
     const response = await window.electronAPI.restoreDatabase();
+    setBusyAction(null);
     if (response.success) {
       await alert.success("Geri Yüklendi", response.message);
       window.location.reload();
     } else if (response.message !== "İptal edildi.") {
       alert.error("Hata", response.message);
     }
+  };
+
+  const handleLogout = async () => {
+    const result = await alert.confirm("Çıkış Yap", "Oturumu kapatmak istiyor musunuz?", "Evet, Çık");
+    if (!result.isConfirmed) return;
+    sessionStorage.clear();
+    window.dispatchEvent(new Event("user-session-changed"));
+    navigate("/", { replace: true });
   };
 
   if (loading) {
@@ -60,20 +77,33 @@ function Dashboard() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="dashboard-container">
+        <div className="loading">
+          İstatistikler yüklenemedi.{" "}
+          <button className="button" onClick={fetchStats}>
+            Yeniden Dene
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard-container">
       <div className="stat-grid">
         <div className="stat-card stat-card-kasa">
           <h3>Kasa</h3>
-          <p>{stats.cash} ₺</p>
+          <p>{stats.cash.toLocaleString("tr-TR")} ₺</p>
         </div>
         <div className="stat-card stat-card-tahsilat">
           <h3>Tahsilat</h3>
-          <p>%{stats.collections}</p>
+          <p>{stats.collections}%</p>
         </div>
         <div className="stat-card stat-card-gecikme">
           <h3>Gecikme</h3>
-          <p>{stats.delays} ₺</p>
+          <p>{stats.delays.toLocaleString("tr-TR")} ₺</p>
         </div>
       </div>
 
@@ -81,69 +111,62 @@ function Dashboard() {
         <div className="category-group">
           <h2 className="sectionHeader">Daire İşlemleri</h2>
           <div className="action-grid">
-            <div className="action-card" onClick={() => navigate("/add-apartment")}>
+            <button className="action-card" onClick={() => navigate("/add-apartment")}>
               <h4>Yeni Daire Ekle</h4>
-            </div>
-            <div className="action-card" onClick={() => navigate("/apartments")}>
+            </button>
+            <button className="action-card" onClick={() => navigate("/apartments")}>
               <h4>Mevcut Daireleri Görüntüle</h4>
-            </div>
+            </button>
           </div>
         </div>
 
         <div className="category-group">
           <h2 className="sectionHeader">Finansal İşlemler</h2>
           <div className="action-grid">
-            <div className="action-card" onClick={() => navigate("/add-income")}>
+            <button className="action-card" onClick={() => navigate("/add-income")}>
               <h4>Gelir Ekle</h4>
-            </div>
-            <div className="action-card" onClick={() => navigate("/add-expense")}>
+            </button>
+            <button className="action-card" onClick={() => navigate("/add-expense")}>
               <h4>Gider Ekle</h4>
-            </div>
-            <div className="action-card" onClick={() => navigate("/transactions")}>
+            </button>
+            <button className="action-card" onClick={() => navigate("/transactions")}>
               <h4>İşlem Geçmişi</h4>
-            </div>
+            </button>
           </div>
         </div>
 
         <div className="category-group">
           <h2 className="sectionHeader">Sistem</h2>
           <div className="action-grid">
-            <div className="action-card" onClick={handleBackup}>
-              <h4>Yedek Al</h4>
-            </div>
-            <div className="action-card" onClick={handleRestore}>
-              <h4>Yedek Yükle</h4>
-            </div>
+            <button className="action-card" onClick={handleBackup} disabled={busyAction === "backup"}>
+              <h4>{busyAction === "backup" ? "Alınıyor..." : "Yedek Al"}</h4>
+            </button>
+            <button className="action-card" onClick={handleRestore} disabled={busyAction === "restore"}>
+              <h4>{busyAction === "restore" ? "Yükleniyor..." : "Yedek Yükle"}</h4>
+            </button>
           </div>
         </div>
 
         <div className="category-group">
           <h2 className="sectionHeader">Çeşitli</h2>
           <div className="action-grid">
-            <div className="action-card" onClick={() => navigate("/send-announcement")}>
+            <button className="action-card action-card-disabled" disabled title="Yakında">
               <h4>Duyuru Gönder</h4>
-            </div>
-            <div className="action-card" onClick={() => navigate("/reports")}>
+            </button>
+            <button className="action-card" onClick={() => navigate("/reports")}>
               <h4>Raporlar</h4>
-            </div>
-            <div className="action-card" onClick={() => navigate("/profile")}>
+            </button>
+            <button className="action-card" onClick={() => navigate("/profile")}>
               <h4>Profilim</h4>
-            </div>
+            </button>
           </div>
         </div>
       </div>
 
-      <hr style={{ margin: "40px 0", opacity: 0.2 }} />
+      <hr className="section-divider" />
 
       <div className="return-link">
-        <button
-          onClick={() => {
-            sessionStorage.clear();
-            window.dispatchEvent(new Event("user-session-changed"));
-            navigate("/", { replace: true });
-          }}
-          className="button button-logout"
-        >
+        <button onClick={handleLogout} className="button button-logout">
           Çıkış Yap
         </button>
       </div>

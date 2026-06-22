@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
-import Swal from "sweetalert2";
 import logoImgWebp from "../../assets/images/logo.webp";
 import logoImgPng from "../../assets/images/logo.png";
 import { alert } from "../../utils/alert";
+import { SESSION_USER_KEY } from "../../utils/constants";
 
 function Login() {
   const navigate = useNavigate();
@@ -32,25 +32,15 @@ function Login() {
     if (success) {
       const { id, username: loggedInUsername, email, role, last_login } = user;
       sessionStorage.setItem(
-        "currentUser",
+        SESSION_USER_KEY,
         JSON.stringify({ id, username: loggedInUsername, email, role, last_login }),
       );
-      Swal.fire({
-        icon: "success",
-        title: loggedInUsername + "\n\nHoş Geldiniz",
-        text: message,
-        timer: 2000,
-        showConfirmButton: false,
-        heightAuto: false,
-      }).then(() => {
-        if (role === "admin") {
-          navigate("/admin-dashboard");
-        } else {
-          navigate("/dashboard");
-        }
-      });
+      window.dispatchEvent(new Event("user-session-changed"));
+      await alert.success(loggedInUsername + " — Hoş Geldiniz", message);
+      navigate(role === "admin" ? "/admin-dashboard" : "/dashboard");
     } else {
       alert.error("Giriş Başarısız", message);
+      setPassword("");
     }
   };
 

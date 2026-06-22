@@ -83,16 +83,16 @@
 }
 
 .summary-card.income .summary-amount {
-  color: #16a34a;
+  color: var(--income-color);
 }
 .summary-card.expense .summary-amount {
-  color: #dc2626;
+  color: var(--expense-color);
 }
 .summary-card.positive .summary-amount {
-  color: #16a34a;
+  color: var(--income-color);
 }
 .summary-card.negative .summary-amount {
-  color: #dc2626;
+  color: var(--expense-color);
 }
 
 /* Table */
@@ -101,7 +101,7 @@
   border-collapse: collapse;
   background: var(--card-background-1);
   border-radius: 12px;
-  overflow: hidden;
+  overflow: clip;
   border: 1px solid var(--border-default);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
 }
@@ -153,21 +153,12 @@
 }
 
 .type-income {
-  background: #dcfce7;
-  color: #15803d;
+  background: var(--income-bg);
+  color: var(--income-text);
 }
 .type-expense {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-[data-theme="dark"] .type-income {
-  background: #14532d;
-  color: #86efac;
-}
-[data-theme="dark"] .type-expense {
-  background: #450a0a;
-  color: #fca5a5;
+  background: var(--expense-bg);
+  color: var(--expense-text);
 }
 
 .date-cell {
@@ -181,12 +172,30 @@
 .amount-cell {
   font-weight: 600;
   white-space: nowrap;
+  text-align: right;
 }
 .amount-income {
-  color: #16a34a;
+  color: var(--income-color);
 }
 .amount-expense {
-  color: #dc2626;
+  color: var(--expense-color);
+}
+
+.amount-header {
+  text-align: right;
+}
+
+.empty-row td {
+  text-align: center;
+  padding: 32px;
+  opacity: 0.6;
+}
+
+.transactions-divider {
+  margin: 40px 0;
+  opacity: 0.2;
+  border: none;
+  border-top: 1px solid var(--border-default);
 }
 
 /* Misc */
@@ -195,25 +204,7 @@
   justify-content: center;
 }
 
-.transactions-container .button {
-  min-width: 140px;
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  background: var(--button-color);
-  color: white;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.transactions-container .button:hover {
-  background: var(--button-hover);
-  transform: translateY(-2px);
-}
-
-.transactions-container .loading {
+.loading {
   display: flex;
   justify-content: center;
   align-items: center;

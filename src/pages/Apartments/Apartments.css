@@ -67,13 +67,13 @@
 }
 
 .summary-item.paid .summary-count {
-  color: #16a34a;
+  color: var(--success);
 }
 .summary-item.partial .summary-count {
-  color: #d97706;
+  color: var(--warning);
 }
 .summary-item.unpaid .summary-count {
-  color: #dc2626;
+  color: var(--danger);
 }
 .summary-item.total .summary-count {
   color: var(--button-color);
@@ -97,7 +97,7 @@
 
 .apartment-table th {
   background: var(--button-color);
-  color: white;
+  color: var(--button-text, #ffffff);
   font-size: 0.95rem;
   font-weight: 600;
   padding: 16px;
@@ -111,7 +111,9 @@
 
 .apartment-table tbody tr {
   background: var(--card-background-1);
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .apartment-table tbody tr:nth-child(even) {
@@ -146,31 +148,18 @@
 }
 
 .status-paid {
-  background: #dcfce7;
-  color: #15803d;
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
 }
 
 .status-partial {
-  background: #fef3c7;
-  color: #b45309;
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
 }
 
 .status-unpaid {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-[data-theme="dark"] .status-paid {
-  background: #14532d;
-  color: #86efac;
-}
-[data-theme="dark"] .status-partial {
-  background: #451a03;
-  color: #fcd34d;
-}
-[data-theme="dark"] .status-unpaid {
-  background: #450a0a;
-  color: #fca5a5;
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
 }
 
 .modal-overlay {
@@ -189,6 +178,8 @@
   padding: 32px;
   width: 100%;
   max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   color: var(--text-color);
 }
@@ -219,10 +210,7 @@
   background: var(--accent-subtle);
 }
 .delete-btn:hover {
-  background: #fee2e2;
-}
-[data-theme="dark"] .delete-btn:hover {
-  background: #450a0a;
+  background: var(--color-danger-bg);
 }
 
 .resident-cell {
@@ -308,10 +296,10 @@
 }
 
 .color-paid {
-  color: #16a34a;
+  color: var(--success);
 }
 .color-unpaid {
-  color: #dc2626;
+  color: var(--danger);
 }
 
 .modal-section-title {
@@ -321,6 +309,26 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin: 0 0 12px;
+}
+
+.modal-section-title-spaced {
+  margin-top: 16px;
+}
+
+.section-divider {
+  margin: 40px 0;
+  opacity: 0.2;
+}
+
+.table-empty-cell {
+  text-align: center;
+  padding: 32px;
+  opacity: 0.6;
+}
+
+.button-full-width {
+  width: 100%;
+  margin-top: 8px;
 }
 
 .payment-form {
@@ -363,16 +371,11 @@
 .paid-notice {
   text-align: center;
   padding: 14px;
-  background: #dcfce7;
-  color: #15803d;
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
   border-radius: 10px;
   font-weight: 600;
   margin-bottom: 20px;
-}
-
-[data-theme="dark"] .paid-notice {
-  background: #14532d;
-  color: #86efac;
 }
 
 .payment-history {
@@ -419,7 +422,7 @@
 
 .history-amount {
   font-weight: 700;
-  color: #16a34a;
+  color: var(--success);
 }
 
 .history-method {
@@ -441,7 +444,7 @@
 }
 
 .cancel-reason {
-  color: #dc2626;
+  color: var(--danger);
 }
 
 .cancel-btn {
@@ -450,8 +453,8 @@
   top: 50%;
   transform: translateY(-50%);
   background: none;
-  border: 1px solid #dc2626;
-  color: #dc2626;
+  border: 1px solid var(--danger);
+  color: var(--danger);
   border-radius: 6px;
   padding: 3px 10px;
   font-size: 0.75rem;
@@ -462,8 +465,8 @@
 }
 
 .cancel-btn:hover {
-  background: #dc2626;
-  color: white;
+  background: var(--danger);
+  color: var(--button-text, #ffffff);
 }
 
 .apartments-container .return-link {
@@ -478,11 +481,13 @@
   border: none;
   border-radius: 8px;
   background: var(--button-color);
-  color: white;
+  color: var(--button-text, #ffffff);
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition:
+    background-color 0.25s ease,
+    transform 0.25s ease;
 }
 
 .apartments-container .button:hover {
@@ -503,7 +508,6 @@
   color: var(--text-color);
 }
 
-/* Header actions */
 .header-actions {
   display: flex;
   align-items: center;
@@ -511,12 +515,10 @@
   flex-wrap: wrap;
 }
 
-/* Small modal variant */
 .modal-box-sm {
   max-width: 420px;
 }
 
-/* Modal description text */
 .modal-description {
   font-size: 0.88rem;
   opacity: 0.7;
@@ -524,7 +526,6 @@
   margin: -4px 0 16px;
 }
 
-/* Secondary & small button variants */
 .apartments-container .button-secondary {
   background: transparent;
   border: 1px solid var(--border-default);

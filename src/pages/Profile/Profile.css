@@ -18,7 +18,7 @@
   border-radius: 14px;
   padding: 24px;
   margin-bottom: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px var(--card-shadow);
 }
 
 .profile-section-title {
@@ -65,7 +65,7 @@
   padding: 2px 12px;
   border-radius: 20px;
   background: var(--button-color);
-  color: white;
+  color: var(--button-text, white);
   font-size: 0.82rem;
   font-weight: 600;
 }
@@ -104,7 +104,9 @@
   color: var(--text-color);
   font-size: 0.93rem;
   font-family: inherit;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .profile-container .input-group input::placeholder {
@@ -112,13 +114,18 @@
   opacity: 0.5;
 }
 
-.profile-container .input-group input:focus {
+.profile-container .input-group input:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+.profile-container .input-group input:focus-visible {
   outline: none;
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
-/* Actions */
+/* Form actions */
 .profile-container .form-actions {
   display: flex;
   justify-content: center;
@@ -145,7 +152,7 @@
 .profile-container .btn-primary {
   border: none;
   background: var(--button-color);
-  color: white;
+  color: var(--button-text, white);
 }
 
 .profile-container .btn-primary:hover:not(:disabled) {
@@ -156,6 +163,7 @@
 .profile-container .btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
 .profile-container .btn-secondary {
@@ -167,4 +175,15 @@
 .profile-container .btn-secondary:hover {
   border-color: var(--button-color);
   color: var(--button-color);
+}
+
+@media (max-width: 480px) {
+  .profile-container {
+    padding: 16px;
+  }
+
+  .info-grid,
+  .password-row {
+    grid-template-columns: 1fr;
+  }
 }

@@ -110,13 +110,17 @@
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .add-apartment-container .btn-primary {
   border: none;
   background: var(--button-color);
-  color: white;
+  color: var(--button-text, #ffffff);
 }
 
 .add-apartment-container .btn-primary:hover {
@@ -133,4 +137,20 @@
 .add-apartment-container .btn-secondary:hover {
   border-color: var(--button-color);
   color: var(--button-color);
+}
+
+.add-apartment-container .btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 600px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .span-full {
+    grid-column: 1;
+  }
 }

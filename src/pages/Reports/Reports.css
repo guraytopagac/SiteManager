@@ -65,12 +65,11 @@
 
 .reports-container .button {
   padding: 10px 22px;
-  border: none;
-  border-radius: 8px;
   font-size: 0.92rem;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .button-primary {
@@ -87,20 +86,20 @@
 }
 
 .button-pdf {
-  background: #dc2626;
+  background: var(--expense-color);
   color: white;
 }
 .button-pdf:hover {
-  background: #b91c1c;
+  filter: brightness(0.88);
   transform: translateY(-1px);
 }
 
 .button-excel {
-  background: #16a34a;
+  background: var(--income-color);
   color: white;
 }
 .button-excel:hover {
-  background: #15803d;
+  filter: brightness(0.88);
   transform: translateY(-1px);
 }
 
@@ -144,16 +143,16 @@
 }
 
 .summary-card.income .summary-amount {
-  color: #16a34a;
+  color: var(--income-color);
 }
 .summary-card.expense .summary-amount {
-  color: #dc2626;
+  color: var(--expense-color);
 }
 .summary-card.positive .summary-amount {
-  color: #16a34a;
+  color: var(--income-color);
 }
 .summary-card.negative .summary-amount {
-  color: #dc2626;
+  color: var(--expense-color);
 }
 .summary-card.collection .summary-amount {
   color: var(--button-color);
@@ -197,7 +196,7 @@
   border-collapse: collapse;
   background: var(--card-background-1);
   border-radius: 12px;
-  overflow: hidden;
+  overflow: clip;
   border: 1px solid var(--border-default);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
 }
@@ -246,15 +245,20 @@
   white-space: nowrap;
 }
 
+.amount-header {
+  text-align: right;
+}
+
 .amount-cell {
   font-weight: 600;
   white-space: nowrap;
+  text-align: right;
 }
 .amount-income {
-  color: #16a34a;
+  color: var(--income-color);
 }
 .amount-expense {
-  color: #dc2626;
+  color: var(--expense-color);
 }
 
 .type-badge {
@@ -265,21 +269,12 @@
   font-weight: 600;
 }
 .type-income {
-  background: #dcfce7;
-  color: #15803d;
+  background: var(--income-bg);
+  color: var(--income-text);
 }
 .type-expense {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-[data-theme="dark"] .type-income {
-  background: #14532d;
-  color: #86efac;
-}
-[data-theme="dark"] .type-expense {
-  background: #450a0a;
-  color: #fca5a5;
+  background: var(--expense-bg);
+  color: var(--expense-text);
 }
 
 .status-badge {
@@ -290,37 +285,24 @@
   font-weight: 600;
 }
 .status-paid {
-  background: #dcfce7;
-  color: #15803d;
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
 }
 .status-partial {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
 }
-.status-pending {
-  background: #e0e7ff;
-  color: #3730a3;
-}
+.status-pending,
 .status-overdue {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
 }
 
-[data-theme="dark"] .status-paid {
-  background: #14532d;
-  color: #86efac;
-}
-[data-theme="dark"] .status-partial {
-  background: #451a03;
-  color: #fcd34d;
-}
-[data-theme="dark"] .status-pending {
-  background: #1e1b4b;
-  color: #a5b4fc;
-}
-[data-theme="dark"] .status-overdue {
-  background: #450a0a;
-  color: #fca5a5;
+.reports-divider {
+  margin: 40px 0;
+  opacity: 0.2;
+  border: none;
+  border-top: 1px solid var(--border-default);
 }
 
 .reports-empty {

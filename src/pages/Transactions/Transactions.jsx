@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Transactions.css";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { alert } from "../../utils/alert";
+import { formatDate } from "../../utils/date";
 
 const TYPE_LABELS = { income: "Gelir", expense: "Gider" };
 const FILTERS = [
@@ -10,6 +11,8 @@ const FILTERS = [
   { value: "income", label: "Gelirler" },
   { value: "expense", label: "Giderler" },
 ];
+
+const formatCurrency = (n) => `${n.toLocaleString("tr-TR")} ₺`;
 
 function Transactions() {
   const navigate = useNavigate();
@@ -26,23 +29,33 @@ function Transactions() {
         return;
       }
 
-      const response = await window.electronAPI.getTransactions(currentUser.id);
-      if (response.success) {
-        setTransactions(response.data);
-      } else {
-        alert.error("Hata", response.message || "İşlem geçmişi alınamadı.");
+      try {
+        const response = await window.electronAPI.getTransactions(currentUser.id);
+        if (response.success) {
+          setTransactions(response.data);
+        } else {
+          alert.error("Hata", response.message || "İşlem geçmişi alınamadı.");
+        }
+      } catch {
+        alert.error("Hata", "Beklenmedik bir hata oluştu.");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchTransactions();
   }, [currentUser?.id, navigate]);
 
-  const filtered = filter === "all" ? transactions : transactions.filter((t) => t.type === filter);
+  const filtered = useMemo(
+    () => (filter === "all" ? transactions : transactions.filter((t) => t.type === filter)),
+    [transactions, filter],
+  );
 
-  const totalIncome = transactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
-  const totalExpense = transactions.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
-  const net = totalIncome - totalExpense;
+  const { totalIncome, totalExpense, net } = useMemo(() => {
+    const totalIncome = transactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
+    const totalExpense = transactions.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+    return { totalIncome, totalExpense, net: totalIncome - totalExpense };
+  }, [transactions]);
 
   if (loading) return <div className="loading">Yükleniyor...</div>;
 
@@ -66,17 +79,17 @@ function Transactions() {
       <div className="transactions-summary">
         <div className="summary-card income">
           <span className="summary-label">Toplam Gelir</span>
-          <span className="summary-amount">+{totalIncome.toLocaleString("tr-TR")} ₺</span>
+          <span className="summary-amount">+{formatCurrency(totalIncome)}</span>
         </div>
         <div className="summary-card expense">
           <span className="summary-label">Toplam Gider</span>
-          <span className="summary-amount">-{totalExpense.toLocaleString("tr-TR")} ₺</span>
+          <span className="summary-amount">-{formatCurrency(totalExpense)}</span>
         </div>
         <div className={`summary-card net ${net >= 0 ? "positive" : "negative"}`}>
           <span className="summary-label">Net</span>
           <span className="summary-amount">
             {net >= 0 ? "+" : ""}
-            {net.toLocaleString("tr-TR")} ₺
+            {formatCurrency(net)}
           </span>
         </div>
       </div>
@@ -87,27 +100,25 @@ function Transactions() {
             <th>Tarih</th>
             <th>Tür</th>
             <th>Açıklama</th>
-            <th style={{ textAlign: "right" }}>Tutar</th>
+            <th className="amount-header">Tutar</th>
           </tr>
         </thead>
         <tbody>
           {filtered.length === 0 ? (
-            <tr>
-              <td colSpan={4} style={{ textAlign: "center", padding: "32px", opacity: 0.6 }}>
-                Kayıt bulunamadı.
-              </td>
+            <tr className="empty-row">
+              <td colSpan={4}>Kayıt bulunamadı.</td>
             </tr>
           ) : (
             filtered.map((t) => (
               <tr key={`${t.type}-${t.id}`}>
-                <td className="date-cell">{t.date}</td>
+                <td className="date-cell">{formatDate(t.date)}</td>
                 <td>
                   <span className={`type-badge type-${t.type}`}>{TYPE_LABELS[t.type]}</span>
                 </td>
                 <td className="description-cell">{t.description}</td>
-                <td className={`amount-cell amount-${t.type}`} style={{ textAlign: "right" }}>
+                <td className={`amount-cell amount-${t.type}`}>
                   {t.type === "income" ? "+" : "-"}
-                  {t.amount.toLocaleString("tr-TR")} ₺
+                  {formatCurrency(t.amount)}
                 </td>
               </tr>
             ))
@@ -115,10 +126,10 @@ function Transactions() {
         </tbody>
       </table>
 
-      <hr style={{ margin: "40px 0", opacity: 0.2 }} />
+      <hr className="transactions-divider" />
 
       <div className="return-link">
-        <button onClick={() => navigate("/dashboard")} className="button">
+        <button onClick={() => navigate("/dashboard")} className="backButton" aria-label="Dashboard'a geri dön">
           Geri Dön
         </button>
       </div>

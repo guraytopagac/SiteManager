@@ -63,7 +63,7 @@ SiteManager/
 │
 └── src/
     ├── components/          # Footer, ProtectedRoute (rol bazlı rota koruması)
-    ├── hooks/               # useLoginLock (5 hatalı girişte 5 dk kilit)
+    ├── hooks/               # useTheme (tema yönetimi), useCurrentUser (oturum okuma)
     ├── pages/               # Login, Dashboard, AdminDashboard, Apartments, AddApartment,
     │                        #   AddIncome, AddExpense, Transactions, Profile, Reports
     ├── App.jsx              # Rotalar

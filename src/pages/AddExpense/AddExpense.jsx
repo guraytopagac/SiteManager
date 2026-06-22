@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./AddExpense.css";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { alert } from "../../utils/alert";
+import { getToday } from "../../utils/date";
 
 function AddExpense() {
   const navigate = useNavigate();
@@ -15,41 +16,47 @@ function AddExpense() {
     e.preventDefault();
 
     const cleanDescription = description.trim();
+    const parsedAmount = Math.round(Number(amount) * 100) / 100;
+    const today = getToday();
+    const managerId = currentUser?.id;
 
-    if (Number(amount) <= 0) {
-      alert.warning("Geçersiz Miktar", "Gider miktarı 0'dan büyük olmalıdır!");
-      return;
-    }
-
-    const managerId = currentUser.id;
     if (!managerId) {
       alert.error("Oturum Hatası", "Yönetici bilgisi bulunamadı. Lütfen tekrar giriş yapın.");
       return;
     }
 
-    if (!amount || !cleanDescription) {
+    if (isNaN(parsedAmount) || !cleanDescription) {
       alert.warning("Uyarı", "Lütfen tüm alanları doldurun!");
       return;
     }
 
-    const today = new Date().toISOString().split("T")[0];
+    if (parsedAmount <= 0) {
+      alert.warning("Geçersiz Miktar", "Gider miktarı 0'dan büyük olmalıdır!");
+      return;
+    }
 
     setIsSubmitting(true);
-    const response = await window.electronAPI.addExpense({
-      amount: Number(amount),
-      description: cleanDescription,
-      date: today,
-      manager_id: managerId,
-    });
+    try {
+      const response = await window.electronAPI.addExpense({
+        amount: parsedAmount,
+        description: cleanDescription,
+        date: today,
+        manager_id: managerId,
+      });
 
-    setIsSubmitting(false);
-
-    if (response.success) {
-      alert.success("Gider Eklendi!", response.message || "Gider kaydı başarıyla oluşturuldu.");
-      setAmount("");
-      setDescription("");
-    } else {
-      alert.error("Hata Oluştu", response.message || "Gider kaydedilemedi.");
+      if (response.success) {
+        setAmount("");
+        setDescription("");
+        alert
+          .success("Gider Eklendi!", response.message || "Gider kaydı başarıyla oluşturuldu.")
+          .then(() => navigate("/dashboard"));
+      } else {
+        alert.error("Hata Oluştu", response.message || "Gider kaydedilemedi.");
+      }
+    } catch {
+      alert.error("Hata", "Beklenmedik bir hata oluştu.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -69,6 +76,7 @@ function AddExpense() {
               placeholder="Miktar girin (Örn: 450.00)"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
+              onKeyDown={(e) => ["e", "E", "-", "+"].includes(e.key) && e.preventDefault()}
               required
             />
           </div>
@@ -80,14 +88,25 @@ function AddExpense() {
               placeholder="Giderin detayını yazın (Örn: Çevre aydınlatma ampul değişimi)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              maxLength={300}
               required
             />
+            <span
+              className={`charCounter${description.length >= 290 ? " danger" : description.length >= 270 ? " warning" : ""}`}
+            >
+              {description.length}/300
+            </span>
           </div>
 
-          <button type="submit" id="expenseButton" disabled={isSubmitting}>
+          <button type="submit" className="submitButton" disabled={isSubmitting} aria-busy={isSubmitting}>
             {isSubmitting ? "Kaydediliyor..." : "Gideri Kaydet"}
           </button>
-          <button type="button" id="backButton" onClick={() => navigate("/dashboard")}>
+          <button
+            type="button"
+            className="backButton"
+            aria-label="Dashboard'a geri dön"
+            onClick={() => navigate("/dashboard")}
+          >
             Geri Dön
           </button>
         </form>

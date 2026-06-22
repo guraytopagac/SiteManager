@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AdminDashboard.css";
-import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { alert } from "../../utils/alert";
 
 function AdminDashboard() {
@@ -11,12 +10,12 @@ function AdminDashboard() {
   const [formData, setFormData] = useState({ username: "", email: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const currentUser = useCurrentUser();
-
   const fetchManagers = async () => {
     const response = await window.electronAPI.getManagers();
     if (response.success) {
       setManagers(response.data);
+    } else {
+      alert.error("Hata", "Yöneticiler yüklenemedi.");
     }
     setLoading(false);
   };
@@ -106,7 +105,7 @@ function AdminDashboard() {
                     <td className="cell-username">{manager.username}</td>
                     <td className="cell-email">{manager.email}</td>
                     <td className="cell-date">
-                      {manager.last_login ? new Date(manager.last_login).toLocaleDateString("tr-TR") : "—"}
+                      {manager.last_login ? new Date(manager.last_login).toLocaleString("tr-TR") : "—"}
                     </td>
                     <td>
                       <span className={`status-pill ${manager.is_active ? "active" : "inactive"}`}>
@@ -165,12 +164,12 @@ function AdminDashboard() {
                 />
               </div>
             </div>
-            <button type="submit" className="btn-create" disabled={isSubmitting}>
+            <button type="submit" className="btn-action btn-create" disabled={isSubmitting}>
               {isSubmitting ? "Oluşturuluyor..." : "Yönetici Oluştur"}
             </button>
           </form>
         </section>
-        <button className="btn-logout" onClick={handleLogout}>
+        <button className="btn-action btn-logout" onClick={handleLogout}>
           Çıkış Yap
         </button>
       </div>

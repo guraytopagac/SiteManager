@@ -34,7 +34,6 @@ const PAYMENT_METHOD_LABELS = {
 };
 
 const APARTMENT_TYPES = ["1+1", "2+1", "3+1", "4+1"];
-const today = new Date().toISOString().slice(0, 10);
 
 function EditModal({ apartment, onClose, onSaved }) {
   const [form, setForm] = useState({
@@ -112,9 +111,7 @@ function EditModal({ apartment, onClose, onSaved }) {
             </div>
           </div>
 
-          <h4 className="modal-section-title" style={{ marginTop: 16 }}>
-            Sakin Bilgileri
-          </h4>
+          <h4 className="modal-section-title modal-section-title-spaced">Sakin Bilgileri</h4>
 
           <div className="form-row">
             <label>Ad Soyad</label>
@@ -151,7 +148,7 @@ function EditModal({ apartment, onClose, onSaved }) {
 function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [paymentDate, setPaymentDate] = useState(today);
+  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [note, setNote] = useState("");
   const [receiptPath, setReceiptPath] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -207,7 +204,7 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
       setNote("");
       setReceiptPath("");
       setPaymentMethod("cash");
-      setPaymentDate(today);
+      setPaymentDate(new Date().toISOString().slice(0, 10));
       onPaymentSaved();
       fetchHistory();
     } else {
@@ -325,7 +322,7 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
                 {receiptPath && <span className="receipt-name">{receiptPath.split(/[\\/]/).pop()}</span>}
               </div>
             )}
-            <button type="submit" className="button" disabled={isSubmitting} style={{ width: "100%", marginTop: 8 }}>
+            <button type="submit" className="button button-full-width" disabled={isSubmitting}>
               {isSubmitting ? "Kaydediliyor..." : "Ödemeyi Kaydet"}
             </button>
           </form>
@@ -409,8 +406,8 @@ function BulkUpdateModal({ currentUser, onClose, onSaved }) {
           </button>
         </div>
         <p className="modal-description">
-          Tüm dairelerinizin aidat tutarını tek seferde güncelleyin. Bu işlem mevcut daire aidat tutarlarını
-          değiştirir; önceki ödeme kayıtları etkilenmez.
+          Tüm dairelerinizin aidat tutarını tek seferde güncelleyin. Bu işlem mevcut daire aidat tutarlarını değiştirir;
+          önceki ödeme kayıtları etkilenmez.
         </p>
         <form onSubmit={handleSubmit}>
           <div className="form-row">
@@ -476,14 +473,13 @@ function Apartments() {
     fetchDues();
   }, [fetchDues]);
 
+  useEffect(() => {
+    setSelectedDue((prev) => (prev ? dues.find((d) => d.id === prev.id) || prev : null));
+  }, [dues]);
+
   const handlePaymentSaved = useCallback(async () => {
-    if (!currentUser?.id) return;
-    const response = await window.electronAPI.getDuesForMonth(currentUser.id, selectedYear, selectedMonth);
-    if (response.success) {
-      setDues(response.data);
-      setSelectedDue((prev) => (prev ? response.data.find((d) => d.id === prev.id) || prev : null));
-    }
-  }, [currentUser?.id, selectedYear, selectedMonth]);
+    await fetchDues();
+  }, [fetchDues]);
 
   const handleDelete = async (due) => {
     const result = await Swal.fire({
@@ -518,7 +514,15 @@ function Apartments() {
   for (let y = now.getFullYear(); y >= now.getFullYear() - 3; y--) yearOptions.push(y);
 
   if (loading) return <div className="loading">Verileriniz Yükleniyor...</div>;
-  if (errorMessage) return <div className="loading">{errorMessage}</div>;
+  if (errorMessage)
+    return (
+      <div className="loading">
+        {errorMessage}{" "}
+        <button className="button" onClick={fetchDues}>
+          Yeniden Dene
+        </button>
+      </div>
+    );
 
   return (
     <div className="apartments-container">
@@ -529,20 +533,20 @@ function Apartments() {
             Toplu Aidat Güncelle
           </button>
           <div className="month-selector">
-          <select value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))}>
-            {MONTHS.map((name, i) => (
-              <option key={i + 1} value={i + 1}>
-                {name}
-              </option>
-            ))}
-          </select>
-          <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))}>
-            {yearOptions.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
+            <select value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))}>
+              {MONTHS.map((name, i) => (
+                <option key={i + 1} value={i + 1}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))}>
+              {yearOptions.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
@@ -583,7 +587,7 @@ function Apartments() {
         <tbody>
           {dues.length === 0 ? (
             <tr>
-              <td colSpan={9} style={{ textAlign: "center", padding: "32px", opacity: 0.6 }}>
+              <td colSpan={9} className="table-empty-cell">
                 Kayıtlı daire bulunamadı.
               </td>
             </tr>
@@ -616,7 +620,7 @@ function Apartments() {
         </tbody>
       </table>
 
-      <hr style={{ margin: "40px 0", opacity: 0.2 }} />
+      <hr className="section-divider" />
 
       <div className="return-link">
         <button onClick={() => navigate("/dashboard")} className="button">
