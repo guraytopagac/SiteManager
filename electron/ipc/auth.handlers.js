@@ -26,7 +26,7 @@ function registerAuthHandlers(ipcMain) {
       return { success: false, message: "Kullanıcı adı, şifre ve e-posta zorunludur." };
     }
     if (password.length < 6) {
-      return { success: false, message: "Şifre en az 6 karakter olmalıdır." };
+      return { success: false, message: "Şifre en az 6 karakter olmalıdır." }; // service de 6'yı enforce eder
     }
     try {
       return await authService.createManager(data);
@@ -60,6 +60,24 @@ function registerAuthHandlers(ipcMain) {
       return await authService.changePassword(userId, oldPassword, newPassword);
     } catch (err) {
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
+    }
+  });
+
+  ipcMain.handle("validate-remember-token", async (event, token) => {
+    if (!token || typeof token !== "string") return { success: false };
+    try {
+      return authService.validateRememberToken(token);
+    } catch {
+      return { success: false };
+    }
+  });
+
+  ipcMain.handle("logout", async (event, userId) => {
+    if (!userId) return { success: false };
+    try {
+      return authService.logout(userId);
+    } catch {
+      return { success: false };
     }
   });
 }

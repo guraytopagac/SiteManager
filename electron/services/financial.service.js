@@ -20,9 +20,10 @@ function insertRecord(table, data, label) {
 
   const recordDate = data.date || new Date().toISOString().split("T")[0];
   const description = data.description?.trim() || "";
+  const category = data.category?.trim() || "other";
   const result = db
-    .prepare(`INSERT INTO ${table} (amount, date, description, manager_id) VALUES (?, ?, ?, ?)`)
-    .run(amount, recordDate, description, data.manager_id);
+    .prepare(`INSERT INTO ${table} (amount, date, description, category, manager_id) VALUES (?, ?, ?, ?, ?)`)
+    .run(amount, recordDate, description, category, data.manager_id);
   return { success: true, id: result.lastInsertRowid, message: `${label} başarıyla eklendi.` };
 }
 
@@ -66,9 +67,11 @@ function getTransactions(managerId, { startDate, endDate } = {}) {
 
     const data = db
       .prepare(
-        `SELECT id, amount, date, description, 'income' AS type FROM incomes WHERE manager_id = ? ${dateFilter}
+        `SELECT id, amount, date, description, category, 'income' AS type,
+                is_cancelled, cancelled_at, cancel_reason FROM incomes WHERE manager_id = ? ${dateFilter}
          UNION ALL
-         SELECT id, amount, date, description, 'expense' AS type FROM expenses WHERE manager_id = ? ${dateFilter}
+         SELECT id, amount, date, description, category, 'expense' AS type,
+                is_cancelled, cancelled_at, cancel_reason FROM expenses WHERE manager_id = ? ${dateFilter}
          ORDER BY date DESC, id DESC`,
       )
       .all(...params);
@@ -79,4 +82,37 @@ function getTransactions(managerId, { startDate, endDate } = {}) {
   }
 }
 
-module.exports = { addIncome, addExpense, getTransactions };
+function cancelRecord(table, id, managerId, reason, cancelledBy) {
+  if (!ALLOWED_TABLES.has(table)) return { success: false, message: "Geçersiz işlem türü." };
+
+  const record = db.prepare(`SELECT id, is_cancelled FROM ${table} WHERE id = ? AND manager_id = ?`).get(id, managerId);
+  if (!record) return { success: false, message: "Kayıt bulunamadı." };
+  if (record.is_cancelled) return { success: false, message: "Bu kayıt zaten iptal edilmiş." };
+
+  db.prepare(
+    `UPDATE ${table} SET is_cancelled = 1, cancelled_at = datetime('now'), cancel_reason = ?, cancelled_by = ?,
+     updated_at = datetime('now') WHERE id = ?`,
+  ).run(reason, cancelledBy, id);
+
+  return { success: true, message: "Kayıt başarıyla iptal edildi." };
+}
+
+function cancelIncome(id, managerId, reason, cancelledBy) {
+  try {
+    return cancelRecord("incomes", id, managerId, reason, cancelledBy);
+  } catch (err) {
+    console.error("[financial] cancelIncome:", err);
+    return { success: false, message: "Gelir iptal edilirken bir hata oluştu." };
+  }
+}
+
+function cancelExpense(id, managerId, reason, cancelledBy) {
+  try {
+    return cancelRecord("expenses", id, managerId, reason, cancelledBy);
+  } catch (err) {
+    console.error("[financial] cancelExpense:", err);
+    return { success: false, message: "Gider iptal edilirken bir hata oluştu." };
+  }
+}
+
+module.exports = { addIncome, addExpense, getTransactions, cancelIncome, cancelExpense };

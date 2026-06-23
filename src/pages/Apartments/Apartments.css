@@ -544,3 +544,64 @@
   padding: 8px 16px;
   font-size: 0.85rem;
 }
+
+.history-btn {
+  display: block;
+  margin-top: 12px;
+}
+
+.resident-history-section {
+  border-top: 1px solid var(--border-default);
+  padding-top: 12px;
+  margin-top: 12px;
+}
+
+.resident-history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.resident-history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--background-color-2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.83rem;
+}
+
+.resident-history-item.active {
+  border-left: 3px solid var(--success);
+}
+
+.rh-name {
+  font-weight: 600;
+  flex: 1;
+}
+
+.rh-type {
+  background: var(--card-background-1);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  padding: 1px 7px;
+  font-size: 0.78rem;
+}
+
+.rh-dates {
+  opacity: 0.55;
+  font-size: 0.78rem;
+}
+
+.rh-active-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--success);
+  border: 1px solid var(--success);
+  border-radius: 4px;
+  padding: 1px 6px;
+}

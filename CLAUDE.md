@@ -7,6 +7,8 @@ node_modules/
 dist/
 dist_electron/
 database.db
+database.db-wal
+database.db-shm
 package-lock.json
 .cache/
 ```
@@ -24,7 +26,7 @@ package-lock.json
 
 ## 2. Kod Yazma Kuralları
 
-- **Dil:** UI ve yorumlar Türkçe; kod İngilizce
+- **Dil:** UI metinleri Türkçe; kod ve yorumlar İngilizce
 - **Stil:** Prettier
 - **Naming:** değişkenler `camelCase`, React bileşenleri `PascalCase`
 
@@ -88,18 +90,41 @@ SiteManager/
 ## 5. Veritabanı Şeması
 
 ```sql
-users          (id, username, email, password_hash, role, is_active, last_login)
-apartments     (id, apartment_no, floor, type, square_meters, due_amount,
-                resident_name, resident_phone, resident_email, manager_id→users.id, created_at)
-dues           (id, apartment_id→apartments.id, year, month, due_amount,
-                paid_amount, status∈{unpaid,partial,paid}, created_at)
-                UNIQUE(apartment_id, year, month)
-due_payments   (id, due_id→dues.id, amount, payment_method∈{cash,bank_transfer,card,other},
-                payment_date, receipt_path, note, collected_by→users.id,
-                is_cancelled, cancelled_at, cancel_reason, created_at)
-incomes        (id, amount, date, description, manager_id→users.id, created_at)
-expenses       (id, amount, date, description, manager_id→users.id, created_at)
+users                  (id, username, email, password_hash, role, is_active,
+                        failed_login_attempts, locked_until, last_login,
+                        remember_token, remember_token_expires, password_changed_at,
+                        created_at, updated_at)
+apartments             (id, apartment_no UNIQUE NOCASE, floor, type∈{1+1,2+1,3+1,4+1},
+                        square_meters, due_amount, manager_id→users.id, created_at, updated_at)
+residents              (id, full_name, phone, email, national_id, resident_type∈{owner,tenant},
+                        move_in_date, move_out_date, is_active, notes,
+                        apartment_id→apartments.id ON DELETE CASCADE, created_at, updated_at)
+                        -- Trigger: updated_at otomatik; move_out_date → is_active=0
+                        -- View: resident_history (tüm geçmiş, apartment_no ile join)
+dues                   (id, apartment_id→apartments.id, year, month, due_amount, due_date,
+                        paid_amount, status∈{unpaid,partial,paid}, created_at, updated_at)
+                        UNIQUE(apartment_id, year, month)
+due_payments           (id, due_id→dues.id, amount, payment_method∈{cash,bank_transfer,card,other},
+                        payment_date, receipt_path, note,
+                        collected_by→users.id, created_at, updated_at)
+payment_cancellations  (id, payment_id→due_payments.id UNIQUE, cancelled_by→users.id,
+                        cancelled_at, cancel_reason, created_at)
+incomes                (id, amount, date, description, category∈{dues,rent,other},
+                        is_cancelled, cancelled_at, cancel_reason,
+                        manager_id→users.id, due_payment_id→due_payments.id,
+                        cancelled_by→users.id, created_at, updated_at)
+expenses               (id, amount, date, description,
+                        category∈{maintenance,cleaning,utility,staff,other},
+                        is_cancelled, cancelled_at, cancel_reason,
+                        manager_id→users.id, cancelled_by→users.id, created_at, updated_at)
 ```
+
+**Önemli Notlar:**
+- `apartments` tablosundan `resident_name/phone/email` kaldırıldı → `residents` tablosuna taşındı
+- `due_payments` tablosundan `is_cancelled/cancelled_at/cancel_reason` kaldırıldı → ayrı `payment_cancellations` tablosuna taşındı
+- `payment_cancellations.payment_id` UNIQUE kısıtı: bir ödeme yalnızca bir kez iptal edilebilir
+- `incomes` ve `expenses` soft-delete mantığıyla çalışır: `is_cancelled=1` + `cancel_reason` + `cancelled_by`
+- SQLite WAL modunda veritabanını sıfırlamak için `database.db`, `database.db-wal`, `database.db-shm` üçü birden silinmeli
 
 ---
 
@@ -125,14 +150,32 @@ expenses       (id, amount, date, description, manager_id→users.id, created_at
 
 1. Aidat kaydı silinemez, yalnızca düzenlenebilir.
 2. `getDuesForMonth` çağrıldığında o ay için eksik aidat kayıtları otomatik oluşturulur (`INSERT OR IGNORE`).
-3. Gelir/gider silinemez; iptal işlemi yapılır.
-4. Para tutarları `REAL` olarak saklanır, ekranda `₺` formatında gösterilir.
-5. Şifreler düz metin olarak **hiçbir zaman** saklanmaz.
-6. Veritabanı yedeği manuel (export/import `.db` dosyası).
+3. Gelir/gider silinemez; `cancelIncome` / `cancelExpense` IPC ile iptal edilir (`is_cancelled=1`).
+4. Ödeme iptali `due_payments` kaydını silmez; `payment_cancellations` tablosuna kayıt eklenir.
+5. Sakin bilgileri `residents` tablosunda tutulur; bir dairenin birden fazla geçmiş sakini olabilir. `is_active=1` olan sakin aktiftir. Sakin geçmişi `getResidentHistory(apartmentId)` ile çekilir.
+6. Para tutarları `REAL` olarak saklanır, ekranda `₺` formatında gösterilir.
+7. Şifreler düz metin olarak **hiçbir zaman** saklanmaz.
+8. Veritabanı yedeği: `backupDatabase` / `restoreDatabase` IPC çağrıları (Profil sayfası).
 
 ---
 
-## 8. Build & Dağıtım
+## 8. electronAPI — IPC Endpoint Özeti
+
+| Grup        | Metod                                                                 |
+| ----------- | --------------------------------------------------------------------- |
+| Apartment   | `addApartment`, `getApartments`, `updateApartment`, `deleteApartment`, `bulkUpdateDueAmount`, `getResidentHistory` |
+| Auth        | `login`, `logout`, `getManagers`, `createManager`, `updateManagerStatus`, `changePassword`, `validateRememberToken` |
+| Dashboard   | `getStats`                                                            |
+| Dues        | `getDuesForMonth`, `recordPayment`, `cancelPayment`, `getPaymentHistory` |
+| Financial   | `addIncome`, `addExpense`, `getTransactions`, `cancelIncome`, `cancelExpense` |
+| Reports     | `getReportData`, `saveReportFile`                                     |
+| Database    | `backupDatabase`, `restoreDatabase`                                   |
+| System      | `getAppVersion`                                                       |
+| Events      | `onToggleTheme` (renderer listener)                                   |
+
+---
+
+## 9. Build & Dağıtım
 
 ```bash
 npm run dev      # Vite + Electron eş zamanlı (concurrently + wait-on)
@@ -144,3 +187,4 @@ npm run rebuild  # Native modülleri yeniden derle
 
 - Uygulama verisi: `%APPDATA%/SiteManager/`
 - Otomatik güncelleme: `electron-updater` → GitHub Releases (`guraytopagac/SiteManager`)
+- Yedek/geri yükleme: uygulama içi Profil sayfasından `backupDatabase` / `restoreDatabase`

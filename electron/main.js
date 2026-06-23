@@ -9,14 +9,14 @@ const { runMigrations } = require("../database/migrate");
 const { seedAdminAccount } = require("../database/seed");
 const { app, ipcMain, dialog, clipboard, BrowserWindow, Menu } = require("electron");
 
-// Variables
 let mainWindow;
 const loadURL = serve({ directory: path.join(__dirname, "..", "dist") });
 const isDev = !app.isPackaged;
 
 async function handleSeedResult(seedResult) {
-  if (!seedResult || !mainWindow) return;
+  if (!seedResult || seedResult.alreadyExists || !mainWindow) return;
   const { username, password } = seedResult;
+  if (!username || !password) return;
   const { response } = await dialog.showMessageBox(mainWindow, {
     type: "info",
     title: "İlk Kurulum — Admin Hesabı",
@@ -48,7 +48,7 @@ async function handleSeedResult(seedResult) {
         type: "info",
         title: "Kaydedildi",
         message: "Şifre masaüstüne kaydedildi.",
-        detail: filePath,
+        detail: `${filePath}\n\n⚠️ Giriş yaptıktan sonra bu dosyayı silmeyi unutmayın.`,
         buttons: ["Tamam"],
       });
     } catch (err) {
@@ -61,12 +61,12 @@ async function handleSeedResult(seedResult) {
       });
     }
   }
+
+  seedResult = null;
 }
 
-// Main Window
-function createMainWindow() {
-  const iconPath = path.join(__dirname, "../src/assets/icon.ico");
-  const menuTemplate = [
+function createMenuTemplate(iconPath) {
+  const template = [
     {
       label: "Dosya",
       submenu: [
@@ -110,21 +110,26 @@ function createMainWindow() {
   ];
 
   if (isDev) {
-    menuTemplate.push({
+    template.push({
       label: "Geliştirici Araçları",
-      accelerator: "F12",
-      click(item, focusedWindow) {
-        if (focusedWindow) focusedWindow.toggleDevTools();
-      },
+      role: "toggleDevTools",
     });
   }
 
-  const mainMenu = Menu.buildFromTemplate(menuTemplate);
+  return template;
+}
+
+// Main Window
+function createMainWindow() {
+  const iconPath = path.join(__dirname, "../src/assets/icon.ico");
+  const mainMenu = Menu.buildFromTemplate(createMenuTemplate(iconPath));
   Menu.setApplicationMenu(mainMenu);
 
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    minWidth: 900,
+    minHeight: 600,
     title: "Mavikent Site Yönetimi Uygulaması",
     icon: iconPath,
     show: false,
@@ -150,7 +155,7 @@ function createMainWindow() {
       const seedResult = await seedAdminAccount(db);
       await handleSeedResult(seedResult);
     } catch (err) {
-      dialog.showErrorBox("Başlatma Hatası", err.message);
+      dialog.showErrorBox("Başlatma Hatası", `Admin hesabı oluşturulamadı:\n${err.message}`);
     }
     if (!isDev) autoUpdater.checkForUpdates();
   });
@@ -159,23 +164,19 @@ function createMainWindow() {
 }
 
 app.whenReady().then(async () => {
+  app.setAppUserModelId("com.mavikent.sitemanager");
   try {
-    runMigrations(db);
+    const appliedCount = runMigrations(db);
+    if (appliedCount > 0) console.log(`${appliedCount} migration(s) applied.`);
+    registerIpcHandlers(ipcMain);
     createMainWindow();
   } catch (err) {
-    dialog.showErrorBox("Başlatma Hatası", err.message);
+    dialog.showErrorBox("Başlatma Hatası", `Uygulama başlatılamadı:\n${err.message}`);
     app.quit();
   }
 });
 
-// IPC Handlers
-registerIpcHandlers(ipcMain);
-
 // App Events
-app.on("before-quit", () => {
-  db.close();
-});
-
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
@@ -189,7 +190,7 @@ app.on("activate", () => {
 });
 
 // Auto updater
-if (!isDev) {
+function setupAutoUpdater() {
   autoUpdater.on("update-available", () => {
     if (!mainWindow) return;
     dialog.showMessageBox(mainWindow, {
@@ -223,3 +224,5 @@ if (!isDev) {
     console.error("Güncelleme hatası:", err.message);
   });
 }
+
+if (!isDev) setupAutoUpdater();

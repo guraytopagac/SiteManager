@@ -29,12 +29,36 @@ function registerFinancialHandlers(ipcMain) {
     }
   });
 
-  ipcMain.handle("get-transactions", async (event, managerId) => {
+  ipcMain.handle("get-transactions", async (event, { managerId, startDate, endDate } = {}) => {
     if (!managerId || typeof managerId !== "number") {
       return { success: false, message: "Geçersiz kullanıcı ID." };
     }
     try {
-      return await financialService.getTransactions(managerId);
+      return await financialService.getTransactions(managerId, { startDate, endDate });
+    } catch (err) {
+      return { success: false, message: "İşlem sırasında bir hata oluştu." };
+    }
+  });
+
+  ipcMain.handle("cancel-income", async (event, { id, managerId, reason, cancelledBy }) => {
+    if (!id || typeof id !== "number") return { success: false, message: "Geçersiz kayıt ID." };
+    if (!managerId || typeof managerId !== "number") return { success: false, message: "Geçersiz kullanıcı ID." };
+    if (!reason?.trim()) return { success: false, message: "İptal nedeni zorunludur." };
+    if (!cancelledBy || typeof cancelledBy !== "number") return { success: false, message: "Geçersiz kullanıcı ID." };
+    try {
+      return await financialService.cancelIncome(id, managerId, reason.trim(), cancelledBy);
+    } catch (err) {
+      return { success: false, message: "İşlem sırasında bir hata oluştu." };
+    }
+  });
+
+  ipcMain.handle("cancel-expense", async (event, { id, managerId, reason, cancelledBy }) => {
+    if (!id || typeof id !== "number") return { success: false, message: "Geçersiz kayıt ID." };
+    if (!managerId || typeof managerId !== "number") return { success: false, message: "Geçersiz kullanıcı ID." };
+    if (!reason?.trim()) return { success: false, message: "İptal nedeni zorunludur." };
+    if (!cancelledBy || typeof cancelledBy !== "number") return { success: false, message: "Geçersiz kullanıcı ID." };
+    try {
+      return await financialService.cancelExpense(id, managerId, reason.trim(), cancelledBy);
     } catch (err) {
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }

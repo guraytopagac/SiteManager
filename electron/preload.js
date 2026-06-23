@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   updateApartment: (id, data) => ipcRenderer.invoke("update-apartment", { id, data }),
   deleteApartment: (id) => ipcRenderer.invoke("delete-apartment", id),
   bulkUpdateDueAmount: (managerId, amount) => ipcRenderer.invoke("bulk-update-due-amount", { managerId, amount }),
+  getResidentHistory: (apartmentId) => ipcRenderer.invoke("get-resident-history", apartmentId),
 
   // Auth
   login: (credentials) => ipcRenderer.invoke("login", credentials),
@@ -17,6 +18,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   updateManagerStatus: (id, isActive) => ipcRenderer.invoke("update-manager-status", { id, isActive }),
   changePassword: (userId, oldPassword, newPassword) =>
     ipcRenderer.invoke("change-password", { userId, oldPassword, newPassword }),
+  validateRememberToken: (token) => ipcRenderer.invoke("validate-remember-token", token),
+  logout: (userId) => ipcRenderer.invoke("logout", userId),
 
   // Dashboard
   getStats: (managerId) => ipcRenderer.invoke("get-stats", managerId),
@@ -30,7 +33,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Financial
   addIncome: (data) => ipcRenderer.invoke("add-income", data),
   addExpense: (data) => ipcRenderer.invoke("add-expense", data),
-  getTransactions: (managerId) => ipcRenderer.invoke("get-transactions", managerId),
+  getTransactions: (managerId, startDate, endDate) =>
+    ipcRenderer.invoke("get-transactions", { managerId, startDate, endDate }),
+  cancelIncome: (id, managerId, reason, cancelledBy) =>
+    ipcRenderer.invoke("cancel-income", { id, managerId, reason, cancelledBy }),
+  cancelExpense: (id, managerId, reason, cancelledBy) =>
+    ipcRenderer.invoke("cancel-expense", { id, managerId, reason, cancelledBy }),
 
   // System
   getAppVersion: () => ipcRenderer.invoke("get-app-version"),

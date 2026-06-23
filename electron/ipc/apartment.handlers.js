@@ -52,6 +52,17 @@ function registerApartmentHandlers(ipcMain) {
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });
+
+  ipcMain.handle("get-resident-history", async (event, apartmentId) => {
+    if (!apartmentId || typeof apartmentId !== "number") {
+      return { success: false, message: "Geçersiz daire ID." };
+    }
+    try {
+      return await apartmentService.getResidentHistory(apartmentId);
+    } catch (err) {
+      return { success: false, message: "İşlem sırasında bir hata oluştu." };
+    }
+  });
 }
 
 module.exports = registerApartmentHandlers;

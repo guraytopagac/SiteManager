@@ -13,9 +13,10 @@ const getDuesTransaction = db.transaction((managerId, year, month) => {
     .prepare(
       `SELECT d.id, d.apartment_id, d.year, d.month, d.due_amount, d.paid_amount, d.status,
               a.apartment_no, a.floor, a.type, a.square_meters,
-              a.resident_name, a.resident_phone, a.resident_email
+              r.full_name AS resident_name, r.phone AS resident_phone, r.email AS resident_email
        FROM dues d
        JOIN apartments a ON d.apartment_id = a.id
+       LEFT JOIN residents r ON r.apartment_id = a.id AND r.is_active = 1
        WHERE a.manager_id = ? AND d.year = ? AND d.month = ?
        ORDER BY a.apartment_no ASC`,
     )
@@ -48,9 +49,8 @@ const recordPaymentTx = db.transaction((dueId, paymentData) => {
   ).run(dueId, amount, payment_method, payment_date, receipt_path || null, note || null, collected_by);
 
   const newPaidAmount = parseFloat((due.paid_amount + amount).toFixed(2));
-  const newStatus = newPaidAmount >= due.due_amount ? "paid" : newPaidAmount > 0 ? "partial" : "unpaid";
 
-  db.prepare(`UPDATE dues SET paid_amount = ?, status = ? WHERE id = ?`).run(newPaidAmount, newStatus, dueId);
+  db.prepare(`UPDATE dues SET paid_amount = ? WHERE id = ?`).run(newPaidAmount, dueId);
 });
 
 function recordPayment(dueId, paymentData) {
@@ -63,33 +63,37 @@ function recordPayment(dueId, paymentData) {
   }
 }
 
-const cancelPaymentTx = db.transaction((paymentId, reason) => {
-  const payment = db.prepare(`SELECT id, due_id, amount, is_cancelled FROM due_payments WHERE id = ?`).get(paymentId);
+const cancelPaymentTx = db.transaction((paymentId, reason, cancelledBy) => {
+  const payment = db.prepare(`SELECT id, due_id, amount FROM due_payments WHERE id = ?`).get(paymentId);
   if (!payment) throw new DuesError("Ödeme kaydı bulunamadı.");
-  if (payment.is_cancelled) throw new DuesError("Bu ödeme zaten iptal edilmiş.");
 
-  db.prepare(`UPDATE due_payments SET is_cancelled = 1, cancelled_at = ?, cancel_reason = ? WHERE id = ?`).run(
-    new Date().toISOString(),
-    reason,
-    paymentId,
-  );
+  const alreadyCancelled = db
+    .prepare(`SELECT id FROM payment_cancellations WHERE payment_id = ?`)
+    .get(paymentId);
+  if (alreadyCancelled) throw new DuesError("Bu ödeme zaten iptal edilmiş.");
+
+  db.prepare(
+    `INSERT INTO payment_cancellations (payment_id, cancel_reason, cancelled_by) VALUES (?, ?, ?)`,
+  ).run(paymentId, reason, cancelledBy);
 
   const { total } = db
-    .prepare(`SELECT COALESCE(SUM(amount), 0) AS total FROM due_payments WHERE due_id = ? AND is_cancelled = 0`)
+    .prepare(
+      `SELECT COALESCE(SUM(dp.amount), 0) AS total
+       FROM due_payments dp
+       WHERE dp.due_id = ? AND NOT EXISTS (
+         SELECT 1 FROM payment_cancellations pc WHERE pc.payment_id = dp.id
+       )`,
+    )
     .get(payment.due_id);
 
-  const due = db.prepare(`SELECT due_amount FROM dues WHERE id = ?`).get(payment.due_id);
-  if (!due) throw new DuesError("Aidat kaydı bulunamadı.");
-
   const newPaidAmount = parseFloat(Number(total).toFixed(2));
-  const newStatus = newPaidAmount >= due.due_amount ? "paid" : newPaidAmount > 0 ? "partial" : "unpaid";
 
-  db.prepare(`UPDATE dues SET paid_amount = ?, status = ? WHERE id = ?`).run(newPaidAmount, newStatus, payment.due_id);
+  db.prepare(`UPDATE dues SET paid_amount = ? WHERE id = ?`).run(newPaidAmount, payment.due_id);
 });
 
-function cancelPayment(paymentId, reason) {
+function cancelPayment(paymentId, reason, cancelledBy) {
   try {
-    cancelPaymentTx(paymentId, reason);
+    cancelPaymentTx(paymentId, reason, cancelledBy);
     return { success: true, message: "Ödeme başarıyla iptal edildi." };
   } catch (err) {
     if (err instanceof DuesError) return { success: false, message: err.message };
@@ -102,10 +106,14 @@ function getPaymentHistory(dueId) {
     const data = db
       .prepare(
         `SELECT dp.id, dp.amount, dp.payment_method, dp.payment_date, dp.receipt_path, dp.note,
-                dp.is_cancelled, dp.cancelled_at, dp.cancel_reason, dp.created_at,
-                u.username AS collected_by_username
+                dp.created_at,
+                u.username AS collected_by_username,
+                pc.cancel_reason, pc.cancelled_at,
+                cu.username AS cancelled_by_username
          FROM due_payments dp
          JOIN users u ON dp.collected_by = u.id
+         LEFT JOIN payment_cancellations pc ON pc.payment_id = dp.id
+         LEFT JOIN users cu ON cu.id = pc.cancelled_by
          WHERE dp.due_id = ?
          ORDER BY dp.created_at DESC`,
       )

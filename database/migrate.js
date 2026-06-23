@@ -4,21 +4,36 @@ const path = require("path");
 const MIGRATIONS_DIR = path.join(__dirname, "migrations");
 const SCHEMA_DIR = path.join(__dirname, "schema");
 
-// Tablolar foreign key bağımlılık sırasına göre yüklenir
-const SCHEMA_FILES = ["users.sql", "apartments.sql", "incomes.sql", "expenses.sql", "dues.sql", "due_payments.sql"];
+// Tables ordered by foreign key dependency
+const SCHEMA_FILES = [
+  "users.sql",
+  "apartments.sql",
+  "residents.sql",
+  "incomes.sql",
+  "expenses.sql",
+  "dues.sql",
+  "due_payments.sql",
+  "payment_cancellations.sql",
+];
 
 function loadSchema(db) {
-  for (const file of SCHEMA_FILES) {
-    try {
-      const sql = fs.readFileSync(path.join(SCHEMA_DIR, file), "utf8");
-      db.exec(sql);
-    } catch (e) {
-      throw new Error(`Schema yüklenemedi: ${file} — ${e.message}`);
+  db.transaction(() => {
+    for (const file of SCHEMA_FILES) {
+      try {
+        const sql = fs.readFileSync(path.join(SCHEMA_DIR, file), "utf8");
+        db.exec(sql);
+      } catch (e) {
+        throw new Error(`Failed to load schema: ${file} — ${e.message}`);
+      }
     }
-  }
+  })();
 }
 
 function runMigrations(db) {
+  if (!fs.existsSync(MIGRATIONS_DIR)) {
+    throw new Error(`Migrations klasörü bulunamadı: ${MIGRATIONS_DIR}`);
+  }
+
   loadSchema(db);
 
   db.exec(`
@@ -36,19 +51,14 @@ function runMigrations(db) {
       .map((r) => r.filename),
   );
 
-  if (!fs.existsSync(MIGRATIONS_DIR)) {
-    throw new Error(`Migrations directory not found: ${MIGRATIONS_DIR}`);
-  }
-
   const files = fs
     .readdirSync(MIGRATIONS_DIR)
     .filter((f) => f.endsWith(".sql"))
     .sort();
 
-  const applyMigration = db.transaction((file, sql) => {
-    db.exec(sql);
-    db.prepare(`INSERT INTO migrations (filename) VALUES (?)`).run(file);
-  });
+  const recordMigration = db.prepare(`INSERT INTO migrations (filename) VALUES (?)`);
+
+  let appliedCount = 0;
 
   for (const file of files) {
     if (applied.has(file)) continue;
@@ -56,13 +66,30 @@ function runMigrations(db) {
     const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), "utf8");
 
     if (!sql.trim()) {
-      console.warn(`Migration skipped (empty file): ${file}`);
+      console.warn(`Migration atlandı (boş dosya): ${file}`);
       continue;
     }
 
-    applyMigration(file, sql);
-    console.log(`Migration was implemented: ${file}`);
+    try {
+      db.transaction(() => {
+        db.exec(sql);
+        recordMigration.run(file);
+      })();
+      console.log(`Migration uygulandı: ${file}`);
+      appliedCount++;
+    } catch (err) {
+      // ALTER TABLE ADD COLUMN fails if the column already exists (SQLite has no IF NOT EXISTS).
+      // Treat this as a no-op so the migration is still recorded and won't re-run.
+      if (err.message.includes("duplicate column name")) {
+        db.transaction(() => recordMigration.run(file))();
+        console.warn(`Migration zaten uygulanmış (kolon mevcut), kaydedildi: ${file}`);
+      } else {
+        throw err;
+      }
+    }
   }
+
+  return appliedCount;
 }
 
 module.exports = { runMigrations };

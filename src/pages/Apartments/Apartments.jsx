@@ -28,8 +28,8 @@ const STATUS_LABELS = {
 
 const PAYMENT_METHOD_LABELS = {
   cash: "Nakit",
-  transfer: "Havale / EFT",
-  credit_card: "Kredi Kartı",
+  bank_transfer: "Havale / EFT",
+  card: "Kredi Kartı",
   other: "Diğer",
 };
 
@@ -45,8 +45,20 @@ function EditModal({ apartment, onClose, onSaved }) {
     resident_name: apartment.resident_name || "",
     resident_phone: apartment.resident_phone || "",
     resident_email: apartment.resident_email || "",
+    resident_national_id: apartment.resident_national_id || "",
+    resident_type: apartment.resident_type || "tenant",
+    resident_move_in_date: apartment.resident_move_in_date || "",
+    resident_notes: apartment.resident_notes || "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [residentHistory, setResidentHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  const fetchHistory = async () => {
+    const res = await window.electronAPI.getResidentHistory(apartment.apartment_id);
+    if (res.success) setResidentHistory(res.data);
+    setShowHistory(true);
+  };
 
   const set = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
@@ -130,6 +142,62 @@ function EditModal({ apartment, onClose, onSaved }) {
               onChange={set("resident_email")}
             />
           </div>
+          <div className="form-row">
+            <label>TC Kimlik No</label>
+            <input
+              type="text"
+              maxLength={11}
+              placeholder="11 haneli TC kimlik"
+              value={form.resident_national_id}
+              onChange={set("resident_national_id")}
+            />
+          </div>
+          <div className="form-row">
+            <label>Sakin Türü</label>
+            <select value={form.resident_type} onChange={set("resident_type")}>
+              <option value="tenant">Kiracı</option>
+              <option value="owner">Malik</option>
+            </select>
+          </div>
+          <div className="form-row">
+            <label>Giriş Tarihi</label>
+            <input type="date" value={form.resident_move_in_date} onChange={set("resident_move_in_date")} />
+          </div>
+          <div className="form-row">
+            <label>Notlar</label>
+            <textarea
+              rows={2}
+              placeholder="Sakin hakkında not"
+              value={form.resident_notes}
+              onChange={set("resident_notes")}
+            />
+          </div>
+
+          {showHistory ? (
+            <div className="resident-history-section">
+              <h4 className="modal-section-title modal-section-title-spaced">Sakin Geçmişi</h4>
+              {residentHistory.length === 0 ? (
+                <p className="history-empty">Geçmiş sakin kaydı bulunamadı.</p>
+              ) : (
+                <ul className="resident-history-list">
+                  {residentHistory.map((r) => (
+                    <li key={r.id} className={`resident-history-item ${r.is_active ? "active" : ""}`}>
+                      <span className="rh-name">{r.full_name}</span>
+                      <span className="rh-type">{r.resident_type === "owner" ? "Malik" : "Kiracı"}</span>
+                      <span className="rh-dates">
+                        {r.move_in_date || "?"} → {r.move_out_date || "devam"}
+                      </span>
+                      {r.is_active === 1 && <span className="rh-active-badge">Aktif</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : (
+            <button type="button" className="button button-secondary button-sm history-btn" onClick={fetchHistory}>
+              Sakin Geçmişini Gör
+            </button>
+          )}
 
           <div className="modal-actions">
             <button type="button" className="button button-secondary" onClick={onClose}>
@@ -231,7 +299,7 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
 
     if (!reason) return;
 
-    const res = await window.electronAPI.cancelPayment(paymentId, reason);
+    const res = await window.electronAPI.cancelPayment(paymentId, reason, currentUser.id);
     if (res.success) {
       alert.success("İptal Edildi", res.message, 1800);
       onPaymentSaved();
@@ -339,7 +407,7 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
           ) : (
             <ul className="history-list">
               {history.map((p) => (
-                <li key={p.id} className={`history-item ${p.is_cancelled ? "cancelled" : ""}`}>
+                <li key={p.id} className={`history-item ${p.cancel_reason ? "cancelled" : ""}`}>
                   <div className="history-main">
                     <span className="history-amount">{p.amount.toLocaleString("tr-TR")} ₺</span>
                     <span className="history-method">{PAYMENT_METHOD_LABELS[p.payment_method]}</span>
@@ -348,9 +416,14 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
                   <div className="history-meta">
                     <span>Tahsil eden: {p.collected_by_username}</span>
                     {p.note && <span> · {p.note}</span>}
-                    {p.is_cancelled && <span className="cancel-reason"> · İptal: {p.cancel_reason}</span>}
+                    {p.cancel_reason && (
+                      <span className="cancel-reason">
+                        {" "}· İptal: {p.cancel_reason}
+                        {p.cancelled_by_username && ` (${p.cancelled_by_username})`}
+                      </span>
+                    )}
                   </div>
-                  {!p.is_cancelled && (
+                  {!p.cancel_reason && (
                     <button className="cancel-btn" onClick={() => handleCancel(p.id)}>
                       İptal Et
                     </button>

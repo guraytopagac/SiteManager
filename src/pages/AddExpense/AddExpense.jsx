@@ -10,6 +10,7 @@ function AddExpense() {
   const currentUser = useCurrentUser();
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("other");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleExpenseSubmit = async (e) => {
@@ -40,6 +41,7 @@ function AddExpense() {
       const response = await window.electronAPI.addExpense({
         amount: parsedAmount,
         description: cleanDescription,
+        category,
         date: today,
         manager_id: managerId,
       });
@@ -47,6 +49,7 @@ function AddExpense() {
       if (response.success) {
         setAmount("");
         setDescription("");
+        setCategory("other");
         alert
           .success("Gider Eklendi!", response.message || "Gider kaydı başarıyla oluşturuldu.")
           .then(() => navigate("/dashboard"));
@@ -79,6 +82,17 @@ function AddExpense() {
               onKeyDown={(e) => ["e", "E", "-", "+"].includes(e.key) && e.preventDefault()}
               required
             />
+          </div>
+
+          <div className="formGroup">
+            <label htmlFor="expenseCategory">Kategori</label>
+            <select id="expenseCategory" value={category} onChange={(e) => setCategory(e.target.value)}>
+              <option value="maintenance">Bakım & Onarım</option>
+              <option value="cleaning">Temizlik</option>
+              <option value="utility">Fatura / Abonelik</option>
+              <option value="staff">Personel</option>
+              <option value="other">Diğer</option>
+            </select>
           </div>
 
           <div className="formGroup">

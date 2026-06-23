@@ -34,15 +34,18 @@ function registerDuesHandlers(ipcMain) {
     }
   });
 
-  ipcMain.handle("cancel-payment", async (event, { paymentId, reason }) => {
+  ipcMain.handle("cancel-payment", async (event, { paymentId, reason, cancelledBy }) => {
     if (!paymentId || typeof paymentId !== "number") {
       return { success: false, message: "Geçersiz ödeme ID." };
     }
     if (!reason || typeof reason !== "string" || reason.trim().length === 0) {
       return { success: false, message: "İptal nedeni zorunludur." };
     }
+    if (!cancelledBy || typeof cancelledBy !== "number") {
+      return { success: false, message: "Geçersiz kullanıcı ID." };
+    }
     try {
-      return await duesService.cancelPayment(paymentId, reason);
+      return await duesService.cancelPayment(paymentId, reason.trim(), cancelledBy);
     } catch (err) {
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }

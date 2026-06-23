@@ -1,11 +1,22 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 import "./Transactions.css";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { alert } from "../../utils/alert";
 import { formatDate } from "../../utils/date";
 
 const TYPE_LABELS = { income: "Gelir", expense: "Gider" };
+
+const CATEGORY_LABELS = {
+  dues: "Aidat",
+  rent: "Kira",
+  maintenance: "Bakım & Onarım",
+  cleaning: "Temizlik",
+  utility: "Fatura / Abonelik",
+  staff: "Personel",
+  other: "Diğer",
+};
 const FILTERS = [
   { value: "all", label: "Tümü" },
   { value: "income", label: "Gelirler" },
@@ -22,29 +33,59 @@ function Transactions() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
 
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      if (!currentUser?.id) {
-        navigate("/", { replace: true });
-        return;
+  const fetchTransactions = useCallback(async () => {
+    if (!currentUser?.id) {
+      navigate("/", { replace: true });
+      return;
+    }
+    try {
+      const response = await window.electronAPI.getTransactions(currentUser.id);
+      if (response.success) {
+        setTransactions(response.data);
+      } else {
+        alert.error("Hata", response.message || "İşlem geçmişi alınamadı.");
       }
-
-      try {
-        const response = await window.electronAPI.getTransactions(currentUser.id);
-        if (response.success) {
-          setTransactions(response.data);
-        } else {
-          alert.error("Hata", response.message || "İşlem geçmişi alınamadı.");
-        }
-      } catch {
-        alert.error("Hata", "Beklenmedik bir hata oluştu.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTransactions();
+    } catch {
+      alert.error("Hata", "Beklenmedik bir hata oluştu.");
+    } finally {
+      setLoading(false);
+    }
   }, [currentUser?.id, navigate]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  const handleCancel = useCallback(
+    async (t) => {
+      const { value: reason } = await Swal.fire({
+        title: `${t.type === "income" ? "Geliri" : "Gideri"} İptal Et`,
+        input: "textarea",
+        inputLabel: "İptal Nedeni",
+        inputPlaceholder: "Lütfen iptal nedenini yazın...",
+        showCancelButton: true,
+        confirmButtonText: "İptal Et",
+        cancelButtonText: "Vazgeç",
+        confirmButtonColor: "#dc2626",
+        heightAuto: false,
+        preConfirm: (val) => {
+          if (!val?.trim()) Swal.showValidationMessage("İptal nedeni zorunludur.");
+          return val?.trim();
+        },
+      });
+      if (!reason) return;
+
+      const fn = t.type === "income" ? window.electronAPI.cancelIncome : window.electronAPI.cancelExpense;
+      const res = await fn(t.id, currentUser.id, reason, currentUser.id);
+      if (res.success) {
+        alert.success("İptal Edildi", res.message, 1800);
+        fetchTransactions();
+      } else {
+        alert.error("Hata", res.message);
+      }
+    },
+    [currentUser?.id, fetchTransactions],
+  );
 
   const filtered = useMemo(
     () => (filter === "all" ? transactions : transactions.filter((t) => t.type === filter)),
@@ -99,26 +140,42 @@ function Transactions() {
           <tr>
             <th>Tarih</th>
             <th>Tür</th>
+            <th>Kategori</th>
             <th>Açıklama</th>
             <th className="amount-header">Tutar</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
           {filtered.length === 0 ? (
             <tr className="empty-row">
-              <td colSpan={4}>Kayıt bulunamadı.</td>
+              <td colSpan={6}>Kayıt bulunamadı.</td>
             </tr>
           ) : (
             filtered.map((t) => (
-              <tr key={`${t.type}-${t.id}`}>
+              <tr key={`${t.type}-${t.id}`} className={t.is_cancelled ? "row-cancelled" : ""}>
                 <td className="date-cell">{formatDate(t.date)}</td>
                 <td>
                   <span className={`type-badge type-${t.type}`}>{TYPE_LABELS[t.type]}</span>
                 </td>
-                <td className="description-cell">{t.description}</td>
-                <td className={`amount-cell amount-${t.type}`}>
+                <td className="category-cell">{CATEGORY_LABELS[t.category] ?? t.category}</td>
+                <td className="description-cell">
+                  {t.description}
+                  {t.is_cancelled && t.cancel_reason && (
+                    <span className="cancel-reason-inline"> · İptal: {t.cancel_reason}</span>
+                  )}
+                </td>
+                <td className={`amount-cell amount-${t.type} ${t.is_cancelled ? "amount-cancelled" : ""}`}>
                   {t.type === "income" ? "+" : "-"}
                   {formatCurrency(t.amount)}
+                </td>
+                <td className="action-cell-tx">
+                  {!t.is_cancelled && (
+                    <button className="cancel-tx-btn" onClick={() => handleCancel(t)} title="İptal Et">
+                      İptal
+                    </button>
+                  )}
+                  {t.is_cancelled && <span className="cancelled-badge">İptal</span>}
                 </td>
               </tr>
             ))

@@ -1,14 +1,20 @@
+-- Apartments table: one row per physical unit in the building.
+-- apartment_no is case-insensitive unique (e.g. "1A" == "1a").
+-- floor allows negative values for basement floors (>= -2).
+-- due_amount is the monthly dues amount for this specific apartment.
+-- Resident info is stored separately in the residents table.
 CREATE TABLE IF NOT EXISTS apartments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  apartment_no TEXT NOT NULL UNIQUE,
-  floor INTEGER,
-  type TEXT,
-  square_meters REAL,
-  due_amount REAL CHECK(due_amount >= 0),
-  resident_name TEXT,
-  resident_phone TEXT,
-  resident_email TEXT,
-  manager_id INTEGER,
+  apartment_no TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  floor INTEGER CHECK(floor IS NULL OR floor >= -2),
+  type TEXT CHECK(type IN ('1+1', '2+1', '3+1', '4+1')),
+  square_meters REAL CHECK(square_meters IS NULL OR square_meters > 0),
+  due_amount REAL NOT NULL CHECK(due_amount > 0),
   created_at TEXT DEFAULT (datetime('now')),
-  FOREIGN KEY(manager_id) REFERENCES users(id) ON DELETE SET NULL
+  updated_at TEXT DEFAULT (datetime('now')),
+
+  manager_id INTEGER NOT NULL,
+  FOREIGN KEY(manager_id) REFERENCES users(id) ON DELETE RESTRICT
 );
+
+CREATE INDEX IF NOT EXISTS idx_apartments_manager_id ON apartments(manager_id);

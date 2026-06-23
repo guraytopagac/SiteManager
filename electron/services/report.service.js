@@ -37,10 +37,11 @@ function getReportData(managerId, year, month) {
 
     const dues = db
       .prepare(
-        `SELECT a.apartment_no, a.floor, a.type, a.resident_name,
+        `SELECT a.apartment_no, a.floor, a.type, r.full_name AS resident_name,
                 d.due_amount, d.paid_amount, d.status
          FROM dues d
          JOIN apartments a ON d.apartment_id = a.id
+         LEFT JOIN residents r ON r.apartment_id = a.id AND r.is_active = 1
          WHERE a.manager_id = ? AND d.year = ? AND d.month = ?
          ORDER BY a.apartment_no ASC`,
       )

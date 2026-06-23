@@ -13,6 +13,10 @@ const INITIAL_DATA = {
   resident_name: "",
   resident_phone: "",
   resident_email: "",
+  resident_national_id: "",
+  resident_type: "tenant",
+  resident_move_in_date: "",
+  resident_notes: "",
 };
 
 function AddApartment() {
@@ -154,6 +158,40 @@ function AddApartment() {
                 placeholder="ornek@email.com"
                 value={apartmentData.resident_email}
                 onChange={set("resident_email")}
+              />
+            </div>
+            <div className="input-group">
+              <label>TC Kimlik No</label>
+              <input
+                type="text"
+                maxLength={11}
+                placeholder="11 haneli TC kimlik"
+                value={apartmentData.resident_national_id}
+                onChange={set("resident_national_id")}
+              />
+            </div>
+            <div className="input-group">
+              <label>Sakin Türü</label>
+              <select value={apartmentData.resident_type} onChange={set("resident_type")}>
+                <option value="tenant">Kiracı</option>
+                <option value="owner">Malik</option>
+              </select>
+            </div>
+            <div className="input-group">
+              <label>Giriş Tarihi</label>
+              <input
+                type="date"
+                value={apartmentData.resident_move_in_date}
+                onChange={set("resident_move_in_date")}
+              />
+            </div>
+            <div className="input-group span-full">
+              <label>Notlar</label>
+              <textarea
+                placeholder="Sakin hakkında not (isteğe bağlı)"
+                value={apartmentData.resident_notes}
+                onChange={set("resident_notes")}
+                rows={2}
               />
             </div>
           </div>
