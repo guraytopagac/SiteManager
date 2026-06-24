@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kullanım Kılavuzu — Mavikent Site Yönetimi</title>
+    <link rel="stylesheet" href="guide.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-title">Kullanım Kılavuzu</div>
+        <nav>
+          <div class="section-label">Başlarken</div>
+          <a href="#giris">Giriş Ekranı</a>
+          <a href="#roller">Kullanıcı Rolleri</a>
+          <a href="#kisayollar">Klavye Kısayolları</a>
+
+          <div class="section-label">Yönetici (Admin)</div>
+          <a href="#admin-dashboard">Admin Paneli</a>
+          <a href="#manager-yonetimi">Yönetici Yönetimi</a>
+
+          <div class="section-label">Günlük İşlemler</div>
+          <a href="#dashboard">Kontrol Paneli</a>
+          <a href="#daireler">Daireler</a>
+          <a href="#sakinler">Sakinler</a>
+          <a href="#aidatlar">Aidat Yönetimi</a>
+          <a href="#finansal">Gelir / Gider</a>
+          <a href="#islemler">İşlem Geçmişi</a>
+          <a href="#raporlar">Raporlar</a>
+
+          <div class="section-label">Sistem</div>
+          <a href="#profil">Profil</a>
+          <a href="#yedekleme">Yedekleme</a>
+          <a href="#tema">Tema</a>
+        </nav>
+      </aside>
+
+      <!-- Main content -->
+      <main class="content">
+        <h1>Mavikent Site Yönetim Sistemi</h1>
+        <p class="subtitle">Kullanım Kılavuzu — Tüm özellikler ve adım adım açıklamalar</p>
+
+        <!-- GİRİŞ -->
+        <h2 id="giris">Giriş Ekranı</h2>
+        <p>Uygulama açıldığında kullanıcı adı ve şifre girişi istenir.</p>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">Kullanıcı adınızı ve şifrenizi girin.</div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>Beni Hatırla</strong> kutusunu işaretlerseniz 30 gün boyunca otomatik giriş yapılır.
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">Rolünüze göre Admin Paneli veya Kontrol Paneli açılır.</div>
+          </div>
+        </div>
+        <div class="warning">
+          <span class="warning-icon">⚠</span>
+          Arka arkaya 5 hatalı giriş denemesi hesabı geçici olarak kilitler. Kilitlenme süresi dolduktan sonra tekrar
+          denenebilir.
+        </div>
+
+        <!-- ROLLER -->
+        <h2 id="roller">Kullanıcı Rolleri</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Rol</th>
+              <th>Erişim</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Admin</strong> <span class="badge badge-admin">admin</span></td>
+              <td>Tüm işlemler + yönetici hesabı oluşturma/devre dışı bırakma</td>
+            </tr>
+            <tr>
+              <td><strong>Yönetici</strong> <span class="badge badge-manager">manager</span></td>
+              <td>Aidat, gelir/gider, daire/sakin yönetimi, raporlar</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="note">
+          <span class="note-icon">ℹ</span>
+          Sistemde yalnızca bir admin hesabı bulunabilir. Admin hesabı kurulum sırasında otomatik oluşturulur.
+        </div>
+
+        <!-- KISAYOLLAR -->
+        <h2 id="kisayollar">Klavye Kısayolları</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Kısayol</th>
+              <th>İşlev</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd></td>
+              <td>Tema değiştir (açık / koyu)</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd></td>
+              <td>Veritabanı yedekle</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd></td>
+              <td>Yedekten geri yükle</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl</kbd>+<kbd>P</kbd></td>
+              <td>Mevcut sayfayı yazdır</td>
+            </tr>
+            <tr>
+              <td><kbd>F1</kbd></td>
+              <td>Bu kılavuzu aç</td>
+            </tr>
+            <tr>
+              <td><kbd>F11</kbd></td>
+              <td>Tam ekran aç / kapat</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl</kbd>+<kbd>+</kbd></td>
+              <td>Yakınlaştır</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl</kbd>+<kbd>-</kbd></td>
+              <td>Uzaklaştır</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl</kbd>+<kbd>0</kbd></td>
+              <td>Varsayılan zoom</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- ADMIN DASHBOARD -->
+        <h2 id="admin-dashboard">Admin Paneli <span class="badge badge-admin">admin</span></h2>
+        <p>
+          Admin hesabıyla giriş yapıldığında Admin Paneli açılır. Buradan mevcut yöneticilerin listesi görüntülenir ve
+          yeni yönetici oluşturulabilir.
+        </p>
+        <h3>Yeni Yönetici Oluşturma</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>Yeni Yönetici Ekle</strong> formuna kullanıcı adı, e-posta ve şifre girin.
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">Şifre en az 8 karakter olmalıdır.</div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body"><strong>Oluştur</strong> butonuna tıklayın. Yönetici hemen listeye eklenir.</div>
+          </div>
+        </div>
+
+        <!-- MANAGER YÖNETİMİ -->
+        <h2 id="manager-yonetimi">Yönetici Yönetimi <span class="badge badge-admin">admin</span></h2>
+        <p>Admin panelindeki yönetici listesinde her satırda durum anahtarı (aktif/pasif) bulunur.</p>
+        <ul>
+          <li>Anahtarı kapamak yöneticinin hesabını <strong>devre dışı</strong> bırakır; giriş yapamaz.</li>
+          <li>Anahtarı açmak hesabı tekrar <strong>aktif</strong> eder.</li>
+          <li>Admin hesabı devre dışı bırakılamaz.</li>
+        </ul>
+
+        <!-- KONTROL PANELİ -->
+        <h2 id="dashboard">Kontrol Paneli <span class="badge badge-manager">manager</span></h2>
+        <p>Yönetici girişinin ardından Kontrol Paneli açılır. Üst kısımda üç özet kart görünür:</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Kart</th>
+              <th>Açıklama</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Kasa</strong></td>
+              <td>İptal edilmemiş tüm gelirlerden giderler çıkarıldıktan sonra kalan bakiye (₺)</td>
+            </tr>
+            <tr>
+              <td><strong>Tahsilat</strong></td>
+              <td>Bu ayki aidatların tahsilat oranı (%)</td>
+            </tr>
+            <tr>
+              <td><strong>Gecikme</strong></td>
+              <td>Ödenmemiş ve kısmi ödemeli aidat toplamı (₺)</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>Alt bölümde hızlı erişim kartları ile tüm işlemlere tek tıkla ulaşabilirsiniz.</p>
+
+        <!-- DAİRELER -->
+        <h2 id="daireler">Daireler <span class="badge badge-manager">manager</span></h2>
+        <h3>Daire Listeleme</h3>
+        <p>
+          <strong>Mevcut Daireleri Görüntüle</strong> ile daire listesine gidin. Her daire kartında daire numarası, kat,
+          tip, metrekare ve aylık aidat tutarı görünür.
+        </p>
+        <h3>Yeni Daire Ekleme</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><strong>Yeni Daire Ekle</strong> sayfasına gidin.</div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              Daire numarası (benzersiz), kat, tip (1+1 / 2+1 / 3+1 / 4+1), metrekare ve aylık aidat tutarını girin.
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body"><strong>Kaydet</strong> butonuna tıklayın.</div>
+          </div>
+        </div>
+        <h3>Daire Düzenleme / Silme</h3>
+        <p>
+          Daire listesinde her kart üzerindeki <strong>Düzenle</strong> butonu bilgileri güncellemenizi,
+          <strong>Sil</strong> butonu daireyi silmenizi sağlar. Daire silindiğinde o daireye ait tüm sakin kayıtları da
+          silinir.
+        </p>
+        <h3>Toplu Aidat Güncelleme</h3>
+        <p>
+          Daire listesinin üstündeki <strong>Tümünü Güncelle</strong> alanından tüm daireler için tek seferde yeni bir
+          aidat tutarı belirlenebilir.
+        </p>
+
+        <!-- SAKİNLER -->
+        <h2 id="sakinler">Sakinler <span class="badge badge-manager">manager</span></h2>
+        <p>
+          Sakin bilgileri daire detay ekranından yönetilir. Bir dairede birden fazla geçmiş sakin olabilir; yalnızca
+          <strong>aktif</strong> olan sakin güncel kiracı/ev sahibidir.
+        </p>
+        <ul>
+          <li><strong>Ad Soyad, Telefon, E-posta, TC Kimlik No</strong> alanları doldurulabilir.</li>
+          <li><strong>Tür:</strong> Ev Sahibi veya Kiracı.</li>
+          <li><strong>Taşınma Tarihi</strong> girildiğinde sakin otomatik olarak pasif hale geçer.</li>
+        </ul>
+
+        <!-- AİDATLAR -->
+        <h2 id="aidatlar">Aidat Yönetimi <span class="badge badge-manager">manager</span></h2>
+        <p>
+          Ana menüden Aidat ekranına gidip yıl ve ay seçildiğinde, o aya ait tüm dairelerin aidat kayıtları otomatik
+          oluşturulur (daha önce oluşturulmamışsa).
+        </p>
+        <h3>Ödeme Alma</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">Listede ilgili daireye tıklayın.</div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">Ödeme tutarını, yöntemini (Nakit / Banka / Kart / Diğer) ve tarihini girin.</div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>Kaydet</strong>'e tıklayın. Ödeme otomatik olarak Gelir tablosuna da eklenir.
+            </div>
+          </div>
+        </div>
+        <h3>Ödeme İptali</h3>
+        <p>
+          Kaydedilen bir ödemeyi iptal etmek için ödeme geçmişinden ilgili kaydı seçin ve
+          <strong>İptal Et</strong> butonuna tıklayın; iptal sebebi girmeniz istenir. İptal edilen ödemeye bağlı gelir
+          kaydı da otomatik olarak iptal edilir.
+        </p>
+        <div class="note">
+          <span class="note-icon">ℹ</span>
+          Aidat kaydı hiçbir zaman silinemez; yalnızca düzenlenebilir veya ödemeleri iptal edilebilir.
+        </div>
+
+        <!-- FİNANSAL -->
+        <h2 id="finansal">Gelir / Gider <span class="badge badge-manager">manager</span></h2>
+        <h3>Gelir Ekleme</h3>
+        <p>
+          <strong>Gelir Ekle</strong> sayfasında tutar, tarih, açıklama ve kategori (Aidat / Diğer) girerek kaydedin.
+          Aidat ödemelerinden gelen gelirler otomatik oluşturulur; buradan manuel ek gelir kaydı yapılabilir.
+        </p>
+        <h3>Gider Ekleme</h3>
+        <p>
+          <strong>Gider Ekle</strong> sayfasında tutar, tarih, açıklama ve kategori (Bakım / Temizlik / Fatura /
+          Personel / Diğer) girerek kaydedin.
+        </p>
+        <div class="warning">
+          <span class="warning-icon">⚠</span>
+          Gelir ve gider kayıtları <strong>silinemez</strong>. Hatalı kayıt, İşlem Geçmişi ekranından iptal edilerek
+          pasif hale getirilir.
+        </div>
+
+        <!-- İŞLEMLER -->
+        <h2 id="islemler">İşlem Geçmişi <span class="badge badge-manager">manager</span></h2>
+        <p>
+          Tüm gelir ve gider kayıtlarını tarih aralığına göre filtreleyin. İptal edilmiş kayıtlar üzeri çizili olarak
+          görünür.
+        </p>
+        <h3>Kayıt İptali</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              İptal etmek istediğiniz gelir veya gider satırındaki <strong>İptal</strong> butonuna tıklayın.
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">İptal sebebini girin ve onaylayın.</div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">Kayıt iptal edilir; kasa bakiyesi güncellenir.</div>
+          </div>
+        </div>
+
+        <!-- RAPORLAR -->
+        <h2 id="raporlar">Raporlar <span class="badge badge-manager">manager</span></h2>
+        <p>Raporlar sayfasında yıl ve ay seçilerek o döneme ait özet rapor oluşturulur.</p>
+        <ul>
+          <li><strong>PDF olarak kaydet</strong> — biçimlendirilmiş raporu PDF dosyası olarak dışa aktarır.</li>
+          <li><strong>Excel olarak kaydet</strong> — verileri .xlsx dosyası olarak dışa aktarır.</li>
+        </ul>
+        <p>Rapor; aidat tahsilat özeti, toplam gelir/gider ve net bakiye bilgilerini içerir.</p>
+
+        <!-- PROFİL -->
+        <h2 id="profil">Profil <span class="badge badge-manager">manager</span></h2>
+        <p>Profil sayfasından mevcut şifrenizi değiştirebilirsiniz.</p>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">Mevcut şifrenizi girin.</div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">Yeni şifreyi iki kez girin (en az 8 karakter).</div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body"><strong>Şifreyi Güncelle</strong> butonuna tıklayın.</div>
+          </div>
+        </div>
+
+        <!-- YEDEKLEME -->
+        <h2 id="yedekleme">Yedekleme ve Geri Yükleme</h2>
+        <p>Veritabanı yedekleme işlemleri <strong>Dosya</strong> menüsünden yapılır.</p>
+        <h3>Yedek Alma</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>Dosya → Veritabanı Yedekle</strong> seçin (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>).
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">Kaydetmek istediğiniz konumu seçin. Dosya adı otomatik olarak tarihi içerir.</div>
+          </div>
+        </div>
+        <h3>Yedekten Geri Yükleme</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>Dosya → Veritabanından Geri Yükle</strong> seçin (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>).
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              Daha önce aldığınız <code>.db</code> yedek dosyasını seçin. Dosyanın bütünlüğü otomatik kontrol edilir.
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              Onay verdikten sonra mevcut veritabanı yedekle değiştirilir ve uygulama yeniden başlatılır.
+            </div>
+          </div>
+        </div>
+        <div class="tip">
+          <span class="tip-icon">✓</span>
+          Düzenli yedek almanız önerilir. Özellikle her büyük veri girişinden önce yedek alın.
+        </div>
+        <div class="warning">
+          <span class="warning-icon">⚠</span>
+          Geri yükleme işlemi mevcut veritabanının <strong>tamamını siler</strong>. Geri yüklemeden önce güncel bir
+          yedek almanız tavsiye edilir.
+        </div>
+
+        <!-- TEMA -->
+        <h2 id="tema">Tema</h2>
+        <p>
+          Uygulama açık ve koyu tema destekler. <strong>Dosya → Tema Değiştir</strong> menüsü veya
+          <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> kısayolu ile iki tema arasında geçiş yapabilirsiniz.
+        </p>
+
+        <hr class="section-sep" />
+        <p style="margin-top: 32px; color: #94a3b8; font-size: 13px">
+          Mavikent Site Yönetim Sistemi &nbsp;·&nbsp; Destek: guray.topagac.dev@gmail.com
+        </p>
+      </main>
+    </div>
+
+    <script src="guide.js"></script>
+  </body>
+</html>

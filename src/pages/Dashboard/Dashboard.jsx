@@ -10,8 +10,6 @@ function Dashboard() {
   const [stats, setStats] = useState({ cash: 0, collections: 0, delays: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [busyAction, setBusyAction] = useState(null);
-
   const fetchStats = useCallback(async () => {
     setLoading(true);
     setError(false);
@@ -29,37 +27,6 @@ function Dashboard() {
     if (!currentUser.id) return;
     fetchStats();
   }, [fetchStats, currentUser.id]);
-
-  const handleBackup = async () => {
-    setBusyAction("backup");
-    const response = await window.electronAPI.backupDatabase();
-    setBusyAction(null);
-    if (response.success) {
-      alert.success("Yedek Alındı", response.message);
-    } else if (response.message !== "İptal edildi.") {
-      alert.error("Hata", response.message);
-    }
-  };
-
-  const handleRestore = async () => {
-    const confirm = await alert.confirm(
-      "Yedek Yükle",
-      "Mevcut veritabanı seçtiğiniz yedekle değiştirilecek. Uygulama yeniden başlatılacak. Devam etmek istiyor musunuz?",
-      "Evet, Yükle",
-      true,
-    );
-    if (!confirm.isConfirmed) return;
-
-    setBusyAction("restore");
-    const response = await window.electronAPI.restoreDatabase();
-    setBusyAction(null);
-    if (response.success) {
-      await alert.success("Geri Yüklendi", response.message);
-      window.location.reload();
-    } else if (response.message !== "İptal edildi.") {
-      alert.error("Hata", response.message);
-    }
-  };
 
   const handleLogout = async () => {
     const result = await alert.confirm("Çıkış Yap", "Oturumu kapatmak istiyor musunuz?", "Evet, Çık");
@@ -131,18 +98,6 @@ function Dashboard() {
             </button>
             <button className="action-card" onClick={() => navigate("/transactions")}>
               <h4>İşlem Geçmişi</h4>
-            </button>
-          </div>
-        </div>
-
-        <div className="category-group">
-          <h2 className="sectionHeader">Sistem</h2>
-          <div className="action-grid">
-            <button className="action-card" onClick={handleBackup} disabled={busyAction === "backup"}>
-              <h4>{busyAction === "backup" ? "Alınıyor..." : "Yedek Al"}</h4>
-            </button>
-            <button className="action-card" onClick={handleRestore} disabled={busyAction === "restore"}>
-              <h4>{busyAction === "restore" ? "Yükleniyor..." : "Yedek Yükle"}</h4>
             </button>
           </div>
         </div>

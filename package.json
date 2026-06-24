@@ -1,7 +1,7 @@
 {
   "name": "site-manager",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Mavikent Site Yönetimi Uygulaması",
   "author": "Güray Topağaç",
   "type": "commonjs",
@@ -58,8 +58,7 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.15.1",
-    "sweetalert2": "^11.26.25",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+    "sweetalert2": "^11.26.25"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.4",
