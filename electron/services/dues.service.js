@@ -2,9 +2,6 @@ const db = require("../../database/db");
 
 class DuesError extends Error {}
 
-const stmtInsertDue = db.prepare(`INSERT OR IGNORE INTO dues (apartment_id, year, month, due_amount) VALUES (?, ?, ?, ?)`);
-const stmtGetApartments = db.prepare(`SELECT id, due_amount FROM apartments WHERE manager_id = ?`);
-
 const getDuesTransaction = db.transaction((managerId, year, month) => {
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -12,7 +9,8 @@ const getDuesTransaction = db.transaction((managerId, year, month) => {
   const isCurrentOrPast = year < currentYear || (year === currentYear && month <= currentMonth);
 
   if (isCurrentOrPast) {
-    const apartments = stmtGetApartments.all(managerId);
+    const apartments = db.prepare(`SELECT id, due_amount FROM apartments WHERE manager_id = ?`).all(managerId);
+    const stmtInsertDue = db.prepare(`INSERT OR IGNORE INTO dues (apartment_id, year, month, due_amount) VALUES (?, ?, ?, ?)`);
     for (const apt of apartments) {
       stmtInsertDue.run(apt.id, year, month, apt.due_amount);
     }

@@ -1,25 +1,25 @@
-const db = require("../database/db");
+const { app, ipcMain, dialog, clipboard, BrowserWindow, Menu } = require("electron");
+const { autoUpdater } = require("electron-updater");
+const serve = require("electron-serve").default;
 const fs = require("fs");
 const path = require("path");
-const serve = require("electron-serve").default;
+const db = require("../database/db");
 const registerIpcHandlers = require("./ipc/index.js");
 const { buildMenu } = require("./menu");
-const { autoUpdater } = require("electron-updater");
 const { runMigrations } = require("../database/migrate");
 const { seedAdminAccount } = require("../database/seed");
-const { app, ipcMain, dialog, clipboard, BrowserWindow, Menu } = require("electron");
 
 app.disableHardwareAcceleration();
 
-let mainWindow;
-const loadURL = serve({ directory: path.join(__dirname, "..", "dist") });
 const isDev = !app.isPackaged;
+const loadURL = serve({ directory: path.join(__dirname, "..", "dist") });
+let mainWindow;
 
 async function handleSeedResult(seedResult) {
   if (!seedResult || seedResult.alreadyExists || !mainWindow) return;
   let { username, password } = seedResult;
   if (!username || !password) {
-    console.error("[seed] Admin account created but credentials missing.");
+    console.error("Admin account created but credentials missing.");
     return;
   }
   const { response } = await dialog.showMessageBox(mainWindow, {
@@ -27,7 +27,7 @@ async function handleSeedResult(seedResult) {
     title: "İlk Kurulum — Admin Hesabı",
     message: "Admin hesabı oluşturuldu.",
     detail: `Kullanıcı adı : ${username}\nŞifre         : ${password}\n\nBu şifreyi not alın — bir daha gösterilmeyecek.\nGiriş yaptıktan sonra şifrenizi değiştirmeniz önerilir.`,
-    buttons: ["Şifreyi Kopyala", "Masaüstüne Kaydet (.txt)", "Tamam"],
+    buttons: ["Şifreyi Kopyala", "Masaüstüne Kaydet", "Tamam"],
     defaultId: 0,
     cancelId: 2,
   });
@@ -42,7 +42,7 @@ async function handleSeedResult(seedResult) {
     });
   } else if (response === 1) {
     const desktopPath = app.getPath("desktop");
-    const filePath = path.join(desktopPath, "mavikent-admin-sifresi.txt");
+    const filePath = path.join(desktopPath, "mavikent-admin-hesabi.txt");
     try {
       fs.writeFileSync(
         filePath,
@@ -67,6 +67,7 @@ async function handleSeedResult(seedResult) {
     }
   }
 
+  mainWindow.webContents.send("prefill-login", { username, password });
   password = undefined;
   username = undefined;
 }
@@ -114,25 +115,9 @@ function createMainWindow() {
   mainWindow.on("closed", () => (mainWindow = null));
 }
 
-app.whenReady().then(async () => {
-  app.setAppUserModelId("com.mavikent.sitemanager");
-  try {
-    const appliedCount = runMigrations(db);
-    if (appliedCount > 0) console.log(`${appliedCount} migration(s) applied.`);
-    registerIpcHandlers(ipcMain);
-    if (!isDev) setupAutoUpdater();
-    createMainWindow();
-  } catch (err) {
-    dialog.showErrorBox("Başlatma Hatası", `Uygulama başlatılamadı:\n${err.message}`);
-    app.quit();
-  }
-});
-
-app.on("window-all-closed", () => app.quit());
-
 function setupAutoUpdater() {
-  autoUpdater.on("checking-for-update", () => console.log("[updater] Checking for updates..."));
-  autoUpdater.on("update-not-available", () => console.log("[updater] No update available."));
+  autoUpdater.on("checking-for-update", () => console.log("Checking for updates..."));
+  autoUpdater.on("update-not-available", () => console.log("No update available."));
 
   autoUpdater.on("update-available", (info) => {
     if (!mainWindow) return;
@@ -151,6 +136,7 @@ function setupAutoUpdater() {
       autoUpdater.quitAndInstall();
       return;
     }
+
     mainWindow.setProgressBar(-1);
     mainWindow.setTitle("Mavikent Site Yönetimi Uygulaması");
     try {
@@ -173,3 +159,19 @@ function setupAutoUpdater() {
     console.error("Güncelleme hatası:", err.message);
   });
 }
+
+app.whenReady().then(async () => {
+  app.setAppUserModelId("com.mavikent.sitemanager");
+  try {
+    const appliedCount = runMigrations(db);
+    if (appliedCount > 0) console.log(`${appliedCount} migration(s) applied.`);
+    registerIpcHandlers(ipcMain);
+    createMainWindow();
+    if (!isDev) setupAutoUpdater();
+  } catch (err) {
+    dialog.showErrorBox("Başlatma Hatası", `Uygulama başlatılamadı:\n${err.message}`);
+    app.quit();
+  }
+});
+
+app.on("window-all-closed", () => app.quit());

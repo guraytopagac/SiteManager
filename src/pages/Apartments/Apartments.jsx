@@ -34,6 +34,7 @@ const PAYMENT_METHOD_LABELS = {
 };
 
 const APARTMENT_TYPES = ["0+1", "1+1", "2+1", "3+1", "4+1"];
+const OVERPAY_TOLERANCE = 0.01;
 
 function EditModal({ apartment, currentUser, onClose, onSaved }) {
   const [form, setForm] = useState({
@@ -210,7 +211,7 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
     }
 
     const remaining = due.due_amount - due.paid_amount;
-    if (parsedAmount > remaining + 0.01) {
+    if (parsedAmount > remaining + OVERPAY_TOLERANCE) {
       alert.warning("Fazla Ödeme", `Kalan borç ${remaining.toLocaleString("tr-TR")} ₺. Daha fazlası girilemez.`);
       return;
     }
@@ -498,7 +499,7 @@ function Apartments() {
   }, [fetchDues]);
 
   useEffect(() => {
-    setSelectedDue((prev) => (prev ? dues.find((d) => d.id === prev.id) || prev : null));
+    setSelectedDue((prev) => (prev ? dues.find((d) => d.id === prev.id) || null : null));
   }, [dues]);
 
   const handlePaymentSaved = useCallback(async () => {

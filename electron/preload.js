@@ -1,14 +1,36 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 const CH = {
-  APARTMENT: { ADD: "add-apartment", UPDATE: "update-apartment", DELETE: "delete-apartment", BULK_UPDATE_DUE_AMOUNT: "bulk-update-due-amount" },
-  AUTH: { LOGIN: "login", GET_MANAGERS: "get-managers", CREATE_MANAGER: "create-manager", UPDATE_MANAGER_STATUS: "update-manager-status", CHANGE_PASSWORD: "change-password" },
+  APARTMENT: {
+    ADD: "add-apartment",
+    UPDATE: "update-apartment",
+    DELETE: "delete-apartment",
+    BULK_UPDATE_DUE_AMOUNT: "bulk-update-due-amount",
+  },
+  AUTH: {
+    LOGIN: "login",
+    GET_MANAGERS: "get-managers",
+    CREATE_MANAGER: "create-manager",
+    UPDATE_MANAGER_STATUS: "update-manager-status",
+    CHANGE_PASSWORD: "change-password",
+  },
   DASHBOARD: { GET_STATS: "get-stats" },
-  DUES: { GET_FOR_MONTH: "get-dues-for-month", RECORD_PAYMENT: "record-payment", CANCEL_PAYMENT: "cancel-payment", GET_PAYMENT_HISTORY: "get-payment-history" },
-  FINANCIAL: { ADD_INCOME: "add-income", ADD_EXPENSE: "add-expense", GET_TRANSACTIONS: "get-transactions", CANCEL_INCOME: "cancel-income", CANCEL_EXPENSE: "cancel-expense" },
+  DUES: {
+    GET_FOR_MONTH: "get-dues-for-month",
+    RECORD_PAYMENT: "record-payment",
+    CANCEL_PAYMENT: "cancel-payment",
+    GET_PAYMENT_HISTORY: "get-payment-history",
+  },
+  FINANCIAL: {
+    ADD_INCOME: "add-income",
+    ADD_EXPENSE: "add-expense",
+    GET_TRANSACTIONS: "get-transactions",
+    CANCEL_INCOME: "cancel-income",
+    CANCEL_EXPENSE: "cancel-expense",
+  },
   SYSTEM: { GET_APP_VERSION: "get-app-version" },
   REPORTS: { GET_DATA: "get-report-data", SAVE_FILE: "save-report-file" },
-  EVENTS: { TOGGLE_THEME: "toggle-theme" },
+  EVENTS: { TOGGLE_THEME: "toggle-theme", PREFILL_LOGIN: "prefill-login" },
 };
 
 // Whitelist of all permitted IPC channels
@@ -38,8 +60,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getManagers: () => safeInvoke(CH.AUTH.GET_MANAGERS),
   createManager: (data) => safeInvoke(CH.AUTH.CREATE_MANAGER, data),
   updateManagerStatus: (id, isActive) => safeInvoke(CH.AUTH.UPDATE_MANAGER_STATUS, { id, isActive }),
-  changePassword: (userId, oldPassword, newPassword) =>
-    safeInvoke(CH.AUTH.CHANGE_PASSWORD, { userId, oldPassword, newPassword }),
+  changePassword: (userId, oldPassword, newPassword) => {
+    if (typeof userId !== "number") throw new TypeError("changePassword: userId must be a number");
+    if (typeof oldPassword !== "string" || typeof newPassword !== "string")
+      throw new TypeError("changePassword: oldPassword and newPassword must be strings");
+    return safeInvoke(CH.AUTH.CHANGE_PASSWORD, { userId, oldPassword, newPassword });
+  },
 
   // Dashboard
   getStats: (managerId) => safeInvoke(CH.DASHBOARD.GET_STATS, managerId),
@@ -54,10 +80,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   cancelPayment: (paymentId, managerId, reason, cancelledBy) => {
     if (typeof paymentId !== "number" || typeof managerId !== "number")
       throw new TypeError("cancelPayment: paymentId and managerId must be numbers");
-    if (typeof reason !== "string")
-      throw new TypeError("cancelPayment: reason must be a string");
-    if (typeof cancelledBy !== "number")
-      throw new TypeError("cancelPayment: cancelledBy must be a number");
+    if (typeof reason !== "string") throw new TypeError("cancelPayment: reason must be a string");
+    if (typeof cancelledBy !== "number") throw new TypeError("cancelPayment: cancelledBy must be a number");
     return safeInvoke(CH.DUES.CANCEL_PAYMENT, { paymentId, managerId, reason, cancelledBy });
   },
   getPaymentHistory: (dueId) => safeInvoke(CH.DUES.GET_PAYMENT_HISTORY, { dueId }),
@@ -93,4 +117,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Events
   onToggleTheme: (callback) => safeOn(CH.EVENTS.TOGGLE_THEME, callback),
+  onPrefillLogin: (callback) => safeOn(CH.EVENTS.PREFILL_LOGIN, callback),
 });

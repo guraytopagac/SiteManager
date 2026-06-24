@@ -1,7 +1,7 @@
 {
   "name": "site-manager",
   "private": true,
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "Mavikent Site Yönetimi Uygulaması",
   "author": "Güray Topağaç",
   "type": "commonjs",
@@ -29,6 +29,9 @@
       "database/schema/**/*",
       "database/migrations/**/*",
       "package.json"
+    ],
+    "asarUnpack": [
+      "**/*.node"
     ],
     "win": {
       "target": "nsis",

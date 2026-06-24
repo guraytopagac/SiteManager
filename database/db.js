@@ -25,8 +25,7 @@ db.pragma("foreign_keys = ON"); // enforce foreign key constraints
 db.pragma("journal_mode = WAL"); // concurrent reads while writing
 db.pragma("synchronous = NORMAL"); // safe and fast in WAL mode
 db.pragma(`busy_timeout = ${DB_BUSY_TIMEOUT_MS}`); // wait up to 3s on lock
-db.pragma("cache_size = -32000"); // 32 MB page cache
-db.pragma("mmap_size = 33554432"); // 32 MB mmap (sufficient for this app's DB size)
+db.pragma("cache_size = -8000"); // 8 MB page cache — sufficient for this app's DB size
 db.pragma("temp_store = MEMORY"); // keep temp tables in RAM
 db.pragma("auto_vacuum = INCREMENTAL"); // reclaim free pages on new DBs (no-op on existing)
 db.pragma("analysis_limit = 400"); // cap rows scanned per table during optimize
@@ -37,34 +36,20 @@ if (integrityResult !== "ok") {
 }
 
 function closeDb() {
-  if (db.open) {
-    db.pragma("incremental_vacuum(100)"); // reclaim up to 100 free pages per close
+  if (!db.open) return;
+  try {
     db.pragma("optimize");
+  } catch {}
+  try {
     db.pragma("wal_checkpoint(TRUNCATE)");
+  } catch {}
+  try {
     db.close();
-  }
+  } catch {}
 }
 
-// Electron app quit event — runs WAL checkpoint and closes on normal exit
 app?.on("before-quit", closeDb);
-// Last-resort guard before Node process exits — fires if other handlers didn't
 process.on("exit", closeDb);
-// Graceful shutdown signal sent by the OS or systemd
-process.on("SIGTERM", () => {
-  closeDb();
-  process.exit(0);
-});
-// User pressed Ctrl+C to manually stop the process
-process.on("SIGINT", () => {
-  closeDb();
-  process.exit(0);
-});
-// Unhandled exception — close DB cleanly before the process crashes
-process.on("uncaughtException", (err) => {
-  console.error("Uncaught exception:", err);
-  closeDb();
-  process.exit(1);
-});
 
 if (!isPackaged) console.log(`Database connection established: ${dbPath}`);
 

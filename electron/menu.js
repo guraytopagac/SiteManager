@@ -115,7 +115,6 @@ async function runRestore(mainWindow) {
 }
 
 let guideWin = null;
-
 function openGuide() {
   if (guideWin && !guideWin.isDestroyed()) {
     guideWin.focus();
@@ -197,8 +196,8 @@ function buildMenu(mainWindow, isDev, iconPath) {
                 dialog.showMessageBox(mainWindow, {
                   type: "info",
                   title: "Güncelleme",
-                  message: "Uygulama güncel.",
-                  detail: `Kullandığınız sürüm (${app.getVersion()}) zaten en son sürüm.`,
+                  message: "Uygulamanız güncel.",
+                  detail: `Kullandığınız sürüm (${app.getVersion()}) şuan mevcut olan en son sürüm.`,
                   buttons: ["Tamam"],
                 });
               }

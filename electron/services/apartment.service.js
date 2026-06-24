@@ -119,6 +119,7 @@ function updateApartment(id, data) {
             existing.id,
           );
         } else {
+          if (!data.resident_type) throw new Error("resident_type_required");
           db.prepare(
             `INSERT INTO residents (apartment_id, full_name, phone, email, national_id, resident_type, move_in_date, move_out_date, notes)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -128,7 +129,7 @@ function updateApartment(id, data) {
             data.resident_phone || null,
             data.resident_email || null,
             data.resident_national_id || null,
-            data.resident_type || "tenant",
+            data.resident_type,
             data.resident_move_in_date || null,
             data.resident_move_out_date || null,
             data.resident_notes || null,
@@ -145,6 +146,7 @@ function updateApartment(id, data) {
     return { success: true, message: "Daire başarıyla güncellendi." };
   } catch (err) {
     if (err.message === "not_found") return { success: false, message: "Daire bulunamadı." };
+    if (err.message === "resident_type_required") return { success: false, message: "Sakin türü seçilmelidir." };
     return { success: false, message: resolveDbError(err, "Daire güncelleme") };
   }
 }

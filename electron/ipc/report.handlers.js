@@ -8,7 +8,7 @@ function registerReportHandlers(ipcMain) {
     if (!managerId || typeof managerId !== "number") {
       return { success: false, message: "Geçersiz kullanıcı ID." };
     }
-    if (!year || !month || month < 1 || month > 12) {
+    if (!year || !month || typeof year !== "number" || typeof month !== "number" || month < 1 || month > 12) {
       return { success: false, message: "Geçersiz tarih bilgisi." };
     }
     try {

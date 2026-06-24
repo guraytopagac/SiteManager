@@ -44,6 +44,7 @@ const CHANNELS = Object.freeze({
 
   EVENTS: Object.freeze({
     TOGGLE_THEME: "toggle-theme",
+    PREFILL_LOGIN: "prefill-login",
   }),
 });
 

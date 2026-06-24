@@ -92,7 +92,8 @@ function runMigrations(db) {
     }
   }
 
-  // Load schema after migrations so partial indexes on new columns succeed
+  // Fresh install: migrations above fail with "no such table" and are skipped,
+  // so loadSchema creates all tables here. Existing installs: no-op (IF NOT EXISTS).
   loadSchema(db);
 
   return appliedCount;

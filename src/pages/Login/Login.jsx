@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
 import logoImgWebp from "../../assets/images/logo.webp";
@@ -11,6 +11,14 @@ function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const unsub = window.electronAPI.onPrefillLogin((_e, { username, password }) => {
+      setUsername(username);
+      setPassword(password);
+    });
+    return unsub;
+  }, []);
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
