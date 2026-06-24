@@ -1,15 +1,29 @@
 .add-apartment-container {
   width: 100%;
-  max-width: 700px;
+  max-width: 1000px;
   margin: 0 auto;
-  padding: 30px;
+  padding: 24px 30px;
   color: var(--text-color);
 }
 
+.form-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
 .add-apartment-container .page-title {
-  font-size: 2rem;
-  font-weight: 700;
+  width: 100%;
+  font-size: 1.75rem;
+  font-weight: 800;
   margin: 0 0 24px;
+  text-align: center;
+  letter-spacing: 0.01em;
+  background: linear-gradient(90deg, var(--text-color) 0%, var(--button-color) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .form-card {
@@ -17,7 +31,6 @@
   border: 1px solid var(--border-default);
   border-radius: 14px;
   padding: 24px;
-  margin-bottom: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
@@ -67,6 +80,32 @@
   color: var(--text-secondary);
 }
 
+.add-apartment-container .input-group textarea {
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--border-default);
+  background: var(--card-background-2);
+  color: var(--text-color);
+  font-size: 0.93rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 78px;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.add-apartment-container .input-group textarea:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.add-apartment-container .input-group textarea::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
 .add-apartment-container .input-group input,
 .add-apartment-container .input-group select {
   height: 44px;
@@ -96,9 +135,9 @@
 
 .form-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 12px;
-  margin-top: 8px;
+  margin-top: 30px;
 }
 
 .add-apartment-container .btn-primary,
@@ -145,7 +184,11 @@
   transform: none;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 700px) {
+  .form-columns {
+    grid-template-columns: 1fr;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
   }

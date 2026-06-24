@@ -27,8 +27,8 @@ function AdminDashboard() {
   const handleCreateManager = async (e) => {
     e.preventDefault();
 
-    if (formData.password.length < 6) {
-      alert.warning("Geçersiz Şifre", "Şifre en az 6 karakter olmalıdır.");
+    if (formData.password.length < 8) {
+      alert.warning("Geçersiz Şifre", "Şifre en az 8 karakter olmalıdır.");
       return;
     }
 
@@ -157,7 +157,7 @@ function AdminDashboard() {
                 <input
                   id="mgr-password"
                   type="password"
-                  placeholder="En az 6 karakter"
+                  placeholder="En az 8 karakter"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required

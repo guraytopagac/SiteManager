@@ -1,9 +1,10 @@
 const fs = require("fs");
 const { dialog } = require("electron");
 const reportService = require("../services/report.service");
+const CH = require("./channels");
 
 function registerReportHandlers(ipcMain) {
-  ipcMain.handle("get-report-data", async (event, { managerId, year, month }) => {
+  ipcMain.handle(CH.REPORTS.GET_DATA, async (event, { managerId, year, month }) => {
     if (!managerId || typeof managerId !== "number") {
       return { success: false, message: "Geçersiz kullanıcı ID." };
     }
@@ -17,14 +18,12 @@ function registerReportHandlers(ipcMain) {
     }
   });
 
-  ipcMain.handle("save-report-file", async (event, { filename, buffer }) => {
+  ipcMain.handle(CH.REPORTS.SAVE_FILE, async (event, { filename, buffer }) => {
     try {
       const { filePath, canceled } = await dialog.showSaveDialog({
         title: "Raporu Kaydet",
         defaultPath: filename,
-        filters: filename.endsWith(".pdf")
-          ? [{ name: "PDF Dosyası", extensions: ["pdf"] }]
-          : [{ name: "Excel Dosyası", extensions: ["xlsx"] }],
+        filters: [{ name: "PDF Dosyası", extensions: ["pdf"] }],
       });
 
       if (canceled || !filePath) return { success: false, message: "İptal edildi." };

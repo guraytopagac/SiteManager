@@ -20,6 +20,7 @@ function insertRecord(table, data, label) {
 
   const recordDate = data.date || new Date().toISOString().split("T")[0];
   const description = data.description?.trim() || "";
+  if (!description) return { success: false, message: "Açıklama alanı zorunludur." };
   const category = data.category?.trim() || "other";
   const result = db
     .prepare(`INSERT INTO ${table} (amount, date, description, category, manager_id) VALUES (?, ?, ?, ?, ?)`)
@@ -85,9 +86,12 @@ function getTransactions(managerId, { startDate, endDate } = {}) {
 function cancelRecord(table, id, managerId, reason, cancelledBy) {
   if (!ALLOWED_TABLES.has(table)) return { success: false, message: "Geçersiz işlem türü." };
 
-  const record = db.prepare(`SELECT id, is_cancelled FROM ${table} WHERE id = ? AND manager_id = ?`).get(id, managerId);
+  const record = db.prepare(`SELECT id, is_cancelled${table === "incomes" ? ", due_payment_id" : ""} FROM ${table} WHERE id = ? AND manager_id = ?`).get(id, managerId);
   if (!record) return { success: false, message: "Kayıt bulunamadı." };
   if (record.is_cancelled) return { success: false, message: "Bu kayıt zaten iptal edilmiş." };
+  if (table === "incomes" && record.due_payment_id != null) {
+    return { success: false, message: "Aidat ödemesine bağlı gelirler yalnızca ödeme iptali üzerinden iptal edilebilir." };
+  }
 
   db.prepare(
     `UPDATE ${table} SET is_cancelled = 1, cancelled_at = datetime('now'), cancel_reason = ?, cancelled_by = ?,

@@ -1,9 +1,10 @@
 const authService = require("../services/auth.service");
+const CH = require("./channels");
 
 function registerAuthHandlers(ipcMain) {
-  ipcMain.handle("login", async (event, credentials) => {
-    if (!credentials?.username || !credentials?.password) {
-      return { success: false, message: "Kullanıcı adı ve şifre gereklidir." };
+  ipcMain.handle(CH.AUTH.LOGIN, async (event, credentials) => {
+    if (!credentials || typeof credentials !== "object") {
+      return { success: false, message: "Geçersiz istek." };
     }
     try {
       return await authService.login(credentials);
@@ -12,7 +13,7 @@ function registerAuthHandlers(ipcMain) {
     }
   });
 
-  ipcMain.handle("get-managers", async () => {
+  ipcMain.handle(CH.AUTH.GET_MANAGERS, async () => {
     try {
       return await authService.getManagers();
     } catch (err) {
@@ -20,13 +21,16 @@ function registerAuthHandlers(ipcMain) {
     }
   });
 
-  ipcMain.handle("create-manager", async (event, data) => {
-    const { username, password, email } = data ?? {};
+  ipcMain.handle(CH.AUTH.CREATE_MANAGER, async (event, data) => {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      return { success: false, message: "Geçersiz istek." };
+    }
+    const { username, password, email } = data;
     if (!username || !password || !email) {
       return { success: false, message: "Kullanıcı adı, şifre ve e-posta zorunludur." };
     }
-    if (password.length < 6) {
-      return { success: false, message: "Şifre en az 6 karakter olmalıdır." }; // service de 6'yı enforce eder
+    if (password.length < 8) {
+      return { success: false, message: "Şifre en az 8 karakter olmalıdır." };
     }
     try {
       return await authService.createManager(data);
@@ -35,8 +39,8 @@ function registerAuthHandlers(ipcMain) {
     }
   });
 
-  ipcMain.handle("update-manager-status", async (event, { id, isActive }) => {
-    if (!id || typeof id !== "number") {
+  ipcMain.handle(CH.AUTH.UPDATE_MANAGER_STATUS, async (event, { id, isActive }) => {
+    if (!id || typeof id !== "number" || id <= 0) {
       return { success: false, message: "Geçersiz kullanıcı ID." };
     }
     if (typeof isActive !== "boolean") {
@@ -49,12 +53,12 @@ function registerAuthHandlers(ipcMain) {
     }
   });
 
-  ipcMain.handle("change-password", async (event, { userId, oldPassword, newPassword }) => {
-    if (!userId || !oldPassword || !newPassword) {
+  ipcMain.handle(CH.AUTH.CHANGE_PASSWORD, async (event, { userId, oldPassword, newPassword }) => {
+    if (!userId || typeof userId !== "number" || !oldPassword || !newPassword) {
       return { success: false, message: "Eksik parametre." };
     }
-    if (newPassword.length < 6) {
-      return { success: false, message: "Şifre en az 6 karakter olmalıdır." };
+    if (newPassword.length < 8) {
+      return { success: false, message: "Şifre en az 8 karakter olmalıdır." };
     }
     try {
       return await authService.changePassword(userId, oldPassword, newPassword);
@@ -63,23 +67,6 @@ function registerAuthHandlers(ipcMain) {
     }
   });
 
-  ipcMain.handle("validate-remember-token", async (event, token) => {
-    if (!token || typeof token !== "string") return { success: false };
-    try {
-      return authService.validateRememberToken(token);
-    } catch {
-      return { success: false };
-    }
-  });
-
-  ipcMain.handle("logout", async (event, userId) => {
-    if (!userId) return { success: false };
-    try {
-      return authService.logout(userId);
-    } catch {
-      return { success: false };
-    }
-  });
 }
 
 module.exports = registerAuthHandlers;

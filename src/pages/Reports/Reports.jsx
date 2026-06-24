@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
 import "./Reports.css";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { alert } from "../../utils/alert";
@@ -22,7 +21,7 @@ const MONTHS = [
   "Aralık",
 ];
 
-const DUE_STATUS_LABELS = { paid: "Ödendi", partial: "Kısmi", pending: "Bekliyor", overdue: "Gecikmiş" };
+const DUE_STATUS_LABELS = { paid: "Ödendi", partial: "Kısmi", unpaid: "Ödenmedi" };
 
 const currentYear = new Date().getFullYear();
 const YEARS = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -105,7 +104,7 @@ function Reports() {
     doc.setFontSize(11);
     doc.text("Gelir / Gider Detayi", 14, doc.lastAutoTable.finalY + 10);
 
-    const financeRows = buildFinanceRows(reportData).map((r) => [
+    const pdfFinanceRows = financeRows.map((r) => [
       r.date,
       r.rowType === "income" ? "Gelir" : "Gider",
       r.description,
@@ -115,7 +114,7 @@ function Reports() {
     autoTable(doc, {
       startY: doc.lastAutoTable.finalY + 13,
       head: [["Tarih", "Tur", "Aciklama", "Tutar"]],
-      body: financeRows.length > 0 ? financeRows : [["—", "—", "Bu ay icin kayit bulunamadi.", "—"]],
+      body: pdfFinanceRows.length > 0 ? pdfFinanceRows : [["—", "—", "Bu ay icin kayit bulunamadi.", "—"]],
       styles: { fontSize: 8.5 },
       headStyles: { fillColor: [37, 99, 235] },
       columnStyles: { 3: { halign: "right" } },
@@ -151,49 +150,6 @@ function Reports() {
     return doc.output("arraybuffer");
   };
 
-  const buildExcel = () => {
-    const wb = XLSX.utils.book_new();
-
-    const summaryData = [
-      ["Mavikent Site Yönetimi", `${MONTHS[month - 1]} ${year} Raporu`],
-      [],
-      ["Toplam Gelir", reportData.totalIncome],
-      ["Toplam Gider", reportData.totalExpense],
-      ["Net Kasa", reportData.totalIncome - reportData.totalExpense],
-      ["Toplam Aidat", reportData.totalDue],
-      ["Tahsil Edilen", reportData.totalPaid],
-      ["Tahsilat Oranı", reportData.totalDue > 0 ? `%${collectionRate}` : "—"],
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), "Özet");
-
-    const financeRows = [
-      ["Tarih", "Tür", "Açıklama", "Tutar (₺)"],
-      ...buildFinanceRows(reportData).map((r) => [
-        r.date,
-        r.rowType === "income" ? "Gelir" : "Gider",
-        r.description,
-        r.rowType === "income" ? Number(r.amount) : -Number(r.amount),
-      ]),
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(financeRows), "Gelir-Gider");
-
-    const duesRows = [
-      ["Daire No", "Kat", "Tip", "Sakin", "Aidat (₺)", "Ödenen (₺)", "Durum"],
-      ...reportData.dues.map((d) => [
-        d.apartment_no,
-        d.floor,
-        d.type,
-        d.resident_name || "—",
-        Number(d.due_amount),
-        Number(d.paid_amount),
-        DUE_STATUS_LABELS[d.status] || d.status,
-      ]),
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(duesRows), "Aidat Tahsilat");
-
-    return XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  };
-
   const handleExportPdf = async () => {
     try {
       const buffer = buildPdf();
@@ -206,22 +162,6 @@ function Reports() {
       }
     } catch (err) {
       alert.error("Hata", "PDF oluşturulurken bir hata oluştu.");
-      console.error(err);
-    }
-  };
-
-  const handleExportExcel = async () => {
-    try {
-      const buffer = buildExcel();
-      const filename = `rapor_${year}_${String(month).padStart(2, "0")}.xlsx`;
-      const response = await window.electronAPI.saveReportFile(filename, Array.from(new Uint8Array(buffer)));
-      if (response.success) {
-        alert.success("Kaydedildi", response.message);
-      } else if (response.message !== "İptal edildi.") {
-        alert.error("Hata", response.message);
-      }
-    } catch (err) {
-      alert.error("Hata", "Excel dosyası oluşturulurken bir hata oluştu.");
       console.error(err);
     }
   };
@@ -263,9 +203,6 @@ function Reports() {
           <div className="export-buttons">
             <button className="button button-pdf" onClick={handleExportPdf}>
               PDF İndir
-            </button>
-            <button className="button button-excel" onClick={handleExportExcel}>
-              Excel İndir
             </button>
           </div>
         )}

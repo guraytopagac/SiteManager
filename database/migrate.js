@@ -19,21 +19,18 @@ const SCHEMA_FILES = [
 function loadSchema(db) {
   db.transaction(() => {
     for (const file of SCHEMA_FILES) {
+      const sql = fs.readFileSync(path.join(SCHEMA_DIR, file), "utf8");
       try {
-        const sql = fs.readFileSync(path.join(SCHEMA_DIR, file), "utf8");
         db.exec(sql);
       } catch (e) {
-        throw new Error(`Failed to load schema: ${file} — ${e.message}`);
+        e.message = `Failed to load schema: ${file} — ${e.message}`;
+        throw e;
       }
     }
   })();
 }
 
 function runMigrations(db) {
-  if (!fs.existsSync(MIGRATIONS_DIR)) {
-    throw new Error(`Migrations klasörü bulunamadı: ${MIGRATIONS_DIR}`);
-  }
-
   loadSchema(db);
 
   db.exec(`
@@ -43,6 +40,10 @@ function runMigrations(db) {
       applied_at TEXT DEFAULT (datetime('now'))
     );
   `);
+
+  if (!fs.existsSync(MIGRATIONS_DIR)) {
+    return 0;
+  }
 
   const applied = new Set(
     db
@@ -66,7 +67,8 @@ function runMigrations(db) {
     const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), "utf8");
 
     if (!sql.trim()) {
-      console.warn(`Migration atlandı (boş dosya): ${file}`);
+      console.warn(`Migration skipped (empty file): ${file}`);
+      db.transaction(() => recordMigration.run(file))();
       continue;
     }
 
@@ -75,14 +77,14 @@ function runMigrations(db) {
         db.exec(sql);
         recordMigration.run(file);
       })();
-      console.log(`Migration uygulandı: ${file}`);
+      console.log(`Migration applied: ${file}`);
       appliedCount++;
     } catch (err) {
       // ALTER TABLE ADD COLUMN fails if the column already exists (SQLite has no IF NOT EXISTS).
       // Treat this as a no-op so the migration is still recorded and won't re-run.
       if (err.message.includes("duplicate column name")) {
         db.transaction(() => recordMigration.run(file))();
-        console.warn(`Migration zaten uygulanmış (kolon mevcut), kaydedildi: ${file}`);
+        console.warn(`Migration already applied (column exists), recorded: ${file}`);
       } else {
         throw err;
       }

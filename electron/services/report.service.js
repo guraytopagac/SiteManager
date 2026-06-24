@@ -8,7 +8,7 @@ function fetchByMonth(table, managerId, startDate, endDate) {
     .prepare(
       `SELECT id, amount, date, description
        FROM ${table}
-       WHERE manager_id = ? AND date BETWEEN ? AND ?
+       WHERE manager_id = ? AND date BETWEEN ? AND ? AND is_cancelled = 0
        ORDER BY date ASC`,
     )
     .all(managerId, startDate, endDate);

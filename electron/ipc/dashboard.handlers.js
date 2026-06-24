@@ -1,7 +1,8 @@
 const dashboardService = require("../services/dashboard.service");
+const CH = require("./channels");
 
 function registerDashboardHandlers(ipcMain) {
-  ipcMain.handle("get-stats", async (event, managerId) => {
+  ipcMain.handle(CH.DASHBOARD.GET_STATS, async (event, managerId) => {
     if (!managerId || typeof managerId !== "number") {
       return { success: false, message: "Geçersiz kullanıcı ID." };
     }

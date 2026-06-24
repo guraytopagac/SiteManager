@@ -2,11 +2,11 @@ const db = require("../../database/db");
 
 const fetchStatsTransaction = db.transaction((managerId, year, month) => {
   const { totalIncome } = db
-    .prepare(`SELECT COALESCE(SUM(amount), 0) AS totalIncome FROM incomes WHERE manager_id = ?`)
+    .prepare(`SELECT COALESCE(SUM(amount), 0) AS totalIncome FROM incomes WHERE manager_id = ? AND is_cancelled = 0`)
     .get(managerId);
 
   const { totalExpense } = db
-    .prepare(`SELECT COALESCE(SUM(amount), 0) AS totalExpense FROM expenses WHERE manager_id = ?`)
+    .prepare(`SELECT COALESCE(SUM(amount), 0) AS totalExpense FROM expenses WHERE manager_id = ? AND is_cancelled = 0`)
     .get(managerId);
 
   const currentMonthDue = db

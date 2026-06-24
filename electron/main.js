@@ -1,9 +1,9 @@
-// Libraries
 const db = require("../database/db");
 const fs = require("fs");
 const path = require("path");
 const serve = require("electron-serve").default;
 const registerIpcHandlers = require("./ipc/index.js");
+const { buildMenu } = require("./menu");
 const { autoUpdater } = require("electron-updater");
 const { runMigrations } = require("../database/migrate");
 const { seedAdminAccount } = require("../database/seed");
@@ -15,8 +15,11 @@ const isDev = !app.isPackaged;
 
 async function handleSeedResult(seedResult) {
   if (!seedResult || seedResult.alreadyExists || !mainWindow) return;
-  const { username, password } = seedResult;
-  if (!username || !password) return;
+  let { username, password } = seedResult;
+  if (!username || !password) {
+    console.error("[seed] Admin account created but credentials missing.");
+    return;
+  }
   const { response } = await dialog.showMessageBox(mainWindow, {
     type: "info",
     title: "İlk Kurulum — Admin Hesabı",
@@ -62,68 +65,12 @@ async function handleSeedResult(seedResult) {
     }
   }
 
-  seedResult = null;
+  password = undefined;
+  username = undefined;
 }
 
-function createMenuTemplate(iconPath) {
-  const template = [
-    {
-      label: "Dosya",
-      submenu: [
-        {
-          label: "Tema Değiştir",
-          accelerator: "CmdOrCtrl+Shift+T",
-          click() {
-            mainWindow.webContents.send("toggle-theme");
-          },
-        },
-        {
-          label: "Yenile",
-          role: "reload",
-          accelerator: "CmdOrCtrl+R",
-        },
-        {
-          label: "Çıkış",
-          role: "quit",
-          accelerator: "CmdOrCtrl+Q",
-        },
-      ],
-    },
-    {
-      label: "Yardım",
-      submenu: [
-        {
-          label: "Hakkında",
-          click() {
-            dialog.showMessageBox(mainWindow, {
-              type: "info",
-              title: "Hakkında",
-              message: "Mavikent Site Yönetim Sistemi",
-              detail: "\nDestek ve sorularınız için:\nguraytopagac@gmail.com",
-              buttons: ["Tamam"],
-              icon: iconPath,
-            });
-          },
-        },
-      ],
-    },
-  ];
-
-  if (isDev) {
-    template.push({
-      label: "Geliştirici Araçları",
-      role: "toggleDevTools",
-    });
-  }
-
-  return template;
-}
-
-// Main Window
 function createMainWindow() {
   const iconPath = path.join(__dirname, "../src/assets/icon.ico");
-  const mainMenu = Menu.buildFromTemplate(createMenuTemplate(iconPath));
-  Menu.setApplicationMenu(mainMenu);
 
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -141,6 +88,8 @@ function createMainWindow() {
       webSecurity: true,
     },
   });
+
+  Menu.setApplicationMenu(buildMenu(mainWindow, isDev, iconPath));
 
   if (isDev) {
     mainWindow.loadURL("http://localhost:5173/");
@@ -169,6 +118,7 @@ app.whenReady().then(async () => {
     const appliedCount = runMigrations(db);
     if (appliedCount > 0) console.log(`${appliedCount} migration(s) applied.`);
     registerIpcHandlers(ipcMain);
+    if (!isDev) setupAutoUpdater();
     createMainWindow();
   } catch (err) {
     dialog.showErrorBox("Başlatma Hatası", `Uygulama başlatılamadı:\n${err.message}`);
@@ -176,21 +126,12 @@ app.whenReady().then(async () => {
   }
 });
 
-// App Events
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
-});
+app.on("window-all-closed", () => app.quit());
 
-app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createMainWindow();
-  }
-});
-
-// Auto updater
 function setupAutoUpdater() {
+  autoUpdater.on("checking-for-update", () => console.log("[updater] Checking for updates..."));
+  autoUpdater.on("update-not-available", () => console.log("[updater] No update available."));
+
   autoUpdater.on("update-available", () => {
     if (!mainWindow) return;
     dialog.showMessageBox(mainWindow, {
@@ -203,7 +144,10 @@ function setupAutoUpdater() {
   });
 
   autoUpdater.on("update-downloaded", async () => {
-    if (!mainWindow) return;
+    if (!mainWindow) {
+      autoUpdater.quitAndInstall();
+      return;
+    }
     try {
       const { response } = await dialog.showMessageBox(mainWindow, {
         type: "info",
@@ -224,5 +168,3 @@ function setupAutoUpdater() {
     console.error("Güncelleme hatası:", err.message);
   });
 }
-
-if (!isDev) setupAutoUpdater();

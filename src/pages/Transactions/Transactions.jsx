@@ -10,7 +10,6 @@ const TYPE_LABELS = { income: "Gelir", expense: "Gider" };
 
 const CATEGORY_LABELS = {
   dues: "Aidat",
-  rent: "Kira",
   maintenance: "Bakım & Onarım",
   cleaning: "Temizlik",
   utility: "Fatura / Abonelik",
@@ -76,7 +75,7 @@ function Transactions() {
       if (!reason) return;
 
       const fn = t.type === "income" ? window.electronAPI.cancelIncome : window.electronAPI.cancelExpense;
-      const res = await fn(t.id, currentUser.id, reason, currentUser.id);
+      const res = await fn({ id: t.id, managerId: currentUser.id, reason, cancelledBy: currentUser.id });
       if (res.success) {
         alert.success("İptal Edildi", res.message, 1800);
         fetchTransactions();
@@ -93,8 +92,8 @@ function Transactions() {
   );
 
   const { totalIncome, totalExpense, net } = useMemo(() => {
-    const totalIncome = transactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
-    const totalExpense = transactions.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+    const totalIncome = transactions.filter((t) => t.type === "income" && !t.is_cancelled).reduce((s, t) => s + t.amount, 0);
+    const totalExpense = transactions.filter((t) => t.type === "expense" && !t.is_cancelled).reduce((s, t) => s + t.amount, 0);
     return { totalIncome, totalExpense, net: totalIncome - totalExpense };
   }, [transactions]);
 
@@ -170,12 +169,13 @@ function Transactions() {
                   {formatCurrency(t.amount)}
                 </td>
                 <td className="action-cell-tx">
-                  {!t.is_cancelled && (
+                  {t.is_cancelled ? (
+                    <span className="cancelled-badge">İptal</span>
+                  ) : t.type === "expense" || t.category !== "dues" ? (
                     <button className="cancel-tx-btn" onClick={() => handleCancel(t)} title="İptal Et">
                       İptal
                     </button>
-                  )}
-                  {t.is_cancelled && <span className="cancelled-badge">İptal</span>}
+                  ) : null}
                 </td>
               </tr>
             ))

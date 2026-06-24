@@ -1,7 +1,11 @@
 const apartmentService = require("../services/apartment.service");
+const CH = require("./channels");
 
 function registerApartmentHandlers(ipcMain) {
-  ipcMain.handle("add-apartment", async (event, data) => {
+  ipcMain.handle(CH.APARTMENT.ADD, async (event, data) => {
+    if (!data?.apartment_no || !data?.manager_id) {
+      return { success: false, message: "Daire numarası ve yönetici ID zorunludur." };
+    }
     try {
       return await apartmentService.addApartment(data);
     } catch (err) {
@@ -9,15 +13,7 @@ function registerApartmentHandlers(ipcMain) {
     }
   });
 
-  ipcMain.handle("get-apartments", async (event, userId) => {
-    try {
-      return await apartmentService.getApartments(userId);
-    } catch (err) {
-      return { success: false, message: "İşlem sırasında bir hata oluştu." };
-    }
-  });
-
-  ipcMain.handle("update-apartment", async (event, { id, data }) => {
+ipcMain.handle(CH.APARTMENT.UPDATE, async (event, { id, data }) => {
     if (!id || typeof id !== "number") {
       return { success: false, message: "Geçersiz daire ID." };
     }
@@ -28,7 +24,7 @@ function registerApartmentHandlers(ipcMain) {
     }
   });
 
-  ipcMain.handle("delete-apartment", async (event, { id, managerId }) => {
+  ipcMain.handle(CH.APARTMENT.DELETE, async (event, { id, managerId }) => {
     if (!id || typeof id !== "number") {
       return { success: false, message: "Geçersiz daire ID." };
     }
@@ -42,7 +38,10 @@ function registerApartmentHandlers(ipcMain) {
     }
   });
 
-  ipcMain.handle("bulk-update-due-amount", async (event, { managerId, amount }) => {
+  ipcMain.handle(CH.APARTMENT.BULK_UPDATE_DUE_AMOUNT, async (event, { managerId, amount }) => {
+    if (!managerId || typeof managerId !== "number") {
+      return { success: false, message: "Geçersiz kullanıcı ID." };
+    }
     if (!amount || typeof amount !== "number" || amount <= 0) {
       return { success: false, message: "Geçersiz aidat tutarı." };
     }
@@ -53,16 +52,6 @@ function registerApartmentHandlers(ipcMain) {
     }
   });
 
-  ipcMain.handle("get-resident-history", async (event, apartmentId) => {
-    if (!apartmentId || typeof apartmentId !== "number") {
-      return { success: false, message: "Geçersiz daire ID." };
-    }
-    try {
-      return await apartmentService.getResidentHistory(apartmentId);
-    } catch (err) {
-      return { success: false, message: "İşlem sırasında bir hata oluştu." };
-    }
-  });
 }
 
 module.exports = registerApartmentHandlers;

@@ -10,7 +10,6 @@ function AddIncome() {
   const currentUser = useCurrentUser();
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("other");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleIncomeSubmit = async (e) => {
@@ -41,7 +40,7 @@ function AddIncome() {
       const response = await window.electronAPI.addIncome({
         amount: parsedAmount,
         description: cleanDescription,
-        category,
+        category: "other",
         date: today,
         manager_id: managerId,
       });
@@ -49,7 +48,6 @@ function AddIncome() {
       if (response.success) {
         setAmount("");
         setDescription("");
-        setCategory("other");
         alert.success("Gelir Eklendi!", response.message).then(() => navigate("/dashboard"));
       } else {
         alert.error("Hata Oluştu", response.message || "Gelir kaydedilemedi.");
@@ -80,15 +78,6 @@ function AddIncome() {
               onKeyDown={(e) => ["e", "E", "-", "+"].includes(e.key) && e.preventDefault()}
               required
             />
-          </div>
-
-          <div className="formGroup">
-            <label htmlFor="incomeCategory">Kategori</label>
-            <select id="incomeCategory" value={category} onChange={(e) => setCategory(e.target.value)}>
-              <option value="dues">Aidat</option>
-              <option value="rent">Kira</option>
-              <option value="other">Diğer</option>
-            </select>
           </div>
 
           <div className="formGroup">

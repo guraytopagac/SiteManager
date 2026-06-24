@@ -1,7 +1,8 @@
 const financialService = require("../services/financial.service");
+const CH = require("./channels");
 
 function registerFinancialHandlers(ipcMain) {
-  ipcMain.handle("add-income", async (event, data) => {
+  ipcMain.handle(CH.FINANCIAL.ADD_INCOME, async (event, data) => {
     if (!data?.amount || data.amount <= 0) {
       return { success: false, message: "Geçersiz gelir tutarı." };
     }
@@ -15,7 +16,7 @@ function registerFinancialHandlers(ipcMain) {
     }
   });
 
-  ipcMain.handle("add-expense", async (event, data) => {
+  ipcMain.handle(CH.FINANCIAL.ADD_EXPENSE, async (event, data) => {
     if (!data?.amount || data.amount <= 0) {
       return { success: false, message: "Geçersiz gider tutarı." };
     }
@@ -29,7 +30,7 @@ function registerFinancialHandlers(ipcMain) {
     }
   });
 
-  ipcMain.handle("get-transactions", async (event, { managerId, startDate, endDate } = {}) => {
+  ipcMain.handle(CH.FINANCIAL.GET_TRANSACTIONS, async (event, { managerId, startDate, endDate } = {}) => {
     if (!managerId || typeof managerId !== "number") {
       return { success: false, message: "Geçersiz kullanıcı ID." };
     }
@@ -40,7 +41,7 @@ function registerFinancialHandlers(ipcMain) {
     }
   });
 
-  ipcMain.handle("cancel-income", async (event, { id, managerId, reason, cancelledBy }) => {
+  ipcMain.handle(CH.FINANCIAL.CANCEL_INCOME, async (event, { id, managerId, reason, cancelledBy }) => {
     if (!id || typeof id !== "number") return { success: false, message: "Geçersiz kayıt ID." };
     if (!managerId || typeof managerId !== "number") return { success: false, message: "Geçersiz kullanıcı ID." };
     if (!reason?.trim()) return { success: false, message: "İptal nedeni zorunludur." };
@@ -52,7 +53,7 @@ function registerFinancialHandlers(ipcMain) {
     }
   });
 
-  ipcMain.handle("cancel-expense", async (event, { id, managerId, reason, cancelledBy }) => {
+  ipcMain.handle(CH.FINANCIAL.CANCEL_EXPENSE, async (event, { id, managerId, reason, cancelledBy }) => {
     if (!id || typeof id !== "number") return { success: false, message: "Geçersiz kayıt ID." };
     if (!managerId || typeof managerId !== "number") return { success: false, message: "Geçersiz kullanıcı ID." };
     if (!reason?.trim()) return { success: false, message: "İptal nedeni zorunludur." };

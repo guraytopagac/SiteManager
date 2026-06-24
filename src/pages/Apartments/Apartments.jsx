@@ -33,9 +33,9 @@ const PAYMENT_METHOD_LABELS = {
   other: "Diğer",
 };
 
-const APARTMENT_TYPES = ["1+1", "2+1", "3+1", "4+1"];
+const APARTMENT_TYPES = ["0+1", "1+1", "2+1", "3+1", "4+1"];
 
-function EditModal({ apartment, onClose, onSaved }) {
+function EditModal({ apartment, currentUser, onClose, onSaved }) {
   const [form, setForm] = useState({
     apartment_no: apartment.apartment_no || "",
     floor: apartment.floor ?? "",
@@ -51,25 +51,17 @@ function EditModal({ apartment, onClose, onSaved }) {
     resident_notes: apartment.resident_notes || "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [residentHistory, setResidentHistory] = useState([]);
-  const [showHistory, setShowHistory] = useState(false);
-
-  const fetchHistory = async () => {
-    const res = await window.electronAPI.getResidentHistory(apartment.apartment_id);
-    if (res.success) setResidentHistory(res.data);
-    setShowHistory(true);
-  };
-
   const set = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    const res = await window.electronAPI.updateApartment(apartment.id, {
+    const res = await window.electronAPI.updateApartment(apartment.apartment_id, {
       ...form,
       floor: Number(form.floor),
       square_meters: form.square_meters ? Number(form.square_meters) : null,
       due_amount: Number(form.due_amount),
+      manager_id: currentUser.id,
     });
     setIsSubmitting(false);
 
@@ -173,32 +165,6 @@ function EditModal({ apartment, onClose, onSaved }) {
             />
           </div>
 
-          {showHistory ? (
-            <div className="resident-history-section">
-              <h4 className="modal-section-title modal-section-title-spaced">Sakin Geçmişi</h4>
-              {residentHistory.length === 0 ? (
-                <p className="history-empty">Geçmiş sakin kaydı bulunamadı.</p>
-              ) : (
-                <ul className="resident-history-list">
-                  {residentHistory.map((r) => (
-                    <li key={r.id} className={`resident-history-item ${r.is_active ? "active" : ""}`}>
-                      <span className="rh-name">{r.full_name}</span>
-                      <span className="rh-type">{r.resident_type === "owner" ? "Malik" : "Kiracı"}</span>
-                      <span className="rh-dates">
-                        {r.move_in_date || "?"} → {r.move_out_date || "devam"}
-                      </span>
-                      {r.is_active === 1 && <span className="rh-active-badge">Aktif</span>}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ) : (
-            <button type="button" className="button button-secondary button-sm history-btn" onClick={fetchHistory}>
-              Sakin Geçmişini Gör
-            </button>
-          )}
-
           <div className="modal-actions">
             <button type="button" className="button button-secondary" onClick={onClose}>
               İptal
@@ -218,7 +184,6 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [note, setNote] = useState("");
-  const [receiptPath, setReceiptPath] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [history, setHistory] = useState([]);
@@ -234,11 +199,6 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
   useEffect(() => {
     fetchHistory();
   }, [fetchHistory]);
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) setReceiptPath(file.path);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -260,7 +220,6 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
       amount: parsedAmount,
       payment_method: paymentMethod,
       payment_date: paymentDate,
-      receipt_path: receiptPath || null,
       note: note || null,
       collected_by: currentUser.id,
     });
@@ -270,7 +229,6 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
       alert.success("Kaydedildi", res.message);
       setAmount("");
       setNote("");
-      setReceiptPath("");
       setPaymentMethod("cash");
       setPaymentDate(new Date().toISOString().slice(0, 10));
       onPaymentSaved();
@@ -299,7 +257,7 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
 
     if (!reason) return;
 
-    const res = await window.electronAPI.cancelPayment(paymentId, reason, currentUser.id);
+    const res = await window.electronAPI.cancelPayment(paymentId, currentUser.id, reason, currentUser.id);
     if (res.success) {
       alert.success("İptal Edildi", res.message, 1800);
       onPaymentSaved();
@@ -372,7 +330,7 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
             </div>
             <div className="form-row">
               <label>Ödeme Tarihi</label>
-              <input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} required />
+              <input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} required max={new Date().toISOString().slice(0, 10)} />
             </div>
             <div className="form-row">
               <label>Açıklama / Not</label>
@@ -383,13 +341,6 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
                 onChange={(e) => setNote(e.target.value)}
               />
             </div>
-            {paymentMethod === "transfer" && (
-              <div className="form-row">
-                <label>Dekont Yükle</label>
-                <input type="file" accept="image/*,.pdf" onChange={handleFileChange} />
-                {receiptPath && <span className="receipt-name">{receiptPath.split(/[\\/]/).pop()}</span>}
-              </div>
-            )}
             <button type="submit" className="button button-full-width" disabled={isSubmitting}>
               {isSubmitting ? "Kaydediliyor..." : "Ödemeyi Kaydet"}
             </button>
@@ -568,7 +519,7 @@ function Apartments() {
 
     if (!result.isConfirmed) return;
 
-    const res = await window.electronAPI.deleteApartment(due.apartment_id);
+    const res = await window.electronAPI.deleteApartment(due.apartment_id, currentUser.id);
     if (res.success) {
       await alert.success("Silindi", res.message);
       fetchDues();
@@ -713,6 +664,7 @@ function Apartments() {
       {editingApartment && (
         <EditModal
           apartment={editingApartment}
+          currentUser={currentUser}
           onClose={() => setEditingApartment(null)}
           onSaved={() => {
             setEditingApartment(null);

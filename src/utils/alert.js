@@ -24,7 +24,7 @@ export const alert = {
 
   warning: (title, text) => Swal.fire({ ...base(), icon: "warning", title, text }),
 
-  confirm: (title, text, confirmText = "Evet", danger = false) =>
+  confirm: (title, text, confirmText = "Evet", danger = false, cancelText = "Vazgeç") =>
     Swal.fire({
       ...base(),
       title,
@@ -32,7 +32,7 @@ export const alert = {
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: confirmText,
-      cancelButtonText: "Vazgeç",
+      cancelButtonText: cancelText,
       confirmButtonColor: danger ? cssVar("--danger") : cssVar("--button-color"),
       cancelButtonColor: cssVar("--text-secondary"),
     }),

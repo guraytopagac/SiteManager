@@ -4,34 +4,35 @@
 -- due_payment_id optionally links an income record to a specific dues payment.
 CREATE TABLE IF NOT EXISTS incomes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  manager_id INTEGER NOT NULL,
+  due_payment_id INTEGER UNIQUE,
   amount REAL NOT NULL CHECK(amount > 0 AND amount <= 1000000),
-  date TEXT NOT NULL CHECK(date(date) IS NOT NULL),
-  description TEXT NOT NULL CHECK(length(trim(description)) > 0),
-  category TEXT DEFAULT 'other' CHECK(category IN ('dues', 'rent', 'other')),
+  date TEXT NOT NULL CHECK(date(date) IS NOT NULL AND date >= '2000-01-01'),
+  description TEXT NOT NULL CHECK(length(trim(description)) > 0 AND length(description) <= 500),
+  category TEXT DEFAULT 'other' CHECK(category IN ('dues', 'other')),
   is_cancelled INTEGER DEFAULT 0 CHECK(is_cancelled IN (0, 1)),
-  cancelled_at TEXT CHECK(cancelled_at IS NULL OR date(cancelled_at) IS NOT NULL),
-  cancel_reason TEXT,
+  cancelled_at TEXT CHECK(cancelled_at IS NULL OR datetime(cancelled_at) IS NOT NULL),
+  cancel_reason TEXT CHECK(cancel_reason IS NULL OR (length(trim(cancel_reason)) > 0 AND length(cancel_reason) <= 300)),
+  cancelled_by INTEGER,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now')),
-  manager_id INTEGER NOT NULL,
-  due_payment_id INTEGER,
-  cancelled_by INTEGER,
   -- All cancellation fields must be set together or left null
   CHECK(
     (is_cancelled = 0 AND cancelled_at IS NULL AND cancel_reason IS NULL AND cancelled_by IS NULL) OR
     (is_cancelled = 1 AND cancelled_at IS NOT NULL AND cancel_reason IS NOT NULL AND cancelled_by IS NOT NULL)
   ),
   FOREIGN KEY(manager_id) REFERENCES users(id) ON DELETE RESTRICT,
-  FOREIGN KEY(due_payment_id) REFERENCES due_payments(id) ON DELETE SET NULL,
-  FOREIGN KEY(cancelled_by) REFERENCES users(id) ON DELETE SET NULL
+  FOREIGN KEY(due_payment_id) REFERENCES due_payments(id) ON DELETE RESTRICT,
+  FOREIGN KEY(cancelled_by) REFERENCES users(id) ON DELETE RESTRICT
 );
 
-CREATE INDEX IF NOT EXISTS idx_incomes_date ON incomes(date);
-CREATE INDEX IF NOT EXISTS idx_incomes_manager_id ON incomes(manager_id);
+CREATE INDEX IF NOT EXISTS idx_incomes_manager_date ON incomes(manager_id, date);
+CREATE INDEX IF NOT EXISTS idx_incomes_active_only ON incomes(manager_id, date) WHERE is_cancelled = 0;
 
--- Auto-update updated_at on any row change
-CREATE TRIGGER IF NOT EXISTS trg_incomes_updated_at
-  AFTER UPDATE ON incomes FOR EACH ROW
+-- Prevent modification of cancelled income records
+CREATE TRIGGER IF NOT EXISTS trg_incomes_prevent_update_after_cancel
+  BEFORE UPDATE ON incomes FOR EACH ROW
+  WHEN OLD.is_cancelled = 1
 BEGIN
-  UPDATE incomes SET updated_at = datetime('now') WHERE id = NEW.id;
+  SELECT RAISE(ABORT, 'Cancelled income records cannot be modified.');
 END;
