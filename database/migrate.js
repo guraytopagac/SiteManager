@@ -31,8 +31,7 @@ function loadSchema(db) {
 }
 
 function runMigrations(db) {
-  loadSchema(db);
-
+  // Migrations table must exist before anything else
   db.exec(`
     CREATE TABLE IF NOT EXISTS migrations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,6 +89,9 @@ function runMigrations(db) {
       }
     }
   }
+
+  // Load schema after migrations so partial indexes on new columns succeed
+  loadSchema(db);
 
   return appliedCount;
 }
