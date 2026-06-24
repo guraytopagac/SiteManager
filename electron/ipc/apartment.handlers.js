@@ -13,7 +13,7 @@ function registerApartmentHandlers(ipcMain) {
     }
   });
 
-ipcMain.handle(CH.APARTMENT.UPDATE, async (event, { id, data }) => {
+  ipcMain.handle(CH.APARTMENT.UPDATE, async (event, { id, data }) => {
     if (!id || typeof id !== "number") {
       return { success: false, message: "Geçersiz daire ID." };
     }

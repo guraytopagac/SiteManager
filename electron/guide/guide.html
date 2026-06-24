@@ -52,19 +52,12 @@
           </div>
           <div class="step">
             <div class="step-num">2</div>
-            <div class="step-body">
-              <strong>Beni Hatırla</strong> kutusunu işaretlerseniz 30 gün boyunca otomatik giriş yapılır.
-            </div>
-          </div>
-          <div class="step">
-            <div class="step-num">3</div>
             <div class="step-body">Rolünüze göre Admin Paneli veya Kontrol Paneli açılır.</div>
           </div>
         </div>
-        <div class="warning">
-          <span class="warning-icon">⚠</span>
-          Arka arkaya 5 hatalı giriş denemesi hesabı geçici olarak kilitler. Kilitlenme süresi dolduktan sonra tekrar
-          denenebilir.
+        <div class="note">
+          <span class="note-icon">ℹ</span>
+          <strong>İlk kurulumda:</strong> Admin hesabı otomatik oluşturulur ve şifre bir iletişim kutusuyla gösterilir. İletişim kutusunu kapattıktan sonra giriş formu kullanıcı adı ve şifre ile otomatik dolar; doğrudan giriş yapabilirsiniz.
         </div>
 
         <!-- ROLLER -->
@@ -78,11 +71,11 @@
           </thead>
           <tbody>
             <tr>
-              <td><strong>Admin</strong> <span class="badge badge-admin">admin</span></td>
+              <td><strong>Admin</strong></td>
               <td>Tüm işlemler + yönetici hesabı oluşturma/devre dışı bırakma</td>
             </tr>
             <tr>
-              <td><strong>Yönetici</strong> <span class="badge badge-manager">manager</span></td>
+              <td><strong>Yönetici</strong></td>
               <td>Aidat, gelir/gider, daire/sakin yönetimi, raporlar</td>
             </tr>
           </tbody>
@@ -115,10 +108,6 @@
               <td>Yedekten geri yükle</td>
             </tr>
             <tr>
-              <td><kbd>Ctrl</kbd>+<kbd>P</kbd></td>
-              <td>Mevcut sayfayı yazdır</td>
-            </tr>
-            <tr>
               <td><kbd>F1</kbd></td>
               <td>Bu kılavuzu aç</td>
             </tr>
@@ -142,7 +131,7 @@
         </table>
 
         <!-- ADMIN DASHBOARD -->
-        <h2 id="admin-dashboard">Admin Paneli <span class="badge badge-admin">admin</span></h2>
+        <h2 id="admin-dashboard">Admin Paneli</h2>
         <p>
           Admin hesabıyla giriş yapıldığında Admin Paneli açılır. Buradan mevcut yöneticilerin listesi görüntülenir ve
           yeni yönetici oluşturulabilir.
@@ -217,7 +206,7 @@
           <div class="step">
             <div class="step-num">2</div>
             <div class="step-body">
-              Daire numarası (benzersiz), kat, tip (1+1 / 2+1 / 3+1 / 4+1), metrekare ve aylık aidat tutarını girin.
+              Daire numarası (benzersiz), kat, tip (0+1 / 1+1 / 2+1 / 3+1 / 4+1), metrekare ve aylık aidat tutarını girin.
             </div>
           </div>
           <div class="step">
@@ -329,8 +318,7 @@
         <h2 id="raporlar">Raporlar <span class="badge badge-manager">manager</span></h2>
         <p>Raporlar sayfasında yıl ve ay seçilerek o döneme ait özet rapor oluşturulur.</p>
         <ul>
-          <li><strong>PDF olarak kaydet</strong> — biçimlendirilmiş raporu PDF dosyası olarak dışa aktarır.</li>
-          <li><strong>Excel olarak kaydet</strong> — verileri .xlsx dosyası olarak dışa aktarır.</li>
+          <li><strong>PDF İndir</strong> — gelir/gider detayı ve aidat tahsilat durumunu içeren biçimlendirilmiş raporu PDF olarak kaydeder.</li>
         </ul>
         <p>Rapor; aidat tahsilat özeti, toplam gelir/gider ve net bakiye bilgilerini içerir.</p>
 
@@ -373,7 +361,7 @@
           <div class="step">
             <div class="step-num">1</div>
             <div class="step-body">
-              <strong>Dosya → Veritabanından Geri Yükle</strong> seçin (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>).
+              <strong>Dosya → Veritabanı Yükle</strong> seçin (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>).
             </div>
           </div>
           <div class="step">
@@ -402,7 +390,7 @@
         <!-- TEMA -->
         <h2 id="tema">Tema</h2>
         <p>
-          Uygulama açık ve koyu tema destekler. <strong>Dosya → Tema Değiştir</strong> menüsü veya
+          Uygulama açık ve koyu tema destekler. <strong>Görünüm → Tema Değiştir</strong> menüsü veya
           <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> kısayolu ile iki tema arasında geçiş yapabilirsiniz.
         </p>
 

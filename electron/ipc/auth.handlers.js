@@ -32,6 +32,9 @@ function registerAuthHandlers(ipcMain) {
     if (password.length < 8) {
       return { success: false, message: "Şifre en az 8 karakter olmalıdır." };
     }
+    if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(email)) {
+      return { success: false, message: "Geçerli bir e-posta adresi girin (Türkçe karakter kullanılamaz)." };
+    }
     try {
       return await authService.createManager(data);
     } catch (err) {

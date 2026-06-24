@@ -20,7 +20,7 @@ package-lock.json
 **Tür:** Electron + React masaüstü uygulaması  
 **Hedef:** Apartman yöneticilerinin aidat, gelir/gider, daire/sakin ve raporlama işlemlerini tek uygulamadan yönetmesi
 
-**Teknik Stack:** Electron v41, React v19, SQLite (better-sqlite3), Vite v8, SweetAlert2, jspdf + jspdf-autotable (PDF), xlsx/SheetJS (Excel), electron-updater (GitHub Releases)
+**Teknik Stack:** Electron v41, React v19, SQLite (better-sqlite3), Vite v8, SweetAlert2, jspdf + jspdf-autotable (PDF), electron-updater (GitHub Releases)
 
 ---
 
@@ -102,7 +102,7 @@ users                  (id, username, email, password_hash, role, is_active,
                         failed_login_attempts, locked_until, last_login,
                         password_changed_at,
                         created_at, updated_at)
-apartments             (id, apartment_no UNIQUE NOCASE, floor, type∈{1+1,2+1,3+1,4+1},
+apartments             (id, apartment_no UNIQUE NOCASE, floor, type∈{0+1,1+1,2+1,3+1,4+1},
                         square_meters, due_amount, manager_id→users.id, created_at, updated_at)
 residents              (id, full_name, phone, email, national_id, resident_type∈{owner,tenant},
                         move_in_date, move_out_date, is_active, notes,
@@ -131,9 +131,9 @@ expenses               (id, amount, date, description,
 
 **Schema Değişikliği Kuralı:**
 
-`runMigrations()` her başlangıçta `main.js` tarafından çağrılır. İki aşama:
-1. `database/schema/` altındaki tüm SQL dosyaları `CREATE TABLE/TRIGGER IF NOT EXISTS` ile yüklenir (yeni kurulum için temel şema).
-2. `database/migrations/` klasöründeki henüz uygulanmamış `.sql` dosyaları ada göre sıralı çalıştırılır ve `migrations` tablosuna kaydedilir (tekrar çalışmazlar).
+`runMigrations()` her başlangıçta `main.js` tarafından çağrılır. Sıra önemli:
+1. `database/migrations/` klasöründeki henüz uygulanmamış `.sql` dosyaları ada göre sıralı çalıştırılır ve `migrations` tablosuna kaydedilir (tekrar çalışmazlar). Fresh install'da tablolar henüz yok; "no such table" hatası yakalanır, migration "uygulandı" olarak işaretlenir.
+2. `database/schema/` altındaki tüm SQL dosyaları `CREATE TABLE/TRIGGER IF NOT EXISTS` ile yüklenir. Fresh install'da tabloları bu aşama oluşturur; mevcut kurulumda no-op.
 
 | Durum | Ne yapılır |
 | ----- | ---------- |
@@ -181,7 +181,7 @@ expenses               (id, amount, date, description,
 5. Sakin bilgileri `residents` tablosunda tutulur; bir dairenin birden fazla geçmiş sakini olabilir. `is_active=1` olan sakin aktiftir.
 6. Para tutarları `REAL` olarak saklanır, ekranda `₺` formatında gösterilir.
 7. Şifreler düz metin olarak **hiçbir zaman** saklanmaz.
-8. Veritabanı yedeği: `backupDatabase` / `restoreDatabase` IPC çağrıları (Profil sayfası).
+8. Veritabanı yedeği: menü üzerinden yapılır (Dosya → Veritabanı Yedekle / Yükle); IPC değil, doğrudan `menu.js` içinde dosya kopyalama + `app.relaunch()`.
 
 ---
 
@@ -189,15 +189,14 @@ expenses               (id, amount, date, description,
 
 | Grup        | Metod                                                                 |
 | ----------- | --------------------------------------------------------------------- |
-| Apartment   | `addApartment`, `getApartments`, `updateApartment`, `deleteApartment`, `bulkUpdateDueAmount` |
+| Apartment   | `addApartment`, `updateApartment`, `deleteApartment`, `bulkUpdateDueAmount` |
 | Auth        | `login`, `getManagers`, `createManager`, `updateManagerStatus`, `changePassword` |
 | Dashboard   | `getStats`                                                            |
 | Dues        | `getDuesForMonth`, `recordPayment`, `cancelPayment`, `getPaymentHistory` |
 | Financial   | `addIncome`, `addExpense`, `getTransactions`, `cancelIncome`, `cancelExpense` |
 | Reports     | `getReportData`, `saveReportFile`                                     |
-| Database    | `backupDatabase`, `restoreDatabase`                                   |
 | System      | `getAppVersion`                                                       |
-| Events      | `onToggleTheme` (renderer listener)                                   |
+| Events      | `onToggleTheme`, `onPrefillLogin` (renderer listener — main→renderer) |
 
 ---
 
@@ -211,6 +210,6 @@ npm run dist     # Vite build + electron-builder (.exe NSIS installer)
 npm run rebuild  # Native modülleri yeniden derle
 ```
 
-- Uygulama verisi: `%APPDATA%/SiteManager/`
+- Uygulama verisi: `%APPDATA%/Mavikent Site Yönetimi/`
 - Otomatik güncelleme: `electron-updater` → GitHub Releases (`guraytopagac/SiteManager`)
-- Yedek/geri yükleme: uygulama içi Profil sayfasından `backupDatabase` / `restoreDatabase`
+- Yedek/geri yükleme: Dosya menüsü → Veritabanı Yedekle / Yükle (Ctrl+Shift+B / Ctrl+Shift+R)
