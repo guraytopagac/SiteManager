@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
-const { Menu, BrowserWindow, dialog, app } = require("electron");
+const { Menu, BrowserWindow, dialog, app, shell } = require("electron");
+const { autoUpdater } = require("electron-updater");
 const Database = require("better-sqlite3");
 const CH = require("./ipc/channels");
 const db = require("../database/db");
@@ -17,6 +18,8 @@ async function runBackup(mainWindow) {
 
   try {
     await db.backup(filePath);
+    await fs.promises.unlink(filePath + "-shm").catch(() => {});
+    await fs.promises.unlink(filePath + "-wal").catch(() => {});
     dialog.showMessageBox(mainWindow, {
       type: "info",
       title: "Yedekleme",
@@ -42,7 +45,6 @@ async function runRestore(mainWindow) {
 
   if (canceled || !filePaths.length) return;
 
-  // Integrity check before asking user
   let integrityOk = false;
   try {
     const testDb = new Database(filePaths[0], { readonly: true });
@@ -132,19 +134,11 @@ function openGuide() {
   });
 }
 
-function createMenuTemplate(mainWindow, isDev, iconPath) {
+function buildMenu(mainWindow, isDev, iconPath) {
   const template = [
     {
       label: "Dosya",
       submenu: [
-        {
-          label: "Tema Değiştir",
-          accelerator: "CmdOrCtrl+Shift+T",
-          click() {
-            mainWindow.webContents.send(CH.EVENTS.TOGGLE_THEME);
-          },
-        },
-        { type: "separator" },
         {
           label: "Veritabanı Yedekle",
           accelerator: "CmdOrCtrl+Shift+B",
@@ -160,26 +154,25 @@ function createMenuTemplate(mainWindow, isDev, iconPath) {
           },
         },
         { type: "separator" },
-        {
-          label: "Yazdır",
-          accelerator: "CmdOrCtrl+P",
-          click() {
-            mainWindow.webContents.print();
-          },
-        },
-        { type: "separator" },
-        {
-          label: "Çıkış",
-          role: "quit",
-        },
+        { label: "Çıkış", role: "quit" },
       ],
     },
     {
       label: "Görünüm",
       submenu: [
+        {
+          label: "Tema Değiştir",
+          accelerator: "CmdOrCtrl+Shift+T",
+          click() {
+            mainWindow.webContents.send(CH.EVENTS.TOGGLE_THEME);
+          },
+        },
+        { type: "separator" },
         { label: "Yakınlaştır", role: "zoomIn" },
         { label: "Uzaklaştır", role: "zoomOut" },
         { label: "Varsayılan Boyut", role: "resetZoom" },
+        { type: "separator" },
+        { label: "Yenile", role: "reload", accelerator: "CmdOrCtrl+R" },
         { type: "separator" },
         { label: "Tam Ekran", role: "togglefullscreen" },
       ],
@@ -197,10 +190,18 @@ function createMenuTemplate(mainWindow, isDev, iconPath) {
         { type: "separator" },
         {
           label: "Güncellemeleri Kontrol Et",
-          click() {
+          async click() {
             try {
-              const { autoUpdater } = require("electron-updater");
-              autoUpdater.checkForUpdatesAndNotify();
+              const result = await autoUpdater.checkForUpdates();
+              if (!result?.downloadPromise) {
+                dialog.showMessageBox(mainWindow, {
+                  type: "info",
+                  title: "Güncelleme",
+                  message: "Uygulama güncel.",
+                  detail: `Kullandığınız sürüm (${app.getVersion()}) zaten en son sürüm.`,
+                  buttons: ["Tamam"],
+                });
+              }
             } catch {
               dialog.showMessageBox(mainWindow, {
                 type: "info",
@@ -209,6 +210,15 @@ function createMenuTemplate(mainWindow, isDev, iconPath) {
                 buttons: ["Tamam"],
               });
             }
+          },
+        },
+        { type: "separator" },
+        {
+          label: "Hata Bildir",
+          click() {
+            shell.openExternal(
+              "mailto:guray.topagac.dev@gmail.com?subject=Mavikent%20Site%20Y%C3%B6netim%20Sistemi%20-%20Hata%20Bildirimi",
+            );
           },
         },
         { type: "separator" },
@@ -232,15 +242,12 @@ function createMenuTemplate(mainWindow, isDev, iconPath) {
   if (isDev) {
     template.push({
       label: "Geliştirici Araçları",
+      accelerator: "F12",
       role: "toggleDevTools",
     });
   }
 
-  return template;
-}
-
-function buildMenu(mainWindow, isDev, iconPath) {
-  return Menu.buildFromTemplate(createMenuTemplate(mainWindow, isDev, iconPath));
+  return Menu.buildFromTemplate(template);
 }
 
 module.exports = { buildMenu };

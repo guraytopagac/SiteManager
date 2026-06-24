@@ -134,15 +134,9 @@ function setupAutoUpdater() {
   autoUpdater.on("checking-for-update", () => console.log("[updater] Checking for updates..."));
   autoUpdater.on("update-not-available", () => console.log("[updater] No update available."));
 
-  autoUpdater.on("update-available", () => {
+  autoUpdater.on("update-available", (info) => {
     if (!mainWindow) return;
-    dialog.showMessageBox(mainWindow, {
-      type: "info",
-      title: "Güncelleme Mevcut",
-      message: "Yeni bir sürüm bulundu.",
-      detail: "Güncelleme arka planda indiriliyor, hazır olduğunda bildirim alacaksınız.",
-      buttons: ["Tamam"],
-    });
+    mainWindow.setTitle(`Mavikent Site Yönetimi — Yeni sürüm (v${info.version}) indiriliyor...`);
   });
 
   autoUpdater.on("download-progress", (progress) => {

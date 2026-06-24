@@ -38,6 +38,13 @@ package-lock.json
 - IPC endpoint ekleme/değiştirme
 - 100+ satır silme
 
+### Asla Kullanıcı Onayı Olmadan Yapma
+
+- `git commit` — kullanıcı açıkça "commit at" veya onay vermeden kesinlikle commit oluşturma
+- `git push` — kullanıcı açıkça "push et" veya onay vermeden kesinlikle push yapma
+- `gh release create` / `gh release edit` — kullanıcı açıkça izin vermeden GitHub release oluşturma veya düzenleme
+- `npm run dist` veya `npm run build` — kullanıcı açıkça "build et" demeden çalıştırma
+
 ### Asla Yapma
 
 - `.env` oluşturma veya API anahtarı/şifre ekleme
