@@ -2,7 +2,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 const CH = {
   APARTMENT: { ADD: "add-apartment", UPDATE: "update-apartment", DELETE: "delete-apartment", BULK_UPDATE_DUE_AMOUNT: "bulk-update-due-amount" },
-  AUTH: { LOGIN: "login", GET_MANAGERS: "get-managers", CREATE_MANAGER: "create-manager", UPDATE_MANAGER_STATUS: "update-manager-status", CHANGE_PASSWORD: "change-password", VALIDATE_REMEMBER_TOKEN: "validate-remember-token" },
+  AUTH: { LOGIN: "login", GET_MANAGERS: "get-managers", CREATE_MANAGER: "create-manager", UPDATE_MANAGER_STATUS: "update-manager-status", CHANGE_PASSWORD: "change-password" },
   DASHBOARD: { GET_STATS: "get-stats" },
   DUES: { GET_FOR_MONTH: "get-dues-for-month", RECORD_PAYMENT: "record-payment", CANCEL_PAYMENT: "cancel-payment", GET_PAYMENT_HISTORY: "get-payment-history" },
   FINANCIAL: { ADD_INCOME: "add-income", ADD_EXPENSE: "add-expense", GET_TRANSACTIONS: "get-transactions", CANCEL_INCOME: "cancel-income", CANCEL_EXPENSE: "cancel-expense" },

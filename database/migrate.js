@@ -81,9 +81,11 @@ function runMigrations(db) {
     } catch (err) {
       // ALTER TABLE ADD COLUMN fails if the column already exists (SQLite has no IF NOT EXISTS).
       // Treat this as a no-op so the migration is still recorded and won't re-run.
-      if (err.message.includes("duplicate column name")) {
+      if (err.message.includes("duplicate column name") || err.message.includes("no such table")) {
+        // duplicate column name: column already exists (upgrade path)
+        // no such table: fresh install, schema loader will create the table with all columns
         db.transaction(() => recordMigration.run(file))();
-        console.warn(`Migration already applied (column exists), recorded: ${file}`);
+        console.warn(`Migration skipped (handled by schema): ${file} — ${err.message}`);
       } else {
         throw err;
       }
