@@ -9,6 +9,8 @@ const { runMigrations } = require("../database/migrate");
 const { seedAdminAccount } = require("../database/seed");
 const { app, ipcMain, dialog, clipboard, BrowserWindow, Menu } = require("electron");
 
+app.disableHardwareAcceleration();
+
 let mainWindow;
 const loadURL = serve({ directory: path.join(__dirname, "..", "dist") });
 const isDev = !app.isPackaged;
@@ -143,11 +145,20 @@ function setupAutoUpdater() {
     });
   });
 
+  autoUpdater.on("download-progress", (progress) => {
+    if (!mainWindow) return;
+    const percent = Math.round(progress.percent);
+    mainWindow.setProgressBar(progress.percent / 100);
+    mainWindow.setTitle(`Mavikent Site Yönetimi — Güncelleme İndiriliyor: %${percent}`);
+  });
+
   autoUpdater.on("update-downloaded", async () => {
     if (!mainWindow) {
       autoUpdater.quitAndInstall();
       return;
     }
+    mainWindow.setProgressBar(-1);
+    mainWindow.setTitle("Mavikent Site Yönetimi Uygulaması");
     try {
       const { response } = await dialog.showMessageBox(mainWindow, {
         type: "info",
