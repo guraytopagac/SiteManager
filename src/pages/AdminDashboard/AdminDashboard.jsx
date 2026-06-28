@@ -27,6 +27,11 @@ function AdminDashboard() {
   const handleCreateManager = async (e) => {
     e.preventDefault();
 
+    if (!/^[A-Za-z0-9_]{3,}$/.test(formData.username)) {
+      alert.warning("Geçersiz Kullanıcı Adı", "Kullanıcı adı en az 3 karakter olmalı, yalnızca İngilizce harf, rakam ve _ içermelidir.");
+      return;
+    }
+
     if (formData.password.length < 8) {
       alert.warning("Geçersiz Şifre", "Şifre en az 8 karakter olmalıdır.");
       return;

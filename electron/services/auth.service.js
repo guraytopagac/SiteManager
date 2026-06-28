@@ -1,8 +1,8 @@
 const bcrypt = require("bcryptjs");
-const db = require("../../database/db");
+const { db } = require("../../database/db");
 
 const BCRYPT_ROUNDS = 12;
-const DUMMY_HASH = "$2a$12$invalidhashfortimingattackprotection";
+const DUMMY_HASH = "$2b$12$3X/2XNSPPTIIRZLnRyDSAOjqjj3mreEYkyjbWyz7RkwJbe0MBr8l.";
 
 function toSafeUser(user) {
   return {
@@ -38,7 +38,8 @@ function login(credentials) {
     }
 
     return { success: false, message: "Kullanıcı Adı / Şifre Hatalı!" };
-  } catch {
+  } catch (err) {
+    console.error("[auth.service] login:", err);
     return { success: false, message: "Veritabanı hatası. Lütfen hakkında kısmından bilgi alınız." };
   }
 }
@@ -54,36 +55,30 @@ function getManagers() {
   }
 }
 
-function createManager(data) {
+function createManager(managerData) {
   try {
-    if (!data.password || data.password.length < 8)
-      return { success: false, message: "Şifre en az 8 karakter olmalıdır." };
-
-    if (!data.username || !/^[A-Za-z_][A-Za-z0-9_]{2,}$/.test(data.username))
-      return { success: false, message: "Kullanıcı adı en az 3 karakter olmalı ve sadece harf, rakam ile alt çizgi içerebilir." };
-
-    const existing = db.prepare(`SELECT id FROM users WHERE username = ? OR email = ?`).get(data.username, data.email);
-    if (existing) return { success: false, message: "Bu kullanıcı adı veya e-posta zaten kullanımda." };
-
-    const hashedPassword = bcrypt.hashSync(data.password, BCRYPT_ROUNDS);
-    db.prepare(`INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)`).run(
-      data.username,
-      data.email,
+    const hashedPassword = bcrypt.hashSync(managerData.password, BCRYPT_ROUNDS);
+    db.prepare(`INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)`).run(
+      managerData.username,
+      managerData.email,
       hashedPassword,
-      "manager",
     );
     return { success: true, message: "Yönetici hesabı başarıyla oluşturuldu." };
   } catch (err) {
-    console.error("[auth] createManager:", err.message);
-    if (err.message?.includes("UNIQUE")) return { success: false, message: "Bu kullanıcı adı veya e-posta zaten kullanımda." };
-    if (err.message?.includes("CHECK")) return { success: false, message: "Geçersiz kullanıcı adı veya e-posta formatı." };
-    return { success: false, message: `Hesap oluşturulamadı: ${err.message}` };
+    console.error("[auth.service] createManager:", err.message);
+    if (err.message?.includes("UNIQUE"))
+      return { success: false, message: "Bu kullanıcı adı veya e-posta zaten kullanımda." };
+    if (err.message?.includes("CHECK"))
+      return { success: false, message: "Geçersiz kullanıcı adı veya e-posta formatı." };
+    return { success: false, message: "Hesap oluşturulamadı." };
   }
 }
 
 function updateManagerStatus(id, isActive) {
   try {
-    const result = db.prepare(`UPDATE users SET is_active = ? WHERE id = ? AND role = 'manager'`).run(isActive ? 1 : 0, id);
+    const result = db
+      .prepare(`UPDATE users SET is_active = ? WHERE id = ? AND role = 'manager'`)
+      .run(isActive ? 1 : 0, id);
     if (result.changes === 0) return { success: false, message: "Yönetici bulunamadı." };
     const msg = isActive ? "Yönetici hesabı aktif edildi." : "Yönetici hesabı deaktif edildi.";
     return { success: true, message: msg };
@@ -94,17 +89,19 @@ function updateManagerStatus(id, isActive) {
 
 function changePassword(userId, oldPassword, newPassword) {
   try {
-    if (!newPassword || newPassword.length < 8)
-      return { success: false, message: "Şifre en az 8 karakter olmalıdır." };
+    if (!newPassword || newPassword.length < 8) return { success: false, message: "Şifre en az 8 karakter olmalıdır." };
     const user = db.prepare(`SELECT password_hash FROM users WHERE id = ?`).get(userId);
     if (!user) return { success: false, message: "Kullanıcı bulunamadı." };
-    if (!bcrypt.compareSync(oldPassword, user.password_hash))
+    if (!oldPassword || !bcrypt.compareSync(oldPassword, user.password_hash))
       return { success: false, message: "Mevcut şifre hatalı." };
     if (bcrypt.compareSync(newPassword, user.password_hash))
       return { success: false, message: "Yeni şifre eski şifreyle aynı olamaz." };
 
     const newHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
-    db.prepare(`UPDATE users SET password_hash = ?, password_changed_at = datetime('now') WHERE id = ?`).run(newHash, userId);
+    db.prepare(`UPDATE users SET password_hash = ?, password_changed_at = datetime('now') WHERE id = ?`).run(
+      newHash,
+      userId,
+    );
     return { success: true, message: "Şifre başarıyla değiştirildi." };
   } catch {
     return { success: false, message: "Şifre güncellenemedi." };

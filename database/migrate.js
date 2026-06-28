@@ -1,37 +1,17 @@
 const fs = require("fs");
 const path = require("path");
 
-const MIGRATIONS_DIR = path.join(__dirname, "migrations");
-const SCHEMA_DIR = path.join(__dirname, "schema");
+// Applies one-off changes (e.g. ALTER TABLE) to existing installations.
+// Each migration runs inside a transaction; failure rolls back the entire change.
+// "duplicate column name" / "no such table" are expected on fresh installs where
+// tables don't exist yet — the migration is marked applied because loadSchema will create them.
+function applyMigrations(db) {
+  const migrationsDir = path.join(__dirname, "migrations");
 
-// Tables ordered by foreign key dependency
-const SCHEMA_FILES = [
-  "users.sql",
-  "apartments.sql",
-  "residents.sql",
-  "incomes.sql",
-  "expenses.sql",
-  "dues.sql",
-  "due_payments.sql",
-  "payment_cancellations.sql",
-];
+  if (!fs.existsSync(migrationsDir)) {
+    return;
+  }
 
-function loadSchema(db) {
-  db.transaction(() => {
-    for (const file of SCHEMA_FILES) {
-      const sql = fs.readFileSync(path.join(SCHEMA_DIR, file), "utf8");
-      try {
-        db.exec(sql);
-      } catch (e) {
-        e.message = `Failed to load schema: ${file} — ${e.message}`;
-        throw e;
-      }
-    }
-  })();
-}
-
-function runMigrations(db) {
-  // Migrations table must exist before anything else
   db.exec(`
     CREATE TABLE IF NOT EXISTS migrations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,63 +20,78 @@ function runMigrations(db) {
     );
   `);
 
-  if (!fs.existsSync(MIGRATIONS_DIR)) {
-    return 0;
-  }
+  const files = fs
+    .readdirSync(migrationsDir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort();
 
-  const applied = new Set(
+  const appliedMigrations = new Set(
     db
       .prepare(`SELECT filename FROM migrations`)
       .all()
       .map((r) => r.filename),
   );
 
-  const files = fs
-    .readdirSync(MIGRATIONS_DIR)
-    .filter((f) => f.endsWith(".sql"))
-    .sort();
-
   const recordMigration = db.prepare(`INSERT INTO migrations (filename) VALUES (?)`);
 
-  let appliedCount = 0;
-
   for (const file of files) {
-    if (applied.has(file)) continue;
+    if (appliedMigrations.has(file)) continue;
 
-    const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), "utf8");
+    const sql = fs.readFileSync(path.join(migrationsDir, file), "utf8");
 
     if (!sql.trim()) {
-      console.warn(`Migration skipped (empty file): ${file}`);
+      console.warn(`[Migrate] Migration skipped (empty file): ${file}`);
       db.transaction(() => recordMigration.run(file))();
       continue;
     }
 
     try {
+      db.pragma("foreign_keys = OFF");
       db.transaction(() => {
         db.exec(sql);
         recordMigration.run(file);
       })();
-      console.log(`Migration applied: ${file}`);
-      appliedCount++;
+      db.pragma("foreign_keys = ON");
+      console.log(`[Migrate] Migration applied: ${file}`);
     } catch (err) {
-      // ALTER TABLE ADD COLUMN fails if the column already exists (SQLite has no IF NOT EXISTS).
-      // Treat this as a no-op so the migration is still recorded and won't re-run.
+      db.pragma("foreign_keys = ON");
+      // SQLite has no ALTER TABLE IF NOT EXISTS; these two errors are expected
       if (err.message.includes("duplicate column name") || err.message.includes("no such table")) {
-        // duplicate column name: column already exists (upgrade path)
-        // no such table: fresh install, schema loader will create the table with all columns
         db.transaction(() => recordMigration.run(file))();
-        console.warn(`Migration skipped (handled by schema): ${file} — ${err.message}`);
+        console.warn(`[Migrate] Migration skipped: ${file} — ${err.message}`);
       } else {
         throw err;
       }
     }
   }
+}
 
-  // Fresh install: migrations above fail with "no such table" and are skipped,
-  // so loadSchema creates all tables here. Existing installs: no-op (IF NOT EXISTS).
+// Loads schema files containing CREATE TABLE/TRIGGER IF NOT EXISTS statements.
+// Creates all tables on fresh installs; no-op on existing installations.
+// File name prefix (01_, 02_, …) determines load order.
+function loadSchema(db) {
+  const schemaDir = path.join(__dirname, "schema");
+  const schemaFiles = fs
+    .readdirSync(schemaDir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort();
+
+  for (const file of schemaFiles) {
+    const sql = fs.readFileSync(path.join(schemaDir, file), "utf8");
+    try {
+      db.exec(sql);
+    } catch (e) {
+      e.message = `[Migrate] Failed to load schema: ${file} — ${e.message}`;
+      throw e;
+    }
+  }
+}
+
+// Called by main.js on every startup. Order matters:
+// migrations first, then schema — ensures existing tables are aligned before schema is re-applied.
+function runMigrations(db) {
+  applyMigrations(db);
   loadSchema(db);
-
-  return appliedCount;
 }
 
 module.exports = { runMigrations };

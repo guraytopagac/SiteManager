@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Kullanım Kılavuzu — Mavikent Site Yönetimi</title>
+    <title>Kullanım Kılavuzu</title>
     <link rel="stylesheet" href="guide.css" />
   </head>
   <body>
@@ -13,37 +13,39 @@
         <div class="sidebar-title">Kullanım Kılavuzu</div>
         <nav>
           <div class="section-label">Başlarken</div>
-          <a href="#giris">Giriş Ekranı</a>
-          <a href="#roller">Kullanıcı Rolleri</a>
-          <a href="#kisayollar">Klavye Kısayolları</a>
+          <a href="#login">Giriş Ekranı</a>
+          <a href="#roles">Kullanıcı Rolleri</a>
+          <a href="#shortcuts">Klavye Kısayolları</a>
 
-          <div class="section-label">Yönetici (Admin)</div>
+          <div class="section-label">Admin</div>
           <a href="#admin-dashboard">Admin Paneli</a>
-          <a href="#manager-yonetimi">Yönetici Yönetimi</a>
+          <a href="#manager-management">Yönetici Yönetimi</a>
 
           <div class="section-label">Günlük İşlemler</div>
           <a href="#dashboard">Kontrol Paneli</a>
-          <a href="#daireler">Daireler</a>
-          <a href="#sakinler">Sakinler</a>
-          <a href="#aidatlar">Aidat Yönetimi</a>
-          <a href="#finansal">Gelir / Gider</a>
-          <a href="#islemler">İşlem Geçmişi</a>
-          <a href="#raporlar">Raporlar</a>
+          <a href="#apartments">Daireler</a>
+          <a href="#residents">Sakinler</a>
+          <a href="#dues">Aidat Yönetimi</a>
+          <a href="#financial">Gelir / Gider</a>
+          <a href="#transactions">İşlem Geçmişi</a>
+          <a href="#reports">Raporlar</a>
 
           <div class="section-label">Sistem</div>
-          <a href="#profil">Profil</a>
-          <a href="#yedekleme">Yedekleme</a>
-          <a href="#tema">Tema</a>
+          <a href="#profile">Profil</a>
+          <a href="#backup">Yedekleme</a>
+          <a href="#theme">Tema</a>
+          <a href="#support">Destek</a>
+          <a href="#faq">Sık Sorulan Sorular</a>
         </nav>
       </aside>
 
       <!-- Main content -->
       <main class="content">
-        <h1>Mavikent Site Yönetim Sistemi</h1>
+        <h1>Mavikent Site Yönetim Sistemi Uygulaması</h1>
         <p class="subtitle">Kullanım Kılavuzu — Tüm özellikler ve adım adım açıklamalar</p>
 
-        <!-- GİRİŞ -->
-        <h2 id="giris">Giriş Ekranı</h2>
+        <!-- LOGIN -->
+        <h2 id="login">Giriş Ekranı</h2>
         <p>Uygulama açıldığında kullanıcı adı ve şifre girişi istenir.</p>
         <div class="steps">
           <div class="step">
@@ -57,11 +59,24 @@
         </div>
         <div class="note">
           <span class="note-icon">ℹ</span>
-          <strong>İlk kurulumda:</strong> Admin hesabı otomatik oluşturulur ve şifre bir iletişim kutusuyla gösterilir. İletişim kutusunu kapattıktan sonra giriş formu kullanıcı adı ve şifre ile otomatik dolar; doğrudan giriş yapabilirsiniz.
+          <div>
+            <strong>İlk kurulumda:</strong> Admin hesabı otomatik oluşturulur ve şifre bir iletişim kutusuyla
+            gösterilir. İletişim kutusunda üç seçenek bulunur:
+            <ul class="note-list">
+              <li><strong>Şifreyi Kopyala</strong> — şifreyi panoya kopyalar</li>
+              <li>
+                <strong>Masaüstüne Kaydet</strong> — masaüstünde <code>mavikent-admin-hesabi.txt</code> dosyası
+                oluşturur
+              </li>
+              <li><strong>Tamam</strong> — yalnızca iletişim kutusunu kapatır</li>
+            </ul>
+            Seçim yapıldıktan sonra giriş formu kullanıcı adı ve şifre ile otomatik dolar; doğrudan giriş
+            yapabilirsiniz.
+          </div>
         </div>
 
-        <!-- ROLLER -->
-        <h2 id="roller">Kullanıcı Rolleri</h2>
+        <!-- ROLES -->
+        <h2 id="roles">Kullanıcı Rolleri</h2>
         <table>
           <thead>
             <tr>
@@ -82,11 +97,13 @@
         </table>
         <div class="note">
           <span class="note-icon">ℹ</span>
-          Sistemde yalnızca bir admin hesabı bulunabilir. Admin hesabı kurulum sırasında otomatik oluşturulur.
+          <div>
+            Sistemde yalnızca bir admin hesabı bulunabilir. Admin hesabı kurulum sırasında otomatik oluşturulur.
+          </div>
         </div>
 
-        <!-- KISAYOLLAR -->
-        <h2 id="kisayollar">Klavye Kısayolları</h2>
+        <!-- SHORTCUTS -->
+        <h2 id="shortcuts">Klavye Kısayolları</h2>
         <table>
           <thead>
             <tr>
@@ -101,15 +118,19 @@
             </tr>
             <tr>
               <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd></td>
-              <td>Veritabanı yedekle</td>
+              <td>Veritabanını yedekle</td>
             </tr>
             <tr>
               <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd></td>
-              <td>Yedekten geri yükle</td>
+              <td>Veritabanını yükle</td>
             </tr>
             <tr>
               <td><kbd>F1</kbd></td>
-              <td>Bu kılavuzu aç</td>
+              <td>Kılavuzu aç</td>
+            </tr>
+            <tr>
+              <td><kbd>Ctrl</kbd>+<kbd>R</kbd></td>
+              <td>Sayfayı yenile</td>
             </tr>
             <tr>
               <td><kbd>F11</kbd></td>
@@ -125,7 +146,7 @@
             </tr>
             <tr>
               <td><kbd>Ctrl</kbd>+<kbd>0</kbd></td>
-              <td>Varsayılan zoom</td>
+              <td>Varsayılan boyuta dön</td>
             </tr>
           </tbody>
         </table>
@@ -154,8 +175,8 @@
           </div>
         </div>
 
-        <!-- MANAGER YÖNETİMİ -->
-        <h2 id="manager-yonetimi">Yönetici Yönetimi <span class="badge badge-admin">admin</span></h2>
+        <!-- MANAGER MANAGEMENT -->
+        <h2 id="manager-management">Yönetici Yönetimi</h2>
         <p>Admin panelindeki yönetici listesinde her satırda durum anahtarı (aktif/pasif) bulunur.</p>
         <ul>
           <li>Anahtarı kapamak yöneticinin hesabını <strong>devre dışı</strong> bırakır; giriş yapamaz.</li>
@@ -163,8 +184,8 @@
           <li>Admin hesabı devre dışı bırakılamaz.</li>
         </ul>
 
-        <!-- KONTROL PANELİ -->
-        <h2 id="dashboard">Kontrol Paneli <span class="badge badge-manager">manager</span></h2>
+        <!-- DASHBOARD -->
+        <h2 id="dashboard">Kontrol Paneli</h2>
         <p>Yönetici girişinin ardından Kontrol Paneli açılır. Üst kısımda üç özet kart görünür:</p>
         <table>
           <thead>
@@ -190,8 +211,8 @@
         </table>
         <p>Alt bölümde hızlı erişim kartları ile tüm işlemlere tek tıkla ulaşabilirsiniz.</p>
 
-        <!-- DAİRELER -->
-        <h2 id="daireler">Daireler <span class="badge badge-manager">manager</span></h2>
+        <!-- APARTMENTS -->
+        <h2 id="apartments">Daireler</h2>
         <h3>Daire Listeleme</h3>
         <p>
           <strong>Mevcut Daireleri Görüntüle</strong> ile daire listesine gidin. Her daire kartında daire numarası, kat,
@@ -206,7 +227,7 @@
           <div class="step">
             <div class="step-num">2</div>
             <div class="step-body">
-              Daire numarası (benzersiz), kat, tip (0+1 / 1+1 / 2+1 / 3+1 / 4+1), metrekare ve aylık aidat tutarını girin.
+              Daire numarası, kat, tip (0+1 / 1+1 / 2+1 / 3+1 / 4+1), metrekare ve aylık aidat tutarını girin.
             </div>
           </div>
           <div class="step">
@@ -226,8 +247,8 @@
           aidat tutarı belirlenebilir.
         </p>
 
-        <!-- SAKİNLER -->
-        <h2 id="sakinler">Sakinler <span class="badge badge-manager">manager</span></h2>
+        <!-- RESIDENTS -->
+        <h2 id="residents">Sakinler</h2>
         <p>
           Sakin bilgileri daire detay ekranından yönetilir. Bir dairede birden fazla geçmiş sakin olabilir; yalnızca
           <strong>aktif</strong> olan sakin güncel kiracı/ev sahibidir.
@@ -238,8 +259,8 @@
           <li><strong>Taşınma Tarihi</strong> girildiğinde sakin otomatik olarak pasif hale geçer.</li>
         </ul>
 
-        <!-- AİDATLAR -->
-        <h2 id="aidatlar">Aidat Yönetimi <span class="badge badge-manager">manager</span></h2>
+        <!-- DUES -->
+        <h2 id="dues">Aidat Yönetimi</h2>
         <p>
           Ana menüden Aidat ekranına gidip yıl ve ay seçildiğinde, o aya ait tüm dairelerin aidat kayıtları otomatik
           oluşturulur (daha önce oluşturulmamışsa).
@@ -269,11 +290,11 @@
         </p>
         <div class="note">
           <span class="note-icon">ℹ</span>
-          Aidat kaydı hiçbir zaman silinemez; yalnızca düzenlenebilir veya ödemeleri iptal edilebilir.
+          <div>Aidat kaydı hiçbir zaman silinemez; yalnızca düzenlenebilir veya ödemeleri iptal edilebilir.</div>
         </div>
 
-        <!-- FİNANSAL -->
-        <h2 id="finansal">Gelir / Gider <span class="badge badge-manager">manager</span></h2>
+        <!-- FINANCIAL -->
+        <h2 id="financial">Gelir / Gider</h2>
         <h3>Gelir Ekleme</h3>
         <p>
           <strong>Gelir Ekle</strong> sayfasında tutar, tarih, açıklama ve kategori (Aidat / Diğer) girerek kaydedin.
@@ -286,12 +307,14 @@
         </p>
         <div class="warning">
           <span class="warning-icon">⚠</span>
-          Gelir ve gider kayıtları <strong>silinemez</strong>. Hatalı kayıt, İşlem Geçmişi ekranından iptal edilerek
-          pasif hale getirilir.
+          <div>
+            Gelir ve gider kayıtları <strong>silinemez</strong>. Hatalı kayıt, İşlem Geçmişi ekranından iptal edilerek
+            pasif hale getirilir.
+          </div>
         </div>
 
-        <!-- İŞLEMLER -->
-        <h2 id="islemler">İşlem Geçmişi <span class="badge badge-manager">manager</span></h2>
+        <!-- TRANSACTIONS -->
+        <h2 id="transactions">İşlem Geçmişi</h2>
         <p>
           Tüm gelir ve gider kayıtlarını tarih aralığına göre filtreleyin. İptal edilmiş kayıtlar üzeri çizili olarak
           görünür.
@@ -314,16 +337,19 @@
           </div>
         </div>
 
-        <!-- RAPORLAR -->
-        <h2 id="raporlar">Raporlar <span class="badge badge-manager">manager</span></h2>
+        <!-- REPORTS -->
+        <h2 id="reports">Raporlar</h2>
         <p>Raporlar sayfasında yıl ve ay seçilerek o döneme ait özet rapor oluşturulur.</p>
         <ul>
-          <li><strong>PDF İndir</strong> — gelir/gider detayı ve aidat tahsilat durumunu içeren biçimlendirilmiş raporu PDF olarak kaydeder.</li>
+          <li>
+            <strong>PDF İndir</strong> — gelir/gider detayı ve aidat tahsilat durumunu içeren biçimlendirilmiş raporu
+            PDF olarak kaydeder.
+          </li>
         </ul>
         <p>Rapor; aidat tahsilat özeti, toplam gelir/gider ve net bakiye bilgilerini içerir.</p>
 
-        <!-- PROFİL -->
-        <h2 id="profil">Profil <span class="badge badge-manager">manager</span></h2>
+        <!-- PROFILE -->
+        <h2 id="profile">Profil</h2>
         <p>Profil sayfasından mevcut şifrenizi değiştirebilirsiniz.</p>
         <div class="steps">
           <div class="step">
@@ -340,8 +366,8 @@
           </div>
         </div>
 
-        <!-- YEDEKLEME -->
-        <h2 id="yedekleme">Yedekleme ve Geri Yükleme</h2>
+        <!-- BACKUP -->
+        <h2 id="backup">Yedekleme ve Geri Yükleme</h2>
         <p>Veritabanı yedekleme işlemleri <strong>Dosya</strong> menüsünden yapılır.</p>
         <h3>Yedek Alma</h3>
         <div class="steps">
@@ -379,25 +405,84 @@
         </div>
         <div class="tip">
           <span class="tip-icon">✓</span>
-          Düzenli yedek almanız önerilir. Özellikle her büyük veri girişinden önce yedek alın.
+          <div>Düzenli yedek almanız önerilir. Özellikle her büyük veri girişinden önce yedek alın.</div>
         </div>
         <div class="warning">
           <span class="warning-icon">⚠</span>
-          Geri yükleme işlemi mevcut veritabanının <strong>tamamını siler</strong>. Geri yüklemeden önce güncel bir
-          yedek almanız tavsiye edilir.
+          <div>
+            Geri yükleme işlemi mevcut veritabanının <strong>tamamını siler</strong>. Geri yüklemeden önce güncel bir
+            yedek almanız tavsiye edilir.
+          </div>
         </div>
 
-        <!-- TEMA -->
-        <h2 id="tema">Tema</h2>
+        <!-- THEME -->
+        <h2 id="theme">Tema</h2>
         <p>
           Uygulama açık ve koyu tema destekler. <strong>Görünüm → Tema Değiştir</strong> menüsü veya
           <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> kısayolu ile iki tema arasında geçiş yapabilirsiniz.
         </p>
+        <p>
+          <strong>Görünüm</strong> menüsünden ayrıca yakınlaştırma (<kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>Ctrl</kbd>+<kbd
+            >-</kbd
+          >
+          / <kbd>Ctrl</kbd>+<kbd>0</kbd>), sayfa yenileme (<kbd>Ctrl</kbd>+<kbd>R</kbd>) ve tam ekran (<kbd>F11</kbd>)
+          işlemleri yapılabilir.
+        </p>
+
+        <!-- SUPPORT -->
+        <h2 id="support">Destek ve Hata Bildirimi</h2>
+        <p>
+          Bir hata veya sorunla karşılaştığınızda <strong>Yardım → Hata Bildir</strong> menüsünü kullanabilirsiniz.
+          Varsayılan e-posta istemciniz açılarak destek adresine yönlendirilirsiniz.
+        </p>
+        <p>
+          <strong>Yardım → Güncellemeleri Kontrol Et</strong> ile uygulamanın yeni sürümünü manuel olarak kontrol
+          edebilirsiniz. Güncelleme varsa arka planda indirilir; tamamlandığında yeniden başlatma seçeneği sunulur.
+        </p>
+
+        <!-- FAQ -->
+        <h2 id="faq">Sık Sorulan Sorular</h2>
+
+        <h3>Şifremi unuttum, ne yapmalıyım?</h3>
+        <p>
+          Yönetici şifresi yalnızca admin tarafından sıfırlanabilir. Admin hesabınızın şifresini unuttuysanız uygulamayı
+          kaldırıp yeniden kurmanız gerekir; bu işlem mevcut veritabanını silmez. Yeniden kurulumda admin hesabı tekrar
+          oluşturulmaz — veritabanında zaten bir admin olduğu için kurulum adımı atlanır. Bu durumda
+          <strong>Yardım → Hata Bildir</strong> üzerinden destek alabilirsiniz.
+        </p>
+
+        <h3>Eski aidat kayıtlarını silebilir miyim?</h3>
+        <p>
+          Hayır. Aidat kayıtları hiçbir zaman silinemez; yalnızca düzenlenebilir veya varsa ödemeleri iptal edilebilir.
+          Bu kural finansal geçmişin bütünlüğünü korumak için uygulanmaktadır.
+        </p>
+
+        <h3>Bir ödemeyi yanlışlıkla kaydettim, nasıl düzeltirim?</h3>
+        <p>
+          Aidat ekranında ilgili dairenin ödeme geçmişini açın ve yanlış kaydın yanındaki
+          <strong>İptal Et</strong> butonuna tıklayın. İptal sebebini girdikten sonra ödeme ve buna bağlı gelir kaydı
+          otomatik olarak iptal edilir.
+        </p>
+
+        <h3>Birden fazla kullanıcı aynı anda uygulamayı açabilir mi?</h3>
+        <p>Hayır. İkinci bir pencere açılmaya çalışıldığında mevcut pencere öne getirilir.</p>
+
+        <h3>Veritabanı yedeğini ne sıklıkla almalıyım?</h3>
+        <p>
+          Her büyük veri girişinden (toplu aidat işlemi, sakin değişikliği vb.) önce yedek almanız önerilir.
+          <strong>Dosya → Veritabanı Yedekle</strong> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>) ile birkaç
+          saniyede yedek alabilirsiniz.
+        </p>
+
+        <h3>Uygulama güncellemelerini nasıl alırım?</h3>
+        <p>
+          Uygulama her başlangıçta otomatik olarak güncelleme kontrol eder. Yeni sürüm varsa arka planda indirilir ve
+          tamamlandığında yeniden başlatma seçeneği sunulur. Manuel kontrol için
+          <strong>Yardım → Güncellemeleri Kontrol Et</strong> menüsünü kullanabilirsiniz.
+        </p>
 
         <hr class="section-sep" />
-        <p style="margin-top: 32px; color: #94a3b8; font-size: 13px">
-          Mavikent Site Yönetim Sistemi &nbsp;·&nbsp; Destek: guray.topagac.dev@gmail.com
-        </p>
+        <p class="footer-note">Mavikent Site Yönetim Sistemi &nbsp;·&nbsp; Destek: guray.topagac.dev@gmail.com</p>
       </main>
     </div>
 

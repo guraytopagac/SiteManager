@@ -68,7 +68,7 @@ body {
 /* Main content */
 .content {
   flex: 1;
-  padding: 48px 56px;
+  padding: 48px 56px 120px;
   max-width: 820px;
 }
 
@@ -123,8 +123,8 @@ li {
   margin: 16px 0;
   font-size: 13.5px;
   display: flex;
-  gap: 10px;
-  align-items: flex-start;
+  gap: 30px;
+  align-items: center;
 }
 .note {
   background: #eff6ff;
@@ -144,9 +144,8 @@ li {
 .note-icon,
 .warning-icon,
 .tip-icon {
-  font-size: 16px;
+  font-size: 18px;
   flex-shrink: 0;
-  margin-top: 1px;
 }
 
 /* Shortcut table */
@@ -180,25 +179,6 @@ kbd {
   font-family: monospace;
   font-size: 12px;
   color: #1e293b;
-}
-
-/* Badge */
-.badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 99px;
-  font-size: 11px;
-  font-weight: 600;
-  vertical-align: middle;
-  margin-left: 6px;
-}
-.badge-admin {
-  background: #fef3c7;
-  color: #92400e;
-}
-.badge-manager {
-  background: #dbeafe;
-  color: #1e40af;
 }
 
 /* Steps */
@@ -240,4 +220,15 @@ hr.section-sep {
   border: none;
   border-top: 1px solid #e2e8f0;
   margin: 48px 0 0;
+}
+
+.note-list {
+  margin: 6px 0 0 18px;
+  padding: 0;
+}
+
+.footer-note {
+  margin-top: 32px;
+  color: #94a3b8;
+  font-size: 13px;
 }

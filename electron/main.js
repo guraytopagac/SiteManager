@@ -3,7 +3,6 @@ const { autoUpdater } = require("electron-updater");
 const serve = require("electron-serve").default;
 const fs = require("fs");
 const path = require("path");
-const db = require("../database/db");
 const registerIpcHandlers = require("./ipc/index.js");
 const { buildMenu } = require("./menu");
 const { runMigrations } = require("../database/migrate");
@@ -19,7 +18,7 @@ async function handleSeedResult(seedResult) {
   if (!seedResult || seedResult.alreadyExists || !mainWindow) return;
   let { username, password } = seedResult;
   if (!username || !password) {
-    console.error("Admin account created but credentials missing.");
+    console.error("[Main] Admin account created but credentials missing.");
     return;
   }
   const { response } = await dialog.showMessageBox(mainWindow, {
@@ -72,7 +71,7 @@ async function handleSeedResult(seedResult) {
   username = undefined;
 }
 
-function createMainWindow() {
+function createMainWindow(db) {
   const iconPath = path.join(__dirname, "../src/assets/icons/icon.ico");
 
   mainWindow = new BrowserWindow({
@@ -87,7 +86,7 @@ function createMainWindow() {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: true,
+      sandbox: false,
       webSecurity: true,
     },
   });
@@ -116,12 +115,13 @@ function createMainWindow() {
 }
 
 function setupAutoUpdater() {
-  autoUpdater.on("checking-for-update", () => console.log("Checking for updates..."));
-  autoUpdater.on("update-not-available", () => console.log("No update available."));
+  autoUpdater.on("checking-for-update", () => console.log("[Main] Checking for updates..."));
+  autoUpdater.on("update-not-available", () => console.log("[Main] No update available."));
 
   autoUpdater.on("update-available", (info) => {
     if (!mainWindow) return;
     mainWindow.setTitle(`Mavikent Site Yönetimi — Yeni sürüm (v${info.version}) indiriliyor...`);
+    mainWindow.webContents.send("update-available", { version: info.version });
   });
 
   autoUpdater.on("download-progress", (progress) => {
@@ -129,6 +129,11 @@ function setupAutoUpdater() {
     const percent = Math.round(progress.percent);
     mainWindow.setProgressBar(progress.percent / 100);
     mainWindow.setTitle(`Mavikent Site Yönetimi — Güncelleme İndiriliyor: %${percent}`);
+    mainWindow.webContents.send("download-progress", {
+      percent,
+      transferred: progress.transferred,
+      total: progress.total,
+    });
   });
 
   autoUpdater.on("update-downloaded", async () => {
@@ -139,6 +144,7 @@ function setupAutoUpdater() {
 
     mainWindow.setProgressBar(-1);
     mainWindow.setTitle("Mavikent Site Yönetimi Uygulaması");
+    mainWindow.webContents.send("update-downloaded");
     try {
       const { response } = await dialog.showMessageBox(mainWindow, {
         type: "info",
@@ -151,22 +157,50 @@ function setupAutoUpdater() {
       });
       if (response === 0) autoUpdater.quitAndInstall();
     } catch (err) {
-      console.error("Güncelleme dialog hatası:", err.message);
+      console.error("[Main] Update dialog error:", err.message);
     }
   });
 
   autoUpdater.on("error", (err) => {
-    console.error("Güncelleme hatası:", err.message);
+    console.error("[Main] Update error:", err.message);
+    if (mainWindow) {
+      dialog.showMessageBox(mainWindow, {
+        type: "warning",
+        title: "Güncelleme Hatası",
+        message: "Güncelleme kontrol edilirken bir hata oluştu.",
+        detail: err.message,
+        buttons: ["Tamam"],
+      });
+    }
+  });
+}
+
+const isFirstInstance = app.requestSingleInstanceLock();
+if (!isFirstInstance) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
   });
 }
 
 app.whenReady().then(async () => {
   app.setAppUserModelId("com.mavikent.sitemanager");
+  let db;
   try {
-    const appliedCount = runMigrations(db);
-    if (appliedCount > 0) console.log(`${appliedCount} migration(s) applied.`);
+    ({ db } = require("../database/db"));
+  } catch (err) {
+    dialog.showErrorBox("Veritabanı Hatası", `Veritabanı açılamadı:\n${err.message}`);
+    app.quit();
+    return;
+  }
+  try {
+    runMigrations(db);
     registerIpcHandlers(ipcMain);
-    createMainWindow();
+    createMainWindow(db);
     if (!isDev) setupAutoUpdater();
   } catch (err) {
     dialog.showErrorBox("Başlatma Hatası", `Uygulama başlatılamadı:\n${err.message}`);

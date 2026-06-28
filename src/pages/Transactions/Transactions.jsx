@@ -75,7 +75,7 @@ function Transactions() {
       if (!reason) return;
 
       const fn = t.type === "income" ? window.electronAPI.cancelIncome : window.electronAPI.cancelExpense;
-      const res = await fn({ id: t.id, managerId: currentUser.id, reason, cancelledBy: currentUser.id });
+      const res = await fn({ id: t.id, userId: currentUser.id, reason });
       if (res.success) {
         alert.success("İptal Edildi", res.message, 1800);
         fetchTransactions();

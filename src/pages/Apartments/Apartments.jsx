@@ -47,8 +47,9 @@ function EditModal({ apartment, currentUser, onClose, onSaved }) {
     resident_phone: apartment.resident_phone || "",
     resident_email: apartment.resident_email || "",
     resident_national_id: apartment.resident_national_id || "",
-    resident_type: apartment.resident_type || "tenant",
+    resident_type: apartment.resident_type || "",
     resident_move_in_date: apartment.resident_move_in_date || "",
+    resident_move_out_date: apartment.resident_move_out_date || "",
     resident_notes: apartment.resident_notes || "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -148,6 +149,7 @@ function EditModal({ apartment, currentUser, onClose, onSaved }) {
           <div className="form-row">
             <label>Sakin Türü</label>
             <select value={form.resident_type} onChange={set("resident_type")}>
+              <option value="">— Seçiniz —</option>
               <option value="tenant">Kiracı</option>
               <option value="owner">Malik</option>
             </select>
@@ -155,6 +157,10 @@ function EditModal({ apartment, currentUser, onClose, onSaved }) {
           <div className="form-row">
             <label>Giriş Tarihi</label>
             <input type="date" value={form.resident_move_in_date} onChange={set("resident_move_in_date")} />
+          </div>
+          <div className="form-row">
+            <label>Çıkış Tarihi</label>
+            <input type="date" value={form.resident_move_out_date} onChange={set("resident_move_out_date")} />
           </div>
           <div className="form-row">
             <label>Notlar</label>
@@ -180,7 +186,7 @@ function EditModal({ apartment, currentUser, onClose, onSaved }) {
   );
 }
 
-function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
+function PaymentModal({ due, year, month, currentUser, onClose, onPaymentSaved }) {
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -217,12 +223,17 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
     }
 
     setIsSubmitting(true);
-    const res = await window.electronAPI.recordPayment(due.id, {
-      amount: parsedAmount,
-      payment_method: paymentMethod,
-      payment_date: paymentDate,
-      note: note || null,
-      collected_by: currentUser.id,
+    const res = await window.electronAPI.recordPayment({
+      apartmentId: due.apartment_id,
+      year,
+      month,
+      paymentData: {
+        amount: parsedAmount,
+        payment_method: paymentMethod,
+        payment_date: paymentDate,
+        note: note || null,
+        collected_by: currentUser.id,
+      },
     });
     setIsSubmitting(false);
 
@@ -258,7 +269,7 @@ function PaymentModal({ due, currentUser, onClose, onPaymentSaved }) {
 
     if (!reason) return;
 
-    const res = await window.electronAPI.cancelPayment(paymentId, currentUser.id, reason, currentUser.id);
+    const res = await window.electronAPI.cancelPayment(paymentId, currentUser.id, reason);
     if (res.success) {
       alert.success("İptal Edildi", res.message, 1800);
       onPaymentSaved();
@@ -499,7 +510,7 @@ function Apartments() {
   }, [fetchDues]);
 
   useEffect(() => {
-    setSelectedDue((prev) => (prev ? dues.find((d) => d.id === prev.id) || null : null));
+    setSelectedDue((prev) => (prev ? dues.find((d) => d.apartment_id === prev.apartment_id) || null : null));
   }, [dues]);
 
   const handlePaymentSaved = useCallback(async () => {
@@ -509,7 +520,7 @@ function Apartments() {
   const handleDelete = async (due) => {
     const result = await Swal.fire({
       title: "Daireyi Sil",
-      html: `<b>Daire ${due.apartment_no}</b> silinecek.<br/>Bu daireye ait tüm aidat kayıtları da kalıcı olarak silinir.`,
+      html: `<b>Daire ${due.apartment_no}</b> pasife alınacak ve listeden kaldırılacak.`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Evet, Sil",
@@ -618,7 +629,7 @@ function Apartments() {
             </tr>
           ) : (
             dues.map((due) => (
-              <tr key={due.id}>
+              <tr key={due.apartment_id}>
                 <td>{due.apartment_no}</td>
                 <td>{due.floor}</td>
                 <td>{due.type}</td>
@@ -656,6 +667,8 @@ function Apartments() {
       {selectedDue && (
         <PaymentModal
           due={selectedDue}
+          year={selectedYear}
+          month={selectedMonth}
           currentUser={currentUser}
           onClose={() => setSelectedDue(null)}
           onPaymentSaved={handlePaymentSaved}

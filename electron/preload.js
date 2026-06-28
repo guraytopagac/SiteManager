@@ -1,37 +1,5 @@
 const { contextBridge, ipcRenderer } = require("electron");
-
-const CH = {
-  APARTMENT: {
-    ADD: "add-apartment",
-    UPDATE: "update-apartment",
-    DELETE: "delete-apartment",
-    BULK_UPDATE_DUE_AMOUNT: "bulk-update-due-amount",
-  },
-  AUTH: {
-    LOGIN: "login",
-    GET_MANAGERS: "get-managers",
-    CREATE_MANAGER: "create-manager",
-    UPDATE_MANAGER_STATUS: "update-manager-status",
-    CHANGE_PASSWORD: "change-password",
-  },
-  DASHBOARD: { GET_STATS: "get-stats" },
-  DUES: {
-    GET_FOR_MONTH: "get-dues-for-month",
-    RECORD_PAYMENT: "record-payment",
-    CANCEL_PAYMENT: "cancel-payment",
-    GET_PAYMENT_HISTORY: "get-payment-history",
-  },
-  FINANCIAL: {
-    ADD_INCOME: "add-income",
-    ADD_EXPENSE: "add-expense",
-    GET_TRANSACTIONS: "get-transactions",
-    CANCEL_INCOME: "cancel-income",
-    CANCEL_EXPENSE: "cancel-expense",
-  },
-  SYSTEM: { GET_APP_VERSION: "get-app-version" },
-  REPORTS: { GET_DATA: "get-report-data", SAVE_FILE: "save-report-file" },
-  EVENTS: { TOGGLE_THEME: "toggle-theme", PREFILL_LOGIN: "prefill-login" },
-};
+const CH = require("./ipc/channels");
 
 // Whitelist of all permitted IPC channels
 const ALLOWED_CHANNELS = new Set(Object.values(CH).flatMap(Object.values));
@@ -72,17 +40,22 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Dues
   getDuesForMonth: (managerId, year, month) => safeInvoke(CH.DUES.GET_FOR_MONTH, { managerId, year, month }),
-  recordPayment: (dueId, paymentData) => {
-    if (typeof dueId !== "number" || typeof paymentData !== "object" || paymentData === null)
-      throw new TypeError("recordPayment: dueId must be a number and paymentData must be an object");
-    return safeInvoke(CH.DUES.RECORD_PAYMENT, { dueId, paymentData });
+  recordPayment: ({ apartmentId, year, month, paymentData }) => {
+    if (
+      typeof apartmentId !== "number" ||
+      typeof year !== "number" ||
+      typeof month !== "number" ||
+      typeof paymentData !== "object" ||
+      paymentData === null
+    )
+      throw new TypeError("recordPayment: apartmentId, year, month must be numbers and paymentData must be an object");
+    return safeInvoke(CH.DUES.RECORD_PAYMENT, { apartmentId, year, month, paymentData });
   },
-  cancelPayment: (paymentId, managerId, reason, cancelledBy) => {
-    if (typeof paymentId !== "number" || typeof managerId !== "number")
-      throw new TypeError("cancelPayment: paymentId and managerId must be numbers");
+  cancelPayment: (paymentId, userId, reason) => {
+    if (typeof paymentId !== "number" || typeof userId !== "number")
+      throw new TypeError("cancelPayment: paymentId and userId must be numbers");
     if (typeof reason !== "string") throw new TypeError("cancelPayment: reason must be a string");
-    if (typeof cancelledBy !== "number") throw new TypeError("cancelPayment: cancelledBy must be a number");
-    return safeInvoke(CH.DUES.CANCEL_PAYMENT, { paymentId, managerId, reason, cancelledBy });
+    return safeInvoke(CH.DUES.CANCEL_PAYMENT, { paymentId, userId, reason });
   },
   getPaymentHistory: (dueId) => safeInvoke(CH.DUES.GET_PAYMENT_HISTORY, { dueId }),
 
@@ -95,17 +68,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
     if (typeof data !== "object" || data === null) throw new TypeError("addExpense: data must be an object");
     return safeInvoke(CH.FINANCIAL.ADD_EXPENSE, data);
   },
-  getTransactions: (managerId, startDate, endDate) =>
-    safeInvoke(CH.FINANCIAL.GET_TRANSACTIONS, { managerId, startDate, endDate }),
-  cancelIncome: ({ id, managerId, reason, cancelledBy }) => {
+  getTransactions: (managerId) => safeInvoke(CH.FINANCIAL.GET_TRANSACTIONS, { managerId }),
+  cancelIncome: ({ id, userId, reason }) => {
     if (typeof id !== "number" || typeof reason !== "string")
       throw new TypeError("cancelIncome: id must be a number, reason must be a string");
-    return safeInvoke(CH.FINANCIAL.CANCEL_INCOME, { id, managerId, reason, cancelledBy });
+    return safeInvoke(CH.FINANCIAL.CANCEL_INCOME, { id, userId, reason });
   },
-  cancelExpense: ({ id, managerId, reason, cancelledBy }) => {
+  cancelExpense: ({ id, userId, reason }) => {
     if (typeof id !== "number" || typeof reason !== "string")
       throw new TypeError("cancelExpense: id must be a number, reason must be a string");
-    return safeInvoke(CH.FINANCIAL.CANCEL_EXPENSE, { id, managerId, reason, cancelledBy });
+    return safeInvoke(CH.FINANCIAL.CANCEL_EXPENSE, { id, userId, reason });
   },
 
   // System
@@ -118,4 +90,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Events
   onToggleTheme: (callback) => safeOn(CH.EVENTS.TOGGLE_THEME, callback),
   onPrefillLogin: (callback) => safeOn(CH.EVENTS.PREFILL_LOGIN, callback),
+  onUpdateAvailable: (callback) => safeOn(CH.EVENTS.UPDATE_AVAILABLE, callback),
+  onDownloadProgress: (callback) => safeOn(CH.EVENTS.DOWNLOAD_PROGRESS, callback),
+  onUpdateDownloaded: (callback) => safeOn(CH.EVENTS.UPDATE_DOWNLOADED, callback),
 });

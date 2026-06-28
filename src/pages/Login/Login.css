@@ -47,3 +47,72 @@
   font-size: 1.125rem;
   font-weight: 600;
 }
+
+.updateOverlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0 4px;
+  width: 100%;
+}
+
+.updateIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent-subtle);
+  color: var(--button-color);
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.updateIconReady {
+  background: rgba(52, 211, 153, 0.15);
+  color: var(--success);
+}
+
+.updateTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.updateSub {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.updateProgressBar {
+  width: 100%;
+  height: 6px;
+  background: var(--border-default);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.updateProgressFill {
+  height: 100%;
+  background: var(--button-color);
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+
+.updateProgressText {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.updateNote {
+  font-size: 0.8rem;
+  color: var(--text-disabled);
+  text-align: center;
+  margin-top: 8px;
+  line-height: 1.5;
+}

@@ -1,5 +1,7 @@
 # Mavikent Site Yönetimi Uygulaması — Proje Dokümantasyonu
 
+> Gelecek hedefler ve planlanan özellikler için bkz. `ROADMAP.md`.
+
 ## 0. Okunmayacak Dosya ve Klasörler
 
 ```
@@ -22,6 +24,8 @@ package-lock.json
 
 **Teknik Stack:** Electron v41, React v19, SQLite (better-sqlite3), Vite v8, SweetAlert2, jspdf + jspdf-autotable (PDF), electron-updater (GitHub Releases)
 
+**Güncel Sürüm:** 1.1.7
+
 ---
 
 ## 2. Kod Yazma Kuralları
@@ -40,10 +44,10 @@ package-lock.json
 
 ### Asla Kullanıcı Onayı Olmadan Yapma
 
-- `git commit` — kullanıcı açıkça "commit at" veya onay vermeden kesinlikle commit oluşturma
-- `git push` — kullanıcı açıkça "push et" veya onay vermeden kesinlikle push yapma
-- `gh release create` / `gh release edit` — kullanıcı açıkça izin vermeden GitHub release oluşturma veya düzenleme
-- `npm run dist` veya `npm run build` — kullanıcı açıkça "build et" demeden çalıştırma
+- `git commit` — kullanıcı açıkça onay vermeden kesinlikle commit oluşturma
+- `git push` — kullanıcı açıkça onay vermeden kesinlikle push yapma
+- `gh release create` / `gh release edit` — kullanıcı açıkça izin vermeden
+- `npm run dist` veya `npm run build` — kullanıcı açıkça "build et" demeden
 
 ### Asla Yapma
 
@@ -57,27 +61,30 @@ package-lock.json
 ```
 SiteManager/
 ├── database/
-│   ├── schema/              # Tablo şemaları (users, apartments, residents, dues, due_payments, incomes, expenses, payment_cancellations)
-│   ├── db.js                # Bağlantı mantığı (WAL, pragma, integrity check)
-│   ├── migrate.js           # Schema yükleyici + migration runner (runMigrations — her başlangıçta çağrılır)
-│   └── seed.js              # İlk kurulumda admin hesabı oluşturma
+│   ├── schema/          # Tablo şemaları — NN_tablo.sql formatı, alfabetik sırayla yüklenir
+│   ├── migrations/      # Mevcut tablolara ALTER — NNN_aciklama.sql formatı, bir kez çalışır
+│   ├── db.js            # Bağlantı (WAL, pragma, integrity check)
+│   ├── migrate.js       # runMigrations() — her başlangıçta main.js çağırır
+│   └── seed.js          # İlk kurulumda admin hesabı oluşturma
 │
 ├── electron/
-│   ├── ipc/                 # IPC handler'ları (apartment, auth, dashboard, dues, financial, report, system)
-│   │   ├── channels.js      # Tüm IPC kanal adları — handler'lar buradan import eder
-│   │   └── index.js         # Handler kayıt merkezi
-│   ├── services/            # İş mantığı (apartment, auth, dashboard, dues, financial, report)
-│   ├── main.js              # Electron ana döngüsü + menü (menu.js'den buildMenu)
-│   ├── menu.js              # Uygulama menüsü (Dosya, Yardım, DevTools)
-│   └── preload.js           # electronAPI bridge (contextBridge, sandbox uyumlu inline CH)
+│   ├── guide/           # Kullanım kılavuzu (guide.html + guide.css) — F1 ile açılır
+│   ├── ipc/
+│   │   ├── channels.js  # Tüm IPC kanal sabitleri — handler'lar ve preload buradan import eder
+│   │   ├── index.js     # Handler kayıt merkezi
+│   │   └── *.handlers.js
+│   ├── services/        # İş mantığı katmanı
+│   ├── main.js          # Electron ana döngüsü
+│   ├── menu.js          # Uygulama menüsü (Dosya, Görünüm, Yardım, DevTools)
+│   └── preload.js       # contextBridge — electronAPI'yi renderer'a açar
 │
 └── src/
-    ├── components/          # Footer, ProtectedRoute (rol bazlı rota koruması)
-    ├── hooks/               # useTheme (tema yönetimi), useCurrentUser (oturum okuma)
-    ├── pages/               # Login, Dashboard, AdminDashboard, Apartments, AddApartment,
-    │                        #   AddIncome, AddExpense, Transactions, Profile, Reports
-    ├── App.jsx              # Rotalar
-    └── style.css            # Global stiller (light/dark tema CSS değişkenleri)
+    ├── components/      # Footer, ProtectedRoute (rol bazlı rota koruması)
+    ├── hooks/           # useTheme, useCurrentUser
+    ├── pages/           # Tüm sayfalar (lazy-load)
+    ├── utils/           # alert.js (SweetAlert2), constants.js, date.js, validation.js
+    ├── App.jsx          # Rotalar (HashRouter)
+    └── style.css        # Global stiller (light/dark tema CSS değişkenleri)
 ```
 
 ---
@@ -92,115 +99,133 @@ SiteManager/
 - Şifreler `bcryptjs` ile hash'lenerek saklanır
 - Oturum: `sessionStorage` → `currentUser` anahtarı
 - "Beni hatırla": 30 günlük session token
+- Admin hesabı yalnızca bir adet olabilir; `seed.js` `is_active`'e bakmaksızın `role = 'admin'` varlığını kontrol eder
+- `createManager`'da kullanıcı adı `/^[A-Za-z0-9_]{3,}$/` ile doğrulanır; timing attack koruması için sahte hash karşılaştırması yapılır
+- Oturum kapatma tamamen client-side: `sessionStorage.clear()` + `user-session-changed` event dispatch (IPC yok)
 
 ---
 
 ## 5. Veritabanı Şeması
 
 ```sql
-users                  (id, username, email, password_hash, role, is_active,
-                        failed_login_attempts, locked_until, last_login,
-                        password_changed_at,
-                        created_at, updated_at)
-apartments             (id, apartment_no UNIQUE NOCASE, floor, type∈{0+1,1+1,2+1,3+1,4+1},
-                        square_meters, due_amount, manager_id→users.id, created_at, updated_at)
-residents              (id, full_name, phone, email, national_id, resident_type∈{owner,tenant},
-                        move_in_date, move_out_date, is_active, notes,
-                        apartment_id→apartments.id ON DELETE CASCADE, created_at, updated_at)
-                        -- Trigger: updated_at otomatik (WHEN guard ile); move_out_date → is_active=0
-dues                   (id, apartment_id→apartments.id, year, month, due_amount, due_date,
-                        paid_amount, status∈{unpaid,partial,paid}, created_at, updated_at)
-                        UNIQUE(apartment_id, year, month)
-due_payments           (id, due_id→dues.id, amount, payment_method∈{cash,bank_transfer,card,other},
-                        payment_date, receipt_path, note,
-                        collected_by→users.id, created_at, updated_at)
-payment_cancellations  (id, payment_id→due_payments.id UNIQUE, cancelled_by→users.id,
-                        cancelled_at, cancel_reason)
-                        -- Immutable audit log: trigger ile UPDATE engellenir
-incomes                (id, amount, date, description, category∈{dues,other},
-                        is_cancelled, cancelled_at, cancel_reason,
-                        manager_id→users.id, due_payment_id→due_payments.id UNIQUE,
-                        cancelled_by→users.id, created_at, updated_at)
-                        -- due_payment_id: aidat ödemesi kaydedilince otomatik gelir eklenir (dues.service)
-                        -- Ödeme iptal edilince linked gelir de otomatik iptal edilir
-expenses               (id, amount, date, description,
-                        category∈{maintenance,cleaning,utility,staff,other},
-                        is_cancelled, cancelled_at, cancel_reason,
-                        manager_id→users.id, cancelled_by→users.id, created_at, updated_at)
+users                 (id, username, email, password_hash, role, is_active,
+                       last_login, password_changed_at, created_at, updated_at)
+
+apartments            (id, apartment_no UNIQUE NOCASE, floor,
+                       type∈{0+1,1+1,2+1,3+1,4+1}, square_meters,
+                       due_amount, is_active, manager_id→users.id,
+                       created_at, updated_at)
+
+residents             (id, full_name, phone, email, national_id,
+                       resident_type∈{owner,tenant}, move_in_date, move_out_date,
+                       is_active, notes,
+                       apartment_id→apartments.id ON DELETE CASCADE,
+                       created_at, updated_at)
+                       -- Trigger: move_out_date set edilince is_active=0
+
+dues                  (id, apartment_id→apartments.id, year, month,
+                       due_amount CHECK(>0 AND <=50000),
+                       paid_amount CHECK(>=0 AND <=due_amount),
+                       status∈{unpaid,partial,paid},
+                       created_at, updated_at)
+                       UNIQUE(apartment_id, year, month)
+
+due_payments          (id, due_id→dues.id, collected_by→users.id,
+                       amount CHECK(>0 AND <=50000),
+                       payment_method∈{cash,bank_transfer,card,other},
+                       payment_date, note CHECK(len<=500), created_at)
+
+payment_cancellations (id, payment_id→due_payments.id UNIQUE,
+                       cancelled_by→users.id, cancelled_at, cancel_reason)
+                       -- Immutable audit log: trigger ile UPDATE engellenir
+
+incomes               (id, amount, date, description, category∈{dues,other},
+                       is_cancelled, cancelled_at, cancel_reason,
+                       manager_id→users.id, due_payment_id→due_payments.id UNIQUE,
+                       cancelled_by→users.id, created_at, updated_at)
+
+expenses              (id, amount, date, description,
+                       category∈{maintenance,cleaning,utility,staff,other},
+                       is_cancelled, cancelled_at, cancel_reason,
+                       manager_id→users.id, cancelled_by→users.id,
+                       created_at, updated_at)
 ```
 
-**Schema Değişikliği Kuralı:**
+### Schema Değişikliği Kuralı
 
-`runMigrations()` her başlangıçta `main.js` tarafından çağrılır. Sıra önemli:
-1. `database/migrations/` klasöründeki henüz uygulanmamış `.sql` dosyaları ada göre sıralı çalıştırılır ve `migrations` tablosuna kaydedilir (tekrar çalışmazlar). Fresh install'da tablolar henüz yok; "no such table" hatası yakalanır, migration "uygulandı" olarak işaretlenir.
-2. `database/schema/` altındaki tüm SQL dosyaları `CREATE TABLE/TRIGGER IF NOT EXISTS` ile yüklenir. Fresh install'da tabloları bu aşama oluşturur; mevcut kurulumda no-op.
+`runMigrations()` her başlangıçta çalışır. Sıra:
 
-| Durum | Ne yapılır |
-| ----- | ---------- |
-| **Yeni tablo ekleme** | `database/schema/` altına yeni `.sql` dosyası oluştur, `migrate.js` içindeki `SCHEMA_FILES` dizisine ekle. |
-| **Mevcut tabloya sütun/index/trigger ekleme** | `database/migrations/` altına `NNN_aciklama.sql` dosyası oluştur (SQLite `ALTER TABLE ADD COLUMN` destekler; `IF NOT EXISTS` yoktur). |
-| **Tablo silme veya yeniden adlandırma** | Önce kullanıcıya sor (bkz. §2). |
+1. `database/migrations/` — henüz uygulanmamış dosyalar ada göre sıralı çalışır, `migrations` tablosuna kaydedilir (tekrar çalışmaz). Fresh install'da "no such table" yakalanır, migration uygulandı sayılır.
+2. `database/schema/` — `CREATE TABLE/TRIGGER IF NOT EXISTS` ile yüklenir. Fresh install'da tabloları bu aşama oluşturur; mevcut kurulumda no-op.
 
-**Önemli Notlar:**
-- `apartments` tablosundan `resident_name/phone/email` kaldırıldı → `residents` tablosuna taşındı
-- `due_payments` tablosundan `is_cancelled/cancelled_at/cancel_reason` kaldırıldı → ayrı `payment_cancellations` tablosuna taşındı
-- `payment_cancellations.payment_id` UNIQUE kısıtı: bir ödeme yalnızca bir kez iptal edilebilir
-- `incomes` ve `expenses` soft-delete mantığıyla çalışır: `is_cancelled=1` + `cancel_reason` + `cancelled_by`
-- `incomes.due_payment_id`: aidat ödemesi kaydedilince `dues.service` otomatik gelir ekler; ödeme iptalinde linked gelir de iptal edilir
-- IPC kanal adları `electron/ipc/channels.js`'de sabitlenir; tüm handler'lar buradan import eder. `preload.js` `sandbox: true` nedeniyle inline CH kullanır (değerler channels.js ile senkronize tutulmalı)
-- `logout` IPC kaldırıldı — oturum kapatma tamamen client-side: `sessionStorage.clear()` + `user-session-changed` event dispatch
-- Admin hesabı yalnızca bir adet olabilir; `seed.js` `is_active` bakmaksızın `role = 'admin'` varlığını kontrol eder
-- SQLite WAL modunda veritabanını sıfırlamak için `database.db`, `database.db-wal`, `database.db-shm` üçü birden silinmeli
+| Durum                               | Ne yapılır                                                                      |
+| ----------------------------------- | ------------------------------------------------------------------------------- |
+| Yeni tablo                          | `database/schema/NN_tablo.sql` oluştur                                          |
+| Mevcut tabloya sütun/index/trigger  | `database/migrations/NNN_aciklama.sql` + ilgili `schema/` dosyasını da güncelle |
+| Tablo silme veya yeniden adlandırma | Önce kullanıcıya sor                                                            |
 
 ---
 
-## 6. Uygulama Rotaları
+## 6. Kritik İş Kuralları
 
-| Rota                 | Bileşen        | Rol          |
-| -------------------- | -------------- | ------------ |
-| `/`                  | Login          | —            |
-| `/admin-dashboard`   | AdminDashboard | admin        |
-| `/dashboard`         | Dashboard      | manager      |
-| `/add-apartment`     | AddApartment   | manager      |
-| `/apartments`        | Apartments     | manager      |
-| `/add-income`        | AddIncome      | manager      |
-| `/add-expense`       | AddExpense     | manager      |
-| `/transactions`      | Transactions   | manager      |
-| `/profile`           | Profile        | manager      |
-| `/reports`           | Reports        | manager      |
-| `/send-announcement` | —              | ❌ Henüz yok |
+1. **Aidat kaydı silinemez** — yalnızca düzenlenebilir.
+2. **`getDuesForMonth`** — o ay için eksik aidat kayıtları `INSERT OR IGNORE` ile otomatik oluşturulur.
+3. **`bulkUpdateDueAmount`** — yalnızca `apartments.due_amount`'ı günceller; mevcut `dues` kayıtlarına dokunmaz. Yeni ay oluşturulduğunda `getDuesForMonth` o anki `apartment.due_amount`'ı alır.
+4. **Gelir/gider silinemez** — `cancelIncome` / `cancelExpense` ile `is_cancelled=1` yapılır.
+5. **Ödeme iptali** — `due_payments` kaydı silinmez; `payment_cancellations`'a kayıt eklenir. Linked `incomes` kaydı otomatik iptal edilir. `paid_amount` doğrudan çıkarma değil, aktif ödemelerin `SUM`'ı ile yeniden hesaplanır.
+6. **Aidat bağlantılı gelir** (`due_payment_id IS NOT NULL`) doğrudan iptal edilemez; yalnızca `cancelPayment` üzerinden otomatik iptal edilir.
+7. **Soft-delete**: daire `is_active=0` — `recordPayment`'ta `AND is_active=1` kontrolü vardır.
+8. **Sakinler**: `residents.is_active=1` olan aktif sakindir; bir dairenin birden fazla geçmiş sakini olabilir.
+9. **Para tutarları** `REAL` saklanır, ekranda `₺` formatında gösterilir.
+10. **Yedekleme**: `menu.js` içinde `db.backup()` (yedek) + dosya kopyalama (geri yükleme) + `app.relaunch()`. IPC değil.
 
 ---
 
-## 7. Temel İş Kuralları
+## 7. Validasyon Katmanları
 
-1. Aidat kaydı silinemez, yalnızca düzenlenebilir.
-2. `getDuesForMonth` çağrıldığında o ay için eksik aidat kayıtları otomatik oluşturulur (`INSERT OR IGNORE`).
-3. Gelir/gider silinemez; `cancelIncome` / `cancelExpense` IPC ile iptal edilir (`is_cancelled=1`).
-4. Ödeme iptali `due_payments` kaydını silmez; `payment_cancellations` tablosuna kayıt eklenir.
-5. Sakin bilgileri `residents` tablosunda tutulur; bir dairenin birden fazla geçmiş sakini olabilir. `is_active=1` olan sakin aktiftir.
-6. Para tutarları `REAL` olarak saklanır, ekranda `₺` formatında gösterilir.
-7. Şifreler düz metin olarak **hiçbir zaman** saklanmaz.
-8. Veritabanı yedeği: menü üzerinden yapılır (Dosya → Veritabanı Yedekle / Yükle); IPC değil, doğrudan `menu.js` içinde dosya kopyalama + `app.relaunch()`.
+Her IPC çağrısı üç katmanda doğrulanır — değişiklik yaparken tüm katmanları kontrol et:
 
----
-
-## 8. electronAPI — IPC Endpoint Özeti
-
-| Grup        | Metod                                                                 |
-| ----------- | --------------------------------------------------------------------- |
-| Apartment   | `addApartment`, `updateApartment`, `deleteApartment`, `bulkUpdateDueAmount` |
-| Auth        | `login`, `getManagers`, `createManager`, `updateManagerStatus`, `changePassword` |
-| Dashboard   | `getStats`                                                            |
-| Dues        | `getDuesForMonth`, `recordPayment`, `cancelPayment`, `getPaymentHistory` |
-| Financial   | `addIncome`, `addExpense`, `getTransactions`, `cancelIncome`, `cancelExpense` |
-| Reports     | `getReportData`, `saveReportFile`                                     |
-| System      | `getAppVersion`                                                       |
-| Events      | `onToggleTheme`, `onPrefillLogin` (renderer listener — main→renderer) |
+| Katman     | Dosya                        | Ne kontrol eder                            |
+| ---------- | ---------------------------- | ------------------------------------------ |
+| 1. Bridge  | `preload.js`                 | Tip kontrolü (typeof), null guard          |
+| 2. Handler | `electron/ipc/*.handlers.js` | Alan varlığı, aralık, format (regex, enum) |
+| 3. DB      | `database/schema/*.sql`      | CHECK constraint, NOT NULL, UNIQUE, FK     |
 
 ---
 
-## 9. Build & Dağıtım
+## 8. Uygulama Rotaları
+
+| Rota               | Bileşen        | Rol     |
+| ------------------ | -------------- | ------- |
+| `/`                | Login          | —       |
+| `/admin-dashboard` | AdminDashboard | admin   |
+| `/dashboard`       | Dashboard      | manager |
+| `/add-apartment`   | AddApartment   | manager |
+| `/apartments`      | Apartments     | manager |
+| `/add-income`      | AddIncome      | manager |
+| `/add-expense`     | AddExpense     | manager |
+| `/transactions`    | Transactions   | manager |
+| `/profile`         | Profile        | manager |
+| `/reports`         | Reports        | manager |
+
+---
+
+## 9. electronAPI — IPC Endpoint Özeti
+
+| Grup      | Metodlar                                                                         |
+| --------- | -------------------------------------------------------------------------------- |
+| Apartment | `addApartment`, `updateApartment`, `deleteApartment`, `bulkUpdateDueAmount`      |
+| Auth      | `login`, `getManagers`, `createManager`, `updateManagerStatus`, `changePassword` |
+| Dashboard | `getStats`                                                                       |
+| Dues      | `getDuesForMonth`, `recordPayment`, `cancelPayment`, `getPaymentHistory`         |
+| Financial | `addIncome`, `addExpense`, `getTransactions`, `cancelIncome`, `cancelExpense`    |
+| Reports   | `getReportData`, `saveReportFile`                                                |
+| System    | `getAppVersion`                                                                  |
+| Events    | `onToggleTheme`, `onPrefillLogin` (main→renderer)                                |
+
+---
+
+## 10. Build & Dağıtım
 
 ```bash
 npm run dev      # Vite + Electron eş zamanlı (concurrently + wait-on)
@@ -212,4 +237,5 @@ npm run rebuild  # Native modülleri yeniden derle
 
 - Uygulama verisi: `%APPDATA%/Mavikent Site Yönetimi/`
 - Otomatik güncelleme: `electron-updater` → GitHub Releases (`guraytopagac/SiteManager`)
-- Yedek/geri yükleme: Dosya menüsü → Veritabanı Yedekle / Yükle (Ctrl+Shift+B / Ctrl+Shift+R)
+- Tek instance kilidi: ikinci açılmaya çalışıldığında mevcut pencere öne gelir
+- SQLite sıfırlama: `database.db`, `database.db-wal`, `database.db-shm` üçü birden silinmeli

@@ -1,11 +1,10 @@
-const fs = require("fs");
-const path = require("path");
 const { Menu, BrowserWindow, dialog, app, shell } = require("electron");
 const { autoUpdater } = require("electron-updater");
+const fs = require("fs");
+const path = require("path");
 const Database = require("better-sqlite3");
 const CH = require("./ipc/channels");
-const db = require("../database/db");
-const { closeDb } = require("../database/db");
+const { db, closeDb } = require("../database/db");
 
 async function runBackup(mainWindow) {
   const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
@@ -20,17 +19,18 @@ async function runBackup(mainWindow) {
     await db.backup(filePath);
     await fs.promises.unlink(filePath + "-shm").catch(() => {});
     await fs.promises.unlink(filePath + "-wal").catch(() => {});
-    dialog.showMessageBox(mainWindow, {
+    await dialog.showMessageBox(mainWindow, {
       type: "info",
       title: "Yedekleme",
       message: "Yedek başarıyla alındı.",
       buttons: ["Tamam"],
     });
-  } catch {
-    dialog.showMessageBox(mainWindow, {
+  } catch (err) {
+    await dialog.showMessageBox(mainWindow, {
       type: "error",
       title: "Yedekleme Hatası",
       message: "Yedek alınamadı.",
+      detail: err.message,
       buttons: ["Tamam"],
     });
   }
@@ -38,7 +38,7 @@ async function runBackup(mainWindow) {
 
 async function runRestore(mainWindow) {
   const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow, {
-    title: "Yedek Dosyasını Seç",
+    title: "Veritabanı Dosyasını Seç",
     filters: [{ name: "SQLite Veritabanı", extensions: ["db"] }],
     properties: ["openFile"],
   });
@@ -56,7 +56,7 @@ async function runRestore(mainWindow) {
   }
 
   if (!integrityOk) {
-    dialog.showMessageBox(mainWindow, {
+    await dialog.showMessageBox(mainWindow, {
       type: "error",
       title: "Geçersiz Dosya",
       message: "Seçilen dosya bozuk veya geçerli bir veritabanı değil.",
@@ -67,9 +67,9 @@ async function runRestore(mainWindow) {
 
   const { response } = await dialog.showMessageBox(mainWindow, {
     type: "warning",
-    buttons: ["Yükle", "İptal Et"],
-    defaultId: 0,
     message: "Mevcut veritabanının üzerine yazılacak. Emin misiniz?",
+    buttons: ["Veritabanını Yükle", "İptal"],
+    defaultId: 0,
   });
 
   if (response !== 0) return;
@@ -77,20 +77,22 @@ async function runRestore(mainWindow) {
   const dbPath = db.name;
   const tempBackup = dbPath + ".bak";
 
-  // Close the active connection so Windows releases the file lock
-  closeDb();
-
   try {
     await fs.promises.copyFile(dbPath, tempBackup);
-  } catch {
-    dialog.showMessageBox(mainWindow, {
+  } catch (err) {
+    await dialog.showMessageBox(mainWindow, {
       type: "error",
       title: "Yükleme Hatası",
       message: "Mevcut veritabanı korunamadı.",
+      detail: err.message,
       buttons: ["Tamam"],
     });
     return;
   }
+
+  // Close the active connection so Windows releases the file lock
+  // Done after temp backup succeeds — closing before would leave the app with no DB on error
+  closeDb();
 
   try {
     await fs.promises.copyFile(filePaths[0], dbPath);
@@ -103,29 +105,32 @@ async function runRestore(mainWindow) {
     });
     app.relaunch();
     app.exit();
-  } catch {
+  } catch (err) {
     await fs.promises.copyFile(tempBackup, dbPath).catch(() => {});
-    dialog.showMessageBox(mainWindow, {
+    await dialog.showMessageBox(mainWindow, {
       type: "error",
       title: "Yükleme Hatası",
       message: "Yükleme başarısız. Önceki veritabanı korundu.",
+      detail: err.message,
       buttons: ["Tamam"],
     });
   }
 }
 
 let guideWin = null;
-function openGuide() {
+function openGuide(iconPath) {
   if (guideWin && !guideWin.isDestroyed()) {
     guideWin.focus();
     return;
   }
   guideWin = new BrowserWindow({
-    width: 1000,
+    width: 1200,
     height: 780,
     title: "Kullanım Kılavuzu",
+    icon: iconPath,
     autoHideMenuBar: true,
-    webPreferences: { contextIsolation: true, nodeIntegration: false },
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: false },
+    resizable: false,
   });
   guideWin.loadFile(path.join(__dirname, "guide", "guide.html"));
   guideWin.on("closed", () => {
@@ -183,7 +188,7 @@ function buildMenu(mainWindow, isDev, iconPath) {
           label: "Kullanım Kılavuzu",
           accelerator: "F1",
           click() {
-            openGuide();
+            openGuide(iconPath);
           },
         },
         { type: "separator" },

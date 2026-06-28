@@ -2,26 +2,31 @@ const authService = require("../services/auth.service");
 const CH = require("./channels");
 
 function registerAuthHandlers(ipcMain) {
-  ipcMain.handle(CH.AUTH.LOGIN, async (event, credentials) => {
+  ipcMain.handle(CH.AUTH.LOGIN, (event, credentials) => {
     if (!credentials || typeof credentials !== "object") {
       return { success: false, message: "Geçersiz istek." };
     }
+    if (!credentials.username || !credentials.password) {
+      return { success: false, message: "Kullanıcı adı ve şifre zorunludur." };
+    }
     try {
-      return await authService.login(credentials);
+      return authService.login(credentials);
     } catch (err) {
+      console.error("[auth.handlers] LOGIN:", err);
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });
 
-  ipcMain.handle(CH.AUTH.GET_MANAGERS, async () => {
+  ipcMain.handle(CH.AUTH.GET_MANAGERS, () => {
     try {
-      return await authService.getManagers();
+      return authService.getManagers();
     } catch (err) {
+      console.error("[auth.handlers] GET_MANAGERS:", err);
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });
 
-  ipcMain.handle(CH.AUTH.CREATE_MANAGER, async (event, data) => {
+  ipcMain.handle(CH.AUTH.CREATE_MANAGER, (event, data) => {
     if (!data || typeof data !== "object" || Array.isArray(data)) {
       return { success: false, message: "Geçersiz istek." };
     }
@@ -35,14 +40,21 @@ function registerAuthHandlers(ipcMain) {
     if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(email)) {
       return { success: false, message: "Geçerli bir e-posta adresi girin (Türkçe karakter kullanılamaz)." };
     }
+    if (!/^[A-Za-z0-9_]{3,}$/.test(username)) {
+      return {
+        success: false,
+        message: "Kullanıcı adı en az 3 karakter olmalı, yalnızca İngilizce harf, rakam ve _ içermelidir.",
+      };
+    }
     try {
-      return await authService.createManager(data);
+      return authService.createManager(data);
     } catch (err) {
+      console.error("[auth.handlers] CREATE_MANAGER:", err);
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });
 
-  ipcMain.handle(CH.AUTH.UPDATE_MANAGER_STATUS, async (event, { id, isActive }) => {
+  ipcMain.handle(CH.AUTH.UPDATE_MANAGER_STATUS, (event, { id, isActive }) => {
     if (!id || typeof id !== "number" || id <= 0) {
       return { success: false, message: "Geçersiz kullanıcı ID." };
     }
@@ -50,26 +62,27 @@ function registerAuthHandlers(ipcMain) {
       return { success: false, message: "Geçersiz durum değeri." };
     }
     try {
-      return await authService.updateManagerStatus(id, isActive);
+      return authService.updateManagerStatus(id, isActive);
     } catch (err) {
+      console.error("[auth.handlers] UPDATE_MANAGER_STATUS:", err);
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });
 
-  ipcMain.handle(CH.AUTH.CHANGE_PASSWORD, async (event, { userId, oldPassword, newPassword }) => {
-    if (!userId || typeof userId !== "number" || !oldPassword || !newPassword) {
+  ipcMain.handle(CH.AUTH.CHANGE_PASSWORD, (event, { userId, oldPassword, newPassword }) => {
+    if (!userId || typeof userId !== "number" || userId <= 0 || !oldPassword || !newPassword) {
       return { success: false, message: "Eksik parametre." };
     }
     if (newPassword.length < 8) {
       return { success: false, message: "Şifre en az 8 karakter olmalıdır." };
     }
     try {
-      return await authService.changePassword(userId, oldPassword, newPassword);
+      return authService.changePassword(userId, oldPassword, newPassword);
     } catch (err) {
+      console.error("[auth.handlers] CHANGE_PASSWORD:", err);
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });
-
 }
 
 module.exports = registerAuthHandlers;

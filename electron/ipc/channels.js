@@ -45,6 +45,9 @@ const CHANNELS = Object.freeze({
   EVENTS: Object.freeze({
     TOGGLE_THEME: "toggle-theme",
     PREFILL_LOGIN: "prefill-login",
+    UPDATE_AVAILABLE: "update-available",
+    DOWNLOAD_PROGRESS: "download-progress",
+    UPDATE_DOWNLOADED: "update-downloaded",
   }),
 });
 
