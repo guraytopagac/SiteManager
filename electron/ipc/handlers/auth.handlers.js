@@ -1,5 +1,5 @@
-const authService = require("../services/auth.service");
-const CH = require("./channels");
+const authService = require("../../services/auth.service");
+const CH = require("../channels");
 
 function registerAuthHandlers(ipcMain) {
   ipcMain.handle(CH.AUTH.LOGIN, (event, credentials) => {

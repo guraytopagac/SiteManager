@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AddApartment.css";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
-import { alert } from "../../utils/alert";
+import { showAlert } from "../../utils/alert";
 
 const INITIAL_DATA = {
   apartment_no: "",
@@ -32,10 +32,10 @@ function AddApartment() {
     e.preventDefault();
 
     if (!apartmentData.apartment_no.trim()) {
-      return alert.error("Hata", "Daire numarası boş bırakılamaz.");
+      return showAlert.error("Hata", "Daire numarası boş bırakılamaz.");
     }
     if (Number(apartmentData.due_amount) <= 0) {
-      return alert.error("Hata", "Aidat tutarı sıfırdan büyük olmalıdır.");
+      return showAlert.error("Hata", "Aidat tutarı sıfırdan büyük olmalıdır.");
     }
 
     setSubmitting(true);
@@ -49,14 +49,14 @@ function AddApartment() {
     setSubmitting(false);
 
     if (response.success) {
-      const result = await alert.confirm("Başarılı!", response.message, "Başka Daire Ekle", false, "Dashboard'a Dön");
+      const result = await showAlert.confirm("Başarılı!", response.message, "Başka Daire Ekle", false, "Dashboard'a Dön");
       if (result.isConfirmed) {
         setApartmentData(INITIAL_DATA);
       } else {
         navigate("/dashboard");
       }
     } else {
-      alert.error("Hata", response.message);
+      showAlert.error("Hata", response.message);
     }
   };
 
@@ -65,7 +65,7 @@ function AddApartment() {
       ([k, v]) => v !== "" && !(k === "type" && v === "1+1"),
     );
     if (!hasData) return navigate("/dashboard");
-    alert.confirm("İptal", "Girilen bilgiler kaybolacak. Emin misiniz?", "Evet, Çık").then((r) => {
+    showAlert.confirm("İptal", "Girilen bilgiler kaybolacak. Emin misiniz?", "Evet, Çık").then((r) => {
       if (r.isConfirmed) navigate("/dashboard");
     });
   };

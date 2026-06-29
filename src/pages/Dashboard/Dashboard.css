@@ -42,7 +42,7 @@
   background-color: var(--stat-gecikme);
 }
 
-.sectionHeader {
+.section-header {
   color: var(--text-color);
   margin: 0 0 15px 0;
   font-size: 1.2rem;

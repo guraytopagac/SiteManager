@@ -1,0 +1,137 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: linear-gradient(160deg, #0d1626 0%, #070e1a 100%);
+  color: #e2f0f9;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-app-region: drag;
+  overflow: hidden;
+}
+
+.logo {
+  margin-bottom: 18px;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-bottom: 5px;
+}
+
+.version {
+  font-size: 0.78rem;
+  color: #3d5a70;
+  margin-bottom: 28px;
+  font-weight: 500;
+}
+
+.update-badge {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  background: rgba(20, 184, 166, 0.1);
+  border: 1px solid rgba(20, 184, 166, 0.25);
+  color: #14b8a6;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 99px;
+  margin-bottom: 14px;
+}
+
+.update-badge.visible {
+  display: flex;
+}
+
+.badge-icon {
+  flex-shrink: 0;
+}
+
+.status {
+  font-size: 0.825rem;
+  color: #7a9bb5;
+  margin-bottom: 16px;
+  min-height: 20px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+
+.dot {
+  display: inline-block;
+  animation: blink 1.2s ease-in-out infinite;
+  font-size: 1rem;
+  line-height: 1;
+  margin-left: 1px;
+}
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+
+.progress-wrap {
+  width: 260px;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.progress-wrap.visible {
+  opacity: 1;
+}
+
+.progress-track {
+  width: 100%;
+  height: 3px;
+  background: #1e3350;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0d9488, #14b8a6);
+  border-radius: 99px;
+  width: 0%;
+  transition: width 0.35s ease;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  color: #3d5a70;
+}
+
+.divider {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 36px;
+  background: rgba(19, 32, 53, 0.6);
+  border-top: 1px solid #1e3350;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.footer-text {
+  font-size: 0.68rem;
+  color: #2a4560;
+  letter-spacing: 0.04em;
+}

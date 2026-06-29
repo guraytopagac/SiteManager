@@ -5,11 +5,11 @@ import { HashRouter as Router, Routes, Route, Navigate, Outlet } from "react-rou
 // Hooks
 import { useTheme } from "./hooks/useTheme.js";
 
-// Components (eager — küçük, her zaman gerekli)
+// Components (eager — small, always needed)
 import Footer from "./components/Footer.jsx";
-import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import ProtectedRoute from "./router/ProtectedRoute.jsx";
 
-// Pages (lazy — ilk yüklemede bundle'ı küçültür)
+// Pages (lazy — reduces initial bundle size)
 const Login = lazy(() => import("./pages/Login/Login.jsx"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard/AdminDashboard.jsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard/Dashboard.jsx"));
@@ -29,9 +29,9 @@ function App() {
       <Router>
         <Suspense fallback={null}>
           <Routes>
-            <Route path="/" element={<Login />} />
+            <Route path="/login" element={<Login />} />
 
-            {/* Admin rotaları */}
+            {/* Admin routes */}
             <Route
               element={
                 <ProtectedRoute requiredRole="admin">
@@ -39,10 +39,10 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              <Route path="/admin-dashboard" element={<AdminDashboard />} />
+              <Route path="/admin" element={<AdminDashboard />} />
             </Route>
 
-            {/* Manager rotaları */}
+            {/* Manager routes */}
             <Route
               element={
                 <ProtectedRoute requiredRole="manager">
@@ -60,7 +60,7 @@ function App() {
               <Route path="/reports" element={<Reports />} />
             </Route>
 
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </Suspense>
         <Footer />

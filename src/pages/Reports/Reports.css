@@ -50,7 +50,7 @@
   padding: 9px 14px;
   border-radius: 8px;
   border: 1px solid var(--border-default);
-  background: var(--background-color);
+  background: var(--background-color-2);
   color: var(--text-color);
   font-size: 0.95rem;
   cursor: pointer;
@@ -239,43 +239,6 @@
   opacity: 0.55;
 }
 
-.date-cell {
-  font-size: 0.85rem;
-  opacity: 0.75;
-  white-space: nowrap;
-}
-
-.amount-header {
-  text-align: right;
-}
-
-.amount-cell {
-  font-weight: 600;
-  white-space: nowrap;
-  text-align: right;
-}
-.amount-income {
-  color: var(--income-color);
-}
-.amount-expense {
-  color: var(--expense-color);
-}
-
-.type-badge {
-  display: inline-block;
-  padding: 3px 12px;
-  border-radius: 20px;
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-.type-income {
-  background: var(--income-bg);
-  color: var(--income-text);
-}
-.type-expense {
-  background: var(--expense-bg);
-  color: var(--expense-text);
-}
 
 .status-badge {
   display: inline-block;
@@ -296,6 +259,48 @@
 .status-overdue {
   background: var(--color-danger-bg);
   color: var(--color-danger-text);
+}
+
+.date-cell {
+  font-size: 0.85rem;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.amount-header {
+  text-align: right;
+}
+
+.amount-cell {
+  font-weight: 600;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.amount-income {
+  color: var(--income-color);
+}
+
+.amount-expense {
+  color: var(--expense-color);
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.type-income {
+  background: var(--income-bg);
+  color: var(--income-text);
+}
+
+.type-expense {
+  background: var(--expense-bg);
+  color: var(--expense-text);
 }
 
 .reports-divider {

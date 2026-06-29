@@ -24,7 +24,7 @@ package-lock.json
 
 **Teknik Stack:** Electron v41, React v19, SQLite (better-sqlite3), Vite v8, SweetAlert2, jspdf + jspdf-autotable (PDF), electron-updater (GitHub Releases)
 
-**Güncel Sürüm:** 1.1.7
+**Güncel Sürüm:** 1.1.0
 
 ---
 
@@ -68,21 +68,23 @@ SiteManager/
 │   └── seed.js          # İlk kurulumda admin hesabı oluşturma
 │
 ├── electron/
-│   ├── guide/           # Kullanım kılavuzu (guide.html + guide.css) — F1 ile açılır
 │   ├── ipc/
-│   │   ├── channels.js  # Tüm IPC kanal sabitleri — handler'lar ve preload buradan import eder
-│   │   ├── index.js     # Handler kayıt merkezi
-│   │   └── *.handlers.js
-│   ├── services/        # İş mantığı katmanı
-│   ├── main.js          # Electron ana döngüsü
-│   ├── menu.js          # Uygulama menüsü (Dosya, Görünüm, Yardım, DevTools)
-│   └── preload.js       # contextBridge — electronAPI'yi renderer'a açar
+│   │   ├── channels.js        # Tüm IPC kanal sabitleri — handler'lar ve preload buradan import eder
+│   │   ├── index.js           # Handler kayıt merkezi
+│   │   └── handlers/          # Her domain için ayrı handler dosyası (*.handlers.js)
+│   ├── services/              # İş mantığı katmanı (*.service.js) — handler'lardan çağrılır
+│   │   └── backup.service.js  # Yedek alma / geri yükleme — menu.js tarafından çağrılır
+│   ├── windows/               # Yardımcı pencereler (guide.js vb.)
+│   ├── main.js                # Electron ana döngüsü
+│   ├── menu.js                # Uygulama menüsü (Dosya, Görünüm, Yardım, DevTools)
+│   └── preload.js             # contextBridge — electronAPI'yi renderer'a açar
 │
 └── src/
-    ├── components/      # Footer, ProtectedRoute (rol bazlı rota koruması)
+    ├── components/      # Footer vb. paylaşılan bileşenler
+    ├── router/          # ProtectedRoute (rol bazlı rota koruması)
     ├── hooks/           # useTheme, useCurrentUser
     ├── pages/           # Tüm sayfalar (lazy-load)
-    ├── utils/           # alert.js (SweetAlert2), constants.js, date.js, validation.js
+    ├── utils/           # alert.js (SweetAlert2), constants.js
     ├── App.jsx          # Rotalar (HashRouter)
     └── style.css        # Global stiller (light/dark tema CSS değişkenleri)
 ```
@@ -160,8 +162,8 @@ expenses              (id, amount, date, description,
 
 | Durum                               | Ne yapılır                                                                      |
 | ----------------------------------- | ------------------------------------------------------------------------------- |
-| Yeni tablo                          | `database/schema/NN_tablo.sql` oluştur                                          |
-| Mevcut tabloya sütun/index/trigger  | `database/migrations/NNN_aciklama.sql` + ilgili `schema/` dosyasını da güncelle |
+| Yeni tablo                          | `database/schema/NN_tablo.sql` oluştur (ör. `09_yeni_tablo.sql`)                |
+| Mevcut tabloya sütun/index/trigger  | `database/migrations/NNN_aciklama.sql` (ör. `005_aciklama.sql`) + ilgili `schema/` dosyasını da güncelle |
 | Tablo silme veya yeniden adlandırma | Önce kullanıcıya sor                                                            |
 
 ---
@@ -177,7 +179,7 @@ expenses              (id, amount, date, description,
 7. **Soft-delete**: daire `is_active=0` — `recordPayment`'ta `AND is_active=1` kontrolü vardır.
 8. **Sakinler**: `residents.is_active=1` olan aktif sakindir; bir dairenin birden fazla geçmiş sakini olabilir.
 9. **Para tutarları** `REAL` saklanır, ekranda `₺` formatında gösterilir.
-10. **Yedekleme**: `menu.js` içinde `db.backup()` (yedek) + dosya kopyalama (geri yükleme) + `app.relaunch()`. IPC değil.
+10. **Yedekleme**: `electron/services/backup.service.js` içinde `runBackup` / `runRestore` — `menu.js` tarafından çağrılır. IPC değil. Geri yüklemede integrity_check, `.bak` rollback ve `app.relaunch()` içerir.
 
 ---
 
@@ -185,11 +187,11 @@ expenses              (id, amount, date, description,
 
 Her IPC çağrısı üç katmanda doğrulanır — değişiklik yaparken tüm katmanları kontrol et:
 
-| Katman     | Dosya                        | Ne kontrol eder                            |
-| ---------- | ---------------------------- | ------------------------------------------ |
-| 1. Bridge  | `preload.js`                 | Tip kontrolü (typeof), null guard          |
-| 2. Handler | `electron/ipc/*.handlers.js` | Alan varlığı, aralık, format (regex, enum) |
-| 3. DB      | `database/schema/*.sql`      | CHECK constraint, NOT NULL, UNIQUE, FK     |
+| Katman     | Dosya                                 | Ne kontrol eder                            |
+| ---------- | ------------------------------------- | ------------------------------------------ |
+| 1. Bridge  | `preload.js`                          | Tip kontrolü (typeof), null guard          |
+| 2. Handler | `electron/ipc/handlers/*.handlers.js` | Alan varlığı, aralık, format (regex, enum) |
+| 3. DB      | `database/schema/*.sql`               | CHECK constraint, NOT NULL, UNIQUE, FK     |
 
 ---
 
@@ -197,8 +199,8 @@ Her IPC çağrısı üç katmanda doğrulanır — değişiklik yaparken tüm ka
 
 | Rota               | Bileşen        | Rol     |
 | ------------------ | -------------- | ------- |
-| `/`                | Login          | —       |
-| `/admin-dashboard` | AdminDashboard | admin   |
+| `/login`           | Login          | —       |
+| `/admin`           | AdminDashboard | admin   |
 | `/dashboard`       | Dashboard      | manager |
 | `/add-apartment`   | AddApartment   | manager |
 | `/apartments`      | Apartments     | manager |

@@ -1,9 +1,8 @@
--- Due payments table: records each payment transaction against a dues entry.
--- A dues record can have multiple payments (e.g. partial payments over time).
--- Cancellation is tracked in the separate payment_cancellations table — rows here are never deleted.
--- amount is capped at 1,000,000 to prevent data entry errors.
--- collected_by references the user who recorded the payment.
-CREATE TABLE IF NOT EXISTS due_payments (
+-- Raise due_payments.amount CHECK limit from 50,000 to 1,000,000.
+-- SQLite does not support ALTER TABLE ... MODIFY COLUMN, so we recreate the table.
+PRAGMA foreign_keys = OFF;
+
+CREATE TABLE due_payments_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   due_id INTEGER NOT NULL,
   collected_by INTEGER NOT NULL,
@@ -19,4 +18,12 @@ CREATE TABLE IF NOT EXISTS due_payments (
   FOREIGN KEY(collected_by) REFERENCES users(id) ON DELETE RESTRICT
 );
 
+INSERT INTO due_payments_new SELECT * FROM due_payments;
+
+DROP TABLE due_payments;
+
+ALTER TABLE due_payments_new RENAME TO due_payments;
+
 CREATE INDEX IF NOT EXISTS idx_due_payments_due_id ON due_payments(due_id);
+
+PRAGMA foreign_keys = ON;

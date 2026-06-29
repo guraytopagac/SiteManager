@@ -1,5 +1,5 @@
-const duesService = require("../services/dues.service");
-const CH = require("./channels");
+const duesService = require("../../services/dues.service");
+const CH = require("../channels");
 
 const VALID_PAYMENT_METHODS = ["cash", "bank_transfer", "card", "other"];
 

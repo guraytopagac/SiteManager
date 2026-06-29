@@ -1,5 +1,5 @@
-const apartmentService = require("../services/apartment.service");
-const CH = require("./channels");
+const apartmentService = require("../../services/apartment.service");
+const CH = require("../channels");
 
 function registerApartmentHandlers(ipcMain) {
   ipcMain.handle(CH.APARTMENT.ADD, (event, data) => {

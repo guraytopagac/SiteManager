@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import "./Apartments.css";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
-import { alert } from "../../utils/alert";
+import { showAlert, swalBase, getCssVar } from "../../utils/alert";
+import { getToday } from "../../utils/format";
 
 const MONTHS = [
   "Ocak",
@@ -68,10 +69,10 @@ function EditModal({ apartment, currentUser, onClose, onSaved }) {
     setIsSubmitting(false);
 
     if (res.success) {
-      await alert.success("Güncellendi", res.message);
+      await showAlert.success("Güncellendi", res.message);
       onSaved();
     } else {
-      alert.error("Hata", res.message);
+      showAlert.error("Hata", res.message);
     }
   };
 
@@ -189,7 +190,7 @@ function EditModal({ apartment, currentUser, onClose, onSaved }) {
 function PaymentModal({ due, year, month, currentUser, onClose, onPaymentSaved }) {
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [paymentDate, setPaymentDate] = useState(() => getToday());
   const [note, setNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -212,13 +213,13 @@ function PaymentModal({ due, year, month, currentUser, onClose, onPaymentSaved }
 
     const parsedAmount = parseFloat(amount);
     if (!parsedAmount || parsedAmount <= 0) {
-      alert.warning("Geçersiz Tutar", "Lütfen geçerli bir tutar girin.");
+      showAlert.warning("Geçersiz Tutar", "Lütfen geçerli bir tutar girin.");
       return;
     }
 
     const remaining = due.due_amount - due.paid_amount;
     if (parsedAmount > remaining + OVERPAY_TOLERANCE) {
-      alert.warning("Fazla Ödeme", `Kalan borç ${remaining.toLocaleString("tr-TR")} ₺. Daha fazlası girilemez.`);
+      showAlert.warning("Fazla Ödeme", `Kalan borç ${remaining.toLocaleString("tr-TR")} ₺. Daha fazlası girilemez.`);
       return;
     }
 
@@ -238,44 +239,34 @@ function PaymentModal({ due, year, month, currentUser, onClose, onPaymentSaved }
     setIsSubmitting(false);
 
     if (res.success) {
-      alert.success("Kaydedildi", res.message);
+      showAlert.success("Kaydedildi", res.message);
       setAmount("");
       setNote("");
       setPaymentMethod("cash");
-      setPaymentDate(new Date().toISOString().slice(0, 10));
+      setPaymentDate(getToday());
       onPaymentSaved();
       fetchHistory();
     } else {
-      alert.error("Hata", res.message);
+      showAlert.error("Hata", res.message);
     }
   };
 
   const handleCancel = async (paymentId) => {
-    const { value: reason } = await Swal.fire({
-      title: "Ödemeyi İptal Et",
-      input: "textarea",
-      inputLabel: "İptal Nedeni",
-      inputPlaceholder: "Lütfen iptal nedenini yazın...",
-      showCancelButton: true,
-      confirmButtonText: "İptal Et",
-      cancelButtonText: "Vazgeç",
-      confirmButtonColor: "#dc2626",
-      heightAuto: false,
-      preConfirm: (val) => {
-        if (!val?.trim()) Swal.showValidationMessage("İptal nedeni zorunludur.");
-        return val?.trim();
-      },
-    });
+    const { value: reason } = await showAlert.cancelInput(
+      "Ödemeyi İptal Et",
+      "İptal Nedeni",
+      "Lütfen iptal nedenini yazın...",
+    );
 
     if (!reason) return;
 
     const res = await window.electronAPI.cancelPayment(paymentId, currentUser.id, reason);
     if (res.success) {
-      alert.success("İptal Edildi", res.message, 1800);
+      showAlert.success("İptal Edildi", res.message, 1800);
       onPaymentSaved();
       fetchHistory();
     } else {
-      alert.error("Hata", res.message);
+      showAlert.error("Hata", res.message);
     }
   };
 
@@ -342,7 +333,7 @@ function PaymentModal({ due, year, month, currentUser, onClose, onPaymentSaved }
             </div>
             <div className="form-row">
               <label>Ödeme Tarihi</label>
-              <input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} required max={new Date().toISOString().slice(0, 10)} />
+              <input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} required max={getToday()} />
             </div>
             <div className="form-row">
               <label>Açıklama / Not</label>
@@ -409,11 +400,11 @@ function BulkUpdateModal({ currentUser, onClose, onSaved }) {
     e.preventDefault();
     const parsed = parseFloat(amount);
     if (!parsed || parsed <= 0) {
-      alert.warning("Geçersiz Tutar", "Lütfen geçerli bir aidat tutarı girin.");
+      showAlert.warning("Geçersiz Tutar", "Lütfen geçerli bir aidat tutarı girin.");
       return;
     }
 
-    const confirm = await alert.confirm(
+    const confirm = await showAlert.confirm(
       "Toplu Aidat Güncelleme",
       `Tüm dairelerin aidat tutarı ${parsed.toLocaleString("tr-TR")} ₺ olarak güncellenecek. Onaylıyor musunuz?`,
       "Evet, Güncelle",
@@ -425,10 +416,10 @@ function BulkUpdateModal({ currentUser, onClose, onSaved }) {
     setIsSubmitting(false);
 
     if (res.success) {
-      await alert.success("Güncellendi", res.message);
+      await showAlert.success("Güncellendi", res.message);
       onSaved();
     } else {
-      alert.error("Hata", res.message);
+      showAlert.error("Hata", res.message);
     }
   };
 
@@ -519,24 +510,26 @@ function Apartments() {
 
   const handleDelete = async (due) => {
     const result = await Swal.fire({
+      ...swalBase(),
       title: "Daireyi Sil",
       html: `<b>Daire ${due.apartment_no}</b> pasife alınacak ve listeden kaldırılacak.`,
       icon: "warning",
       showCancelButton: true,
+      reverseButtons: true,
       confirmButtonText: "Evet, Sil",
       cancelButtonText: "Vazgeç",
-      confirmButtonColor: "#dc2626",
-      heightAuto: false,
+      confirmButtonColor: getCssVar("--danger"),
+      cancelButtonColor: getCssVar("--text-secondary"),
     });
 
     if (!result.isConfirmed) return;
 
     const res = await window.electronAPI.deleteApartment(due.apartment_id, currentUser.id);
     if (res.success) {
-      await alert.success("Silindi", res.message);
+      await showAlert.success("Silindi", res.message);
       fetchDues();
     } else {
-      alert.error("Hata", res.message);
+      showAlert.error("Hata", res.message);
     }
   };
 

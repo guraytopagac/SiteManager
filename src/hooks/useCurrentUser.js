@@ -3,10 +3,10 @@ import { SESSION_USER_KEY } from "../utils/constants";
 
 function getUser() {
   try {
-    const u = JSON.parse(sessionStorage.getItem(SESSION_USER_KEY));
-    if (!u?.id) return null;
-    const { id, role, username, email } = u;
-    return { id, role, username, email };
+    const sessionUser = JSON.parse(sessionStorage.getItem(SESSION_USER_KEY));
+    if (!sessionUser?.id) return null;
+    const { id, role, username, email, last_login } = sessionUser;
+    return { id, role, username, email, last_login };
   } catch {
     return null;
   }

@@ -15,3 +15,10 @@ CREATE TABLE IF NOT EXISTS dues (
   FOREIGN KEY(apartment_id) REFERENCES apartments(id) ON DELETE CASCADE,
   UNIQUE(apartment_id, year, month)
 );
+
+CREATE TRIGGER IF NOT EXISTS trg_dues_updated_at
+  AFTER UPDATE ON dues FOR EACH ROW
+  WHEN OLD.updated_at = NEW.updated_at
+BEGIN
+  UPDATE dues SET updated_at = datetime('now') WHERE id = NEW.id;
+END;

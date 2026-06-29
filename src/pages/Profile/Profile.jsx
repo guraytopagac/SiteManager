@@ -2,9 +2,15 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Profile.css";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
-import { alert } from "../../utils/alert";
-import { formatDateTime } from "../../utils/date";
-import { validatePasswordForm } from "../../utils/validation";
+import { showAlert } from "../../utils/alert";
+import { formatDateTime } from "../../utils/format";
+
+function validatePasswordForm(oldPassword, newPassword, confirmPassword) {
+  if (!oldPassword) return "Mevcut şifrenizi girmelisiniz.";
+  if (newPassword.length < 8) return "Yeni şifre en az 8 karakter olmalıdır.";
+  if (newPassword !== confirmPassword) return "Yeni şifre ve tekrarı birbirinden farklı.";
+  return null;
+}
 
 function Profile() {
   const navigate = useNavigate();
@@ -24,7 +30,7 @@ function Profile() {
 
     const error = validatePasswordForm(oldPassword, newPassword, confirmPassword);
     if (error) {
-      alert.error("Geçersiz Giriş", error);
+      showAlert.error("Geçersiz Giriş", error);
       return;
     }
 
@@ -32,13 +38,13 @@ function Profile() {
     try {
       const response = await window.electronAPI.changePassword(currentUser.id, oldPassword, newPassword);
       if (response.success) {
-        await alert.success("Başarılı!", response.message);
+        await showAlert.success("Başarılı!", response.message);
         setOldPassword("");
         setNewPassword("");
         setConfirmPassword("");
         oldPasswordRef.current?.focus();
       } else {
-        alert.error("Hata", response.message);
+        showAlert.error("Hata", response.message);
       }
     } finally {
       setIsSubmitting(false);
@@ -49,7 +55,7 @@ function Profile() {
     <div className="profile-container">
       <h2 className="page-title">Profilim</h2>
 
-      {/* Kullanıcı Bilgileri */}
+      {/* User Info */}
       <div className="profile-card">
         <h3 className="profile-section-title">Hesap Bilgileri</h3>
         <div className="info-grid">
@@ -74,7 +80,7 @@ function Profile() {
         </div>
       </div>
 
-      {/* Şifre Değiştir */}
+      {/* Change Password */}
       <div className="profile-card">
         <h3 className="profile-section-title">Şifre Değiştir</h3>
         <form onSubmit={handleChangePassword} className="password-form">

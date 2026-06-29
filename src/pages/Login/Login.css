@@ -1,118 +1,139 @@
-.loginContainer {
+.login-container {
   background: linear-gradient(135deg, var(--card-background-1), var(--card-background-2));
-  padding: 50px;
-  border-radius: 50px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  width: 800px;
+  padding: 52px 64px;
+  border-radius: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  width: 580px;
   text-align: center;
   color: var(--text-color);
 }
 
-.title {
-  font-size: 2.5rem;
+.login-container picture img {
+  width: 100px;
+  height: 100px;
   margin-bottom: 10px;
-  font-weight: bold;
+}
+
+.title {
+  font-size: 1.875rem;
+  margin-bottom: 6px;
+  font-weight: 700;
 }
 
 .subtitle {
-  font-size: 1.875rem;
-  margin-bottom: 30px;
+  font-size: 1rem;
+  margin-bottom: 32px;
   font-weight: normal;
   color: var(--text-secondary);
 }
 
-.loginForm {
+.login-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
-.loginForm input {
-  text-align: center;
+.login-form input {
+  text-align: left;
   width: 100%;
-  padding: 14px 0;
-  font-size: 1.125rem;
+  padding: 14px 18px;
+  font-size: 1rem;
   transition:
     border-color 0.3s ease,
     box-shadow 0.3s ease;
 }
 
-.loginForm input:focus {
+.login-form input:focus {
   box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
-.loginForm button {
-  margin-top: 20px;
+.login-form button {
+  margin-top: 10px;
   padding: 14px 0;
-  font-size: 1.125rem;
+  font-size: 1.0625rem;
   font-weight: 600;
 }
 
-.updateOverlay {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 0 4px;
-  width: 100%;
-}
-
-.updateIcon {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: var(--accent-subtle);
-  color: var(--button-color);
-  font-size: 1.5rem;
+.login-form .login-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 4px;
+  gap: 10px;
+  background: linear-gradient(135deg, var(--button-color) 0%, #7c3aed 100%);
+  transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.updateIconReady {
-  background: rgba(52, 211, 153, 0.15);
-  color: var(--success);
+.login-form .login-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--button-hover) 0%, #6d28d9 100%);
+  opacity: 1;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
 }
 
-.updateTitle {
-  font-size: 1.25rem;
+.login-form .login-btn:active:not(:disabled) {
+  opacity: 1;
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.input-wrapper {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.login-form input.has-icon {
+  padding-left: 46px;
+}
+
+.password-wrapper {
+  position: relative;
+}
+
+.password-input {
+  padding-right: 72px !important;
+}
+
+.login-form .password-toggle {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  bottom: 1px;
+  width: 62px;
+  margin-top: 0;
+  padding: 0;
+  font-size: 0.75rem;
   font-weight: 600;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  border-left: 1px solid var(--border-default);
+  border-radius: 0 5px 5px 0;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.login-form .password-toggle:hover:not(:disabled) {
+  background: transparent;
   color: var(--text-color);
 }
 
-.updateSub {
-  font-size: 0.95rem;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-}
-
-.updateProgressBar {
-  width: 100%;
-  height: 6px;
-  background: var(--border-default);
-  border-radius: 99px;
-  overflow: hidden;
-  margin-top: 4px;
-}
-
-.updateProgressFill {
-  height: 100%;
-  background: var(--button-color);
-  border-radius: 99px;
-  transition: width 0.3s ease;
-}
-
-.updateProgressText {
+.login-error {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
   font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin-top: 2px;
+  text-align: left;
 }
 
-.updateNote {
-  font-size: 0.8rem;
-  color: var(--text-disabled);
-  text-align: center;
-  margin-top: 8px;
-  line-height: 1.5;
-}

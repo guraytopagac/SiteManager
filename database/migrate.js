@@ -3,8 +3,6 @@ const path = require("path");
 
 // Applies one-off changes (e.g. ALTER TABLE) to existing installations.
 // Each migration runs inside a transaction; failure rolls back the entire change.
-// "duplicate column name" / "no such table" are expected on fresh installs where
-// tables don't exist yet — the migration is marked applied because loadSchema will create them.
 function applyMigrations(db) {
   const migrationsDir = path.join(__dirname, "migrations");
 
@@ -55,7 +53,6 @@ function applyMigrations(db) {
       console.log(`[Migrate] Migration applied: ${file}`);
     } catch (err) {
       db.pragma("foreign_keys = ON");
-      // SQLite has no ALTER TABLE IF NOT EXISTS; these two errors are expected
       if (err.message.includes("duplicate column name") || err.message.includes("no such table")) {
         db.transaction(() => recordMigration.run(file))();
         console.warn(`[Migrate] Migration skipped: ${file} — ${err.message}`);
@@ -67,7 +64,6 @@ function applyMigrations(db) {
 }
 
 // Loads schema files containing CREATE TABLE/TRIGGER IF NOT EXISTS statements.
-// Creates all tables on fresh installs; no-op on existing installations.
 // File name prefix (01_, 02_, …) determines load order.
 function loadSchema(db) {
   const schemaDir = path.join(__dirname, "schema");

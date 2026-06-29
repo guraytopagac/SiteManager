@@ -4,7 +4,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import "./Reports.css";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
-import { alert } from "../../utils/alert";
+import { showAlert } from "../../utils/alert";
 
 const MONTHS = [
   "Ocak",
@@ -56,10 +56,10 @@ function Reports() {
         setReportData(response.data);
         setActiveTab("finance");
       } else {
-        alert.error("Hata", response.message || "Rapor verileri alınamadı.");
+        showAlert.error("Hata", response.message || "Rapor verileri alınamadı.");
       }
     } catch {
-      alert.error("Hata", "Beklenmedik bir hata oluştu.");
+      showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
     } finally {
       setLoading(false);
     }
@@ -156,12 +156,12 @@ function Reports() {
       const filename = `rapor_${year}_${String(month).padStart(2, "0")}.pdf`;
       const response = await window.electronAPI.saveReportFile(filename, Array.from(new Uint8Array(buffer)));
       if (response.success) {
-        alert.success("Kaydedildi", response.message);
+        showAlert.success("Kaydedildi", response.message);
       } else if (response.message !== "İptal edildi.") {
-        alert.error("Hata", response.message);
+        showAlert.error("Hata", response.message);
       }
     } catch (err) {
-      alert.error("Hata", "PDF oluşturulurken bir hata oluştu.");
+      showAlert.error("Hata", "PDF oluşturulurken bir hata oluştu.");
       console.error(err);
     }
   };

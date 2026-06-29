@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const registerIpcHandlers = require("./ipc/index.js");
 const { buildMenu } = require("./menu");
+const { createSplashWindow, sendToSplash, closeSplashAndShowMain, getSplashWindow } = require("./windows/splash");
 const { runMigrations } = require("../database/migrate");
 const { seedAdminAccount } = require("../database/seed");
 
@@ -12,7 +13,8 @@ app.disableHardwareAcceleration();
 
 const isDev = !app.isPackaged;
 const loadURL = serve({ directory: path.join(__dirname, "..", "dist") });
-let mainWindow;
+
+let mainWindow = null;
 
 async function handleSeedResult(seedResult) {
   if (!seedResult || seedResult.alreadyExists || !mainWindow) return;
@@ -21,7 +23,11 @@ async function handleSeedResult(seedResult) {
     console.error("[Main] Admin account created but credentials missing.");
     return;
   }
-  const { response } = await dialog.showMessageBox(mainWindow, {
+
+  const splash = getSplashWindow();
+  const parentWindow = splash && !splash.isDestroyed() ? splash : mainWindow;
+
+  const { response } = await dialog.showMessageBox(parentWindow, {
     type: "info",
     title: "İlk Kurulum — Admin Hesabı",
     message: "Admin hesabı oluşturuldu.",
@@ -33,7 +39,7 @@ async function handleSeedResult(seedResult) {
 
   if (response === 0) {
     clipboard.writeText(password);
-    await dialog.showMessageBox(mainWindow, {
+    await dialog.showMessageBox(parentWindow, {
       type: "info",
       title: "Kopyalandı",
       message: "Şifre panoya kopyalandı.",
@@ -48,7 +54,7 @@ async function handleSeedResult(seedResult) {
         `Mavikent Site Yönetimi — Admin Hesabı\n\nKullanıcı adı : ${username}\nŞifre         : ${password}\n\nGiriş yaptıktan sonra bu dosyayı silin.\n`,
         "utf8",
       );
-      await dialog.showMessageBox(mainWindow, {
+      await dialog.showMessageBox(parentWindow, {
         type: "info",
         title: "Kaydedildi",
         message: "Şifre masaüstüne kaydedildi.",
@@ -56,7 +62,7 @@ async function handleSeedResult(seedResult) {
         buttons: ["Tamam"],
       });
     } catch (err) {
-      await dialog.showMessageBox(mainWindow, {
+      await dialog.showMessageBox(parentWindow, {
         type: "error",
         title: "Kayıt Hatası",
         message: "Dosya oluşturulamadı.",
@@ -91,7 +97,7 @@ function createMainWindow(db) {
     },
   });
 
-  Menu.setApplicationMenu(buildMenu(mainWindow, isDev, iconPath));
+  Menu.setApplicationMenu(buildMenu(mainWindow, isDev));
 
   if (isDev) {
     mainWindow.loadURL("http://localhost:5173/");
@@ -100,15 +106,19 @@ function createMainWindow(db) {
   }
 
   mainWindow.once("ready-to-show", async () => {
-    mainWindow.maximize();
-    mainWindow.show();
     try {
       const seedResult = await seedAdminAccount(db);
       await handleSeedResult(seedResult);
     } catch (err) {
       dialog.showErrorBox("Başlatma Hatası", `Admin hesabı oluşturulamadı:\n${err.message}`);
     }
-    if (!isDev) autoUpdater.checkForUpdates();
+
+    if (!isDev) {
+      sendToSplash("splash:status", { text: "Güncellemeler kontrol ediliyor" });
+      autoUpdater.checkForUpdates();
+    } else {
+      setTimeout(() => closeSplashAndShowMain(mainWindow), 800);
+    }
   });
 
   mainWindow.on("closed", () => (mainWindow = null));
@@ -116,20 +126,25 @@ function createMainWindow(db) {
 
 function setupAutoUpdater() {
   autoUpdater.on("checking-for-update", () => console.log("[Main] Checking for updates..."));
-  autoUpdater.on("update-not-available", () => console.log("[Main] No update available."));
+
+  autoUpdater.on("update-not-available", () => {
+    console.log("[Main] No update available.");
+    setTimeout(() => closeSplashAndShowMain(mainWindow), 600);
+  });
 
   autoUpdater.on("update-available", (info) => {
-    if (!mainWindow) return;
-    mainWindow.setTitle(`Mavikent Site Yönetimi — Yeni sürüm (v${info.version}) indiriliyor...`);
-    mainWindow.webContents.send("update-available", { version: info.version });
+    sendToSplash("splash:update-available", { version: info.version });
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.setTitle(`Mavikent Site Yönetimi — Yeni sürüm (v${info.version}) indiriliyor...`);
+    }
   });
 
   autoUpdater.on("download-progress", (progress) => {
-    if (!mainWindow) return;
     const percent = Math.round(progress.percent);
-    mainWindow.setProgressBar(progress.percent / 100);
-    mainWindow.setTitle(`Mavikent Site Yönetimi — Güncelleme İndiriliyor: %${percent}`);
-    mainWindow.webContents.send("download-progress", {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.setProgressBar(progress.percent / 100);
+    }
+    sendToSplash("splash:download-progress", {
       percent,
       transferred: progress.transferred,
       total: progress.total,
@@ -137,16 +152,16 @@ function setupAutoUpdater() {
   });
 
   autoUpdater.on("update-downloaded", async () => {
-    if (!mainWindow) {
-      autoUpdater.quitAndInstall();
-      return;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.setProgressBar(-1);
+      mainWindow.setTitle("Mavikent Site Yönetimi Uygulaması");
     }
+    sendToSplash("splash:update-downloaded", {});
 
-    mainWindow.setProgressBar(-1);
-    mainWindow.setTitle("Mavikent Site Yönetimi Uygulaması");
-    mainWindow.webContents.send("update-downloaded");
+    const splash = getSplashWindow();
+    const parentWindow = splash && !splash.isDestroyed() ? splash : mainWindow;
     try {
-      const { response } = await dialog.showMessageBox(mainWindow, {
+      const { response } = await dialog.showMessageBox(parentWindow, {
         type: "info",
         title: "Güncelleme Hazır",
         message: "Güncelleme indirildi.",
@@ -155,15 +170,21 @@ function setupAutoUpdater() {
         defaultId: 0,
         cancelId: 1,
       });
-      if (response === 0) autoUpdater.quitAndInstall();
+      if (response === 0) {
+        autoUpdater.quitAndInstall();
+      } else {
+        closeSplashAndShowMain(mainWindow);
+      }
     } catch (err) {
       console.error("[Main] Update dialog error:", err.message);
+      closeSplashAndShowMain(mainWindow);
     }
   });
 
   autoUpdater.on("error", (err) => {
     console.error("[Main] Update error:", err.message);
-    if (mainWindow) {
+    closeSplashAndShowMain(mainWindow);
+    if (mainWindow && !mainWindow.isDestroyed()) {
       dialog.showMessageBox(mainWindow, {
         type: "warning",
         title: "Güncelleme Hatası",
@@ -189,6 +210,7 @@ if (!isFirstInstance) {
 
 app.whenReady().then(async () => {
   app.setAppUserModelId("com.mavikent.sitemanager");
+
   let db;
   try {
     ({ db } = require("../database/db"));
@@ -197,11 +219,33 @@ app.whenReady().then(async () => {
     app.quit();
     return;
   }
+
   try {
-    runMigrations(db);
-    registerIpcHandlers(ipcMain);
-    createMainWindow(db);
-    if (!isDev) setupAutoUpdater();
+    createSplashWindow();
+
+    // Fallback: splash:ready never fires if renderer script fails
+    getSplashWindow().webContents.once("did-finish-load", () => {
+      const fallback = setTimeout(() => ipcMain.emit("splash:ready"), 300);
+      ipcMain.once("splash:ready", () => clearTimeout(fallback));
+    });
+
+    ipcMain.once("splash:ready", () => {
+      sendToSplash("splash:version", { version: app.getVersion() });
+      sendToSplash("splash:status", { text: "Veritabanı hazırlanıyor" });
+
+      try {
+        runMigrations(db);
+        registerIpcHandlers(ipcMain);
+      } catch (err) {
+        dialog.showErrorBox("Başlatma Hatası", `Uygulama başlatılamadı:\n${err.message}`);
+        app.quit();
+        return;
+      }
+
+      sendToSplash("splash:status", { text: "Uygulama yükleniyor" });
+      if (!isDev) setupAutoUpdater();
+      createMainWindow(db);
+    });
   } catch (err) {
     dialog.showErrorBox("Başlatma Hatası", `Uygulama başlatılamadı:\n${err.message}`);
     app.quit();

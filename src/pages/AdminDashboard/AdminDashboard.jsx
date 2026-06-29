@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AdminDashboard.css";
-import { alert } from "../../utils/alert";
+import { showAlert } from "../../utils/alert";
+import { formatDateTime } from "../../utils/format";
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -15,7 +16,7 @@ function AdminDashboard() {
     if (response.success) {
       setManagers(response.data);
     } else {
-      alert.error("Hata", "Yöneticiler yüklenemedi.");
+      showAlert.error("Hata", "Yöneticiler yüklenemedi.");
     }
     setLoading(false);
   };
@@ -28,12 +29,12 @@ function AdminDashboard() {
     e.preventDefault();
 
     if (!/^[A-Za-z0-9_]{3,}$/.test(formData.username)) {
-      alert.warning("Geçersiz Kullanıcı Adı", "Kullanıcı adı en az 3 karakter olmalı, yalnızca İngilizce harf, rakam ve _ içermelidir.");
+      showAlert.warning("Geçersiz Kullanıcı Adı", "Kullanıcı adı en az 3 karakter olmalı, yalnızca İngilizce harf, rakam ve _ içermelidir.");
       return;
     }
 
     if (formData.password.length < 8) {
-      alert.warning("Geçersiz Şifre", "Şifre en az 8 karakter olmalıdır.");
+      showAlert.warning("Geçersiz Şifre", "Şifre en az 8 karakter olmalıdır.");
       return;
     }
 
@@ -42,11 +43,11 @@ function AdminDashboard() {
     setIsSubmitting(false);
 
     if (response.success) {
-      alert.success("Yönetici Oluşturuldu", response.message);
+      showAlert.success("Yönetici Oluşturuldu", response.message);
       setFormData({ username: "", email: "", password: "" });
       fetchManagers();
     } else {
-      alert.error("Hata", response.message);
+      showAlert.error("Hata", response.message);
     }
   };
 
@@ -56,7 +57,7 @@ function AdminDashboard() {
       ? `"${manager.username}" hesabını aktif etmek istiyor musunuz?`
       : `"${manager.username}" hesabını deaktif etmek istiyor musunuz? Bu yönetici giriş yapamaz hale gelir.`;
 
-    const result = await alert.confirm(
+    const result = await showAlert.confirm(
       willActivate ? "Hesabı Aktif Et" : "Hesabı Deaktif Et",
       confirmText,
       willActivate ? "Aktif Et" : "Deaktif Et",
@@ -68,10 +69,10 @@ function AdminDashboard() {
     const response = await window.electronAPI.updateManagerStatus(manager.id, willActivate);
 
     if (response.success) {
-      alert.success(response.message, "", 1800);
+      showAlert.success(response.message, "", 1800);
       fetchManagers();
     } else {
-      alert.error("Hata", response.message);
+      showAlert.error("Hata", response.message);
     }
   };
 
@@ -110,7 +111,7 @@ function AdminDashboard() {
                     <td className="cell-username">{manager.username}</td>
                     <td className="cell-email">{manager.email}</td>
                     <td className="cell-date">
-                      {manager.last_login ? new Date(manager.last_login).toLocaleString("tr-TR") : "—"}
+                      {manager.last_login ? formatDateTime(manager.last_login) : "—"}
                     </td>
                     <td>
                       <span className={`status-pill ${manager.is_active ? "active" : "inactive"}`}>

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
-import { alert } from "../../utils/alert";
+import { showAlert } from "../../utils/alert";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -18,7 +18,7 @@ function Dashboard() {
       setStats(data.payload);
     } else {
       setError(true);
-      alert.error("Veriler Yüklenemedi", data.message || "İstatistikler alınırken bir hata oluştu.");
+      showAlert.error("Veriler Yüklenemedi", data.message || "İstatistikler alınırken bir hata oluştu.");
     }
     setLoading(false);
   }, [currentUser.id]);
@@ -29,7 +29,7 @@ function Dashboard() {
   }, [fetchStats, currentUser.id]);
 
   const handleLogout = async () => {
-    const result = await alert.confirm("Çıkış Yap", "Oturumu kapatmak istiyor musunuz?", "Evet, Çık");
+    const result = await showAlert.confirm("Çıkış Yap", "Oturumu kapatmak istiyor musunuz?", "Evet, Çık");
     if (!result.isConfirmed) return;
     sessionStorage.clear();
     window.dispatchEvent(new Event("user-session-changed"));
@@ -76,7 +76,7 @@ function Dashboard() {
 
       <div className="category-grid">
         <div className="category-group">
-          <h2 className="sectionHeader">Daire İşlemleri</h2>
+          <h2 className="section-header">Daire İşlemleri</h2>
           <div className="action-grid">
             <button className="action-card" onClick={() => navigate("/add-apartment")}>
               <h4>Yeni Daire Ekle</h4>
@@ -88,7 +88,7 @@ function Dashboard() {
         </div>
 
         <div className="category-group">
-          <h2 className="sectionHeader">Finansal İşlemler</h2>
+          <h2 className="section-header">Finansal İşlemler</h2>
           <div className="action-grid">
             <button className="action-card" onClick={() => navigate("/add-income")}>
               <h4>Gelir Ekle</h4>
@@ -103,7 +103,7 @@ function Dashboard() {
         </div>
 
         <div className="category-group">
-          <h2 className="sectionHeader">Çeşitli</h2>
+          <h2 className="section-header">Çeşitli</h2>
           <div className="action-grid">
             <button className="action-card action-card-disabled" disabled title="Yakında">
               <h4>Duyuru Gönder</h4>

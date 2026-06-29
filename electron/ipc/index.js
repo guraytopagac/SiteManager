@@ -1,10 +1,10 @@
-const registerAuthHandlers = require("./auth.handlers");
-const registerApartmentHandlers = require("./apartment.handlers");
-const registerDashboardHandlers = require("./dashboard.handlers");
-const registerFinancialHandlers = require("./financial.handlers");
-const registerDuesHandlers = require("./dues.handlers");
-const registerSystemHandlers = require("./system.handlers");
-const registerReportHandlers = require("./report.handlers");
+const registerAuthHandlers = require("./handlers/auth.handlers");
+const registerApartmentHandlers = require("./handlers/apartment.handlers");
+const registerDashboardHandlers = require("./handlers/dashboard.handlers");
+const registerFinancialHandlers = require("./handlers/financial.handlers");
+const registerDuesHandlers = require("./handlers/dues.handlers");
+const registerSystemHandlers = require("./handlers/system.handlers");
+const registerReportHandlers = require("./handlers/report.handlers");
 
 function registerIpcHandlers(ipcMain) {
   registerAuthHandlers(ipcMain);

@@ -1,60 +1,39 @@
-/* ─── Renk Token Katmanı ───────────────────────────────────────────────────── */
+/* ─── Dark Theme (default) ──────────────────────────────────────────────────── */
 :root {
-  /* Ham renkler — tema bloklarında var() ile referans verilir */
-  --color-teal-500: #14b8a6;
-  --color-teal-600: #0d9488;
-  --color-teal-subtle: rgba(20, 184, 166, 0.12);
-
-  --color-indigo-500: #4f6ef7;
-  --color-indigo-600: #3b57e8;
-  --color-indigo-subtle: rgba(79, 110, 247, 0.08);
-
-  --color-green-400: #34d399;
-  --color-green-600: #16a34a;
-  --color-green-700: #059669;
-
-  --color-red-400: #f87171;
-  --color-red-600: #dc2626;
-
-  --color-yellow-400: #fbbf24;
-  --color-yellow-600: #d97706;
-
-  --color-cyan-700: #0e7490;
-  --color-blue-600: #2563eb;
-
-  /* Footer yüksekliği */
-  --footer-height: 50px;
+  /* Footer height */
+  --footer-height: 42px;
 
   color-scheme: dark;
 
-  /* Varsayılan tema değişkenleri (dark fallback) */
-
-  /* Arka Plan */
+  /* Background */
   --background-color-1: #070e1a;
   --background-color-2: #0d1626;
   --card-background-1: #132035;
   --card-background-2: #1a2d45;
 
-  /* Metin */
+  /* Text */
   --text-color: #e2f0f9;
   --text-secondary: #7a9bb5;
   --text-disabled: #3d5a70;
 
-  /* Kenarlık */
+  /* Border */
   --border-default: #1e3350;
-  --border-focus: var(--color-teal-500);
+  --border-focus: #14b8a6;
 
-  /* Buton */
-  --button-color: var(--color-teal-500);
-  --button-hover: var(--color-teal-600);
-  --accent-subtle: var(--color-teal-subtle);
+  /* Dot grid background */
+  --dot-color: rgba(148, 180, 210, 0.18);
 
-  /* Durum */
-  --success: var(--color-green-400);
-  --danger: var(--color-red-400);
-  --warning: var(--color-yellow-400);
+  /* Button */
+  --button-color: #14b8a6;
+  --button-hover: #0d9488;
+  --accent-subtle: rgba(20, 184, 166, 0.12);
 
-  /* Durum arka plan / metin (badge, notice) */
+  /* Status */
+  --success: #34d399;
+  --danger: #f87171;
+  --warning: #fbbf24;
+
+  /* Status background / text (badge, notice) */
   --color-success-bg: #14532d;
   --color-success-text: #86efac;
   --color-warning-bg: #451a03;
@@ -62,12 +41,12 @@
   --color-danger-bg: #450a0a;
   --color-danger-text: #fca5a5;
 
-  /* İstatistik */
-  --stat-kasa: var(--color-green-700);
-  --stat-tahsilat: var(--color-cyan-700);
-  --stat-gecikme: var(--color-red-600);
+  /* Stats */
+  --stat-kasa: #059669;
+  --stat-tahsilat: #0e7490;
+  --stat-gecikme: #dc2626;
 
-  /* Gelir / Gider */
+  /* Income / Expense */
   --income-color: #16a34a;
   --income-bg: #14532d;
   --income-text: #86efac;
@@ -75,39 +54,45 @@
   --expense-bg: #450a0a;
   --expense-text: #fca5a5;
 
-  /* Gölge */
+  /* Shadow */
   --card-shadow: rgba(0, 0, 0, 0.35);
+
+  /* Button text */
+  --button-text: #ffffff;
 }
 
-/* ─── Light Tema ───────────────────────────────────────────────────────────── */
+/* ─── Light Theme ──────────────────────────────────────────────────────────── */
 [data-theme="light"] {
   color-scheme: light;
-  /* Arka Plan */
+  /* Background */
   --background-color-1: #f8fafc;
   --background-color-2: #f1f5f9;
   --card-background-1: #ffffff;
-  --card-background-2: #e2e8f0;
+  --card-background-2: #f1f5f9;
 
-  /* Metin */
+  /* Text */
   --text-color: #0f172a;
   --text-secondary: #64748b;
-  --text-disabled: #cbd5e1;
+  --text-disabled: #94a3b8;
 
-  /* Kenarlık */
+  /* Border */
   --border-default: #e2e8f0;
-  --border-focus: var(--color-indigo-500);
+  --border-focus: #4f6ef7;
 
-  /* Buton */
-  --button-color: var(--color-indigo-500);
-  --button-hover: var(--color-indigo-600);
-  --accent-subtle: var(--color-indigo-subtle);
+  /* Dot grid background */
+  --dot-color: rgba(100, 116, 139, 0.45);
 
-  /* Durum */
-  --success: var(--color-green-600);
-  --danger: var(--color-red-600);
-  --warning: var(--color-yellow-600);
+  /* Button */
+  --button-color: #4f6ef7;
+  --button-hover: #3b57e8;
+  --accent-subtle: rgba(79, 110, 247, 0.08);
 
-  /* Durum arka plan / metin (badge, notice) */
+  /* Status */
+  --success: #16a34a;
+  --danger: #dc2626;
+  --warning: #d97706;
+
+  /* Status background / text (badge, notice) */
   --color-success-bg: #dcfce7;
   --color-success-text: #15803d;
   --color-warning-bg: #fef3c7;
@@ -115,12 +100,12 @@
   --color-danger-bg: #fee2e2;
   --color-danger-text: #b91c1c;
 
-  /* İstatistik */
-  --stat-kasa: var(--color-green-700);
-  --stat-tahsilat: var(--color-blue-600);
-  --stat-gecikme: var(--color-red-600);
+  /* Stats */
+  --stat-kasa: #059669;
+  --stat-tahsilat: #2563eb;
+  --stat-gecikme: #dc2626;
 
-  /* Gelir / Gider */
+  /* Income / Expense */
   --income-color: #15803d;
   --income-bg: #dcfce7;
   --income-text: #15803d;
@@ -128,11 +113,14 @@
   --expense-bg: #fee2e2;
   --expense-text: #b91c1c;
 
-  /* Gölge */
-  --card-shadow: rgba(0, 0, 0, 0.08);
+  /* Shadow */
+  --card-shadow: rgba(0, 0, 0, 0.12);
+
+  /* Button text */
+  --button-text: #ffffff;
 }
 
-/* ─── Global Reset ─────────────────────────────────────────────────────────── */
+/* ─── Global Reset ──────────────────────────────────────────────────────────── */
 * {
   margin: 0;
   padding: 0;
@@ -143,7 +131,10 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 16px;
   line-height: 1.5;
-  background: linear-gradient(180deg, var(--background-color-2), var(--background-color-1));
+  background:
+    radial-gradient(circle, var(--dot-color) 1.2px, transparent 1.2px),
+    linear-gradient(180deg, var(--background-color-2), var(--background-color-1));
+  background-size: 24px 24px, 100% 100%;
   height: 100vh;
   overflow: hidden;
   display: flex;
@@ -155,7 +146,7 @@ body {
     color 0.2s ease;
 }
 
-/* ─── Global Element Stilleri ─────────────────────────────────────────────── */
+/* ─── Global Element Styles ─────────────────────────────────────────────────── */
 a {
   color: var(--button-color);
   text-decoration: none;
@@ -183,11 +174,11 @@ button {
   cursor: pointer;
   font-family: inherit;
   font-size: inherit;
-  transition: background 0.15s ease;
+  transition: background 0.2s ease, opacity 0.2s ease;
 }
 
 button:hover:not(:disabled) {
-  background: var(--button-hover);
+  opacity: 0.85;
 }
 
 button:disabled {

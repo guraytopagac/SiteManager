@@ -204,11 +204,13 @@
 
 .btn-logout {
   background: var(--danger);
+  color: #fff;
 }
 
-.btn-logout:hover {
+.btn-logout:hover:not(:disabled) {
   opacity: 0.8;
   background: var(--danger);
+  color: #fff;
 }
 
 .admin-loading,

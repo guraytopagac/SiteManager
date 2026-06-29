@@ -4,13 +4,12 @@ const THEME_KEY = "theme";
 const VALID_THEMES = ["light", "dark"];
 
 function getInitialTheme() {
-  const saved = localStorage.getItem(THEME_KEY);
-  const theme =
-    saved && VALID_THEMES.includes(saved)
-      ? saved
-      : window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light";
+  const savedTheme = localStorage.getItem(THEME_KEY);
+  const theme = VALID_THEMES.includes(savedTheme)
+    ? savedTheme
+    : window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
   document.documentElement.setAttribute("data-theme", theme);
   return theme;
 }
@@ -20,19 +19,16 @@ export function useTheme() {
 
   useEffect(() => {
     const handleThemeToggle = () => {
-      setTheme((prev) => {
-        const next = prev === "light" ? "dark" : "light";
-        localStorage.setItem(THEME_KEY, next);
-        return next;
+      setTheme((currentTheme) => {
+        const nextTheme = currentTheme === "light" ? "dark" : "light";
+        localStorage.setItem(THEME_KEY, nextTheme);
+        document.documentElement.setAttribute("data-theme", nextTheme);
+        return nextTheme;
       });
     };
     const removeListener = window.electronAPI.onToggleTheme(handleThemeToggle);
     return () => removeListener();
   }, []);
-
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-  }, [theme]);
 
   return theme;
 }

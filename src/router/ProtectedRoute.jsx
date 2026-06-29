@@ -6,10 +6,10 @@ import { useCurrentUser } from "../hooks/useCurrentUser";
 const ProtectedRoute = memo(function ProtectedRoute({ children, requiredRole }) {
   const currentUser = useCurrentUser();
 
-  if (!currentUser?.id || !currentUser?.role) return <Navigate to="/" replace />;
+  if (!currentUser?.id || !currentUser?.role) return <Navigate to="/login" replace />;
 
   if (requiredRole && currentUser.role !== requiredRole) {
-    const redirectTo = currentUser.role === "admin" ? "/admin-dashboard" : "/dashboard";
+    const redirectTo = currentUser.role === "admin" ? "/admin" : "/dashboard";
     return <Navigate to={redirectTo} replace />;
   }
 
@@ -18,7 +18,7 @@ const ProtectedRoute = memo(function ProtectedRoute({ children, requiredRole }) 
 
 ProtectedRoute.propTypes = {
   children: PropTypes.node.isRequired,
-  requiredRole: PropTypes.string,
+  requiredRole: PropTypes.oneOf(["admin", "manager"]),
 };
 
 export default ProtectedRoute;

@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import Swal from "sweetalert2";
 import "./Transactions.css";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
-import { alert } from "../../utils/alert";
-import { formatDate } from "../../utils/date";
+import { showAlert } from "../../utils/alert";
+import { formatDate } from "../../utils/format";
 
 const TYPE_LABELS = { income: "Gelir", expense: "Gider" };
 
@@ -42,10 +41,10 @@ function Transactions() {
       if (response.success) {
         setTransactions(response.data);
       } else {
-        alert.error("Hata", response.message || "İşlem geçmişi alınamadı.");
+        showAlert.error("Hata", response.message || "İşlem geçmişi alınamadı.");
       }
     } catch {
-      alert.error("Hata", "Beklenmedik bir hata oluştu.");
+      showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
     } finally {
       setLoading(false);
     }
@@ -57,30 +56,20 @@ function Transactions() {
 
   const handleCancel = useCallback(
     async (t) => {
-      const { value: reason } = await Swal.fire({
-        title: `${t.type === "income" ? "Geliri" : "Gideri"} İptal Et`,
-        input: "textarea",
-        inputLabel: "İptal Nedeni",
-        inputPlaceholder: "Lütfen iptal nedenini yazın...",
-        showCancelButton: true,
-        confirmButtonText: "İptal Et",
-        cancelButtonText: "Vazgeç",
-        confirmButtonColor: "#dc2626",
-        heightAuto: false,
-        preConfirm: (val) => {
-          if (!val?.trim()) Swal.showValidationMessage("İptal nedeni zorunludur.");
-          return val?.trim();
-        },
-      });
+      const { value: reason } = await showAlert.cancelInput(
+        `${t.type === "income" ? "Geliri" : "Gideri"} İptal Et`,
+        "İptal Nedeni",
+        "Lütfen iptal nedenini yazın...",
+      );
       if (!reason) return;
 
       const fn = t.type === "income" ? window.electronAPI.cancelIncome : window.electronAPI.cancelExpense;
       const res = await fn({ id: t.id, userId: currentUser.id, reason });
       if (res.success) {
-        alert.success("İptal Edildi", res.message, 1800);
+        showAlert.success("İptal Edildi", res.message, 1800);
         fetchTransactions();
       } else {
-        alert.error("Hata", res.message);
+        showAlert.error("Hata", res.message);
       }
     },
     [currentUser?.id, fetchTransactions],
@@ -186,7 +175,7 @@ function Transactions() {
       <hr className="transactions-divider" />
 
       <div className="return-link">
-        <button onClick={() => navigate("/dashboard")} className="backButton" aria-label="Dashboard'a geri dön">
+        <button onClick={() => navigate("/dashboard")} className="back-btn" aria-label="Dashboard'a geri dön">
           Geri Dön
         </button>
       </div>

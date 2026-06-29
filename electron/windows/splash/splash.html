@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mavikent</title>
+    <link rel="stylesheet" href="splash.css" />
+  </head>
+  <body>
+    <picture>
+      <source srcset="../../../src/assets/images/logo.webp" type="image/webp" />
+      <img src="../../../src/assets/images/logo.png" alt="Mavikent Logo" width="80" height="80" class="logo" />
+    </picture>
+
+    <h1 class="title">Mavikent Site Yönetimi</h1>
+    <p class="version" id="version">v—</p>
+
+    <div class="update-badge" id="update-badge">
+      <img src="../../../src/assets/images/download.svg" alt="" width="12" height="12" class="badge-icon" />
+      <span id="update-badge-text">Güncelleme İndiriliyor</span>
+    </div>
+
+    <p class="status" id="status">
+      Başlatılıyor<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
+    </p>
+
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="progress-info">
+        <span id="progress-percent">%0</span>
+        <span id="progress-size"></span>
+      </div>
+    </div>
+
+    <div class="divider">
+      <span class="footer-text">MAVIKENT &copy; 2025</span>
+    </div>
+
+    <script src="splash.js"></script>
+  </body>
+</html>

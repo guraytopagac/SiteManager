@@ -1,5 +1,5 @@
-const financialService = require("../services/financial.service");
-const CH = require("./channels");
+const financialService = require("../../services/financial.service");
+const CH = require("../channels");
 
 function registerFinancialHandlers(ipcMain) {
   ipcMain.handle(CH.FINANCIAL.ADD_INCOME, (event, data) => {

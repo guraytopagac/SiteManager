@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AddIncome.css";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
-import { alert } from "../../utils/alert";
-import { getToday } from "../../utils/date";
+import { showAlert } from "../../utils/alert";
+import { getToday } from "../../utils/format";
 
 function AddIncome() {
   const navigate = useNavigate();
@@ -21,17 +21,17 @@ function AddIncome() {
     const managerId = currentUser?.id;
 
     if (!managerId) {
-      alert.error("Oturum Hatası", "Yönetici bilgisi bulunamadı. Lütfen tekrar giriş yapın.");
+      showAlert.error("Oturum Hatası", "Yönetici bilgisi bulunamadı. Lütfen tekrar giriş yapın.");
       return;
     }
 
     if (isNaN(parsedAmount) || !cleanDescription) {
-      alert.warning("Uyarı", "Lütfen tüm alanları doldurun!");
+      showAlert.warning("Uyarı", "Lütfen tüm alanları doldurun!");
       return;
     }
 
     if (parsedAmount <= 0) {
-      alert.warning("Geçersiz Miktar", "Gelir miktarı 0'dan büyük olmalıdır!");
+      showAlert.warning("Geçersiz Miktar", "Gelir miktarı 0'dan büyük olmalıdır!");
       return;
     }
 
@@ -48,12 +48,12 @@ function AddIncome() {
       if (response.success) {
         setAmount("");
         setDescription("");
-        alert.success("Gelir Eklendi!", response.message).then(() => navigate("/dashboard"));
+        showAlert.success("Gelir Eklendi!", response.message).then(() => navigate("/dashboard"));
       } else {
-        alert.error("Hata Oluştu", response.message || "Gelir kaydedilemedi.");
+        showAlert.error("Hata Oluştu", response.message || "Gelir kaydedilemedi.");
       }
     } catch {
-      alert.error("Hata", "Beklenmedik bir hata oluştu.");
+      showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
     } finally {
       setIsSubmitting(false);
     }
@@ -61,11 +61,11 @@ function AddIncome() {
 
   return (
     <div className="income-wrapper">
-      <div className="incomeContainer">
+      <div className="income-container">
         <h2 className="title">Yeni Gelir Ekle</h2>
 
-        <form className="incomeForm" onSubmit={handleIncomeSubmit}>
-          <div className="formGroup">
+        <form className="income-form" onSubmit={handleIncomeSubmit}>
+          <div className="form-group">
             <label htmlFor="incomeAmount">Gelir Miktarı (₺)</label>
             <input
               type="number"
@@ -80,7 +80,7 @@ function AddIncome() {
             />
           </div>
 
-          <div className="formGroup">
+          <div className="form-group">
             <label htmlFor="incomeDescription">Açıklama</label>
             <textarea
               id="incomeDescription"
@@ -91,18 +91,18 @@ function AddIncome() {
               required
             />
             <span
-              className={`charCounter${description.length >= 290 ? " danger" : description.length >= 270 ? " warning" : ""}`}
+              className={`char-counter${description.length >= 290 ? " danger" : description.length >= 270 ? " warning" : ""}`}
             >
               {description.length}/300
             </span>
           </div>
 
-          <button type="submit" className="submitButton" disabled={isSubmitting} aria-busy={isSubmitting}>
+          <button type="submit" className="submit-btn" disabled={isSubmitting} aria-busy={isSubmitting}>
             {isSubmitting ? "Kaydediliyor..." : "Geliri Kaydet"}
           </button>
           <button
             type="button"
-            className="backButton"
+            className="back-btn"
             aria-label="Dashboard'a geri dön"
             onClick={() => navigate("/dashboard")}
           >

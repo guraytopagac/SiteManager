@@ -1,17 +1,17 @@
 import Swal from "sweetalert2";
 
-const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+export const getCssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
-const base = () => ({
+export const swalBase = () => ({
   heightAuto: false,
-  background: cssVar("--card-background-1"),
-  color: cssVar("--text-color"),
+  background: getCssVar("--card-background-1"),
+  color: getCssVar("--text-color"),
 });
 
-export const alert = {
-  success: (title, text, timer = 2000) =>
+export const showAlert = {
+  success: (title, text, timer = 1500) =>
     Swal.fire({
-      ...base(),
+      ...swalBase(),
       icon: "success",
       title,
       text,
@@ -20,20 +20,40 @@ export const alert = {
       showConfirmButton: false,
     }),
 
-  error: (title, text) => Swal.fire({ ...base(), icon: "error", title, text }),
+  error: (title, text) => Swal.fire({ ...swalBase(), icon: "error", title, text }),
 
-  warning: (title, text) => Swal.fire({ ...base(), icon: "warning", title, text }),
+  warning: (title, text) => Swal.fire({ ...swalBase(), icon: "warning", title, text }),
+
+  cancelInput: (title, inputLabel, inputPlaceholder) =>
+    Swal.fire({
+      ...swalBase(),
+      title,
+      input: "textarea",
+      inputLabel,
+      inputPlaceholder,
+      showCancelButton: true,
+      reverseButtons: true,
+      confirmButtonText: "Evet, İptal Etmek İstiyorum",
+      cancelButtonText: "Geri Dön",
+      confirmButtonColor: getCssVar("--danger"),
+      cancelButtonColor: getCssVar("--text-secondary"),
+      preConfirm: (val) => {
+        if (!val?.trim()) Swal.showValidationMessage("İptal nedeni zorunludur.");
+        return val?.trim();
+      },
+    }),
 
   confirm: (title, text, confirmText = "Evet", danger = false, cancelText = "Vazgeç") =>
     Swal.fire({
-      ...base(),
+      ...swalBase(),
       title,
       text,
       icon: "warning",
       showCancelButton: true,
+      reverseButtons: true,
       confirmButtonText: confirmText,
       cancelButtonText: cancelText,
-      confirmButtonColor: danger ? cssVar("--danger") : cssVar("--button-color"),
-      cancelButtonColor: cssVar("--text-secondary"),
+      confirmButtonColor: danger ? getCssVar("--danger") : getCssVar("--button-color"),
+      cancelButtonColor: getCssVar("--text-secondary"),
     }),
 };

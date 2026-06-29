@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS payment_cancellations (
   payment_id INTEGER NOT NULL UNIQUE,
   cancelled_by INTEGER NOT NULL,
   FOREIGN KEY(payment_id) REFERENCES due_payments(id) ON DELETE RESTRICT,
-  FOREIGN KEY(cancelled_by) REFERENCES users(id) ON DELETE RESTRICT -- kullanıcı soft-delete ile devre dışı bırakılır, fiziksel silme yapılmaz
+  FOREIGN KEY(cancelled_by) REFERENCES users(id) ON DELETE RESTRICT
 );
 
 -- Prevent any modification of cancellation records; this is an immutable audit log

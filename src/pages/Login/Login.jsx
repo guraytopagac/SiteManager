@@ -3,40 +3,24 @@ import { useNavigate } from "react-router-dom";
 import "./Login.css";
 import logoImgWebp from "../../assets/images/logo.webp";
 import logoImgPng from "../../assets/images/logo.png";
-import { alert } from "../../utils/alert";
+import { showAlert } from "../../utils/alert";
 import { SESSION_USER_KEY } from "../../utils/constants";
-
-function formatBytes(bytes) {
-  if (!bytes) return "0 MB";
-  return (bytes / 1024 / 1024).toFixed(1) + " MB";
-}
 
 function Login() {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [update, setUpdate] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const unsub = window.electronAPI.onPrefillLogin((_e, { username, password }) => {
+    const unsubPrefillLogin = window.electronAPI.onPrefillLogin(({ username, password }) => {
       setUsername(username);
       setPassword(password);
     });
-    const unsubAvailable = window.electronAPI.onUpdateAvailable((_e, { version }) => {
-      setUpdate({ version, percent: 0, transferred: 0, total: 0, downloaded: false });
-    });
-    const unsubProgress = window.electronAPI.onDownloadProgress((_e, { percent, transferred, total }) => {
-      setUpdate((prev) => prev && { ...prev, percent, transferred, total });
-    });
-    const unsubDownloaded = window.electronAPI.onUpdateDownloaded(() => {
-      setUpdate((prev) => prev && { ...prev, downloaded: true });
-    });
     return () => {
-      unsub();
-      unsubAvailable();
-      unsubProgress();
-      unsubDownloaded();
+      unsubPrefillLogin();
     };
   }, []);
 
@@ -46,11 +30,12 @@ function Login() {
     const cleanUsername = username.trim();
 
     if (!cleanUsername || !password) {
-      alert.warning("Uyarı", "Lütfen tüm alanları doldurun!");
+      setError("Lütfen tüm alanları doldurun.");
       return;
     }
 
     setIsSubmitting(true);
+    setError("");
     const { success, user, message } = await window.electronAPI.login({
       username: cleanUsername,
       password,
@@ -64,70 +49,166 @@ function Login() {
         JSON.stringify({ id, username: loggedInUsername, email, role, last_login }),
       );
       window.dispatchEvent(new Event("user-session-changed"));
-      await alert.success(loggedInUsername + " — Hoş Geldiniz", message);
-      navigate(role === "admin" ? "/admin-dashboard" : "/dashboard");
+      await showAlert.success(loggedInUsername + " — Hoş Geldiniz", message);
+      navigate(role === "admin" ? "/admin" : "/dashboard");
     } else {
-      alert.error("Giriş Başarısız", message);
+      setError(message);
       setPassword("");
     }
   };
 
   return (
-    <div className="loginContainer">
+    <div className="login-container">
       <picture>
         <source srcSet={logoImgWebp} type="image/webp" />
         <img src={logoImgPng} alt="Mavikent Logo" />
       </picture>
       <h1 className="title">Mavikent Site Yönetimi</h1>
+      <p className="subtitle">Hesabınıza giriş yapın</p>
 
-      {update ? (
-        <div className="updateOverlay">
-          {update.downloaded ? (
-            <>
-              <div className="updateIcon updateIconReady">&#10003;</div>
-              <p className="updateTitle">Güncelleme Hazır</p>
-              <p className="updateSub">Yeniden başlatma bekleniyor...</p>
-            </>
+      <form className="login-form" onSubmit={handleLoginSubmit}>
+        <div className="input-wrapper">
+          <svg
+            className="input-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          <input
+            className="has-icon"
+            type="text"
+            placeholder="Kullanıcı adınızı girin"
+            value={username}
+            onChange={(e) => {
+              setUsername(e.target.value);
+              setError("");
+            }}
+            required
+          />
+        </div>
+        <div className="password-wrapper">
+          <svg
+            className="input-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <input
+            className="password-input has-icon"
+            type={showPassword ? "text" : "password"}
+            placeholder="Şifrenizi girin"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setError("");
+            }}
+            required
+          />
+          <button
+            type="button"
+            className="password-toggle"
+            onClick={() => setShowPassword((v) => !v)}
+            tabIndex={-1}
+            aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
+          >
+            {showPassword ? (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                <line x1="1" y1="1" x2="23" y2="23" />
+              </svg>
+            ) : (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            )}
+          </button>
+        </div>
+
+        {error && (
+          <div className="login-error">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            {error}
+          </div>
+        )}
+
+        <button type="submit" id="loginButton" className="login-btn" disabled={isSubmitting}>
+          {isSubmitting ? (
+            "Giriş yapılıyor..."
           ) : (
             <>
-              <div className="updateIcon">&#8659;</div>
-              <p className="updateTitle">Güncelleme İndiriliyor</p>
-              <p className="updateSub">v{update.version} hazırlanıyor...</p>
-              <div className="updateProgressBar">
-                <div className="updateProgressFill" style={{ width: `${update.percent}%` }} />
-              </div>
-              <p className="updateProgressText">
-                %{update.percent}
-                {update.total > 0 && ` — ${formatBytes(update.transferred)} / ${formatBytes(update.total)}`}
-              </p>
-              <p className="updateNote">İndirme tamamlandığında yeniden başlatma isteyecek.</p>
+              Giriş Yap
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
             </>
           )}
-        </div>
-      ) : (
-        <>
-          <h2 className="subtitle">Hoşgeldiniz!</h2>
-          <form className="loginForm" onSubmit={handleLoginSubmit}>
-            <input
-              type="text"
-              placeholder="Kullanıcı adınızı girin"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-            <input
-              type="password"
-              placeholder="Şifrenizi girin"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            <button type="submit" id="loginButton" disabled={isSubmitting}>
-              {isSubmitting ? "Giriş yapılıyor..." : "Giriş Yap"}
-            </button>
-          </form>
-        </>
-      )}
+        </button>
+      </form>
     </div>
   );
 }
