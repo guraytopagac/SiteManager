@@ -171,7 +171,7 @@ function setupAutoUpdater() {
         cancelId: 1,
       });
       if (response === 0) {
-        autoUpdater.quitAndInstall();
+        autoUpdater.quitAndInstall(false, true);
       } else {
         closeSplashAndShowMain(mainWindow);
       }

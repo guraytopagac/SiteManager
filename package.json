@@ -1,7 +1,7 @@
 {
   "name": "site-manager",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "Mavikent Site Yönetimi Uygulaması",
   "author": "Güray Topağaç",
   "type": "commonjs",
@@ -33,6 +33,7 @@
     "asarUnpack": [
       "**/*.node"
     ],
+    "artifactName": "Mavikent-Site-Yonetimi-Setup-${version}.${ext}",
     "win": {
       "target": "nsis",
       "icon": "src/assets/icons/icon.ico"
