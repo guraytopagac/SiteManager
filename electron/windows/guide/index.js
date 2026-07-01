@@ -1,9 +1,8 @@
 const { BrowserWindow } = require("electron");
 const path = require("path");
+const ICON_PATH = path.join(__dirname, "../../../assets/icon.ico");
 
 let guideWin = null;
-
-const ICON_PATH = path.join(__dirname, "../../../src/assets/icons/icon.ico");
 
 function openGuide() {
   if (guideWin && !guideWin.isDestroyed()) {

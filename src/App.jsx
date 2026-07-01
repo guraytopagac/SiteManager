@@ -2,9 +2,6 @@
 import { lazy, Suspense } from "react";
 import { HashRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 
-// Hooks
-import { useTheme } from "./hooks/useTheme.js";
-
 // Components (eager — small, always needed)
 import Footer from "./components/Footer.jsx";
 import ProtectedRoute from "./router/ProtectedRoute.jsx";
@@ -22,8 +19,6 @@ const Profile = lazy(() => import("./pages/Profile/Profile.jsx"));
 const Reports = lazy(() => import("./pages/Reports/Reports.jsx"));
 
 function App() {
-  useTheme();
-
   return (
     <div className="app-wrapper">
       <Router>

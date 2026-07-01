@@ -9,6 +9,23 @@ export const swalBase = () => ({
 });
 
 export const showAlert = {
+  toast: (title, text, timer = 2800) =>
+    Swal.fire({
+      ...swalBase(),
+      icon: "success",
+      title,
+      text,
+      timer,
+      timerProgressBar: true,
+      showConfirmButton: false,
+      toast: true,
+      position: "top",
+      backdrop: false,
+      width: 420,
+      padding: "1.1em 1.5em",
+      customClass: { popup: "toast-popup", title: "toast-title", htmlContainer: "toast-text" },
+    }),
+
   success: (title, text, timer = 1500) =>
     Swal.fire({
       ...swalBase(),

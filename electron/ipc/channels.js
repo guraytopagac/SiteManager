@@ -1,50 +1,50 @@
 const CHANNELS = Object.freeze({
   APARTMENT: Object.freeze({
-    ADD: "add-apartment",
-    UPDATE: "update-apartment",
-    DELETE: "delete-apartment",
-    BULK_UPDATE_DUE_AMOUNT: "bulk-update-due-amount",
+    ADD: "apartment:add",
+    UPDATE: "apartment:update",
+    DELETE: "apartment:delete",
+    BULK_UPDATE_DUE_AMOUNT: "apartment:bulk-update-due-amount",
   }),
 
   AUTH: Object.freeze({
-    LOGIN: "login",
-    GET_MANAGERS: "get-managers",
-    CREATE_MANAGER: "create-manager",
-    UPDATE_MANAGER_STATUS: "update-manager-status",
-    CHANGE_PASSWORD: "change-password",
+    LOGIN: "auth:login",
+    GET_MANAGERS: "auth:get-managers",
+    CREATE_MANAGER: "auth:create-manager",
+    UPDATE_MANAGER_STATUS: "auth:update-manager-status",
+    CHANGE_PASSWORD: "auth:change-password",
   }),
 
   DASHBOARD: Object.freeze({
-    GET_STATS: "get-stats",
+    GET_STATS: "dashboard:get-stats",
   }),
 
   DUES: Object.freeze({
-    GET_FOR_MONTH: "get-dues-for-month",
-    RECORD_PAYMENT: "record-payment",
-    CANCEL_PAYMENT: "cancel-payment",
-    GET_PAYMENT_HISTORY: "get-payment-history",
+    GET_FOR_MONTH: "dues:get-for-month",
+    RECORD_PAYMENT: "dues:record-payment",
+    CANCEL_PAYMENT: "dues:cancel-payment",
+    GET_PAYMENT_HISTORY: "dues:get-payment-history",
   }),
 
   FINANCIAL: Object.freeze({
-    ADD_INCOME: "add-income",
-    ADD_EXPENSE: "add-expense",
-    GET_TRANSACTIONS: "get-transactions",
-    CANCEL_INCOME: "cancel-income",
-    CANCEL_EXPENSE: "cancel-expense",
+    ADD_INCOME: "financial:add-income",
+    ADD_EXPENSE: "financial:add-expense",
+    GET_TRANSACTIONS: "financial:get-transactions",
+    CANCEL_INCOME: "financial:cancel-income",
+    CANCEL_EXPENSE: "financial:cancel-expense",
   }),
 
   SYSTEM: Object.freeze({
-    GET_APP_VERSION: "get-app-version",
+    GET_APP_VERSION: "system:get-app-version",
   }),
 
   REPORTS: Object.freeze({
-    GET_DATA: "get-report-data",
-    SAVE_FILE: "save-report-file",
+    GET_DATA: "reports:get-data",
+    SAVE_FILE: "reports:save-file",
   }),
 
   EVENTS: Object.freeze({
-    TOGGLE_THEME: "toggle-theme",
-    PREFILL_LOGIN: "prefill-login",
+    TOGGLE_THEME: "events:toggle-theme",
+    PREFILL_LOGIN: "events:prefill-login",
   }),
 });
 

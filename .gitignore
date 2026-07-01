@@ -14,7 +14,7 @@ node_modules/
 dist/
 dist-ssr/
 
-# Electron build outputs (ASAR and Installer files)
+# Electron build outputs
 dist_electron/
 out/
 release/
@@ -31,11 +31,11 @@ releases/
 # Electron cache
 .cache/
 
-# Generated assets
-public/
-
 # Local env files
 *.local
+
+# MCP config
+.mcp.json
 
 # Editor directories and files
 .vscode/*

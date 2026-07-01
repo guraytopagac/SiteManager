@@ -4,7 +4,7 @@ const path = require("path");
 const CH = require("./ipc/channels");
 const { runBackup, runRestore } = require("./services/backup.service");
 const { openGuide } = require("./windows/guide");
-const ICON_PATH = path.join(__dirname, "../src/assets/icons/icon.ico");
+const ICON_PATH = path.join(__dirname, "../assets/icon.ico");
 
 function buildMenu(mainWindow, isDev) {
   const template = [

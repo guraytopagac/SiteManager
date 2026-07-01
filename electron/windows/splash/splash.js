@@ -5,6 +5,7 @@ const updateBadgeText = document.getElementById("update-badge-text");
 const progressWrap = document.getElementById("progress-wrap");
 const progressFill = document.getElementById("progress-fill");
 const progressPercent = document.getElementById("progress-percent");
+const progressStatus = document.getElementById("progress-status");
 const progressSize = document.getElementById("progress-size");
 
 function formatMB(bytes) {
@@ -19,16 +20,14 @@ if (window.splashAPI) {
 
   window.splashAPI.onStatus(({ text }) => {
     statusEl.innerHTML =
-      text + '<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>';
+      text + '<span class="splash-dot">.</span><span class="splash-dot">.</span><span class="splash-dot">.</span>';
   });
 
   window.splashAPI.onUpdateAvailable(({ version }) => {
-    updateBadgeText.textContent = "v" + version + " İndiriliyor";
-    updateBadge.classList.add("visible");
-    statusEl.innerHTML =
-      "Güncelleme indiriliyor" +
-      '<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>';
-    progressWrap.classList.add("visible");
+    updateBadgeText.textContent = "v" + version;
+    updateBadge.classList.add("splash-visible");
+    statusEl.classList.add("splash-hidden");
+    progressWrap.classList.add("splash-visible");
   });
 
   window.splashAPI.onDownloadProgress(({ percent, transferred, total }) => {
@@ -40,9 +39,7 @@ if (window.splashAPI) {
   window.splashAPI.onUpdateDownloaded(() => {
     progressFill.style.width = "100%";
     progressPercent.textContent = "%100";
-    progressSize.textContent = "";
-    statusEl.textContent = "Güncelleme hazır";
-    updateBadgeText.textContent = "İndirme Tamamlandı";
+    progressStatus.textContent = "( Güncelleme hazır )";
   });
 
   window.splashAPI.ready();

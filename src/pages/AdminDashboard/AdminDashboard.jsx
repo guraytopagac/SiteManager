@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { FiGrid, FiUsers, FiSettings, FiLogOut, FiEdit2, FiX, FiUser, FiMail, FiLock, FiPower, FiEdit } from "react-icons/fi";
 import "./AdminDashboard.css";
 import { showAlert } from "../../utils/alert";
-import { formatDateTime } from "../../utils/format";
+import { formatShortDate, formatTime } from "../../utils/format";
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -10,6 +11,20 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({ username: "", email: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [openMenuFor, setOpenMenuFor] = useState(null);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (openMenuFor === null) return;
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpenMenuFor(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openMenuFor]);
 
   const fetchManagers = async () => {
     const response = await window.electronAPI.getManagers();
@@ -45,6 +60,7 @@ function AdminDashboard() {
     if (response.success) {
       showAlert.success("Yönetici Oluşturuldu", response.message);
       setFormData({ username: "", email: "", password: "" });
+      setIsPanelOpen(false);
       fetchManagers();
     } else {
       showAlert.error("Hata", response.message);
@@ -66,6 +82,7 @@ function AdminDashboard() {
 
     if (!result.isConfirmed) return;
 
+    setOpenMenuFor(null);
     const response = await window.electronAPI.updateManagerStatus(manager.id, willActivate);
 
     if (response.success) {
@@ -83,13 +100,35 @@ function AdminDashboard() {
   };
 
   return (
-    <div className="admin-container">
-      <div className="admin-header">
-        <h1 className="admin-title">Admin Paneli</h1>
-      </div>
-      <div className="admin-content">
-        <section className="admin-section">
-          <h2 className="section-heading">Yöneticiler</h2>
+    <div className="admin-layout">
+      <div className="admin-shell">
+        <aside className="admin-sidebar">
+          <h1 className="admin-title">Admin Paneli</h1>
+          <nav className="admin-nav">
+            <div className="admin-nav-item disabled">
+              <FiGrid /> Genel Bakış
+            </div>
+            <div className="admin-nav-item active">
+              <FiUsers /> Yöneticiler
+            </div>
+            <div className="admin-nav-item disabled">
+              <FiSettings /> Ayarlar
+            </div>
+          </nav>
+          <button className="btn-logout" onClick={handleLogout}>
+            <FiLogOut /> Çıkış Yap
+          </button>
+        </aside>
+
+        <main className="admin-main">
+          <div className="admin-main-header">
+            <h2 className="admin-main-title">Yöneticiler</h2>
+            <button className="btn-add-manager" onClick={() => setIsPanelOpen(true)}>
+              Yeni Yönetici Ekle
+            </button>
+          </div>
+
+          <div className="admin-table-wrap">
           {loading ? (
             <div className="admin-loading">Yükleniyor...</div>
           ) : managers.length === 0 ? (
@@ -111,7 +150,14 @@ function AdminDashboard() {
                     <td className="cell-username">{manager.username}</td>
                     <td className="cell-email">{manager.email}</td>
                     <td className="cell-date">
-                      {manager.last_login ? formatDateTime(manager.last_login) : "—"}
+                      {manager.last_login ? (
+                        <>
+                          <div>{formatShortDate(manager.last_login)}</div>
+                          <div className="cell-date-time">{formatTime(manager.last_login)}</div>
+                        </>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td>
                       <span className={`status-pill ${manager.is_active ? "active" : "inactive"}`}>
@@ -119,25 +165,53 @@ function AdminDashboard() {
                       </span>
                     </td>
                     <td>
-                      <button
-                        className={`btn-toggle ${manager.is_active ? "deactivate" : "activate"}`}
-                        onClick={() => handleToggleStatus(manager)}
-                      >
-                        {manager.is_active ? "Deaktif Et" : "Aktif Et"}
-                      </button>
+                      <div className="cell-actions" ref={openMenuFor === manager.id ? menuRef : null}>
+                        <button
+                          className="icon-btn"
+                          title="İşlemler"
+                          onClick={() => setOpenMenuFor(openMenuFor === manager.id ? null : manager.id)}
+                        >
+                          <FiEdit2 />
+                        </button>
+                        {openMenuFor === manager.id && (
+                          <div className="action-menu">
+                            <button
+                              className={`action-menu-item ${manager.is_active ? "danger" : "success"}`}
+                              onClick={() => handleToggleStatus(manager)}
+                            >
+                              <FiPower /> {manager.is_active ? "Deaktif Et" : "Aktif Et"}
+                            </button>
+                            <button className="action-menu-item" disabled title="Yakında">
+                              <FiEdit /> Düzenle
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
-        </section>
-        <section className="admin-section">
-          <h2 className="section-heading">Yeni Yönetici Ekle</h2>
-          <form className="manager-form" onSubmit={handleCreateManager}>
-            <div className="form-row">
+          </div>
+        </main>
+      </div>
+
+      {isPanelOpen && (
+        <>
+          <div className="panel-overlay" onClick={() => setIsPanelOpen(false)} />
+          <aside className="add-manager-panel">
+            <div className="panel-header">
+              <h2 className="section-heading">Yeni Yönetici Ekle</h2>
+              <button className="icon-btn" onClick={() => setIsPanelOpen(false)}>
+                <FiX />
+              </button>
+            </div>
+            <form className="manager-form" onSubmit={handleCreateManager}>
               <div className="form-field">
-                <label htmlFor="mgr-username">Kullanıcı Adı</label>
+                <label htmlFor="mgr-username">
+                  <FiUser /> Kullanıcı Adı
+                </label>
                 <input
                   id="mgr-username"
                   type="text"
@@ -148,7 +222,9 @@ function AdminDashboard() {
                 />
               </div>
               <div className="form-field">
-                <label htmlFor="mgr-email">E-posta</label>
+                <label htmlFor="mgr-email">
+                  <FiMail /> E-posta
+                </label>
                 <input
                   id="mgr-email"
                   type="email"
@@ -159,7 +235,9 @@ function AdminDashboard() {
                 />
               </div>
               <div className="form-field">
-                <label htmlFor="mgr-password">Şifre</label>
+                <label htmlFor="mgr-password">
+                  <FiLock /> Şifre
+                </label>
                 <input
                   id="mgr-password"
                   type="password"
@@ -169,16 +247,13 @@ function AdminDashboard() {
                   required
                 />
               </div>
-            </div>
-            <button type="submit" className="btn-action btn-create" disabled={isSubmitting}>
-              {isSubmitting ? "Oluşturuluyor..." : "Yönetici Oluştur"}
-            </button>
-          </form>
-        </section>
-        <button className="btn-action btn-logout" onClick={handleLogout}>
-          Çıkış Yap
-        </button>
-      </div>
+              <button type="submit" className="btn-action btn-create" disabled={isSubmitting}>
+                {isSubmitting ? "Oluşturuluyor..." : "Yönetici Oluştur"}
+              </button>
+            </form>
+          </aside>
+        </>
+      )}
     </div>
   );
 }

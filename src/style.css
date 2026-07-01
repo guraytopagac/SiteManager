@@ -209,3 +209,18 @@ input::placeholder,
 textarea::placeholder {
   color: var(--text-disabled);
 }
+
+/* ─── SweetAlert2 toast (non-blocking success notice) ──────────────────────── */
+.toast-popup {
+  border: 1px solid var(--success);
+  box-shadow: 0 8px 28px var(--card-shadow);
+}
+
+.toast-title {
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+}
+
+.toast-text {
+  font-size: 0.9rem !important;
+}

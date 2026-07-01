@@ -4,6 +4,7 @@ const serve = require("electron-serve").default;
 const fs = require("fs");
 const path = require("path");
 const registerIpcHandlers = require("./ipc/index.js");
+const CH = require("./ipc/channels");
 const { buildMenu } = require("./menu");
 const { createSplashWindow, sendToSplash, closeSplashAndShowMain, getSplashWindow } = require("./windows/splash");
 const { runMigrations } = require("../database/migrate");
@@ -72,13 +73,13 @@ async function handleSeedResult(seedResult) {
     }
   }
 
-  mainWindow.webContents.send("prefill-login", { username, password });
+  mainWindow.webContents.send(CH.EVENTS.PREFILL_LOGIN, { username, password });
   password = undefined;
   username = undefined;
 }
 
 function createMainWindow(db) {
-  const iconPath = path.join(__dirname, "../src/assets/icons/icon.ico");
+  const iconPath = path.join(__dirname, "../assets/icon.ico");
 
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -209,8 +210,6 @@ if (!isFirstInstance) {
 }
 
 app.whenReady().then(async () => {
-  app.setAppUserModelId("com.mavikent.sitemanager");
-
   let db;
   try {
     ({ db } = require("../database/db"));

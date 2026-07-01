@@ -1,59 +1,147 @@
-.admin-container {
+.admin-layout {
   width: 100%;
   max-width: 1300px;
+  height: 100%;
   margin: 0 auto;
   padding: 28px;
+  position: relative;
   color: var(--text-color);
 }
 
-.admin-header {
+.admin-shell {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-bottom: 20px;
-  border-bottom: 2px solid var(--border-default);
-  margin-bottom: 32px;
+  align-items: stretch;
+  background: var(--card-background-1);
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  box-shadow: 0 4px 16px var(--card-shadow);
+  overflow: hidden;
+  min-height: 680px;
+}
+
+/* ─── Sidebar ──────────────────────────────────────────────────────────────── */
+.admin-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--card-background-2);
+  border-right: 1px solid var(--border-default);
+  padding: 20px;
 }
 
 .admin-title {
-  font-size: 1.6rem;
-  font-weight: 900;
+  font-size: 1.25rem;
+  font-weight: 800;
   color: var(--text-color);
+  margin-bottom: 24px;
 }
 
-.admin-content {
+.admin-nav {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 6px;
+  flex: 1;
 }
 
-.admin-section {
-  background: var(--card-background-1);
-  border: 2px solid var(--border-default);
-  border-radius: 14px;
-  padding: 24px;
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
-.section-heading {
-  font-size: 1.1rem;
-  font-weight: 700;
+.admin-nav-item.active {
+  background: var(--accent-subtle);
+  color: var(--button-color);
+}
+
+.admin-nav-item.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.btn-logout:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+/* ─── Main content ─────────────────────────────────────────────────────────── */
+.admin-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 28px;
+}
+
+.admin-main-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.admin-main-title {
+  font-size: 1.35rem;
+  font-weight: 800;
   color: var(--text-color);
-  margin-bottom: 18px;
-  padding-left: 10px;
-  border-left: 3px solid var(--button-color);
 }
 
+.btn-add-manager {
+  padding: 10px 18px;
+  border-radius: 8px;
+  background: var(--button-color);
+  color: var(--button-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.btn-add-manager:hover {
+  background: var(--button-hover);
+}
+
+.admin-table-wrap {
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  overflow-y: auto;
+  max-height: 560px;
+}
+
+/* ─── Table ────────────────────────────────────────────────────────────────── */
 .manager-table {
   width: 100%;
-  border-collapse: collapse;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid var(--border-default);
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.manager-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--card-background-2);
+  z-index: 1;
 }
 
 .manager-table th {
-  background: var(--card-background-2);
-  padding: 12px 0;
+  padding: 14px 24px;
   text-align: center;
   font-size: 0.6875rem;
   font-weight: 700;
@@ -64,7 +152,8 @@
 }
 
 .manager-table td {
-  padding: 14px;
+  padding: 16px 24px;
+  text-align: center;
   font-size: 0.875rem;
   color: var(--text-color);
   border-bottom: 1px solid var(--border-default);
@@ -75,7 +164,6 @@
 }
 
 .manager-table tbody tr {
-  background: var(--card-background-1);
   transition: background 0.2s ease;
 }
 
@@ -87,77 +175,169 @@
   font-weight: 600;
 }
 
-.cell-email {
-  color: var(--text-secondary);
-  font-size: 0.8125rem;
-}
-
+.cell-email,
 .cell-date {
   color: var(--text-secondary);
   font-size: 0.8125rem;
 }
 
+.cell-date-time {
+  color: var(--text-disabled);
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
 .status-pill {
   display: inline-block;
-  padding: 10px;
+  padding: 5px 12px;
   border-radius: 99px;
   font-size: 0.75rem;
   font-weight: 600;
 }
 
 .status-pill.active {
-  background: rgba(52, 211, 153, 0.12);
-  color: var(--success);
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
 }
 
 .status-pill.inactive {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--danger);
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
 }
 
-.btn-toggle {
-  padding: 6px 14px;
+.cell-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--text-secondary);
+  color: var(--text-secondary);
+  background: var(--card-background-1);
+  outline: none;
+}
+
+.icon-btn:hover:not(:disabled),
+.icon-btn:focus:not(:disabled),
+.icon-btn:active:not(:disabled) {
+  opacity: 1;
+  background: var(--accent-subtle);
+  border-color: var(--border-focus) !important;
+  color: var(--button-color);
+}
+
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.action-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 160px;
+  background: var(--card-background-1);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px var(--card-shadow);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 5;
+}
+
+.action-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
   border-radius: 6px;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
-  transition:
-    background 0.2s ease,
-    color 0.2s ease;
-  border: 1px solid;
+  color: var(--text-color);
+  text-align: left;
+  background: transparent;
 }
 
-.btn-toggle.deactivate {
-  background: transparent;
-  border-color: var(--danger);
+.action-menu-item:hover:not(:disabled) {
+  background: var(--accent-subtle);
+}
+
+.action-menu-item.danger {
   color: var(--danger);
 }
 
-.btn-toggle.deactivate:hover {
-  background: var(--danger);
-  color: #fff;
-}
-
-.btn-toggle.activate {
-  background: transparent;
-  border-color: var(--success);
+.action-menu-item.success {
   color: var(--success);
 }
 
-.btn-toggle.activate:hover {
-  background: var(--success);
-  color: #fff;
+.action-menu-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.admin-loading,
+.admin-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+/* ─── Add manager slide-in panel ───────────────────────────────────────────── */
+.panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 10;
+}
+
+.add-manager-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 340px;
+  background: var(--card-background-1);
+  border-left: 1px solid var(--border-default);
+  box-shadow: -8px 0 24px var(--card-shadow);
+  padding: 24px;
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-heading {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-color);
+  padding-left: 10px;
+  border-left: 3px solid var(--button-color);
 }
 
 .manager-form {
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
-
-.admin-container .form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 14px;
 }
 
 .form-field {
@@ -167,6 +347,9 @@
 }
 
 .form-field label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-secondary);
@@ -176,7 +359,9 @@
   height: 42px;
   padding: 0 14px;
   border-radius: 8px;
+  border: 1px solid var(--border-default);
   background: var(--card-background-2);
+  color: var(--text-color);
   font-size: 0.875rem;
   transition:
     border-color 0.2s ease,
@@ -189,34 +374,28 @@
 }
 
 .form-field input:focus {
+  border-color: var(--border-focus);
   box-shadow: 0 0 0 3px var(--accent-subtle);
+  outline: none;
 }
 
-/* ─── Ortak Aksiyon Butonu ─────────────────────────────────────────────────── */
 .btn-action {
-  align-self: center;
-  width: 190px;
   padding: 10px 24px;
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 600;
 }
 
-.btn-logout {
-  background: var(--danger);
-  color: #fff;
+.btn-create {
+  background: var(--button-color);
+  color: var(--button-text);
 }
 
-.btn-logout:hover:not(:disabled) {
-  opacity: 0.8;
-  background: var(--danger);
-  color: #fff;
+.btn-create:hover:not(:disabled) {
+  background: var(--button-hover);
 }
 
-.admin-loading,
-.admin-empty {
-  padding: 24px;
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: 0.875rem;
+.btn-create:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

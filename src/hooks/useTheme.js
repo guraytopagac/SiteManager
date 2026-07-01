@@ -17,18 +17,19 @@ function getInitialTheme() {
 export function useTheme() {
   const [theme, setTheme] = useState(getInitialTheme);
 
+  const toggleTheme = () => {
+    setTheme((currentTheme) => {
+      const nextTheme = currentTheme === "light" ? "dark" : "light";
+      localStorage.setItem(THEME_KEY, nextTheme);
+      document.documentElement.setAttribute("data-theme", nextTheme);
+      return nextTheme;
+    });
+  };
+
   useEffect(() => {
-    const handleThemeToggle = () => {
-      setTheme((currentTheme) => {
-        const nextTheme = currentTheme === "light" ? "dark" : "light";
-        localStorage.setItem(THEME_KEY, nextTheme);
-        document.documentElement.setAttribute("data-theme", nextTheme);
-        return nextTheme;
-      });
-    };
-    const removeListener = window.electronAPI.onToggleTheme(handleThemeToggle);
+    const removeListener = window.electronAPI.onToggleTheme(toggleTheme);
     return () => removeListener();
   }, []);
 
-  return theme;
+  return { theme, toggleTheme };
 }

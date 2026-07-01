@@ -6,7 +6,6 @@ const DEFAULT_ADMIN_EMAIL = "admin@mavikent.com";
 
 // Called on first launch. No-op if an admin account already exists.
 // Returns { username, password } when a new account is created; main.js shows it to the user via dialog.
-// The plaintext password lives in memory only at this point — it cannot be recovered later.
 async function seedAdminAccount(db) {
   const existing = db.prepare(`SELECT username, email FROM users WHERE role = 'admin' LIMIT 1`).get();
   if (existing) return { alreadyExists: true, ...existing };

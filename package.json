@@ -1,5 +1,5 @@
 {
-  "name": "site-manager",
+  "name": "mavikent-site-yonetimi",
   "private": true,
   "version": "1.1.4",
   "description": "Mavikent Site Yönetimi Uygulaması",
@@ -7,7 +7,7 @@
   "type": "commonjs",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "concurrently \"vite\" \"npm run electron:dev\"",
+    "dev": "concurrently --kill-others \"vite\" \"npm run electron:dev\"",
     "electron:dev": "wait-on http://localhost:5173 && electron .",
     "build": "vite build",
     "lint": "eslint .",
@@ -36,12 +36,15 @@
     "artifactName": "Mavikent-Site-Yonetimi-Setup-${version}.${ext}",
     "win": {
       "target": "nsis",
-      "icon": "src/assets/icons/icon.ico"
+      "icon": "assets/icon.ico"
     },
     "nsis": {
       "perMachine": false,
-      "oneClick": true,
+      "oneClick": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
       "shortcutName": "Mavikent Site Yönetimi"
     },
     "publish": {
