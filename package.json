@@ -1,7 +1,7 @@
 {
   "name": "mavikent-site-yonetimi",
   "private": true,
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "Mavikent Site Yönetimi Uygulaması",
   "author": "Güray Topağaç",
   "type": "commonjs",
@@ -28,6 +28,7 @@
       "database/*.js",
       "database/schema/**/*",
       "database/migrations/**/*",
+      "assets/**/*",
       "package.json"
     ],
     "asarUnpack": [
