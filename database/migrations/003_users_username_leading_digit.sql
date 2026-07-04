@@ -20,7 +20,14 @@ CREATE TABLE users_new (
   updated_at TEXT DEFAULT (datetime('now'))
 );
 
-INSERT INTO users_new SELECT * FROM users;
+INSERT INTO users_new (
+  id, username, email, password_hash, recovery_hash, role, is_active,
+  last_login, password_changed_at, created_at, updated_at
+)
+SELECT
+  id, username, email, password_hash, recovery_hash, role, is_active,
+  last_login, password_changed_at, created_at, updated_at
+FROM users;
 
 DROP TABLE users;
 
