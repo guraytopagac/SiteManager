@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AddIncome.css";
-import { useCurrentUser } from "../../hooks/useCurrentUser";
-import { showAlert } from "../../utils/alert";
-import { getToday } from "../../utils/format";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { showAlert } from "@/utils/alert";
+import { getToday } from "@/utils/format";
 
 function AddIncome() {
   const navigate = useNavigate();

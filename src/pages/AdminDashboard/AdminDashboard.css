@@ -65,6 +65,22 @@
   cursor: not-allowed;
 }
 
+/* Button variant of a nav item (resets native button styles, matches the divs) */
+.admin-nav-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.admin-nav-btn:hover {
+  background: var(--accent-subtle);
+  color: var(--button-color);
+}
+
 .btn-logout {
   display: flex;
   align-items: center;

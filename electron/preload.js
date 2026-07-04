@@ -31,6 +31,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   updateManagerStatus: (id, isActive) => safeInvoke(CH.AUTH.UPDATE_MANAGER_STATUS, { id, isActive }),
   changePassword: (userId, oldPassword, newPassword) =>
     safeInvoke(CH.AUTH.CHANGE_PASSWORD, { userId, oldPassword, newPassword }),
+  resetAdminPassword: (recoveryCode, newPassword) =>
+    safeInvoke(CH.AUTH.RESET_ADMIN_PASSWORD, { recoveryCode, newPassword }),
+  regenerateRecoveryCode: (password) => safeInvoke(CH.AUTH.REGENERATE_RECOVERY_CODE, { password }),
 
   // Dashboard
   getStats: (managerId) => safeInvoke(CH.DASHBOARD.GET_STATS, managerId),

@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
-const { db } = require("../../database/db");
+const { db } = require("../../../database/db");
+const { generateRecoveryCode, normalizeRecoveryCode } = require("../../../database/seed");
 
 const BCRYPT_ROUNDS = 12;
 const DUMMY_HASH = "$2b$12$3X/2XNSPPTIIRZLnRyDSAOjqjj3mreEYkyjbWyz7RkwJbe0MBr8l.";
@@ -108,4 +109,66 @@ function changePassword(userId, oldPassword, newPassword) {
   }
 }
 
-module.exports = { login, getManagers, createManager, updateManagerStatus, changePassword };
+// Reset the admin password using the single-use recovery code (login screen, no session).
+// On success the recovery code is rotated and the new one is returned so the user can re-save it.
+function resetAdminPassword(recoveryCode, newPassword) {
+  try {
+    if (!newPassword || newPassword.length < 8)
+      return { success: false, message: "Yeni şifre en az 8 karakter olmalıdır." };
+
+    const admin = db.prepare(`SELECT id, recovery_hash FROM users WHERE role = 'admin' LIMIT 1`).get();
+    if (!admin || !admin.recovery_hash) {
+      bcrypt.compareSync("dummy", DUMMY_HASH); // timing parity
+      return { success: false, message: "Kurtarma kodu tanımlı değil. Lütfen destek ile iletişime geçin." };
+    }
+
+    const normalized = normalizeRecoveryCode(recoveryCode);
+    if (!bcrypt.compareSync(normalized || "", admin.recovery_hash))
+      return { success: false, message: "Kurtarma kodu hatalı." };
+
+    const newHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
+    const next = generateRecoveryCode();
+    const nextHash = bcrypt.hashSync(next.rawCode, BCRYPT_ROUNDS);
+    db.prepare(
+      `UPDATE users SET password_hash = ?, password_changed_at = datetime('now'), recovery_hash = ? WHERE id = ?`,
+    ).run(newHash, nextHash, admin.id);
+
+    return { success: true, message: "Admin şifresi sıfırlandı.", recoveryCode: next.display };
+  } catch (err) {
+    console.error("[auth.service] resetAdminPassword:", err);
+    return { success: false, message: "Şifre sıfırlanamadı." };
+  }
+}
+
+// Generate/rotate the admin recovery code. Gated by the admin's current password
+// (IPC has no server-side session), so a logged-in manager cannot mint a code.
+function regenerateRecoveryCode(password) {
+  try {
+    const admin = db.prepare(`SELECT id, password_hash FROM users WHERE role = 'admin' LIMIT 1`).get();
+    if (!admin) {
+      bcrypt.compareSync("dummy", DUMMY_HASH); // timing parity
+      return { success: false, message: "Admin hesabı bulunamadı." };
+    }
+    if (!bcrypt.compareSync(password || "", admin.password_hash))
+      return { success: false, message: "Şifre hatalı." };
+
+    const next = generateRecoveryCode();
+    const nextHash = bcrypt.hashSync(next.rawCode, BCRYPT_ROUNDS);
+    db.prepare(`UPDATE users SET recovery_hash = ? WHERE id = ?`).run(nextHash, admin.id);
+
+    return { success: true, message: "Yeni kurtarma kodu oluşturuldu.", recoveryCode: next.display };
+  } catch (err) {
+    console.error("[auth.service] regenerateRecoveryCode:", err);
+    return { success: false, message: "Kurtarma kodu oluşturulamadı." };
+  }
+}
+
+module.exports = {
+  login,
+  getManagers,
+  createManager,
+  updateManagerStatus,
+  changePassword,
+  resetAdminPassword,
+  regenerateRecoveryCode,
+};

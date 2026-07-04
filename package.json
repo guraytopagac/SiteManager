@@ -1,7 +1,7 @@
 {
   "name": "mavikent-site-yonetimi",
   "private": true,
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "Mavikent Site Yönetimi Uygulaması",
   "author": "Güray Topağaç",
   "type": "commonjs",
@@ -11,6 +11,7 @@
     "electron:dev": "wait-on http://localhost:5173 && electron .",
     "build": "vite build",
     "lint": "eslint .",
+    "test": "vitest",
     "preview": "vite preview",
     "start": "electron .",
     "dist": "vite build && electron-builder",
@@ -57,6 +58,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.10.0",
+    "electron-log": "^5.4.4",
     "electron-serve": "^3.0.1",
     "electron-updater": "^6.8.9",
     "jspdf": "^4.2.1",
@@ -83,6 +85,7 @@
     "prettier": "3.8.3",
     "react-icons": "^5.6.0",
     "vite": "^8.0.12",
+    "vitest": "^4.1.9",
     "wait-on": "^8.0.3"
   }
 }

@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 import "./Login.css";
 import logoImgWebp from "../../../assets/logo.webp";
-import { showAlert } from "../../utils/alert";
-import { SESSION_USER_KEY } from "../../utils/constants";
+import { showAlert, swalBase, getCssVar } from "@/utils/alert";
+import { SESSION_USER_KEY } from "@/utils/constants";
 import { FiUser, FiLock, FiEye, FiEyeOff, FiAlertCircle, FiArrowRight } from "react-icons/fi";
 
 function Login() {
@@ -23,6 +24,65 @@ function Login() {
       unsubPrefillLogin();
     };
   }, []);
+
+  const handleForgotPassword = async () => {
+    const { value: formValues } = await Swal.fire({
+      ...swalBase(),
+      title: "Admin Şifre Sıfırlama",
+      html: `
+        <p style="font-size:0.9em;margin-bottom:1em">
+          İlk kurulumda verilen kurtarma kodunu girin ve yeni bir şifre belirleyin.
+        </p>
+        <input id="swal-recovery" class="swal2-input" placeholder="Kurtarma kodu" autocomplete="off" />
+        <input id="swal-newpass" type="password" class="swal2-input" placeholder="Yeni şifre (en az 8 karakter)" autocomplete="new-password" />
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      reverseButtons: true,
+      confirmButtonText: "Şifreyi Sıfırla",
+      cancelButtonText: "Vazgeç",
+      confirmButtonColor: getCssVar("--button-color"),
+      cancelButtonColor: getCssVar("--text-secondary"),
+      preConfirm: () => {
+        const recoveryCode = document.getElementById("swal-recovery").value.trim();
+        const newPassword = document.getElementById("swal-newpass").value;
+        if (!recoveryCode) {
+          Swal.showValidationMessage("Kurtarma kodu zorunludur.");
+          return false;
+        }
+        if (!newPassword || newPassword.length < 8) {
+          Swal.showValidationMessage("Yeni şifre en az 8 karakter olmalıdır.");
+          return false;
+        }
+        return { recoveryCode, newPassword };
+      },
+    });
+
+    if (!formValues) return;
+
+    const res = await window.electronAPI.resetAdminPassword(formValues.recoveryCode, formValues.newPassword);
+    if (res.success) {
+      navigator.clipboard?.writeText(res.recoveryCode);
+      await Swal.fire({
+        ...swalBase(),
+        icon: "success",
+        title: "Şifre Sıfırlandı",
+        html: `
+          Admin şifreniz güncellendi.<br /><br />
+          <b>Yeni kurtarma kodunuz</b> (panoya kopyalandı):<br />
+          <code id="swal-recovery-code" style="font-size:1.1em;letter-spacing:1px"></code><br /><br />
+          Bu kodu güvenli bir yerde saklayın — eski kod artık geçersizdir.
+        `,
+        didOpen: () => {
+          document.getElementById("swal-recovery-code").textContent = res.recoveryCode;
+        },
+        confirmButtonText: "Anladım",
+        confirmButtonColor: getCssVar("--button-color"),
+      });
+    } else {
+      showAlert.error("Hata", res.message);
+    }
+  };
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -99,7 +159,6 @@ function Login() {
               type="button"
               className="login-password-toggle"
               onClick={() => setShowPassword((v) => !v)}
-              tabIndex={-1}
               aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
             >
               {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
@@ -122,6 +181,10 @@ function Login() {
                 <FiArrowRight size={18} strokeWidth={2.5} />
               </>
             )}
+          </button>
+
+          <button type="button" className="login-forgot" onClick={handleForgotPassword}>
+            Admin şifremi unuttum?
           </button>
         </form>
       </div>

@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import "./Apartments.css";
-import { useCurrentUser } from "../../hooks/useCurrentUser";
-import { showAlert, swalBase, getCssVar } from "../../utils/alert";
-import { getToday } from "../../utils/format";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { showAlert, swalBase, getCssVar } from "@/utils/alert";
+import { getToday } from "@/utils/format";
 
 const MONTHS = [
   "Ocak",
@@ -205,8 +205,20 @@ function PaymentModal({ due, year, month, currentUser, onClose, onPaymentSaved }
   }, [due.id]);
 
   useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
+    let cancelled = false;
+
+    (async () => {
+      setHistoryLoading(true);
+      const res = await window.electronAPI.getPaymentHistory(due.id);
+      if (cancelled) return;
+      if (res.success) setHistory(res.data);
+      setHistoryLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [due.id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -474,7 +486,7 @@ function Apartments() {
   const [errorMessage, setErrorMessage] = useState("");
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
-  const [selectedDue, setSelectedDue] = useState(null);
+  const [selectedApartmentId, setSelectedApartmentId] = useState(null);
   const [editingApartment, setEditingApartment] = useState(null);
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
 
@@ -494,15 +506,39 @@ function Apartments() {
       setErrorMessage(response.message || "Veriler alınamadı.");
     }
     setLoading(false);
-  }, [currentUser?.id, selectedYear, selectedMonth, navigate]);
+  }, [currentUser, selectedYear, selectedMonth, navigate]);
 
   useEffect(() => {
-    fetchDues();
-  }, [fetchDues]);
+    let cancelled = false;
 
-  useEffect(() => {
-    setSelectedDue((prev) => (prev ? dues.find((d) => d.apartment_id === prev.apartment_id) || null : null));
-  }, [dues]);
+    (async () => {
+      setLoading(true);
+      setErrorMessage("");
+
+      if (!currentUser?.id) {
+        navigate("/", { replace: true });
+        return;
+      }
+
+      const response = await window.electronAPI.getDuesForMonth(currentUser.id, selectedYear, selectedMonth);
+      if (cancelled) return;
+      if (response.success) {
+        setDues(response.data);
+      } else {
+        setErrorMessage(response.message || "Veriler alınamadı.");
+      }
+      setLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser, selectedYear, selectedMonth, navigate]);
+
+  const selectedDue = useMemo(
+    () => (selectedApartmentId ? dues.find((d) => d.apartment_id === selectedApartmentId) || null : null),
+    [dues, selectedApartmentId],
+  );
 
   const handlePaymentSaved = useCallback(async () => {
     await fetchDues();
@@ -631,7 +667,10 @@ function Apartments() {
                 <td>{due.due_amount.toLocaleString("tr-TR")} ₺</td>
                 <td>{due.paid_amount.toLocaleString("tr-TR")} ₺</td>
                 <td>
-                  <button className={`status-badge status-${due.status}`} onClick={() => setSelectedDue(due)}>
+                  <button
+                    className={`status-badge status-${due.status}`}
+                    onClick={() => setSelectedApartmentId(due.apartment_id)}
+                  >
                     {STATUS_LABELS[due.status]}
                   </button>
                 </td>
@@ -663,7 +702,7 @@ function Apartments() {
           year={selectedYear}
           month={selectedMonth}
           currentUser={currentUser}
-          onClose={() => setSelectedDue(null)}
+          onClose={() => setSelectedApartmentId(null)}
           onPaymentSaved={handlePaymentSaved}
         />
       )}

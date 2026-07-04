@@ -1,5 +1,6 @@
 -- Apartments table: one row per physical unit in the building.
--- apartment_no is case-insensitive unique (e.g. "1A" == "1a").
+-- apartment_no is case-insensitive unique per manager (e.g. "1A" == "1a");
+-- two different managers may each have their own "1A".
 -- floor allows negative values for basement floors (-2 to 99).
 -- due_amount is the monthly dues amount for this specific apartment.
 -- Resident info is stored separately in the residents table.

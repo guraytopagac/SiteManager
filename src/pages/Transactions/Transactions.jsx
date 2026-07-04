@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Transactions.css";
-import { useCurrentUser } from "../../hooks/useCurrentUser";
-import { showAlert } from "../../utils/alert";
-import { formatDate } from "../../utils/format";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { showAlert } from "@/utils/alert";
+import { formatDate } from "@/utils/format";
 
 const TYPE_LABELS = { income: "Gelir", expense: "Gider" };
 
@@ -48,11 +48,35 @@ function Transactions() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.id, navigate]);
+  }, [currentUser, navigate]);
 
   useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions]);
+    let cancelled = false;
+
+    (async () => {
+      if (!currentUser?.id) {
+        navigate("/", { replace: true });
+        return;
+      }
+      try {
+        const response = await window.electronAPI.getTransactions(currentUser.id);
+        if (cancelled) return;
+        if (response.success) {
+          setTransactions(response.data);
+        } else {
+          showAlert.error("Hata", response.message || "İşlem geçmişi alınamadı.");
+        }
+      } catch {
+        if (!cancelled) showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser, navigate]);
 
   const handleCancel = useCallback(
     async (t) => {
@@ -72,7 +96,7 @@ function Transactions() {
         showAlert.error("Hata", res.message);
       }
     },
-    [currentUser?.id, fetchTransactions],
+    [currentUser, fetchTransactions],
   );
 
   const filtered = useMemo(

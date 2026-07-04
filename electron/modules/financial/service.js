@@ -1,4 +1,4 @@
-const { db } = require("../../database/db");
+const { db } = require("../../../database/db");
 
 const ALLOWED_TABLES = new Set(["incomes", "expenses"]);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;

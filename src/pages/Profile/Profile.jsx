@@ -1,9 +1,9 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Profile.css";
-import { useCurrentUser } from "../../hooks/useCurrentUser";
-import { showAlert } from "../../utils/alert";
-import { formatDateTime } from "../../utils/format";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { showAlert } from "@/utils/alert";
+import { formatDateTime } from "@/utils/format";
 
 function validatePasswordForm(oldPassword, newPassword, confirmPassword) {
   if (!oldPassword) return "Mevcut şifrenizi girmelisiniz.";

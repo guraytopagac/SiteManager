@@ -16,7 +16,7 @@ Ay sonu yaklaşınca ödenmemiş daireler için uygulama içi özet/uyarı.
 - Dashboard'da "Bu ay ödenmemiş: X daire" kartı
 - Ay sonu (ör. son 5 gün) yaklaşınca vurgulu gösterim
 - Detay: daire no, sakin adı, kalan tutar listesi
-- Eklenecek dosyalar: `dashboard.service.js` sorgu genişletmesi, `Dashboard.jsx` UI
+- Eklenecek dosyalar: `electron/modules/dashboard/service.js` sorgu genişletmesi, `Dashboard.jsx` UI
 
 ---
 
@@ -47,7 +47,7 @@ Bir dairenin tüm geçmiş sakinlerini listeleyen ekran. Veri `residents` tablos
 Son 6 aya ait gelir/gider trend grafiği.
 
 - Kütüphane: mevcut stack'e en az bağımlılıkla `recharts` veya saf SVG
-- Veri: `financial.service` yeni `getMonthlyTrend(managerId, monthCount)` metodu
+- Veri: `electron/modules/financial/service.js` içine yeni `getMonthlyTrend(managerId, monthCount)` metodu
 - Gösterim: çubuk veya çizgi grafik, ay etiketleri Türkçe (Oca, Şub…)
 - Yeni IPC endpoint gerekir — kullanıcıya sor
 

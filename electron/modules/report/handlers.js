@@ -1,7 +1,7 @@
 const fs = require("fs");
 const { dialog } = require("electron");
-const reportService = require("../../services/report.service");
-const CH = require("../channels");
+const CH = require("../../ipc/channels");
+const reportService = require("./service");
 
 function registerReportHandlers(ipcMain) {
   ipcMain.handle(CH.REPORTS.GET_DATA, (event, { managerId, year, month }) => {

@@ -23,7 +23,8 @@ export default defineConfig([
     rules: commonRules,
   },
   {
-    files: ["electron/**/*.js"],
+    files: ["electron/**/*.js", "database/**/*.js"],
+    ignores: ["electron/windows/**/guide.js", "electron/windows/**/splash.js"],
     extends: [js.configs.recommended],
     languageOptions: {
       globals: { ...globals.node },
@@ -31,10 +32,10 @@ export default defineConfig([
     rules: commonRules,
   },
   {
-    files: ["database/**/*.js"],
+    files: ["electron/windows/**/guide.js", "electron/windows/**/splash.js"],
     extends: [js.configs.recommended],
     languageOptions: {
-      globals: { ...globals.node },
+      globals: { ...globals.browser },
     },
     rules: commonRules,
   },

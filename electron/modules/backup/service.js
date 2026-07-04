@@ -1,9 +1,9 @@
-const { dialog, app } = require("electron");
 const fs = require("fs");
 const Database = require("better-sqlite3");
+const { dialog, app } = require("electron");
 
 async function runBackup(mainWindow) {
-  const { db } = require("../database/db");
+  const { db } = require("../../../database/db");
   const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
     title: "Veritabanının Yedeğini Kaydet",
     defaultPath: `mavikent-yedek-${new Date().toISOString().slice(0, 10)}.db`,
@@ -34,7 +34,7 @@ async function runBackup(mainWindow) {
 }
 
 async function runRestore(mainWindow) {
-  const { db, closeDb } = require("../database/db");
+  const { db, closeDb } = require("../../../database/db");
   const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow, {
     title: "Veritabanı Dosyasını Seç",
     filters: [{ name: "SQLite Veritabanı", extensions: ["db"] }],
@@ -43,7 +43,7 @@ async function runRestore(mainWindow) {
 
   if (canceled || !filePaths.length) return;
 
-  let integrityOk = false;
+  let integrityOk;
   try {
     const testDb = new Database(filePaths[0], { readonly: true });
     const result = testDb.pragma("integrity_check", { simple: true });

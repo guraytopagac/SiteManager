@@ -240,6 +240,31 @@ input.login-password-input {
   box-shadow: none;
 }
 
+/* ─── Forgot password link ─────────────────────────────────────────────────── */
+.login-forgot {
+  margin-top: 2px;
+  background: none;
+  border: none;
+  align-self: center;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.login-forgot:hover {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: underline;
+}
+
+[data-theme="light"] .login-forgot {
+  color: #64748b;
+}
+
+[data-theme="light"] .login-forgot:hover {
+  color: #1d4ed8;
+}
+
 /* ─── Error message ────────────────────────────────────────────────────────── */
 .login-error {
   display: flex;

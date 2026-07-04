@@ -1,4 +1,4 @@
-const { db } = require("../../database/db");
+const { db } = require("../../../database/db");
 
 function calcDueStatus(dueAmount, paidAmount) {
   if (paidAmount >= dueAmount) return "paid";

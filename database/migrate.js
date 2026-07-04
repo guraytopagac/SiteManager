@@ -32,6 +32,26 @@ function applyMigrations(db) {
 
   const recordMigration = db.prepare(`INSERT INTO migrations (filename) VALUES (?)`);
 
+  function runSingleMigration(file, sql) {
+    try {
+      db.pragma("foreign_keys = OFF");
+      db.transaction(() => {
+        db.exec(sql);
+        recordMigration.run(file);
+      })();
+      console.warn(`[Migrate] Migration applied: ${file}`);
+    } catch (err) {
+      if (err.message.includes("duplicate column name") || err.message.includes("no such table")) {
+        db.transaction(() => recordMigration.run(file))();
+        console.warn(`[Migrate] Migration skipped: ${file} — ${err.message}`);
+      } else {
+        throw err;
+      }
+    } finally {
+      db.pragma("foreign_keys = ON");
+    }
+  }
+
   for (const file of files) {
     if (appliedMigrations.has(file)) continue;
 
@@ -43,23 +63,7 @@ function applyMigrations(db) {
       continue;
     }
 
-    try {
-      db.pragma("foreign_keys = OFF");
-      db.transaction(() => {
-        db.exec(sql);
-        recordMigration.run(file);
-      })();
-      db.pragma("foreign_keys = ON");
-      console.log(`[Migrate] Migration applied: ${file}`);
-    } catch (err) {
-      db.pragma("foreign_keys = ON");
-      if (err.message.includes("duplicate column name") || err.message.includes("no such table")) {
-        db.transaction(() => recordMigration.run(file))();
-        console.warn(`[Migrate] Migration skipped: ${file} — ${err.message}`);
-      } else {
-        throw err;
-      }
-    }
+    runSingleMigration(file, sql);
   }
 }
 
@@ -67,6 +71,7 @@ function applyMigrations(db) {
 // File name prefix (01_, 02_, …) determines load order.
 function loadSchema(db) {
   const schemaDir = path.join(__dirname, "schema");
+
   const schemaFiles = fs
     .readdirSync(schemaDir)
     .filter((f) => f.endsWith(".sql"))

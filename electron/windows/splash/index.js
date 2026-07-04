@@ -1,5 +1,5 @@
-const { BrowserWindow } = require("electron");
 const path = require("path");
+const { BrowserWindow, ipcMain } = require("electron");
 
 let splashWindow = null;
 
@@ -45,4 +45,23 @@ function getSplashWindow() {
   return splashWindow;
 }
 
-module.exports = { createSplashWindow, sendToSplash, closeSplashAndShowMain, getSplashWindow };
+function waitForSplashReady() {
+  return new Promise((resolve) => {
+    let received = false;
+    splashWindow.webContents.once("did-finish-load", () => {
+      // Renderer usually sends splash:ready synchronously during load, before
+      // this listener is registered — only warn if it genuinely never arrives.
+      setTimeout(() => {
+        if (received) return;
+        console.warn("[Splash] splash:ready not received, continuing via fallback after 300ms.");
+        resolve();
+      }, 300);
+    });
+    ipcMain.once("splash:ready", () => {
+      received = true;
+      resolve();
+    });
+  });
+}
+
+module.exports = { createSplashWindow, sendToSplash, closeSplashAndShowMain, getSplashWindow, waitForSplashReady };

@@ -1,8 +1,8 @@
+const path = require("path");
 const { Menu, dialog, app, shell } = require("electron");
 const { autoUpdater } = require("electron-updater");
-const path = require("path");
 const CH = require("./ipc/channels");
-const { runBackup, runRestore } = require("./services/backup.service");
+const { runBackup, runRestore } = require("./modules/backup/service");
 const { openGuide } = require("./windows/guide");
 const ICON_PATH = path.join(__dirname, "../assets/icon.ico");
 
@@ -19,7 +19,7 @@ function buildMenu(mainWindow, isDev) {
           },
         },
         {
-          label: "Veritabanı Yükle",
+          label: "Veritabanı Dosyası Yükle",
           accelerator: "CmdOrCtrl+Shift+R",
           click() {
             runRestore(mainWindow);
@@ -44,7 +44,7 @@ function buildMenu(mainWindow, isDev) {
         { label: "Uzaklaştır", role: "zoomOut" },
         { label: "Varsayılan Boyut", role: "resetZoom" },
         { type: "separator" },
-        { label: "Yenile", role: "reload", accelerator: "CmdOrCtrl+R" },
+        { label: "Yenile", role: "reload" },
         { type: "separator" },
         { label: "Tam Ekran", role: "togglefullscreen" },
       ],
@@ -82,7 +82,8 @@ function buildMenu(mainWindow, isDev) {
                   buttons: ["Tamam"],
                 });
               }
-            } catch {
+            } catch (err) {
+              console.error("[Main] Update check failed:", err.message);
               dialog.showMessageBox(mainWindow, {
                 type: "warning",
                 title: "Güncelleme",
@@ -96,8 +97,9 @@ function buildMenu(mainWindow, isDev) {
         {
           label: "Hata Bildir",
           click() {
+            const body = encodeURIComponent(`Sürüm: ${app.getVersion()}\n\nHata açıklaması:\n`);
             shell.openExternal(
-              "mailto:guray.topagac.dev@gmail.com?subject=Mavikent%20Site%20Y%C3%B6netim%20Sistemi%20-%20Hata%20Bildirimi",
+              `mailto:guray.topagac.dev@gmail.com?subject=Mavikent%20Site%20Y%C3%B6netim%20Sistemi%20-%20Hata%20Bildirimi&body=${body}`,
             );
           },
         },

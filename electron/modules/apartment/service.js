@@ -1,4 +1,4 @@
-const { db } = require("../../database/db");
+const { db } = require("../../../database/db");
 
 const COLUMN_LABELS = {
   apartment_no: "Daire numarası",

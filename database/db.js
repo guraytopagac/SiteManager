@@ -1,6 +1,6 @@
-const Database = require("better-sqlite3");
-const path = require("path");
 const fs = require("fs");
+const path = require("path");
+const Database = require("better-sqlite3");
 const { app } = require("electron");
 
 const isPackaged = app.isPackaged;
@@ -19,7 +19,7 @@ let db;
 try {
   db = new Database(dbPath);
 } catch (e) {
-  throw new Error(`[Database] Failed to open database (${dbPath}): ${e.message}`);
+  throw new Error(`[Database] Failed to open database (${dbPath}): ${e.message}`, { cause: e });
 }
 
 db.pragma("foreign_keys = ON");
@@ -31,12 +31,13 @@ db.pragma("synchronous = NORMAL");
 db.pragma("busy_timeout = 3000");
 // Negative value = KB; 2 MB page cache
 db.pragma("cache_size = -2000");
+// Keep temp tables/indexes in RAM instead of spilling to disk
 db.pragma("temp_store = MEMORY");
 
 function closeDb() {
   if (!db.open) return;
   try {
-    // Flush WAL and update query planner statistics
+    // Update query planner statistics before closing
     db.pragma("optimize");
   } catch (e) {
     if (!isPackaged) console.error("[Database] optimize failed:", e.message);
@@ -50,6 +51,6 @@ function closeDb() {
 
 app.on("before-quit", closeDb);
 
-if (!isPackaged) console.log(`[Database] Database connection established: ${dbPath}`);
+if (!isPackaged) console.warn(`[Database] Database connection established: ${dbPath}`);
 
 module.exports = { db, closeDb };

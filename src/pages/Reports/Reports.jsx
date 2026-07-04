@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import "./Reports.css";
-import { useCurrentUser } from "../../hooks/useCurrentUser";
-import { showAlert } from "../../utils/alert";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { showAlert } from "@/utils/alert";
 
 const MONTHS = [
   "Ocak",

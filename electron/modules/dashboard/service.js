@@ -1,4 +1,4 @@
-const { db } = require("../../database/db");
+const { db } = require("../../../database/db");
 
 function fetchStats(managerId, year, month) {
   const { totalIncome } = db

@@ -1,19 +1,19 @@
-const registerAuthHandlers = require("./handlers/auth.handlers");
-const registerApartmentHandlers = require("./handlers/apartment.handlers");
-const registerDashboardHandlers = require("./handlers/dashboard.handlers");
-const registerFinancialHandlers = require("./handlers/financial.handlers");
-const registerDuesHandlers = require("./handlers/dues.handlers");
-const registerSystemHandlers = require("./handlers/system.handlers");
-const registerReportHandlers = require("./handlers/report.handlers");
+const registerApartmentHandlers = require("../modules/apartment/handlers");
+const registerAuthHandlers = require("../modules/auth/handlers");
+const registerDashboardHandlers = require("../modules/dashboard/handlers");
+const registerDuesHandlers = require("../modules/dues/handlers");
+const registerFinancialHandlers = require("../modules/financial/handlers");
+const registerReportHandlers = require("../modules/report/handlers");
+const registerSystemHandlers = require("../modules/system/handlers");
 
 function registerIpcHandlers(ipcMain) {
-  registerAuthHandlers(ipcMain);
   registerApartmentHandlers(ipcMain);
+  registerAuthHandlers(ipcMain);
   registerDashboardHandlers(ipcMain);
-  registerFinancialHandlers(ipcMain);
   registerDuesHandlers(ipcMain);
-  registerSystemHandlers(ipcMain);
+  registerFinancialHandlers(ipcMain);
   registerReportHandlers(ipcMain);
+  registerSystemHandlers(ipcMain);
 }
 
 module.exports = registerIpcHandlers;

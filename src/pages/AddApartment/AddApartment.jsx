@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AddApartment.css";
-import { useCurrentUser } from "../../hooks/useCurrentUser";
-import { showAlert } from "../../utils/alert";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { showAlert } from "@/utils/alert";
 
 const INITIAL_DATA = {
   apartment_no: "",

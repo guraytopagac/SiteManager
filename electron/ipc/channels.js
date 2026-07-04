@@ -12,6 +12,8 @@ const CHANNELS = Object.freeze({
     CREATE_MANAGER: "auth:create-manager",
     UPDATE_MANAGER_STATUS: "auth:update-manager-status",
     CHANGE_PASSWORD: "auth:change-password",
+    RESET_ADMIN_PASSWORD: "auth:reset-admin-password",
+    REGENERATE_RECOVERY_CODE: "auth:regenerate-recovery-code",
   }),
 
   DASHBOARD: Object.freeze({

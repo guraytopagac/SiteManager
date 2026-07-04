@@ -24,7 +24,7 @@ package-lock.json
 
 **Teknik Stack:** Electron v41, React v19, SQLite (better-sqlite3), Vite v8, SweetAlert2, jspdf + jspdf-autotable (PDF), electron-updater (GitHub Releases)
 
-**Güncel Sürüm:** 1.1.0
+**Güncel Sürüm:** 1.1.6
 
 ---
 
@@ -33,6 +33,7 @@ package-lock.json
 - **Dil:** UI metinleri Türkçe; kod ve yorumlar İngilizce
 - **Stil:** Prettier
 - **Naming:** değişkenler `camelCase`, React bileşenleri `PascalCase`
+- **Import sırası** (`electron/`, `database/` — CommonJS `require`): 1) Node builtin modülleri, 2) external paketler, 3) local (relative `./` `../`) importlar. Her grup kendi içinde alfabetik sıralanır.
 
 ### Yapmadan Önce Sor
 
@@ -63,21 +64,32 @@ SiteManager/
 ├── database/
 │   ├── schema/          # Tablo şemaları — NN_tablo.sql formatı, alfabetik sırayla yüklenir
 │   ├── migrations/      # Mevcut tablolara ALTER — NNN_aciklama.sql formatı, bir kez çalışır
-│   ├── db.js            # Bağlantı (WAL, pragma, integrity check)
+│   ├── db.js            # Bağlantı (WAL, pragma)
 │   ├── migrate.js       # runMigrations() — her başlangıçta main.js çağırır
 │   └── seed.js          # İlk kurulumda admin hesabı oluşturma
 │
 ├── electron/
 │   ├── ipc/
 │   │   ├── channels.js        # Tüm IPC kanal sabitleri — handler'lar ve preload buradan import eder
-│   │   ├── index.js           # Handler kayıt merkezi
-│   │   └── handlers/          # Her domain için ayrı handler dosyası (*.handlers.js)
-│   ├── services/              # İş mantığı katmanı (*.service.js) — handler'lardan çağrılır
-│   │   └── backup.service.js  # Yedek alma / geri yükleme — menu.js tarafından çağrılır
-│   ├── windows/               # Yardımcı pencereler (guide.js vb.)
-│   ├── main.js                # Electron ana döngüsü
-│   ├── menu.js                # Uygulama menüsü (Dosya, Görünüm, Yardım, DevTools)
-│   └── preload.js             # contextBridge — electronAPI'yi renderer'a açar
+│   │   └── index.js           # Handler kayıt merkezi — modules/*/handlers.js'i alfabetik sırayla toplar
+│   ├── modules/                       # Domain bazlı gruplama — her domain kendi handler+service çiftiyle bir arada
+│   │   ├── apartment/{handlers,service}.js
+│   │   ├── auth/{handlers,service}.js
+│   │   ├── dashboard/{handlers,service}.js
+│   │   ├── dues/{handlers,service}.js
+│   │   ├── financial/{handlers,service}.js
+│   │   ├── report/{handlers,service}.js
+│   │   ├── system/handlers.js         # Servisi yok — tek satırlık, sadece app version döner
+│   │   └── backup/service.js          # Handler'ı yok — IPC dışı, doğrudan menu.js tarafından çağrılır
+│   ├── launch/                 # Açılışta (splash ekranındayken) çalışan main-process wiring/dialog kodu
+│   │   ├── adminSeedDialog.js  # İlk kurulumda oluşturulan admin hesabını kullanıcıya gösteren dialog
+│   │   └── autoUpdater.js      # electron-updater event'lerini splash/pencereye bağlar
+│   ├── windows/                # Yardımcı BrowserWindow'lar
+│   │   ├── guide/               # Kullanım kılavuzu penceresi (HTML+CSS+JS)
+│   │   └── splash/               # Açılış ekranı — main.js açılışta gösterir, kendi preload.js'i vardır
+│   ├── main.js                 # Electron ana döngüsü — app lifecycle, pencere oluşturma, migration/seed tetikleme
+│   ├── menu.js                 # Uygulama menüsü (Dosya, Görünüm, Yardım, DevTools)
+│   └── preload.js              # contextBridge — electronAPI'yi renderer'a açar, kanal whitelist kontrolü yapar
 │
 └── src/
     ├── components/      # Footer vb. paylaşılan bileşenler
@@ -102,7 +114,8 @@ SiteManager/
 - Oturum: `sessionStorage` → `currentUser` anahtarı
 - "Beni hatırla": 30 günlük session token
 - Admin hesabı yalnızca bir adet olabilir; `seed.js` `is_active`'e bakmaksızın `role = 'admin'` varlığını kontrol eder
-- `createManager`'da kullanıcı adı `/^[A-Za-z0-9_]{3,}$/` ile doğrulanır; timing attack koruması için sahte hash karşılaştırması yapılır
+- `createManager`'da kullanıcı adı `/^[A-Za-z0-9_]{3,}$/` ile doğrulanır; timing attack koruması için sahte hash karşılaştırması yapılır. `admin` kullanıcı adı ve `DEFAULT_ADMIN_EMAIL` seed hesabı için rezervedir (seed.js sabitlerinden okunur)
+- **Admin şifre kurtarma:** İlk kurulumda şifre + tek kullanımlık kurtarma kodu üretilir (`seed.js`, `recovery_hash`). Şifre unutulursa giriş ekranından `resetAdminPassword(recoveryCode, newPassword)` ile sıfırlanır; kod her kullanımda yenilenir. Admin, giriş yapmışken `regenerateRecoveryCode(password)` (mevcut şifreyle doğrulanır) ile yeni kod üretebilir
 - Oturum kapatma tamamen client-side: `sessionStorage.clear()` + `user-session-changed` event dispatch (IPC yok)
 
 ---
@@ -110,10 +123,12 @@ SiteManager/
 ## 5. Veritabanı Şeması
 
 ```sql
-users                 (id, username, email, password_hash, role, is_active,
+users                 (id, username, email, password_hash, recovery_hash, role, is_active,
                        last_login, password_changed_at, created_at, updated_at)
+                       -- recovery_hash: admin kurtarma kodunun bcrypt hash'i (tek kullanımlık,
+                       --   her kullanımda yenilenir); manager'larda NULL
 
-apartments            (id, apartment_no UNIQUE NOCASE, floor,
+apartments            (id, apartment_no UNIQUE NOCASE per manager_id, floor,
                        type∈{0+1,1+1,2+1,3+1,4+1}, square_meters,
                        due_amount, is_active, manager_id→users.id,
                        created_at, updated_at)
@@ -133,7 +148,7 @@ dues                  (id, apartment_id→apartments.id, year, month,
                        UNIQUE(apartment_id, year, month)
 
 due_payments          (id, due_id→dues.id, collected_by→users.id,
-                       amount CHECK(>0 AND <=50000),
+                       amount CHECK(>0 AND <=1000000),
                        payment_method∈{cash,bank_transfer,card,other},
                        payment_date, note CHECK(len<=500), created_at)
 
@@ -179,7 +194,7 @@ expenses              (id, amount, date, description,
 7. **Soft-delete**: daire `is_active=0` — `recordPayment`'ta `AND is_active=1` kontrolü vardır.
 8. **Sakinler**: `residents.is_active=1` olan aktif sakindir; bir dairenin birden fazla geçmiş sakini olabilir.
 9. **Para tutarları** `REAL` saklanır, ekranda `₺` formatında gösterilir.
-10. **Yedekleme**: `electron/services/backup.service.js` içinde `runBackup` / `runRestore` — `menu.js` tarafından çağrılır. IPC değil. Geri yüklemede integrity_check, `.bak` rollback ve `app.relaunch()` içerir.
+10. **Yedekleme**: `electron/modules/backup/service.js` içinde `runBackup` / `runRestore` — `menu.js` tarafından çağrılır. IPC değil. Geri yüklemede integrity_check, `.bak` rollback ve `app.relaunch()` içerir.
 
 ---
 
@@ -190,7 +205,7 @@ Her IPC çağrısı üç katmanda doğrulanır — değişiklik yaparken tüm ka
 | Katman     | Dosya                                 | Ne kontrol eder                            |
 | ---------- | ------------------------------------- | ------------------------------------------ |
 | 1. Bridge  | `preload.js`                          | Tip kontrolü (typeof), null guard          |
-| 2. Handler | `electron/ipc/handlers/*.handlers.js` | Alan varlığı, aralık, format (regex, enum) |
+| 2. Handler | `electron/modules/*/handlers.js`      | Alan varlığı, aralık, format (regex, enum) |
 | 3. DB      | `database/schema/*.sql`               | CHECK constraint, NOT NULL, UNIQUE, FK     |
 
 ---
@@ -217,7 +232,7 @@ Her IPC çağrısı üç katmanda doğrulanır — değişiklik yaparken tüm ka
 | Grup      | Metodlar                                                                         |
 | --------- | -------------------------------------------------------------------------------- |
 | Apartment | `addApartment`, `updateApartment`, `deleteApartment`, `bulkUpdateDueAmount`      |
-| Auth      | `login`, `getManagers`, `createManager`, `updateManagerStatus`, `changePassword` |
+| Auth      | `login`, `getManagers`, `createManager`, `updateManagerStatus`, `changePassword`, `resetAdminPassword`, `regenerateRecoveryCode` |
 | Dashboard | `getStats`                                                                       |
 | Dues      | `getDuesForMonth`, `recordPayment`, `cancelPayment`, `getPaymentHistory`         |
 | Financial | `addIncome`, `addExpense`, `getTransactions`, `cancelIncome`, `cancelExpense`    |

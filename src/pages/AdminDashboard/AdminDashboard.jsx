@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiGrid, FiUsers, FiSettings, FiLogOut, FiEdit2, FiX, FiUser, FiMail, FiLock, FiPower, FiEdit } from "react-icons/fi";
+import { FiGrid, FiUsers, FiSettings, FiLogOut, FiEdit2, FiX, FiUser, FiMail, FiLock, FiPower, FiEdit, FiKey } from "react-icons/fi";
+import Swal from "sweetalert2";
 import "./AdminDashboard.css";
-import { showAlert } from "../../utils/alert";
-import { formatShortDate, formatTime } from "../../utils/format";
+import { showAlert, swalBase, getCssVar } from "@/utils/alert";
+import { formatShortDate, formatTime } from "@/utils/format";
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -37,7 +38,22 @@ function AdminDashboard() {
   };
 
   useEffect(() => {
-    fetchManagers();
+    let cancelled = false;
+
+    (async () => {
+      const response = await window.electronAPI.getManagers();
+      if (cancelled) return;
+      if (response.success) {
+        setManagers(response.data);
+      } else {
+        showAlert.error("Hata", "Yöneticiler yüklenemedi.");
+      }
+      setLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleCreateManager = async (e) => {
@@ -93,6 +109,53 @@ function AdminDashboard() {
     }
   };
 
+  const handleGenerateRecovery = async () => {
+    const { value: password } = await Swal.fire({
+      ...swalBase(),
+      title: "Kurtarma Kodu Oluştur",
+      text: "Kimliğinizi doğrulamak için admin şifrenizi girin. Yeni kod üretildiğinde eski kod geçersiz olur.",
+      input: "password",
+      inputPlaceholder: "Admin şifreniz",
+      showCancelButton: true,
+      reverseButtons: true,
+      confirmButtonText: "Oluştur",
+      cancelButtonText: "Vazgeç",
+      confirmButtonColor: getCssVar("--button-color"),
+      cancelButtonColor: getCssVar("--text-secondary"),
+      preConfirm: (val) => {
+        if (!val) {
+          Swal.showValidationMessage("Şifre zorunludur.");
+          return false;
+        }
+        return val;
+      },
+    });
+
+    if (!password) return;
+
+    const res = await window.electronAPI.regenerateRecoveryCode(password);
+    if (res.success) {
+      navigator.clipboard?.writeText(res.recoveryCode);
+      await Swal.fire({
+        ...swalBase(),
+        icon: "success",
+        title: "Kurtarma Kodunuz",
+        html: `
+          <code id="swal-recovery-code" style="font-size:1.2em;letter-spacing:1px"></code><br /><br />
+          Kod panoya kopyalandı. Güvenli bir yerde saklayın; şifrenizi unutursanız giriş
+          ekranından bu kodla sıfırlayabilirsiniz.
+        `,
+        didOpen: () => {
+          document.getElementById("swal-recovery-code").textContent = res.recoveryCode;
+        },
+        confirmButtonText: "Anladım",
+        confirmButtonColor: getCssVar("--button-color"),
+      });
+    } else {
+      showAlert.error("Hata", res.message);
+    }
+  };
+
   const handleLogout = () => {
     sessionStorage.clear();
     window.dispatchEvent(new Event("user-session-changed"));
@@ -111,6 +174,9 @@ function AdminDashboard() {
             <div className="admin-nav-item active">
               <FiUsers /> Yöneticiler
             </div>
+            <button className="admin-nav-item admin-nav-btn" onClick={handleGenerateRecovery}>
+              <FiKey /> Kurtarma Kodu
+            </button>
             <div className="admin-nav-item disabled">
               <FiSettings /> Ayarlar
             </div>

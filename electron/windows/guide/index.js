@@ -1,5 +1,5 @@
-const { BrowserWindow } = require("electron");
 const path = require("path");
+const { BrowserWindow } = require("electron");
 const ICON_PATH = path.join(__dirname, "../../../assets/icon.ico");
 
 let guideWin = null;

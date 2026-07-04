@@ -1,5 +1,5 @@
-const dashboardService = require("../../services/dashboard.service");
-const CH = require("../channels");
+const CH = require("../../ipc/channels");
+const dashboardService = require("./service");
 
 function registerDashboardHandlers(ipcMain) {
   ipcMain.handle(CH.DASHBOARD.GET_STATS, (event, managerId) => {

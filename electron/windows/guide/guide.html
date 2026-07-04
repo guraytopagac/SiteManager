@@ -13,34 +13,35 @@
         <div class="guide-sidebar-title">Kullanım Kılavuzu</div>
         <nav>
           <div class="guide-section-label">Başlarken</div>
-          <a href="#login">Giriş Ekranı</a>
-          <a href="#roles">Kullanıcı Rolleri</a>
-          <a href="#shortcuts">Klavye Kısayolları</a>
+          <a href="#login"><span class="guide-nav-icon">🔑</span>Giriş Ekranı</a>
+          <a href="#roles"><span class="guide-nav-icon">👤</span>Kullanıcı Rolleri</a>
+          <a href="#shortcuts"><span class="guide-nav-icon">⌨️</span>Klavye Kısayolları</a>
 
           <div class="guide-section-label">Admin</div>
-          <a href="#admin-dashboard">Admin Paneli</a>
-          <a href="#manager-management">Yönetici Yönetimi</a>
+          <a href="#admin-dashboard"><span class="guide-nav-icon">🛡️</span>Admin Paneli</a>
+          <a href="#manager-management"><span class="guide-nav-icon">👥</span>Yönetici Yönetimi</a>
 
           <div class="guide-section-label">Günlük İşlemler</div>
-          <a href="#dashboard">Kontrol Paneli</a>
-          <a href="#apartments">Daireler</a>
-          <a href="#residents">Sakinler</a>
-          <a href="#dues">Aidat Yönetimi</a>
-          <a href="#financial">Gelir / Gider</a>
-          <a href="#transactions">İşlem Geçmişi</a>
-          <a href="#reports">Raporlar</a>
+          <a href="#dashboard"><span class="guide-nav-icon">📊</span>Kontrol Paneli</a>
+          <a href="#apartments"><span class="guide-nav-icon">🏢</span>Daireler</a>
+          <a href="#residents"><span class="guide-nav-icon">👪</span>Sakinler</a>
+          <a href="#dues"><span class="guide-nav-icon">💳</span>Aidat Yönetimi</a>
+          <a href="#financial"><span class="guide-nav-icon">💰</span>Gelir / Gider</a>
+          <a href="#transactions"><span class="guide-nav-icon">🕒</span>İşlem Geçmişi</a>
+          <a href="#reports"><span class="guide-nav-icon">📈</span>Raporlar</a>
 
           <div class="guide-section-label">Sistem</div>
-          <a href="#profile">Profil</a>
-          <a href="#backup">Yedekleme</a>
-          <a href="#theme">Tema</a>
-          <a href="#support">Destek</a>
-          <a href="#faq">Sık Sorulan Sorular</a>
+          <a href="#profile"><span class="guide-nav-icon">🙍</span>Profil</a>
+          <a href="#backup"><span class="guide-nav-icon">💾</span>Yedekleme</a>
+          <a href="#theme"><span class="guide-nav-icon">🌓</span>Tema</a>
+          <a href="#support"><span class="guide-nav-icon">✉️</span>Destek</a>
+          <a href="#faq"><span class="guide-nav-icon">❓</span>Sık Sorulan Sorular</a>
         </nav>
       </aside>
 
       <!-- Main content -->
       <main class="guide-content">
+        <div class="guide-version-badge">Sürüm 1.1.6</div>
         <h1>Mavikent Site Yönetim Sistemi Uygulaması</h1>
         <p class="guide-subtitle">Kullanım Kılavuzu — Tüm özellikler ve adım adım açıklamalar</p>
 
@@ -122,15 +123,11 @@
             </tr>
             <tr>
               <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd></td>
-              <td>Veritabanını yükle</td>
+              <td>Veritabanı dosyası yükle</td>
             </tr>
             <tr>
               <td><kbd>F1</kbd></td>
               <td>Kılavuzu aç</td>
-            </tr>
-            <tr>
-              <td><kbd>Ctrl</kbd>+<kbd>R</kbd></td>
-              <td>Sayfayı yenile</td>
             </tr>
             <tr>
               <td><kbd>F11</kbd></td>
@@ -171,7 +168,9 @@
           </div>
           <div class="guide-step">
             <div class="guide-step-num">3</div>
-            <div class="guide-step-body"><strong>Oluştur</strong> butonuna tıklayın. Yönetici hemen listeye eklenir.</div>
+            <div class="guide-step-body">
+              <strong>Oluştur</strong> butonuna tıklayın. Yönetici hemen listeye eklenir.
+            </div>
           </div>
         </div>
 
@@ -273,7 +272,9 @@
           </div>
           <div class="guide-step">
             <div class="guide-step-num">2</div>
-            <div class="guide-step-body">Ödeme tutarını, yöntemini (Nakit / Banka / Kart / Diğer) ve tarihini girin.</div>
+            <div class="guide-step-body">
+              Ödeme tutarını, yöntemini (Nakit / Banka / Kart / Diğer) ve tarihini girin.
+            </div>
           </div>
           <div class="guide-step">
             <div class="guide-step-num">3</div>
@@ -297,13 +298,14 @@
         <h2 id="financial">Gelir / Gider</h2>
         <h3>Gelir Ekleme</h3>
         <p>
-          <strong>Gelir Ekle</strong> sayfasında tutar, tarih, açıklama ve kategori (Aidat / Diğer) girerek kaydedin.
-          Aidat ödemelerinden gelen gelirler otomatik oluşturulur; buradan manuel ek gelir kaydı yapılabilir.
+          <strong>Gelir Ekle</strong> sayfasında tutar ve açıklama girerek kaydedin; tarih otomatik olarak bugünün
+          tarihi alınır. Aidat ödemelerinden gelen gelirler otomatik oluşturulur (kategori: Aidat); buradan eklenen
+          manuel gelirler her zaman <strong>Diğer</strong> kategorisinde kaydedilir.
         </p>
         <h3>Gider Ekleme</h3>
         <p>
-          <strong>Gider Ekle</strong> sayfasında tutar, tarih, açıklama ve kategori (Bakım / Temizlik / Fatura /
-          Personel / Diğer) girerek kaydedin.
+          <strong>Gider Ekle</strong> sayfasında tutar, açıklama ve kategori (Bakım &amp; Onarım / Temizlik /
+          Fatura-Abonelik / Personel / Diğer) girerek kaydedin; tarih otomatik olarak bugünün tarihi alınır.
         </p>
         <div class="guide-warning">
           <span class="guide-warning-icon">⚠</span>
@@ -379,7 +381,9 @@
           </div>
           <div class="guide-step">
             <div class="guide-step-num">2</div>
-            <div class="guide-step-body">Kaydetmek istediğiniz konumu seçin. Dosya adı otomatik olarak tarihi içerir.</div>
+            <div class="guide-step-body">
+              Kaydetmek istediğiniz konumu seçin. Dosya adı otomatik olarak tarihi içerir.
+            </div>
           </div>
         </div>
         <h3>Yedekten Geri Yükleme</h3>
@@ -387,7 +391,7 @@
           <div class="guide-step">
             <div class="guide-step-num">1</div>
             <div class="guide-step-body">
-              <strong>Dosya → Veritabanı Yükle</strong> seçin (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>).
+              <strong>Dosya → Veritabanı Dosyası Yükle</strong> seçin (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>).
             </div>
           </div>
           <div class="guide-step">
@@ -425,8 +429,7 @@
           <strong>Görünüm</strong> menüsünden ayrıca yakınlaştırma (<kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>Ctrl</kbd>+<kbd
             >-</kbd
           >
-          / <kbd>Ctrl</kbd>+<kbd>0</kbd>), sayfa yenileme (<kbd>Ctrl</kbd>+<kbd>R</kbd>) ve tam ekran (<kbd>F11</kbd>)
-          işlemleri yapılabilir.
+          / <kbd>Ctrl</kbd>+<kbd>0</kbd>), sayfa yenileme ve tam ekran (<kbd>F11</kbd>) işlemleri yapılabilir.
         </p>
 
         <!-- SUPPORT -->

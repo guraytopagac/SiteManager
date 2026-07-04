@@ -1,4 +1,4 @@
-const { db } = require("../../database/db");
+const { db } = require("../../../database/db");
 
 const ALLOWED_TABLES = new Set(["incomes", "expenses"]);
 
