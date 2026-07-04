@@ -5,7 +5,7 @@ const { runMigrations } = require("../database/migrate");
 const { seedAdminAccount } = require("../database/seed");
 const registerIpcHandlers = require("./ipc/index.js");
 const { handleSeedResult } = require("./launch/adminSeedDialog");
-const { setupAutoUpdater } = require("./launch/autoUpdater");
+const { checkForUpdatesBeforeStartup } = require("./launch/autoUpdater");
 const { createMainWindow, getMainWindow } = require("./windows/main");
 const { createSplashWindow, sendToSplash, closeSplashAndShowMain, waitForSplashReady } = require("./windows/splash");
 
@@ -48,13 +48,18 @@ app.whenReady().then(async () => {
     await waitForSplashReady();
 
     sendToSplash("splash:version", { version: app.getVersion() });
+
+    if (!isDev) {
+      sendToSplash("splash:status", { text: "Güncellemeler kontrol ediliyor" });
+      await checkForUpdatesBeforeStartup();
+    }
+
     sendToSplash("splash:status", { text: "Veritabanı hazırlanıyor" });
 
     runMigrations(db);
     registerIpcHandlers(ipcMain);
 
     sendToSplash("splash:status", { text: "Uygulama yükleniyor" });
-    if (!isDev) setupAutoUpdater(() => getMainWindow());
 
     const mainWindow = createMainWindow(isDev);
 
@@ -67,11 +72,10 @@ app.whenReady().then(async () => {
         dialog.showErrorBox("Başlatma Hatası", `Admin hesabı oluşturulamadı:\n${err.message}`);
       }
 
-      if (!isDev) {
-        sendToSplash("splash:status", { text: "Güncellemeler kontrol ediliyor" });
-        autoUpdater.checkForUpdates();
-      } else {
+      if (isDev) {
         setTimeout(() => closeSplashAndShowMain(mainWindow), 800);
+      } else {
+        closeSplashAndShowMain(mainWindow);
       }
     });
   } catch (err) {
