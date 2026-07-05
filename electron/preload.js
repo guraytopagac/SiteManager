@@ -1,7 +1,6 @@
 const { contextBridge, ipcRenderer } = require("electron");
 const CH = require("./ipc/channels");
 
-// Whitelist of all permitted IPC channels
 const ALLOWED_CHANNELS = new Set(Object.values(CH).flatMap(Object.values));
 
 function safeInvoke(channel, ...args) {
@@ -34,6 +33,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   resetAdminPassword: (recoveryCode, newPassword) =>
     safeInvoke(CH.AUTH.RESET_ADMIN_PASSWORD, { recoveryCode, newPassword }),
   regenerateRecoveryCode: (password) => safeInvoke(CH.AUTH.REGENERATE_RECOVERY_CODE, { password }),
+  getSetupState: () => safeInvoke(CH.AUTH.GET_SETUP_STATE),
+  completeAdminSetup: (password) => safeInvoke(CH.AUTH.COMPLETE_SETUP, { password }),
 
   // Dashboard
   getStats: (managerId) => safeInvoke(CH.DASHBOARD.GET_STATS, managerId),
@@ -61,5 +62,4 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Events
   onToggleTheme: (callback) => safeOn(CH.EVENTS.TOGGLE_THEME, callback),
-  onPrefillLogin: (callback) => safeOn(CH.EVENTS.PREFILL_LOGIN, callback),
 });

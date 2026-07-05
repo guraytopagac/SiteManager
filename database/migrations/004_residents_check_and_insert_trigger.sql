@@ -1,8 +1,3 @@
--- Fix phone/national_id CHECK constraints: the old GLOB pattern only validated
--- the first character, letting arbitrary trailing characters through.
--- SQLite cannot ALTER a CHECK constraint, so the table is rebuilt and data copied over.
--- Also adds an INSERT trigger so is_active is corrected when a resident is
--- inserted with move_out_date already set (previously only UPDATE was covered).
 CREATE TABLE residents_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   full_name TEXT,

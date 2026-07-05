@@ -1,7 +1,3 @@
--- Incomes table: records all income entries (dues, rent, other).
--- Records are never deleted; cancellation is done via is_cancelled flag + cancelled_by/at/reason.
--- Cancellation CHECK constraint ensures all four cancellation fields are set together or not at all.
--- due_payment_id optionally links an income record to a specific dues payment.
 CREATE TABLE IF NOT EXISTS incomes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   manager_id INTEGER NOT NULL,
@@ -16,7 +12,6 @@ CREATE TABLE IF NOT EXISTS incomes (
   cancelled_by INTEGER,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now')),
-  -- All cancellation fields must be set together or left null
   CHECK(
     (is_cancelled = 0 AND cancelled_at IS NULL AND cancel_reason IS NULL AND cancelled_by IS NULL) OR
     (is_cancelled = 1 AND cancelled_at IS NOT NULL AND cancel_reason IS NOT NULL AND cancelled_by IS NOT NULL)
@@ -29,7 +24,6 @@ CREATE TABLE IF NOT EXISTS incomes (
 CREATE INDEX IF NOT EXISTS idx_incomes_manager_date ON incomes(manager_id, date);
 CREATE INDEX IF NOT EXISTS idx_incomes_active_only ON incomes(manager_id, date) WHERE is_cancelled = 0;
 
--- Prevent modification of cancelled income records
 CREATE TRIGGER IF NOT EXISTS trg_incomes_prevent_update_after_cancel
   BEFORE UPDATE ON incomes FOR EACH ROW
   WHEN OLD.is_cancelled = 1

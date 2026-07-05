@@ -102,7 +102,7 @@ function addApartment(apartmentData) {
     })();
     return { success: true, message: "Daire eklendi." };
   } catch (err) {
-    console.error("[apartment] addApartment:", err);
+    console.error("[apartment.service] addApartment:", err);
     return { success: false, message: resolveDbError(err, "Daire ekleme") };
   }
 }
@@ -172,7 +172,7 @@ function updateApartment(id, apartmentData) {
   } catch (err) {
     if (err.message === "not_found")
       return { success: false, message: "Daire bulunamadı veya bu işlem için yetkiniz yok." };
-    console.error("[apartment] updateApartment:", err);
+    console.error("[apartment.service] updateApartment:", err);
     return { success: false, message: resolveDbError(err, "Daire güncelleme") };
   }
 }

@@ -1,5 +1,3 @@
--- Users table: stores admin and manager accounts.
--- Passwords are never stored in plain text (bcrypt hash only).
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT UNIQUE NOT NULL COLLATE NOCASE CHECK(
@@ -20,7 +18,6 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TEXT DEFAULT (datetime('now'))
 );
 
--- Auto-update updated_at on any row change
 CREATE TRIGGER IF NOT EXISTS trg_users_updated_at
   AFTER UPDATE ON users FOR EACH ROW
   WHEN OLD.updated_at = NEW.updated_at

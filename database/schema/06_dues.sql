@@ -1,7 +1,3 @@
--- Dues table: one record per apartment per month.
--- UNIQUE(apartment_id, year, month) prevents duplicate dues entries.
--- paid_amount must not exceed due_amount (enforced by CHECK constraint).
--- Records are never deleted; only edited or paid.
 CREATE TABLE IF NOT EXISTS dues (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   apartment_id INTEGER NOT NULL,

@@ -82,7 +82,6 @@ SiteManager/
 │   │   ├── system/handlers.js         # Servisi yok — tek satırlık, sadece app version döner
 │   │   └── backup/service.js          # Handler'ı yok — IPC dışı, doğrudan menu.js tarafından çağrılır
 │   ├── launch/                 # Açılışta (splash ekranındayken) çalışan main-process wiring/dialog kodu
-│   │   ├── adminSeedDialog.js  # İlk kurulumda oluşturulan admin hesabını kullanıcıya gösteren dialog
 │   │   └── autoUpdater.js      # electron-updater event'lerini splash/pencereye bağlar
 │   ├── windows/                # Yardımcı BrowserWindow'lar
 │   │   ├── guide/               # Kullanım kılavuzu penceresi (HTML+CSS+JS)
@@ -114,6 +113,7 @@ SiteManager/
 - Oturum: `sessionStorage` → `currentUser` anahtarı
 - "Beni hatırla": 30 günlük session token
 - Admin hesabı yalnızca bir adet olabilir; `seed.js` `is_active`'e bakmaksızın `role = 'admin'` varlığını kontrol eder
+- **İlk kurulum (setup) akışı:** `seed.js` admin satırını rastgele geçici şifreyle oluşturur (kullanıcıya gösterilmez). İlk açılışta renderer `getSetupState()` ile `password_changed_at IS NULL` durumunu görüp `/setup` ekranına yönlendirir; kullanıcı kendi şifresini belirler (`completeAdminSetup(password)`), kurtarma kodu üretilip modalda gösterilir. Endpoint yalnızca `password_changed_at IS NULL` iken çalışır (oturumsuz — kurulum bitince kilitlenir). Mevcut kurulumlar `008_mark_existing_admin_setup.sql` ile korunur (zorla setup'a düşmez)
 - `createManager`'da kullanıcı adı `/^[A-Za-z0-9_]{3,}$/` ile doğrulanır; timing attack koruması için sahte hash karşılaştırması yapılır. `admin` kullanıcı adı ve `DEFAULT_ADMIN_EMAIL` seed hesabı için rezervedir (seed.js sabitlerinden okunur)
 - **Admin şifre kurtarma:** İlk kurulumda şifre + tek kullanımlık kurtarma kodu üretilir (`seed.js`, `recovery_hash`). Şifre unutulursa giriş ekranından `resetAdminPassword(recoveryCode, newPassword)` ile sıfırlanır; kod her kullanımda yenilenir. Admin, giriş yapmışken `regenerateRecoveryCode(password)` (mevcut şifreyle doğrulanır) ile yeni kod üretebilir
 - Oturum kapatma tamamen client-side: `sessionStorage.clear()` + `user-session-changed` event dispatch (IPC yok)
@@ -215,6 +215,7 @@ Her IPC çağrısı üç katmanda doğrulanır — değişiklik yaparken tüm ka
 | Rota               | Bileşen        | Rol     |
 | ------------------ | -------------- | ------- |
 | `/login`           | Login          | —       |
+| `/setup`           | Setup          | —       |
 | `/admin`           | AdminDashboard | admin   |
 | `/dashboard`       | Dashboard      | manager |
 | `/add-apartment`   | AddApartment   | manager |
@@ -232,13 +233,13 @@ Her IPC çağrısı üç katmanda doğrulanır — değişiklik yaparken tüm ka
 | Grup      | Metodlar                                                                         |
 | --------- | -------------------------------------------------------------------------------- |
 | Apartment | `addApartment`, `updateApartment`, `deleteApartment`, `bulkUpdateDueAmount`      |
-| Auth      | `login`, `getManagers`, `createManager`, `updateManagerStatus`, `changePassword`, `resetAdminPassword`, `regenerateRecoveryCode` |
+| Auth      | `login`, `getManagers`, `createManager`, `updateManagerStatus`, `changePassword`, `resetAdminPassword`, `regenerateRecoveryCode`, `getSetupState`, `completeAdminSetup` |
 | Dashboard | `getStats`                                                                       |
 | Dues      | `getDuesForMonth`, `recordPayment`, `cancelPayment`, `getPaymentHistory`         |
 | Financial | `addIncome`, `addExpense`, `getTransactions`, `cancelIncome`, `cancelExpense`    |
 | Reports   | `getReportData`, `saveReportFile`                                                |
 | System    | `getAppVersion`                                                                  |
-| Events    | `onToggleTheme`, `onPrefillLogin` (main→renderer)                                |
+| Events    | `onToggleTheme` (main→renderer)                                                   |
 
 ---
 
@@ -255,4 +256,4 @@ npm run rebuild  # Native modülleri yeniden derle
 - Uygulama verisi: `%APPDATA%/Mavikent Site Yönetimi/`
 - Otomatik güncelleme: `electron-updater` → GitHub Releases (`guraytopagac/SiteManager`)
 - Tek instance kilidi: ikinci açılmaya çalışıldığında mevcut pencere öne gelir
-- SQLite sıfırlama: `database.db`, `database.db-wal`, `database.db-shm` üçü birden silinmeli
+- SQLite sıfırlama: `database.db`, `database.db-wal`, `database.db-shm` üçü birden silinmeli. Dev'de DB proje kökündedir → `npm run reset-db` (dosyaları siler, fresh install + `/setup` akışını tetikler). Paketlenmiş sürümde `%APPDATA%` altındadır → `npm run reset-appdata`

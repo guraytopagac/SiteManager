@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import "./Login.css";
 import logoImgWebp from "../../../assets/logo.webp";
@@ -9,21 +9,13 @@ import { FiUser, FiLock, FiEye, FiEyeOff, FiAlertCircle, FiArrowRight } from "re
 
 function Login() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
+  const location = useLocation();
+  // Prefilled with "admin" when arriving from the first-run setup screen.
+  const [username, setUsername] = useState(location.state?.username ?? "");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    const unsubPrefillLogin = window.electronAPI.onPrefillLogin(({ username, password }) => {
-      setUsername(username);
-      setPassword(password);
-    });
-    return () => {
-      unsubPrefillLogin();
-    };
-  }, []);
 
   const handleForgotPassword = async () => {
     const { value: formValues } = await Swal.fire({

@@ -1,0 +1,472 @@
+/* ─── First-run setup — dark branded screen (matches mockup) ────────────────── */
+/* Intentionally dark regardless of app theme: it sits on a dark geometric
+   background image (added later). Drop the image into .setup-page-bg. */
+
+:root {
+  --setup-teal: #2dd4bf;
+  --setup-teal-dim: #14b8a6;
+  --setup-bg: #0a1220;
+  --setup-panel: rgba(15, 26, 43, 0.72);
+  --setup-input: rgba(11, 20, 34, 0.85);
+  --setup-line: rgba(45, 212, 191, 0.22);
+  --setup-img: url("../../../assets/backgrounds/setup-bg-dark.jpg");
+  --setup-text: #e6f6f2;
+  --setup-heading: #ffffff;
+  --setup-muted: rgba(230, 246, 242, 0.72);
+  --setup-sub: rgba(230, 246, 242, 0.55);
+  --setup-faint: rgba(230, 246, 242, 0.4);
+  --setup-input-border: rgba(255, 255, 255, 0.09);
+  --setup-btn-text: #ffffff;
+  --setup-track: rgba(255, 255, 255, 0.1);
+  --setup-wash: linear-gradient(
+    100deg,
+    rgba(6, 12, 22, 0.62) 0%,
+    rgba(6, 12, 22, 0.34) 34%,
+    rgba(6, 12, 22, 0.1) 56%,
+    rgba(6, 12, 22, 0) 72%
+  );
+}
+
+/* ── Light theme overrides ── */
+[data-theme="light"] {
+  --setup-teal: #0d9488;
+  --setup-teal-dim: #14b8a6;
+  --setup-bg: #eef2f6;
+  --setup-panel: rgba(255, 255, 255, 0.68);
+  --setup-input: rgba(255, 255, 255, 0.75);
+  --setup-line: rgba(13, 148, 136, 0.22);
+  --setup-img: url("../../../assets/backgrounds/setup-bg-light.jpg");
+  --setup-text: #23404f;
+  --setup-heading: #0f2b38;
+  --setup-muted: rgba(35, 64, 79, 0.72);
+  --setup-sub: rgba(35, 64, 79, 0.58);
+  --setup-faint: rgba(35, 64, 79, 0.45);
+  --setup-input-border: rgba(0, 0, 0, 0.1);
+  --setup-btn-text: #0f766e;
+  --setup-track: rgba(0, 0, 0, 0.08);
+  --setup-wash: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.28) 34%,
+    rgba(255, 255, 255, 0.08) 56%,
+    rgba(255, 255, 255, 0) 72%
+  );
+}
+
+.setup-page-bg {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: var(--footer-height);
+  background: var(--setup-bg) var(--setup-img) left center / cover no-repeat;
+  color: var(--setup-text);
+}
+
+/* Smooth left-to-right dark wash so the welcome text sits on calm darkness
+   while the artwork stays visible toward the edges. */
+.setup-page-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--setup-wash);
+}
+
+.setup-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 28px;
+  width: 1040px;
+  max-width: calc(100vw - 96px);
+}
+
+/* Shared card surface (welcome + form) */
+.setup-welcome,
+.setup-form-panel {
+  border-radius: 22px;
+  background: var(--setup-panel);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--setup-line);
+  box-shadow:
+    0 0 0 1px rgba(45, 212, 191, 0.08),
+    0 0 55px rgba(20, 184, 166, 0.15),
+    0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Left: welcome card ── */
+.setup-welcome {
+  flex: 1 1 auto;
+  max-width: 470px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 46px 42px;
+}
+
+.setup-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  align-self: flex-start;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--setup-teal);
+  margin-bottom: 16px;
+}
+
+.setup-kicker svg {
+  flex-shrink: 0;
+}
+
+.setup-welcome-title {
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 14px;
+  color: var(--setup-heading);
+}
+
+.setup-welcome-text {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--setup-muted);
+  margin-bottom: 38px;
+}
+
+.setup-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.setup-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--setup-muted);
+}
+
+.setup-steps svg {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  color: var(--setup-teal);
+  stroke-width: 2;
+}
+
+/* ── Right: glowing form card ── */
+.setup-form-panel {
+  flex: 0 0 430px;
+  padding: 40px 38px;
+  border-radius: 22px;
+  background: var(--setup-panel);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--setup-line);
+  box-shadow:
+    0 0 0 1px rgba(45, 212, 191, 0.1),
+    0 0 60px rgba(20, 184, 166, 0.18),
+    0 20px 60px rgba(0, 0, 0, 0.55);
+}
+
+.setup-form-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 5px;
+  color: var(--setup-heading);
+}
+
+.setup-form-sub {
+  font-size: 0.875rem;
+  color: var(--setup-sub);
+  margin-bottom: 26px;
+}
+
+.setup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Inputs */
+.setup-input-wrapper {
+  position: relative;
+}
+
+.setup-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--setup-faint);
+  pointer-events: none;
+}
+
+.setup-input {
+  width: 100%;
+  padding: 14px 18px 14px 46px;
+  font-size: 0.9375rem;
+  background: var(--setup-input);
+  border: 1px solid var(--setup-input-border);
+  border-radius: 11px;
+  color: var(--setup-text);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.setup-input.has-toggle {
+  padding-right: 52px;
+}
+
+.setup-input::placeholder {
+  color: var(--setup-faint);
+}
+
+.setup-input:focus {
+  outline: none;
+  border-color: var(--setup-teal);
+  box-shadow:
+    0 0 0 3px rgba(45, 212, 191, 0.14),
+    0 0 18px rgba(45, 212, 191, 0.25);
+}
+
+/* Locked (read-only) username field */
+.setup-input-locked {
+  cursor: default;
+  color: var(--setup-muted);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.setup-input-locked:focus {
+  border-color: var(--setup-input-border);
+  box-shadow: none;
+}
+
+.setup-lock {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  color: var(--setup-faint);
+  pointer-events: none;
+}
+
+.setup-toggle {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  bottom: 1px;
+  width: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--setup-faint);
+  border: none;
+  border-left: 1px solid var(--setup-input-border);
+  border-radius: 0 10px 10px 0;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.setup-toggle:hover {
+  color: var(--setup-teal);
+}
+
+/* Strength meter — segmented, red → green */
+.setup-strength {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: -5px;
+}
+
+.setup-strength-segments {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+}
+
+.setup-strength-segments span {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--setup-track);
+  transition: background 0.25s ease;
+}
+
+.setup-strength-segments span.on:nth-child(1) {
+  background: #f87171;
+}
+.setup-strength-segments span.on:nth-child(2) {
+  background: #fbbf24;
+}
+.setup-strength-segments span.on:nth-child(3) {
+  background: #a3e635;
+}
+.setup-strength-segments span.on:nth-child(4) {
+  background: #34d399;
+}
+
+.setup-strength-label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  min-width: 34px;
+}
+
+.setup-strength.weak .setup-strength-label {
+  color: #f87171;
+}
+.setup-strength.fair .setup-strength-label {
+  color: #fbbf24;
+}
+.setup-strength.good .setup-strength-label {
+  color: #a3e635;
+}
+.setup-strength.strong .setup-strength-label {
+  color: #34d399;
+}
+
+/* Requirement chips */
+.setup-rules {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.setup-rules li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--setup-faint);
+  transition: color 0.2s ease;
+}
+
+.setup-rules li svg {
+  flex-shrink: 0;
+  padding: 3px;
+  border-radius: 50%;
+  background: var(--setup-track);
+  color: var(--setup-faint);
+  box-sizing: content-box;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.setup-rules li.ok {
+  color: var(--setup-teal);
+}
+
+.setup-rules li.ok svg {
+  background: var(--setup-teal-dim);
+  color: #04211d;
+}
+
+/* Submit — ghost teal with glow */
+.setup-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 14px 0;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 12px;
+  color: var(--setup-btn-text);
+  background: rgba(45, 212, 191, 0.08);
+  border: 1.5px solid var(--setup-teal);
+  box-shadow: 0 0 22px rgba(45, 212, 191, 0.22);
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.setup-btn:hover:not(:disabled) {
+  background: rgba(45, 212, 191, 0.16);
+  transform: translateY(-2px);
+  box-shadow: 0 0 34px rgba(45, 212, 191, 0.4);
+}
+
+.setup-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 0 18px rgba(45, 212, 191, 0.3);
+}
+
+.setup-btn:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+/* Error */
+.setup-error {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  border-radius: 9px;
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  color: #fca5a5;
+  font-size: 0.875rem;
+}
+
+.setup-error svg {
+  flex-shrink: 0;
+}
+
+/* ── Responsive: stack on narrow windows ── */
+@media (max-width: 900px) {
+  .setup-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 32px;
+    width: 440px;
+  }
+
+  .setup-welcome {
+    max-width: none;
+    text-align: center;
+    align-items: center;
+  }
+
+  .setup-kicker {
+    align-self: center;
+  }
+
+  .setup-welcome-title {
+    font-size: 2rem;
+  }
+
+  .setup-steps {
+    text-align: left;
+  }
+
+  .setup-form-panel {
+    flex-basis: auto;
+  }
+}

@@ -127,6 +127,34 @@ function registerAuthHandlers(ipcMain) {
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });
+
+  ipcMain.handle(CH.AUTH.GET_SETUP_STATE, () => {
+    try {
+      return authService.getSetupState();
+    } catch (err) {
+      console.error("[auth.handlers] GET_SETUP_STATE:", err);
+      return { success: false, message: "İşlem sırasında bir hata oluştu." };
+    }
+  });
+
+  ipcMain.handle(CH.AUTH.COMPLETE_SETUP, (event, data) => {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      return { success: false, message: "Geçersiz istek." };
+    }
+    const { password } = data;
+    if (typeof password !== "string" || !password) {
+      return { success: false, message: "Şifre zorunludur." };
+    }
+    if (password.length < 8) {
+      return { success: false, message: "Şifre en az 8 karakter olmalıdır." };
+    }
+    try {
+      return authService.completeAdminSetup(password);
+    } catch (err) {
+      console.error("[auth.handlers] COMPLETE_SETUP:", err);
+      return { success: false, message: "İşlem sırasında bir hata oluştu." };
+    }
+  });
 }
 
 module.exports = registerAuthHandlers;

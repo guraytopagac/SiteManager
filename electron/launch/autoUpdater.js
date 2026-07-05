@@ -2,15 +2,8 @@ const { dialog } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const { sendToSplash, getSplashWindow } = require("../windows/splash");
 
-// Update check must never be able to block startup indefinitely — a hung
-// request (no "error" event fired) would otherwise strand the user on the
-// splash screen forever, since migrations/seed only run after this resolves.
 const CHECK_TIMEOUT_MS = 20000;
 
-// Runs before migrations/window creation so a broken update can rescue a
-// broken local install without ever reaching the crash-prone startup path.
-// Resolves once it's safe to continue startup (no update, error, timeout,
-// or user deferred); never resolves if the user restarts to install immediately.
 function checkForUpdatesBeforeStartup() {
   return new Promise((resolve) => {
     let settled = false;
@@ -34,8 +27,6 @@ function checkForUpdatesBeforeStartup() {
     });
 
     autoUpdater.on("update-available", (info) => {
-      // A real update was found and is downloading — the "hung check" risk
-      // the timeout guards against no longer applies, so stop it early.
       clearTimeout(timeoutId);
       sendToSplash("splash:update-available", { version: info.version });
     });

@@ -5,12 +5,10 @@ const { app } = require("electron");
 
 const isPackaged = app.isPackaged;
 
-// Packaged: writes to %APPDATA%/Mavikent Site Yönetimi/; dev: uses repo root
 const dbPath = isPackaged
   ? path.join(app.getPath("userData"), "database.db")
   : path.join(__dirname, "..", "database.db");
 
-// userData directory may not exist on first install
 if (isPackaged) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 }
@@ -23,21 +21,15 @@ try {
 }
 
 db.pragma("foreign_keys = ON");
-// WAL: readers do not block writers and vice versa
 db.pragma("journal_mode = WAL");
-// NORMAL: sufficient durability in WAL mode without full fsync overhead
 db.pragma("synchronous = NORMAL");
-// Wait up to 3s instead of immediately erroring when another process holds the DB
 db.pragma("busy_timeout = 3000");
-// Negative value = KB; 2 MB page cache
 db.pragma("cache_size = -2000");
-// Keep temp tables/indexes in RAM instead of spilling to disk
 db.pragma("temp_store = MEMORY");
 
 function closeDb() {
   if (!db.open) return;
   try {
-    // Update query planner statistics before closing
     db.pragma("optimize");
   } catch (e) {
     if (!isPackaged) console.error("[Database] optimize failed:", e.message);

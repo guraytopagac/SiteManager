@@ -17,7 +17,7 @@ function registerReportHandlers(ipcMain) {
     try {
       return reportService.getReportData(managerId, year, month);
     } catch (err) {
-      console.error("[Report] getReportData handler error:", err);
+      console.error("[report.handlers] GET_DATA:", err);
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });
@@ -42,7 +42,7 @@ function registerReportHandlers(ipcMain) {
       await fs.promises.writeFile(filePath, buf);
       return { success: true, message: `Rapor kaydedildi: ${filePath}` };
     } catch (err) {
-      console.error("[Report] saveFile handler error:", err);
+      console.error("[report.handlers] SAVE_FILE:", err);
       return { success: false, message: "Dosya kaydedilemedi." };
     }
   });

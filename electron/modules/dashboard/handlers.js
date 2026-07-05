@@ -9,7 +9,7 @@ function registerDashboardHandlers(ipcMain) {
     try {
       return dashboardService.getStats(managerId);
     } catch (err) {
-      console.error("[Dashboard] getStats handler error:", err);
+      console.error("[dashboard.handlers] GET_STATS:", err);
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });

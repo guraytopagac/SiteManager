@@ -1,11 +1,3 @@
--- Several columns had DEFAULT + CHECK but no NOT NULL. In SQLite, a CHECK
--- expression that evaluates to NULL is treated as satisfied (not a violation),
--- so an explicit NULL insert silently bypassed both the enum CHECK and, for
--- incomes/expenses, the cancellation-fields consistency CHECK. Adding
--- NOT NULL closes that gap. SQLite cannot ALTER a column to add NOT NULL,
--- so each affected table is rebuilt and its data copied over.
-
--- users: role, is_active
 CREATE TABLE users_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT UNIQUE NOT NULL COLLATE NOCASE CHECK(
@@ -35,7 +27,6 @@ BEGIN
   UPDATE users SET updated_at = datetime('now') WHERE id = NEW.id;
 END;
 
--- residents: is_active
 CREATE TABLE residents_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   full_name TEXT,
@@ -75,7 +66,6 @@ BEGIN
   UPDATE residents SET is_active = 0 WHERE id = NEW.id;
 END;
 
--- dues: paid_amount, status
 CREATE TABLE dues_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   apartment_id INTEGER NOT NULL,
@@ -99,7 +89,6 @@ BEGIN
   UPDATE dues SET updated_at = datetime('now') WHERE id = NEW.id;
 END;
 
--- incomes: category, is_cancelled
 CREATE TABLE incomes_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   manager_id INTEGER NOT NULL,
@@ -134,7 +123,6 @@ BEGIN
   SELECT RAISE(ABORT, 'Cancelled income records cannot be modified.');
 END;
 
--- expenses: category, is_cancelled
 CREATE TABLE expenses_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   manager_id INTEGER NOT NULL,

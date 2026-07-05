@@ -21,6 +21,15 @@ function registerApartmentHandlers(ipcMain) {
     if (!id || typeof id !== "number") {
       return { success: false, message: "Geçersiz daire ID." };
     }
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      return { success: false, message: "Geçersiz istek." };
+    }
+    if (!data.apartment_no) {
+      return { success: false, message: "Daire numarası zorunludur." };
+    }
+    if (typeof data.manager_id !== "number") {
+      return { success: false, message: "Geçersiz yönetici ID." };
+    }
     try {
       return apartmentService.updateApartment(id, data);
     } catch (err) {

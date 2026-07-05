@@ -4,7 +4,6 @@ const { autoUpdater } = require("electron-updater");
 const { runMigrations } = require("../database/migrate");
 const { seedAdminAccount } = require("../database/seed");
 const registerIpcHandlers = require("./ipc/index.js");
-const { handleSeedResult } = require("./launch/adminSeedDialog");
 const { checkForUpdatesBeforeStartup } = require("./launch/autoUpdater");
 const { createMainWindow, getMainWindow } = require("./windows/main");
 const { createSplashWindow, sendToSplash, closeSplashAndShowMain, waitForSplashReady } = require("./windows/splash");
@@ -59,19 +58,18 @@ app.whenReady().then(async () => {
     runMigrations(db);
     registerIpcHandlers(ipcMain);
 
+    try {
+      seedAdminAccount(db);
+    } catch (err) {
+      log.error("Admin hesabı oluşturulamadı", err);
+      dialog.showErrorBox("Başlatma Hatası", `Admin hesabı oluşturulamadı:\n${err.message}`);
+    }
+
     sendToSplash("splash:status", { text: "Uygulama yükleniyor" });
 
     const mainWindow = createMainWindow(isDev);
 
-    mainWindow.once("ready-to-show", async () => {
-      try {
-        const seedResult = await seedAdminAccount(db);
-        await handleSeedResult(seedResult, mainWindow);
-      } catch (err) {
-        log.error("Admin hesabı oluşturulamadı", err);
-        dialog.showErrorBox("Başlatma Hatası", `Admin hesabı oluşturulamadı:\n${err.message}`);
-      }
-
+    mainWindow.once("ready-to-show", () => {
       if (isDev) {
         setTimeout(() => closeSplashAndShowMain(mainWindow), 800);
       } else {

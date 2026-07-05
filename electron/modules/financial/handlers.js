@@ -15,7 +15,7 @@ function registerFinancialHandlers(ipcMain) {
     try {
       return financialService.addIncome(data);
     } catch (err) {
-      console.error("[Financial] addIncome handler error:", err);
+      console.error("[financial.handlers] ADD_INCOME:", err);
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });
@@ -33,7 +33,7 @@ function registerFinancialHandlers(ipcMain) {
     try {
       return financialService.addExpense(data);
     } catch (err) {
-      console.error("[Financial] addExpense handler error:", err);
+      console.error("[financial.handlers] ADD_EXPENSE:", err);
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });
@@ -45,7 +45,7 @@ function registerFinancialHandlers(ipcMain) {
     try {
       return financialService.getTransactions(managerId);
     } catch (err) {
-      console.error("[Financial] getTransactions handler error:", err);
+      console.error("[financial.handlers] GET_TRANSACTIONS:", err);
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });
@@ -57,7 +57,7 @@ function registerFinancialHandlers(ipcMain) {
     try {
       return financialService.cancelIncome(id, userId, reason.trim());
     } catch (err) {
-      console.error("[Financial] cancelIncome handler error:", err);
+      console.error("[financial.handlers] CANCEL_INCOME:", err);
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });
@@ -69,7 +69,7 @@ function registerFinancialHandlers(ipcMain) {
     try {
       return financialService.cancelExpense(id, userId, reason.trim());
     } catch (err) {
-      console.error("[Financial] cancelExpense handler error:", err);
+      console.error("[financial.handlers] CANCEL_EXPENSE:", err);
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });

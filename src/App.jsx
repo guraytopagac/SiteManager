@@ -1,12 +1,10 @@
-// Libraries
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { HashRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
-
-// Components (eager — small, always needed)
 import Footer from "./components/Footer.jsx";
+import { useCurrentUser } from "./hooks/useCurrentUser.js";
 import ProtectedRoute from "./router/ProtectedRoute.jsx";
 
-// Pages (lazy — reduces initial bundle size)
+const Setup = lazy(() => import("./pages/Setup/Setup.jsx"));
 const Login = lazy(() => import("./pages/Login/Login.jsx"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard/AdminDashboard.jsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard/Dashboard.jsx"));
@@ -18,12 +16,41 @@ const Transactions = lazy(() => import("./pages/Transactions/Transactions.jsx"))
 const Profile = lazy(() => import("./pages/Profile/Profile.jsx"));
 const Reports = lazy(() => import("./pages/Reports/Reports.jsx"));
 
+function StartupRedirect() {
+  const currentUser = useCurrentUser();
+  const [setupTarget, setSetupTarget] = useState(null);
+
+  useEffect(() => {
+    if (currentUser) return;
+    let active = true;
+    window.electronAPI
+      .getSetupState()
+      .then((res) => {
+        if (active) setSetupTarget(res?.needsSetup ? "/setup" : "/login");
+      })
+      .catch(() => {
+        if (active) setSetupTarget("/login");
+      });
+    return () => {
+      active = false;
+    };
+  }, [currentUser]);
+
+  if (currentUser) {
+    return <Navigate to={currentUser.role === "admin" ? "/admin" : "/dashboard"} replace />;
+  }
+
+  if (!setupTarget) return null;
+  return <Navigate to={setupTarget} replace />;
+}
+
 function App() {
   return (
     <div className="app-wrapper">
       <Router>
         <Suspense fallback={null}>
           <Routes>
+            <Route path="/setup" element={<Setup />} />
             <Route path="/login" element={<Login />} />
 
             {/* Admin routes */}
@@ -55,7 +82,7 @@ function App() {
               <Route path="/reports" element={<Reports />} />
             </Route>
 
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<StartupRedirect />} />
           </Routes>
         </Suspense>
         <Footer />

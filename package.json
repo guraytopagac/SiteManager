@@ -1,7 +1,7 @@
 {
   "name": "mavikent-site-yonetimi",
   "private": true,
-  "version": "1.1.10",
+  "version": "1.2.0",
   "description": "Mavikent Site Yönetimi Uygulaması",
   "author": "Güray Topağaç",
   "type": "commonjs",
@@ -14,6 +14,8 @@
     "test": "vitest",
     "preview": "vite preview",
     "start": "electron .",
+    "reset-appdata": "node -e \"require('fs').rmSync(require('path').join(process.env.APPDATA,'mavikent-site-yonetimi'),{recursive:true,force:true})\"",
+    "reset-db": "node -e \"['database.db','database.db-wal','database.db-shm'].forEach(f=>require('fs').rmSync(f,{force:true}))\"",
     "dist": "vite build && electron-builder",
     "rebuild": "electron-builder install-app-deps"
   },

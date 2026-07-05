@@ -30,7 +30,7 @@ function getDuesForMonth(managerId, year, month) {
 
     return { success: true, data };
   } catch (err) {
-    console.error("[dues] getDuesForMonth:", err);
+    console.error("[dues.service] getDuesForMonth:", err);
     return { success: false, message: "Aidat verileri alınamadı." };
   }
 }
@@ -145,8 +145,8 @@ function cancelPayment(paymentId, userId, reason) {
 
     return { success: true, message: "Ödeme başarıyla iptal edildi." };
   } catch (err) {
-    console.error("[dues] cancelPayment:", err);
-    return { success: false, message: err.message || "Ödeme iptal edilemedi." };
+    console.error("[dues.service] cancelPayment:", err);
+    return { success: false, message: err.isBusiness ? err.message : "Ödeme iptal edilemedi." };
   }
 }
 

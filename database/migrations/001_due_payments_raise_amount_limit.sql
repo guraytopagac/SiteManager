@@ -1,5 +1,3 @@
--- Raise due_payments.amount CHECK limit from 50,000 to 1,000,000.
--- SQLite does not support ALTER TABLE ... MODIFY COLUMN, so we recreate the table.
 PRAGMA foreign_keys = OFF;
 
 CREATE TABLE due_payments_new (

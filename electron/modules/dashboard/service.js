@@ -50,7 +50,7 @@ function getStats(managerId) {
 
     return { success: true, payload: { cash, collections, delays } };
   } catch (err) {
-    console.error("Dashboard statistics could not be retrieved:", err);
+    console.error("[dashboard.service] getStats:", err);
     return { success: false, message: "Dashboard verileri alınamadı." };
   }
 }

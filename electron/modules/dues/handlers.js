@@ -14,7 +14,7 @@ function registerDuesHandlers(ipcMain) {
     try {
       return duesService.getDuesForMonth(managerId, year, month);
     } catch (err) {
-      console.error("[Dues] getDuesForMonth handler error:", err);
+      console.error("[dues.handlers] GET_FOR_MONTH:", err);
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });
@@ -29,6 +29,12 @@ function registerDuesHandlers(ipcMain) {
     if (!paymentData?.amount || paymentData.amount <= 0) {
       return { success: false, message: "Geçersiz ödeme tutarı." };
     }
+    if (paymentData.amount > 1000000) {
+      return { success: false, message: "Ödeme tutarı 1.000.000₺'yi aşamaz." };
+    }
+    if (paymentData.note != null && (typeof paymentData.note !== "string" || paymentData.note.length > 500)) {
+      return { success: false, message: "Not en fazla 500 karakter olabilir." };
+    }
     if (!VALID_PAYMENT_METHODS.includes(paymentData.payment_method)) {
       return { success: false, message: "Geçersiz ödeme yöntemi." };
     }
@@ -41,7 +47,7 @@ function registerDuesHandlers(ipcMain) {
     try {
       return duesService.recordPayment(apartmentId, year, month, paymentData);
     } catch (err) {
-      console.error("[Dues] recordPayment handler error:", err);
+      console.error("[dues.handlers] RECORD_PAYMENT:", err);
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });
@@ -62,7 +68,7 @@ function registerDuesHandlers(ipcMain) {
     try {
       return duesService.cancelPayment(paymentId, userId, reason.trim());
     } catch (err) {
-      console.error("[Dues] cancelPayment handler error:", err);
+      console.error("[dues.handlers] CANCEL_PAYMENT:", err);
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });
@@ -74,7 +80,7 @@ function registerDuesHandlers(ipcMain) {
     try {
       return duesService.getPaymentHistory(dueId);
     } catch (err) {
-      console.error("[Dues] getPaymentHistory handler error:", err);
+      console.error("[dues.handlers] GET_PAYMENT_HISTORY:", err);
       return { success: false, message: "İşlem sırasında bir hata oluştu." };
     }
   });

@@ -1,8 +1,3 @@
--- Due payments table: records each payment transaction against a dues entry.
--- A dues record can have multiple payments (e.g. partial payments over time).
--- Cancellation is tracked in the separate payment_cancellations table — rows here are never deleted.
--- amount is capped at 1,000,000 to prevent data entry errors.
--- collected_by references the user who recorded the payment.
 CREATE TABLE IF NOT EXISTS due_payments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   due_id INTEGER NOT NULL,

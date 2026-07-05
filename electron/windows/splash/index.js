@@ -10,8 +10,9 @@ function createSplashWindow() {
     resizable: false,
     frame: false,
     center: true,
-    alwaysOnTop: true,
-    skipTaskbar: true,
+    alwaysOnTop: false,
+    skipTaskbar: false,
+    icon: path.join(__dirname, "../../../assets/icon.ico"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
@@ -47,18 +48,13 @@ function getSplashWindow() {
 
 function waitForSplashReady() {
   return new Promise((resolve) => {
-    let received = false;
-    splashWindow.webContents.once("did-finish-load", () => {
-      // Renderer usually sends splash:ready synchronously during load, before
-      // this listener is registered — only warn if it genuinely never arrives.
-      setTimeout(() => {
-        if (received) return;
-        console.warn("[Splash] splash:ready not received, continuing via fallback after 300ms.");
-        resolve();
-      }, 300);
-    });
+    const timeoutId = setTimeout(() => {
+      console.warn("[Splash] splash:ready not received, continuing via fallback after 1s.");
+      resolve();
+    }, 1000);
+
     ipcMain.once("splash:ready", () => {
-      received = true;
+      clearTimeout(timeoutId);
       resolve();
     });
   });

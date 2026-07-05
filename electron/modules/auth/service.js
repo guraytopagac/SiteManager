@@ -163,6 +163,44 @@ function regenerateRecoveryCode(password) {
   }
 }
 
+// First-run setup: true only for a freshly seeded admin that has never set a password
+// (password_changed_at IS NULL). Existing installs are protected by migration 008.
+function getSetupState() {
+  try {
+    const admin = db.prepare(`SELECT password_changed_at FROM users WHERE role = 'admin' LIMIT 1`).get();
+    const needsSetup = !!admin && admin.password_changed_at == null;
+    return { success: true, needsSetup };
+  } catch (err) {
+    console.error("[auth.service] getSetupState:", err);
+    return { success: false, message: "Kurulum durumu alınamadı." };
+  }
+}
+
+// Complete first-run setup: the admin chooses their own password. Gated on the fresh-seed
+// state (password_changed_at IS NULL), so it locks itself once setup is done — a logged-out
+// caller cannot use it to overwrite an existing admin password. Returns a fresh recovery code.
+function completeAdminSetup(password) {
+  try {
+    if (!password || password.length < 8) return { success: false, message: "Şifre en az 8 karakter olmalıdır." };
+
+    const admin = db.prepare(`SELECT id, password_changed_at FROM users WHERE role = 'admin' LIMIT 1`).get();
+    if (!admin) return { success: false, message: "Admin hesabı bulunamadı." };
+    if (admin.password_changed_at != null) return { success: false, message: "Kurulum zaten tamamlanmış." };
+
+    const newHash = bcrypt.hashSync(password, BCRYPT_ROUNDS);
+    const next = generateRecoveryCode();
+    const nextHash = bcrypt.hashSync(next.rawCode, BCRYPT_ROUNDS);
+    db.prepare(
+      `UPDATE users SET password_hash = ?, password_changed_at = datetime('now'), recovery_hash = ? WHERE id = ?`,
+    ).run(newHash, nextHash, admin.id);
+
+    return { success: true, message: "Admin hesabı kuruldu.", recoveryCode: next.display };
+  } catch (err) {
+    console.error("[auth.service] completeAdminSetup:", err);
+    return { success: false, message: "Kurulum tamamlanamadı." };
+  }
+}
+
 module.exports = {
   login,
   getManagers,
@@ -171,4 +209,6 @@ module.exports = {
   changePassword,
   resetAdminPassword,
   regenerateRecoveryCode,
+  getSetupState,
+  completeAdminSetup,
 };

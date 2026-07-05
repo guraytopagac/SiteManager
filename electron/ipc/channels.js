@@ -14,6 +14,8 @@ const CHANNELS = Object.freeze({
     CHANGE_PASSWORD: "auth:change-password",
     RESET_ADMIN_PASSWORD: "auth:reset-admin-password",
     REGENERATE_RECOVERY_CODE: "auth:regenerate-recovery-code",
+    GET_SETUP_STATE: "auth:get-setup-state",
+    COMPLETE_SETUP: "auth:complete-setup",
   }),
 
   DASHBOARD: Object.freeze({
@@ -46,11 +48,9 @@ const CHANNELS = Object.freeze({
 
   EVENTS: Object.freeze({
     TOGGLE_THEME: "events:toggle-theme",
-    PREFILL_LOGIN: "events:prefill-login",
   }),
 });
 
-// Duplicate channel value detection — catches typos at startup
 const allValues = Object.values(CHANNELS).flatMap(Object.values);
 const uniqueValues = new Set(allValues);
 if (uniqueValues.size !== allValues.length) throw new Error("channels.js: duplicate channel value detected");

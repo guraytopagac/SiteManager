@@ -1,8 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 
-// Applies one-off changes (e.g. ALTER TABLE) to existing installations.
-// Each migration runs inside a transaction; failure rolls back the entire change.
 function applyMigrations(db) {
   const migrationsDir = path.join(__dirname, "migrations");
 
@@ -67,8 +65,6 @@ function applyMigrations(db) {
   }
 }
 
-// Loads schema files containing CREATE TABLE/TRIGGER IF NOT EXISTS statements.
-// File name prefix (01_, 02_, …) determines load order.
 function loadSchema(db) {
   const schemaDir = path.join(__dirname, "schema");
 
@@ -88,8 +84,6 @@ function loadSchema(db) {
   }
 }
 
-// Called by main.js on every startup. Order matters:
-// migrations first, then schema — ensures existing tables are aligned before schema is re-applied.
 function runMigrations(db) {
   applyMigrations(db);
   loadSchema(db);

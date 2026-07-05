@@ -1,6 +1,3 @@
--- Expenses table: records all expense entries (maintenance, cleaning, utility, staff, other).
--- Records are never deleted; cancellation is done via is_cancelled flag + cancelled_by/at/reason.
--- Cancellation CHECK constraint ensures all four cancellation fields are set together or not at all.
 CREATE TABLE IF NOT EXISTS expenses (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   manager_id INTEGER NOT NULL,
@@ -14,7 +11,6 @@ CREATE TABLE IF NOT EXISTS expenses (
   cancelled_by INTEGER,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now')),
-  -- All cancellation fields must be set together or left null
   CHECK(
     (is_cancelled = 0 AND cancelled_at IS NULL AND cancel_reason IS NULL AND cancelled_by IS NULL) OR
     (is_cancelled = 1 AND cancelled_at IS NOT NULL AND cancel_reason IS NOT NULL AND cancelled_by IS NOT NULL)
@@ -26,7 +22,6 @@ CREATE TABLE IF NOT EXISTS expenses (
 CREATE INDEX IF NOT EXISTS idx_expenses_manager_date ON expenses(manager_id, date);
 CREATE INDEX IF NOT EXISTS idx_expenses_active_only ON expenses(manager_id, date) WHERE is_cancelled = 0;
 
--- Prevent modification of cancelled expense records
 CREATE TRIGGER IF NOT EXISTS trg_expenses_prevent_update_after_cancel
   BEFORE UPDATE ON expenses FOR EACH ROW
   WHEN OLD.is_cancelled = 1

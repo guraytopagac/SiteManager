@@ -1,5 +1,3 @@
--- Relax username CHECK constraint to allow a leading digit (was letter/underscore only).
--- SQLite cannot ALTER a CHECK constraint, so the table is rebuilt and data copied over.
 CREATE TABLE users_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT UNIQUE NOT NULL COLLATE NOCASE CHECK(
