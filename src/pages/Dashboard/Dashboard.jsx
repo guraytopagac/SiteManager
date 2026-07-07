@@ -9,6 +9,7 @@ import {
   FiClock,
   FiHome,
   FiEye,
+  FiUsers,
   FiArrowUpCircle,
   FiArrowDownCircle,
   FiList,
@@ -24,6 +25,7 @@ const ICONS = {
   clock: <FiClock />,
   buildingAdd: <FiHome />,
   eye: <FiEye />,
+  users: <FiUsers />,
   incomeArrow: <FiArrowUpCircle />,
   expenseArrow: <FiArrowDownCircle />,
   list: <FiList />,
@@ -143,6 +145,12 @@ function Dashboard() {
               <Icon name="eye" />
             </span>
             <span>Mevcut Daireleri Görüntüle</span>
+          </button>
+          <button className="action-card action-card-blue" onClick={() => navigate("/residents")}>
+            <span className="action-icon-badge action-icon-badge-blue">
+              <Icon name="users" />
+            </span>
+            <span>Sakinleri Yönet</span>
           </button>
         </div>
       </div>

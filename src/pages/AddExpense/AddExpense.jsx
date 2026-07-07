@@ -43,7 +43,7 @@ function AddExpense() {
         description: cleanDescription,
         category,
         date: today,
-        manager_id: managerId,
+        managerId: managerId,
       });
 
       if (response.success) {

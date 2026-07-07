@@ -52,7 +52,10 @@ function Login() {
 
     if (!formValues) return;
 
-    const res = await window.electronAPI.resetAdminPassword(formValues.recoveryCode, formValues.newPassword);
+    const res = await window.electronAPI.resetAdminPassword({
+      recoveryCode: formValues.recoveryCode,
+      newPassword: formValues.newPassword,
+    });
     if (res.success) {
       navigator.clipboard?.writeText(res.recoveryCode);
       await Swal.fire({

@@ -1,18 +1,27 @@
 const CH = require("../../ipc/channels");
+const { createSafeHandler } = require("../../ipc/safeHandler");
 const dashboardService = require("./service");
 
+const safeHandler = createSafeHandler("dashboard");
+
+function validateGetStatsData(managerId) {
+  if (!Number.isInteger(managerId) || managerId <= 0) {
+    return { success: false, message: "Geçersiz kullanıcı ID." };
+  }
+  return null;
+}
+
 function registerDashboardHandlers(ipcMain) {
-  ipcMain.handle(CH.DASHBOARD.GET_STATS, (event, managerId) => {
-    if (!managerId || typeof managerId !== "number") {
-      return { success: false, message: "Geçersiz kullanıcı ID." };
-    }
-    try {
+  ipcMain.handle(
+    CH.DASHBOARD.GET_STATS,
+    safeHandler(CH.DASHBOARD.GET_STATS, (managerId) => {
+      const error = validateGetStatsData(managerId);
+      if (error) {
+        return error;
+      }
       return dashboardService.getStats(managerId);
-    } catch (err) {
-      console.error("[dashboard.handlers] GET_STATS:", err);
-      return { success: false, message: "İşlem sırasında bir hata oluştu." };
-    }
-  });
+    }),
+  );
 }
 
 module.exports = registerDashboardHandlers;

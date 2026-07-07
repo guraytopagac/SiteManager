@@ -7,6 +7,9 @@ const progressFill = document.getElementById("progress-fill");
 const progressPercent = document.getElementById("progress-percent");
 const progressStatus = document.getElementById("progress-status");
 const progressSize = document.getElementById("progress-size");
+const restartPrompt = document.getElementById("restart-prompt");
+const restartNowBtn = document.getElementById("restart-now");
+const restartLaterBtn = document.getElementById("restart-later");
 
 function formatMB(bytes) {
   if (!bytes) return "0 MB";
@@ -40,7 +43,21 @@ if (window.splashAPI) {
     progressFill.style.width = "100%";
     progressPercent.textContent = "%100";
     progressStatus.textContent = "( Güncelleme hazır )";
+    restartPrompt.classList.add("splash-visible");
+    restartNowBtn.focus();
   });
+
+  let choiceSent = false;
+  const sendChoice = (restart) => {
+    if (choiceSent) return;
+    choiceSent = true;
+    restartNowBtn.disabled = true;
+    restartLaterBtn.disabled = true;
+    window.splashAPI.sendRestartChoice(restart);
+  };
+
+  restartNowBtn.addEventListener("click", () => sendChoice(true));
+  restartLaterBtn.addEventListener("click", () => sendChoice(false));
 
   window.splashAPI.ready();
 }

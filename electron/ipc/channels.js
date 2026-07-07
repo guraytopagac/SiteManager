@@ -29,6 +29,10 @@ const CHANNELS = Object.freeze({
     GET_PAYMENT_HISTORY: "dues:get-payment-history",
   }),
 
+  EVENTS: Object.freeze({
+    TOGGLE_THEME: "events:toggle-theme",
+  }),
+
   FINANCIAL: Object.freeze({
     ADD_INCOME: "financial:add-income",
     ADD_EXPENSE: "financial:add-expense",
@@ -37,8 +41,12 @@ const CHANNELS = Object.freeze({
     CANCEL_EXPENSE: "financial:cancel-expense",
   }),
 
-  SYSTEM: Object.freeze({
-    GET_APP_VERSION: "system:get-app-version",
+  RESIDENT: Object.freeze({
+    GET_OVERVIEW: "resident:get-overview",
+    GET_HISTORY: "resident:get-history",
+    ADD: "resident:add",
+    UPDATE: "resident:update",
+    MOVE_OUT: "resident:move-out",
   }),
 
   REPORTS: Object.freeze({
@@ -46,8 +54,8 @@ const CHANNELS = Object.freeze({
     SAVE_FILE: "reports:save-file",
   }),
 
-  EVENTS: Object.freeze({
-    TOGGLE_THEME: "events:toggle-theme",
+  SYSTEM: Object.freeze({
+    GET_APP_VERSION: "system:get-app-version",
   }),
 });
 

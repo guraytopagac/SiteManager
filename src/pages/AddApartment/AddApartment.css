@@ -1,63 +1,39 @@
 .add-apartment-container {
   width: 100%;
-  max-width: 1000px;
+  max-width: 620px;
   margin: 0 auto;
-  padding: 24px 30px;
+  padding: 28px 30px 40px;
   color: var(--text-color);
 }
 
-.form-columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  align-items: stretch;
-}
-
-.add-apartment-container .page-title {
-  width: 100%;
-  font-size: 1.75rem;
-  font-weight: 800;
-  margin: 0 0 24px;
-  text-align: center;
-  letter-spacing: 0.01em;
-  background: linear-gradient(90deg, var(--text-color) 0%, var(--button-color) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
+/* ---- Cards ---- */
 .form-card {
   background: var(--card-background-1);
   border: 1px solid var(--border-default);
   border-radius: 14px;
-  padding: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.form-card-optional {
-  background: var(--background-color-2);
-  border-style: dashed;
+  padding: 26px 28px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .form-section-title {
-  font-size: 0.82rem;
+  font-size: 1.3rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--button-color);
-  margin: 0 0 16px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border-default);
+  margin: 0 0 20px;
+  color: var(--text-color);
 }
 
 .optional-label {
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   font-weight: 400;
-  text-transform: none;
-  letter-spacing: 0;
-  opacity: 0.6;
+  color: var(--text-secondary);
 }
 
+.req {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+/* ---- Grid + fields ---- */
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -71,89 +47,81 @@
 .add-apartment-container .input-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
 }
 
 .add-apartment-container .input-group label {
-  font-size: 0.88rem;
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 500;
   color: var(--text-secondary);
 }
 
+.add-apartment-container .input-group input,
+.add-apartment-container .input-group select,
 .add-apartment-container .input-group textarea {
-  padding: 10px 12px;
-  border-radius: 9px;
+  padding: 0 13px;
+  border-radius: 8px;
   border: 1px solid var(--border-default);
   background: var(--card-background-2);
   color: var(--text-color);
-  font-size: 0.93rem;
+  font-size: 0.92rem;
   font-family: inherit;
-  resize: vertical;
-  min-height: 78px;
   transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
+    border-color 0.18s,
+    box-shadow 0.18s;
 }
 
+.add-apartment-container .input-group input,
+.add-apartment-container .input-group select {
+  height: 42px;
+}
+
+.add-apartment-container .input-group textarea {
+  padding: 10px 13px;
+  resize: vertical;
+  min-height: 92px;
+}
+
+.add-apartment-container .input-group input::placeholder,
+.add-apartment-container .input-group textarea::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.55;
+}
+
+.add-apartment-container .input-group input:focus,
+.add-apartment-container .input-group select:focus,
 .add-apartment-container .input-group textarea:focus {
   outline: none;
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
-.add-apartment-container .input-group textarea::placeholder {
-  color: var(--text-secondary);
-  opacity: 0.5;
-}
-
-.add-apartment-container .input-group input,
-.add-apartment-container .input-group select {
-  height: 44px;
-  padding: 0 12px;
-  border-radius: 9px;
-  border: 1px solid var(--border-default);
-  background: var(--card-background-2);
-  color: var(--text-color);
-  font-size: 0.93rem;
-  font-family: inherit;
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
-}
-
-.add-apartment-container .input-group input::placeholder {
-  color: var(--text-secondary);
-  opacity: 0.5;
-}
-
-.add-apartment-container .input-group input:focus,
-.add-apartment-container .input-group select:focus {
-  outline: none;
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px var(--accent-subtle);
-}
-
+/* ---- Actions ---- */
 .form-actions {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 12px;
-  margin-top: 30px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-default);
 }
 
 .add-apartment-container .btn-primary,
 .add-apartment-container .btn-secondary {
-  min-width: 120px;
+  min-width: 130px;
   height: 44px;
-  border-radius: 9px;
+  padding: 0 22px;
+  border-radius: 8px;
   font-size: 0.93rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   transition:
-    border-color 0.2s ease,
-    background-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s ease;
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
 }
 
 .add-apartment-container .btn-primary {
@@ -184,9 +152,9 @@
   transform: none;
 }
 
-@media (max-width: 700px) {
-  .form-columns {
-    grid-template-columns: 1fr;
+@media (max-width: 560px) {
+  .add-apartment-container {
+    padding: 20px 16px 32px;
   }
 
   .form-grid {
@@ -195,5 +163,14 @@
 
   .span-full {
     grid-column: 1;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .add-apartment-container .btn-primary,
+  .add-apartment-container .btn-secondary {
+    width: 100%;
   }
 }

@@ -304,12 +304,16 @@
   cursor: not-allowed;
 }
 
-.admin-loading,
-.admin-empty {
+.admin-loading {
   padding: 24px;
   text-align: center;
   color: var(--text-secondary);
   font-size: 0.875rem;
+}
+
+.manager-table .cell-empty {
+  text-align: center;
+  color: var(--text-secondary);
 }
 
 /* ─── Add manager slide-in panel ───────────────────────────────────────────── */

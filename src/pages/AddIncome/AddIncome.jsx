@@ -42,7 +42,7 @@ function AddIncome() {
         description: cleanDescription,
         category: "other",
         date: today,
-        manager_id: managerId,
+        managerId: managerId,
       });
 
       if (response.success) {

@@ -1,73 +1,108 @@
-const { dialog } = require("electron");
+const { ipcMain } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const { sendToSplash, getSplashWindow } = require("../windows/splash");
 
 const CHECK_TIMEOUT_MS = 20000;
+const DOWNLOAD_STALL_TIMEOUT_MS = 60000;
+
+const DOWNLOAD_STALLED_MESSAGE = `Update download made no progress for ${DOWNLOAD_STALL_TIMEOUT_MS / 1000}s (connection likely dropped); skipping the update and booting the app.`;
 
 function checkForUpdatesBeforeStartup() {
   return new Promise((resolve) => {
-    let settled = false;
-    const finish = () => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timeoutId);
+    let finished = false;
+    let idleTimeout = null;
+
+    const waitForProgress = (ms, giveUpReason) => {
+      clearTimeout(idleTimeout);
+      idleTimeout = setTimeout(() => {
+        console.warn(`[Main] ${giveUpReason}`);
+        continueStartup();
+      }, ms);
+    };
+
+    const continueStartup = () => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(idleTimeout);
+      for (const [event, handler] of eventHandlers) {
+        autoUpdater.removeListener(event, handler);
+      }
       resolve();
     };
 
-    const timeoutId = setTimeout(() => {
-      console.warn("[Main] Update check timed out, continuing startup.");
-      finish();
-    }, CHECK_TIMEOUT_MS);
+    const eventHandlers = [
+      ["update-not-available", continueStartup],
+      [
+        "error",
+        (err) => {
+          console.error("[Main] Update error:", err.message);
+          continueStartup();
+        },
+      ],
+      [
+        "update-available",
+        (info) => {
+          waitForProgress(DOWNLOAD_STALL_TIMEOUT_MS, DOWNLOAD_STALLED_MESSAGE);
+          sendToSplash("splash:update-available", { version: info.version });
+        },
+      ],
+      [
+        "download-progress",
+        (progress) => {
+          waitForProgress(DOWNLOAD_STALL_TIMEOUT_MS, DOWNLOAD_STALLED_MESSAGE);
+          sendToSplash("splash:download-progress", {
+            percent: Math.round(progress.percent),
+            transferred: progress.transferred,
+            total: progress.total,
+          });
+        },
+      ],
+      [
+        "update-downloaded",
+        async () => {
+          clearTimeout(idleTimeout);
+          sendToSplash("splash:update-downloaded", {});
 
-    autoUpdater.on("checking-for-update", () => console.warn("[Main] Checking for updates..."));
+          const userWantsRestart = await askToRestart();
+          if (userWantsRestart) {
+            autoUpdater.quitAndInstall(true, true);
+            return;
+          }
+          continueStartup();
+        },
+      ],
+    ];
 
-    autoUpdater.on("update-not-available", () => {
-      console.warn("[Main] No update available.");
-      finish();
-    });
+    for (const [event, handler] of eventHandlers) {
+      autoUpdater.on(event, handler);
+    }
 
-    autoUpdater.on("update-available", (info) => {
-      clearTimeout(timeoutId);
-      sendToSplash("splash:update-available", { version: info.version });
-    });
-
-    autoUpdater.on("download-progress", (progress) => {
-      sendToSplash("splash:download-progress", {
-        percent: Math.round(progress.percent),
-        transferred: progress.transferred,
-        total: progress.total,
-      });
-    });
-
-    autoUpdater.on("update-downloaded", async () => {
-      sendToSplash("splash:update-downloaded", {});
-
-      try {
-        const { response } = await dialog.showMessageBox(getSplashWindow(), {
-          type: "info",
-          title: "Güncelleme Hazır",
-          message: "Güncelleme indirildi.",
-          detail: "Uygulamayı yeniden başlatmak ve güncellemeyi yüklemek ister misiniz?",
-          buttons: ["Şimdi Yeniden Başlat", "Daha Sonra"],
-          defaultId: 0,
-          cancelId: 1,
-        });
-        if (response === 0) {
-          autoUpdater.quitAndInstall(true, true);
-          return;
-        }
-      } catch (err) {
-        console.error("[Main] Update dialog error:", err.message);
-      }
-      finish();
-    });
-
-    autoUpdater.on("error", (err) => {
-      console.error("[Main] Update error:", err.message);
-      finish();
-    });
-
+    waitForProgress(
+      CHECK_TIMEOUT_MS,
+      `No response from the update server within ${CHECK_TIMEOUT_MS / 1000}s (offline or slow connection); skipping the update check and booting the app.`,
+    );
     autoUpdater.checkForUpdates();
+  });
+}
+
+function askToRestart() {
+  return new Promise((resolve) => {
+    const splash = getSplashWindow();
+    if (!splash || splash.isDestroyed()) {
+      resolve(false);
+      return;
+    }
+
+    const finish = (restart) => {
+      ipcMain.removeListener("splash:restart-choice", onChoice);
+      splash.removeListener("closed", onClosed);
+      resolve(restart);
+    };
+    const onChoice = (event, data) => finish(Boolean(data && data.restart));
+    const onClosed = () => finish(false);
+
+    ipcMain.once("splash:restart-choice", onChoice);
+    splash.once("closed", onClosed);
   });
 }
 

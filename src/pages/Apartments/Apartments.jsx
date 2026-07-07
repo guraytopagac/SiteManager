@@ -44,14 +44,6 @@ function EditModal({ apartment, currentUser, onClose, onSaved }) {
     type: apartment.type || "1+1",
     square_meters: apartment.square_meters ?? "",
     due_amount: apartment.due_amount ?? "",
-    resident_name: apartment.resident_name || "",
-    resident_phone: apartment.resident_phone || "",
-    resident_email: apartment.resident_email || "",
-    resident_national_id: apartment.resident_national_id || "",
-    resident_type: apartment.resident_type || "",
-    resident_move_in_date: apartment.resident_move_in_date || "",
-    resident_move_out_date: apartment.resident_move_out_date || "",
-    resident_notes: apartment.resident_notes || "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const set = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -64,7 +56,7 @@ function EditModal({ apartment, currentUser, onClose, onSaved }) {
       floor: Number(form.floor),
       square_meters: form.square_meters ? Number(form.square_meters) : null,
       due_amount: Number(form.due_amount),
-      manager_id: currentUser.id,
+      managerId: currentUser.id,
     });
     setIsSubmitting(false);
 
@@ -116,61 +108,6 @@ function EditModal({ apartment, currentUser, onClose, onSaved }) {
               <label>Aidat (₺)</label>
               <input type="number" step="0.01" value={form.due_amount} onChange={set("due_amount")} required />
             </div>
-          </div>
-
-          <h4 className="modal-section-title modal-section-title-spaced">Sakin Bilgileri</h4>
-
-          <div className="form-row">
-            <label>Ad Soyad</label>
-            <input type="text" placeholder="İsteğe bağlı" value={form.resident_name} onChange={set("resident_name")} />
-          </div>
-          <div className="form-row">
-            <label>Telefon</label>
-            <input type="tel" placeholder="İsteğe bağlı" value={form.resident_phone} onChange={set("resident_phone")} />
-          </div>
-          <div className="form-row">
-            <label>E-posta</label>
-            <input
-              type="email"
-              placeholder="İsteğe bağlı"
-              value={form.resident_email}
-              onChange={set("resident_email")}
-            />
-          </div>
-          <div className="form-row">
-            <label>TC Kimlik No</label>
-            <input
-              type="text"
-              maxLength={11}
-              placeholder="11 haneli TC kimlik"
-              value={form.resident_national_id}
-              onChange={set("resident_national_id")}
-            />
-          </div>
-          <div className="form-row">
-            <label>Sakin Türü</label>
-            <select value={form.resident_type} onChange={set("resident_type")}>
-              <option value="">— Seçiniz —</option>
-              <option value="tenant">Kiracı</option>
-              <option value="owner">Malik</option>
-            </select>
-          </div>
-          <div className="form-row">
-            <label>Giriş Tarihi</label>
-            <input type="date" value={form.resident_move_in_date} onChange={set("resident_move_in_date")} />
-          </div>
-          <div className="form-row">
-            <label>Çıkış Tarihi</label>
-            <input type="date" value={form.resident_move_out_date} onChange={set("resident_move_out_date")} />
-          </div>
-          <div className="form-row">
-            <label>Notlar</label>
-            <textarea
-              rows={2}
-              placeholder="Sakin hakkında not"
-              value={form.resident_notes}
-              onChange={set("resident_notes")}
-            />
           </div>
 
           <div className="modal-actions">
@@ -272,7 +209,7 @@ function PaymentModal({ due, year, month, currentUser, onClose, onPaymentSaved }
 
     if (!reason) return;
 
-    const res = await window.electronAPI.cancelPayment(paymentId, currentUser.id, reason);
+    const res = await window.electronAPI.cancelPayment({ paymentId, userId: currentUser.id, reason });
     if (res.success) {
       showAlert.success("İptal Edildi", res.message, 1800);
       onPaymentSaved();

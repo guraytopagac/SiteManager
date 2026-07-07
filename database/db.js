@@ -9,9 +9,7 @@ const dbPath = isPackaged
   ? path.join(app.getPath("userData"), "database.db")
   : path.join(__dirname, "..", "database.db");
 
-if (isPackaged) {
-  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-}
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
 let db;
 try {
@@ -24,7 +22,7 @@ db.pragma("foreign_keys = ON");
 db.pragma("journal_mode = WAL");
 db.pragma("synchronous = NORMAL");
 db.pragma("busy_timeout = 3000");
-db.pragma("cache_size = -2000");
+db.pragma("cache_size = -16000");
 db.pragma("temp_store = MEMORY");
 
 function closeDb() {
@@ -33,6 +31,11 @@ function closeDb() {
     db.pragma("optimize");
   } catch (e) {
     if (!isPackaged) console.error("[Database] optimize failed:", e.message);
+  }
+  try {
+    db.pragma("wal_checkpoint(TRUNCATE)");
+  } catch (e) {
+    if (!isPackaged) console.error("[Database] checkpoint failed:", e.message);
   }
   try {
     db.close();

@@ -7,17 +7,9 @@ import { showAlert } from "@/utils/alert";
 const INITIAL_DATA = {
   apartment_no: "",
   floor: "",
-  type: "1+1",
+  type: "",
   square_meters: "",
   due_amount: "",
-  resident_name: "",
-  resident_phone: "",
-  resident_email: "",
-  resident_national_id: "",
-  resident_type: "",
-  resident_move_in_date: "",
-  resident_move_out_date: "",
-  resident_notes: "",
 };
 
 function AddApartment() {
@@ -34,6 +26,9 @@ function AddApartment() {
     if (!apartmentData.apartment_no.trim()) {
       return showAlert.error("Hata", "Daire numarası boş bırakılamaz.");
     }
+    if (!apartmentData.type) {
+      return showAlert.error("Hata", "Lütfen daire tipini seçin.");
+    }
     if (Number(apartmentData.due_amount) <= 0) {
       return showAlert.error("Hata", "Aidat tutarı sıfırdan büyük olmalıdır.");
     }
@@ -44,7 +39,7 @@ function AddApartment() {
       floor: apartmentData.floor !== "" ? Number(apartmentData.floor) : null,
       square_meters: apartmentData.square_meters !== "" ? Number(apartmentData.square_meters) : null,
       due_amount: Number(apartmentData.due_amount),
-      manager_id: currentUser.id,
+      managerId: currentUser.id,
     });
     setSubmitting(false);
 
@@ -61,9 +56,7 @@ function AddApartment() {
   };
 
   const handleCancel = () => {
-    const hasData = Object.entries(apartmentData).some(
-      ([k, v]) => v !== "" && !(k === "type" && v === "1+1"),
-    );
+    const hasData = Object.values(apartmentData).some((v) => v !== "");
     if (!hasData) return navigate("/dashboard");
     showAlert.confirm("İptal", "Girilen bilgiler kaybolacak. Emin misiniz?", "Evet, Çık").then((r) => {
       if (r.isConfirmed) navigate("/dashboard");
@@ -72,14 +65,15 @@ function AddApartment() {
 
   return (
     <div className="add-apartment-container">
-      <h2 className="page-title">Yeni Daire Ekle</h2>
       <form onSubmit={handleAddApartment}>
-        <div className="form-columns">
-          <div className="form-card">
+        <section className="form-card">
             <h3 className="form-section-title">Daire Bilgileri</h3>
+
             <div className="form-grid">
-              <div className="input-group">
-                <label>Daire No</label>
+              <div className="input-group span-full">
+                <label>
+                  Daire No <span className="req">*</span>
+                </label>
                 <input
                   type="text"
                   required
@@ -89,7 +83,9 @@ function AddApartment() {
                 />
               </div>
               <div className="input-group">
-                <label>Kat</label>
+                <label>
+                  Kat <span className="req">*</span>
+                </label>
                 <input
                   type="number"
                   required
@@ -100,8 +96,11 @@ function AddApartment() {
                 />
               </div>
               <div className="input-group">
-                <label>Daire Tipi</label>
-                <select value={apartmentData.type} onChange={set("type")}>
+                <label>
+                  Daire Tipi <span className="req">*</span>
+                </label>
+                <select value={apartmentData.type} onChange={set("type")} required>
+                  <option value="">— Seçiniz —</option>
                   <option value="0+1">0+1</option>
                   <option value="1+1">1+1</option>
                   <option value="2+1">2+1</option>
@@ -122,8 +121,10 @@ function AddApartment() {
                   onChange={set("square_meters")}
                 />
               </div>
-              <div className="input-group span-full">
-                <label>Aidat Tutarı (₺)</label>
+              <div className="input-group">
+                <label>
+                  Aidat Tutarı (₺) <span className="req">*</span>
+                </label>
                 <input
                   type="number"
                   required
@@ -134,94 +135,14 @@ function AddApartment() {
                 />
               </div>
             </div>
-          </div>
-
-          <div className="form-card form-card-optional">
-            <h3 className="form-section-title">
-              Sakin Bilgileri <span className="optional-label">(isteğe bağlı)</span>
-            </h3>
-
-            <div className="form-grid">
-              <div className="input-group span-full">
-                <label>Ad Soyad</label>
-                <input
-                  type="text"
-                  placeholder="Sakin adı soyadı"
-                  value={apartmentData.resident_name}
-                  onChange={set("resident_name")}
-                />
-              </div>
-              <div className="input-group">
-                <label>Telefon</label>
-                <input
-                  type="tel"
-                  placeholder="0555 000 00 00"
-                  value={apartmentData.resident_phone}
-                  onChange={set("resident_phone")}
-                />
-              </div>
-              <div className="input-group">
-                <label>E-posta</label>
-                <input
-                  type="email"
-                  placeholder="ornek@email.com"
-                  value={apartmentData.resident_email}
-                  onChange={set("resident_email")}
-                />
-              </div>
-              <div className="input-group">
-                <label>TC Kimlik No</label>
-                <input
-                  type="text"
-                  maxLength={11}
-                  placeholder="11 haneli TC kimlik"
-                  value={apartmentData.resident_national_id}
-                  onChange={set("resident_national_id")}
-                />
-              </div>
-              <div className="input-group">
-                <label>Sakin Türü</label>
-                <select value={apartmentData.resident_type} onChange={set("resident_type")}>
-                  <option value="">— Seçiniz —</option>
-                  <option value="tenant">Kiracı</option>
-                  <option value="owner">Malik</option>
-                </select>
-              </div>
-              <div className="input-group">
-                <label>Giriş Tarihi</label>
-                <input
-                  type="date"
-                  value={apartmentData.resident_move_in_date}
-                  onChange={set("resident_move_in_date")}
-                />
-              </div>
-              <div className="input-group">
-                <label>Çıkış Tarihi</label>
-                <input
-                  type="date"
-                  value={apartmentData.resident_move_out_date}
-                  onChange={set("resident_move_out_date")}
-                />
-              </div>
-              <div className="input-group span-full">
-                <label>Notlar</label>
-                <textarea
-                  placeholder="Örn: Evcil hayvanı var, sakin birisi"
-                  value={apartmentData.resident_notes}
-                  onChange={set("resident_notes")}
-                  rows={3}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        </section>
 
         <div className="form-actions">
           <button type="button" className="btn-secondary" onClick={handleCancel}>
             İptal
           </button>
           <button type="submit" className="btn-primary" disabled={submitting}>
-            {submitting ? "Kaydediliyor..." : "Kaydet"}
+            {submitting ? "Kaydediliyor..." : "Daireyi Kaydet"}
           </button>
         </div>
       </form>

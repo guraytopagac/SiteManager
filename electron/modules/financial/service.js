@@ -7,11 +7,11 @@ function insertRecord(table, recordData, label) {
   if (!ALLOWED_TABLES.has(table)) {
     return { success: false, message: "Geçersiz işlem türü." };
   }
-  if (!recordData.manager_id) {
+  if (!recordData.managerId) {
     return { success: false, message: "Yetkisiz işlem." };
   }
   const amount = recordData.amount;
-  if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) {
+  if (!Number.isFinite(amount) || amount <= 0) {
     return { success: false, message: "Geçersiz tutar." };
   }
   if (recordData.date && !ISO_DATE.test(recordData.date)) {
@@ -24,7 +24,7 @@ function insertRecord(table, recordData, label) {
   const category = recordData.category?.trim() || "other";
   const result = db
     .prepare(`INSERT INTO ${table} (amount, date, description, category, manager_id) VALUES (?, ?, ?, ?, ?)`)
-    .run(amount, recordDate, description, category, recordData.manager_id);
+    .run(amount, recordDate, description, category, recordData.managerId);
   return { success: true, id: result.lastInsertRowid, message: `${label} başarıyla eklendi.` };
 }
 

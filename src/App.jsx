@@ -10,6 +10,7 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard/AdminDashboard.
 const Dashboard = lazy(() => import("./pages/Dashboard/Dashboard.jsx"));
 const AddApartment = lazy(() => import("./pages/AddApartment/AddApartment.jsx"));
 const Apartments = lazy(() => import("./pages/Apartments/Apartments.jsx"));
+const Residents = lazy(() => import("./pages/Residents/Residents.jsx"));
 const AddIncome = lazy(() => import("./pages/AddIncome/AddIncome.jsx"));
 const AddExpense = lazy(() => import("./pages/AddExpense/AddExpense.jsx"));
 const Transactions = lazy(() => import("./pages/Transactions/Transactions.jsx"));
@@ -75,6 +76,7 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/add-apartment" element={<AddApartment />} />
               <Route path="/apartments" element={<Apartments />} />
+              <Route path="/residents" element={<Residents />} />
               <Route path="/add-income" element={<AddIncome />} />
               <Route path="/add-expense" element={<AddExpense />} />
               <Route path="/transactions" element={<Transactions />} />

@@ -94,6 +94,10 @@ async function runRestore(mainWindow) {
 
   try {
     await fs.promises.copyFile(filePaths[0], dbPath);
+    // Drop any stale WAL/SHM belonging to the previous DB so SQLite does not
+    // replay them onto the freshly restored database on next launch
+    await fs.promises.unlink(dbPath + "-wal").catch(() => {});
+    await fs.promises.unlink(dbPath + "-shm").catch(() => {});
     await fs.promises.unlink(tempBackup).catch(() => {});
     await dialog.showMessageBox(mainWindow, {
       type: "info",

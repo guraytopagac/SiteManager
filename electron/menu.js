@@ -5,6 +5,7 @@ const CH = require("./ipc/channels");
 const { runBackup, runRestore } = require("./modules/backup/service");
 const { openGuide } = require("./windows/guide");
 const ICON_PATH = path.join(__dirname, "../assets/icon.ico");
+const SUPPORT_EMAIL = "guray.topagac.dev@gmail.com";
 
 function buildMenu(mainWindow, isDev) {
   const template = [
@@ -14,15 +15,23 @@ function buildMenu(mainWindow, isDev) {
         {
           label: "Veritabanı Yedekle",
           accelerator: "CmdOrCtrl+Shift+B",
-          click() {
-            runBackup(mainWindow);
+          async click() {
+            try {
+              await runBackup(mainWindow);
+            } catch (err) {
+              console.error("[Main] Backup failed:", err.message);
+            }
           },
         },
         {
           label: "Veritabanı Dosyası Yükle",
           accelerator: "CmdOrCtrl+Shift+R",
-          click() {
-            runRestore(mainWindow);
+          async click() {
+            try {
+              await runRestore(mainWindow);
+            } catch (err) {
+              console.error("[Main] Restore failed:", err.message);
+            }
           },
         },
         { type: "separator" },
@@ -43,8 +52,7 @@ function buildMenu(mainWindow, isDev) {
         { label: "Yakınlaştır", role: "zoomIn" },
         { label: "Uzaklaştır", role: "zoomOut" },
         { label: "Varsayılan Boyut", role: "resetZoom" },
-        { type: "separator" },
-        { label: "Yenile", role: "reload" },
+        ...(isDev ? [{ type: "separator" }, { label: "Yenile", role: "reload" }] : []),
         { type: "separator" },
         { label: "Tam Ekran", role: "togglefullscreen" },
       ],
@@ -70,7 +78,7 @@ function buildMenu(mainWindow, isDev) {
                   type: "info",
                   title: "Güncelleme",
                   message: "Uygulamanız güncel.",
-                  detail: `Kullandığınız sürüm (${app.getVersion()}) şuan mevcut olan en son sürüm.`,
+                  detail: `Kullandığınız sürüm (${app.getVersion()}) şu an mevcut olan en son sürüm.`,
                   buttons: ["Tamam"],
                 });
               } else {
@@ -96,11 +104,15 @@ function buildMenu(mainWindow, isDev) {
         { type: "separator" },
         {
           label: "Hata Bildir",
-          click() {
+          async click() {
             const body = encodeURIComponent(`Sürüm: ${app.getVersion()}\n\nHata açıklaması:\n`);
-            shell.openExternal(
-              `mailto:guray.topagac.dev@gmail.com?subject=Mavikent%20Site%20Y%C3%B6netim%20Sistemi%20-%20Hata%20Bildirimi&body=${body}`,
-            );
+            try {
+              await shell.openExternal(
+                `mailto:${SUPPORT_EMAIL}?subject=Mavikent%20Site%20Y%C3%B6netim%20Sistemi%20-%20Hata%20Bildirimi&body=${body}`,
+              );
+            } catch (err) {
+              console.error("[Main] Report bug mailto failed:", err.message);
+            }
           },
         },
         { type: "separator" },
@@ -111,7 +123,7 @@ function buildMenu(mainWindow, isDev) {
               type: "info",
               title: "Hakkında",
               message: "Mavikent Site Yönetim Sistemi",
-              detail: `Sürüm: ${app.getVersion()}\n\nDestek ve sorularınız için:\nguray.topagac.dev@gmail.com`,
+              detail: `Sürüm: ${app.getVersion()}\n\nDestek ve sorularınız için:\n${SUPPORT_EMAIL}`,
               buttons: ["Tamam"],
               icon: ICON_PATH,
             });

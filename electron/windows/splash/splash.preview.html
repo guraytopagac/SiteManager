@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mavikent — Splash Preview</title>
+    <link rel="stylesheet" href="splash.css" />
+    <style>
+      /* Dev-only control bar — not part of the real splash */
+      #preview-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 999;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px 14px;
+        background: #0b1524;
+        border-bottom: 1px solid #1e3350;
+        -webkit-app-region: no-drag;
+      }
+      #preview-bar button {
+        cursor: pointer;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: 1px solid #2a466b;
+        background: rgba(19, 32, 53, 0.6);
+        color: #a7c0d6;
+      }
+      #preview-bar button:hover {
+        background: rgba(30, 51, 80, 0.9);
+      }
+      #preview-bar .preview-label {
+        color: #5f7893;
+        font-size: 0.72rem;
+        align-self: center;
+        margin-right: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="preview-bar">
+      <span class="preview-label">Önizleme:</span>
+      <button data-state="starting">Başlatılıyor</button>
+      <button data-state="available">Güncelleme bulundu</button>
+      <button data-state="progress">İndiriliyor (%42)</button>
+      <button data-state="downloaded">Hazır + Yeniden başlat</button>
+      <button data-state="reset">Sıfırla</button>
+    </div>
+
+    <div class="splash-content">
+      <img src="../../../assets/logo.webp" alt="Mavikent Logo" width="72" height="72" class="splash-logo" />
+
+      <h1 class="splash-title">Mavikent Site Yönetimi</h1>
+
+      <div class="splash-update-badge" id="update-badge">
+        <img src="../../../assets/download.svg" alt="" width="12" height="12" class="splash-badge-icon" />
+        <span id="update-badge-text">Güncelleme İndiriliyor</span>
+      </div>
+
+      <p class="splash-status" id="status">
+        Başlatılıyor<span class="splash-dot">.</span><span class="splash-dot">.</span><span class="splash-dot">.</span>
+      </p>
+
+      <div class="splash-progress-wrap" id="progress-wrap">
+        <div class="splash-progress-track">
+          <div class="splash-progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="splash-progress-info">
+          <span id="progress-percent">%0</span>
+          <span class="splash-progress-status" id="progress-status">( Güncelleme indiriliyor ... )</span>
+          <span id="progress-size"></span>
+        </div>
+      </div>
+
+      <div class="splash-restart-prompt" id="restart-prompt">
+        <p class="splash-restart-text">Güncelleme hazır. Şimdi yeniden başlatılsın mı?</p>
+        <div class="splash-restart-actions">
+          <button type="button" class="splash-btn splash-btn-primary" id="restart-now">Şimdi Yeniden Başlat</button>
+          <button type="button" class="splash-btn splash-btn-secondary" id="restart-later">Daha Sonra</button>
+        </div>
+      </div>
+
+      <div class="splash-version-pill">
+        <span id="version">v—</span>
+      </div>
+    </div>
+
+    <script>
+      // Mock the preload bridge so splash.js runs unchanged in a plain browser.
+      const listeners = {};
+      const register = (name) => (cb) => {
+        listeners[name] = cb;
+        return () => delete listeners[name];
+      };
+      window.splashAPI = {
+        ready: () => {},
+        onVersion: register("version"),
+        onStatus: register("status"),
+        onUpdateAvailable: register("available"),
+        onDownloadProgress: register("progress"),
+        onUpdateDownloaded: register("downloaded"),
+        sendRestartChoice: (restart) =>
+          console.log("[preview] restart choice:", restart ? "Şimdi Yeniden Başlat" : "Daha Sonra"),
+      };
+    </script>
+    <script src="splash.js"></script>
+    <script>
+      // Drive the mock via the control bar.
+      const fire = (name, data) => listeners[name] && listeners[name](data);
+      fire("version", { version: "1.2.0" });
+
+      const scenarios = {
+        starting: () => fire("status", { text: "Başlatılıyor" }),
+        available: () => fire("available", { version: "1.2.1" }),
+        progress: () => {
+          fire("available", { version: "1.2.1" });
+          fire("progress", { percent: 42, transferred: 20 * 1024 * 1024, total: 48 * 1024 * 1024 });
+        },
+        downloaded: () => {
+          fire("available", { version: "1.2.1" });
+          fire("progress", { percent: 100, transferred: 48 * 1024 * 1024, total: 48 * 1024 * 1024 });
+          fire("downloaded", {});
+        },
+        reset: () => location.reload(),
+      };
+
+      document.getElementById("preview-bar").addEventListener("click", (e) => {
+        const state = e.target.getAttribute("data-state");
+        if (state && scenarios[state]) scenarios[state]();
+      });
+    </script>
+  </body>
+</html>

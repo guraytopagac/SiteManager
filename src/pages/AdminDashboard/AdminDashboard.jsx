@@ -197,8 +197,6 @@ function AdminDashboard() {
           <div className="admin-table-wrap">
           {loading ? (
             <div className="admin-loading">Yükleniyor...</div>
-          ) : managers.length === 0 ? (
-            <div className="admin-empty">Henüz yönetici bulunmuyor.</div>
           ) : (
             <table className="manager-table">
               <thead>
@@ -211,7 +209,14 @@ function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {managers.map((manager) => (
+                {managers.length === 0 ? (
+                  <tr>
+                    <td className="cell-empty" colSpan={5}>
+                      Henüz yönetici bulunmuyor.
+                    </td>
+                  </tr>
+                ) : (
+                  managers.map((manager) => (
                   <tr key={manager.id}>
                     <td className="cell-username">{manager.username}</td>
                     <td className="cell-email">{manager.email}</td>
@@ -254,8 +259,9 @@ function AdminDashboard() {
                         )}
                       </div>
                     </td>
-                  </tr>
-                ))}
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           )}

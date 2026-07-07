@@ -36,7 +36,7 @@ function Profile() {
 
     setIsSubmitting(true);
     try {
-      const response = await window.electronAPI.changePassword(currentUser.id, oldPassword, newPassword);
+      const response = await window.electronAPI.changePassword({ userId: currentUser.id, oldPassword, newPassword });
       if (response.success) {
         await showAlert.success("Başarılı!", response.message);
         setOldPassword("");

@@ -1,5 +1,3 @@
-PRAGMA foreign_keys = OFF;
-
 CREATE TABLE due_payments_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   due_id INTEGER NOT NULL,
@@ -23,5 +21,3 @@ DROP TABLE due_payments;
 ALTER TABLE due_payments_new RENAME TO due_payments;
 
 CREATE INDEX IF NOT EXISTS idx_due_payments_due_id ON due_payments(due_id);
-
-PRAGMA foreign_keys = ON;

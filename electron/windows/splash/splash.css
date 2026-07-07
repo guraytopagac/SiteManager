@@ -146,6 +146,72 @@ body {
   font-weight: 500;
 }
 
+.splash-restart-prompt {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+  animation: splash-fade-in 0.35s ease;
+}
+
+.splash-restart-prompt.splash-visible {
+  display: flex;
+}
+
+@keyframes splash-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.splash-restart-text {
+  font-size: 0.85rem;
+  color: #c3d6e6;
+}
+
+.splash-restart-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.splash-btn {
+  -webkit-app-region: no-drag;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: filter 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.splash-btn:focus-visible {
+  outline: 2px solid #2de2c4;
+  outline-offset: 2px;
+}
+
+.splash-btn-primary {
+  background: linear-gradient(90deg, #0d9488, #2de2c4);
+  color: #04121a;
+  box-shadow: 0 0 12px rgba(45, 226, 196, 0.35);
+}
+
+.splash-btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.splash-btn-secondary {
+  background: rgba(19, 32, 53, 0.5);
+  border-color: #1e3350;
+  color: #a7c0d6;
+}
+
+.splash-btn-secondary:hover {
+  background: rgba(30, 51, 80, 0.6);
+  border-color: #2a466b;
+}
+
 .splash-version-pill {
   border: 1px solid #1e3350;
   color: #7a9bb5;
