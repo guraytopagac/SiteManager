@@ -1,4 +1,5 @@
 const { db } = require("../../../database/db");
+const { createDbErrorResolver } = require("../shared/dbError");
 
 const COLUMN_LABELS = {
   phone: "Telefon numarası",
@@ -10,54 +11,15 @@ const COLUMN_LABELS = {
   resident_type: "Sakin türü",
 };
 
-function extractConstraintCol(msg, prefix) {
-  const raw = msg.split(prefix)[1]?.trim();
-  if (!raw) return null;
+const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
 
-  const cols = raw
-    .split(",")
-    .map((part) => part.trim().split(".").pop())
-    .filter(Boolean);
-  if (cols.length === 0) return null;
-
-  return cols.find((col) => col in COLUMN_LABELS) ?? cols[0];
-}
-
-function resolveDbError(err, context) {
-  const msg = err.message ?? "";
-
-  if (msg.includes("UNIQUE constraint failed")) {
-    const col = extractConstraintCol(msg, "UNIQUE constraint failed:");
-    const label = COLUMN_LABELS[col] ?? "Alan";
-    return `${label} zaten kullanılıyor.`;
-  }
-
-  if (msg.includes("CHECK constraint failed")) {
-    return `${context} sırasında girilen değerlerden biri geçerli aralıkta değil. Lütfen kontrol edin.`;
-  }
-
-  if (msg.includes("NOT NULL constraint failed")) {
-    const col = extractConstraintCol(msg, "NOT NULL constraint failed:");
-    const label = COLUMN_LABELS[col] ?? "Zorunlu alan";
-    return `${label} boş bırakılamaz.`;
-  }
-
-  if (msg.includes("FOREIGN KEY constraint failed")) {
-    return "İlişkili kayıt bulunamadı. Lütfen sayfayı yenileyip tekrar deneyin.";
-  }
-
-  return `${context} sırasında beklenmeyen bir hata oluştu.`;
-}
-
-// Verify an apartment belongs to the given manager (data isolation, CLAUDE.md §5.2).
-function ownsApartment(apartmentId, managerId) {
+function findOwnedActiveApartment(apartmentId, managerId) {
   return db
     .prepare(`SELECT id FROM apartments WHERE id = ? AND manager_id = ? AND is_active = 1`)
     .get(apartmentId, managerId);
 }
 
-// Resolve a resident row while enforcing manager ownership via the apartment join.
-function ownedResident(residentId, managerId) {
+function findOwnedResident(residentId, managerId) {
   return db
     .prepare(
       `SELECT r.id, r.apartment_id FROM residents r
@@ -90,7 +52,7 @@ function getResidentsOverview(managerId) {
 
 function getResidentHistory(apartmentId, managerId) {
   try {
-    if (!ownsApartment(apartmentId, managerId)) {
+    if (!findOwnedActiveApartment(apartmentId, managerId)) {
       return { success: false, message: "Daire bulunamadı veya bu işlem için yetkiniz yok." };
     }
 
@@ -116,16 +78,16 @@ function addResident(payload) {
   try {
     let inserted = false;
     db.transaction(() => {
-      if (!ownsApartment(apartmentId, managerId)) throw new Error("not_found");
+      if (!findOwnedActiveApartment(apartmentId, managerId)) throw new Error("not_found");
 
-      const active = db
+      const existingActiveResident = db
         .prepare(`SELECT id FROM residents WHERE apartment_id = ? AND is_active = 1`)
         .get(apartmentId);
-      if (active) throw new Error("active_exists");
+      if (existingActiveResident) throw new Error("active_exists");
 
       db.prepare(
-        `INSERT INTO residents (apartment_id, full_name, phone, email, national_id, resident_type, move_in_date, move_out_date, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO residents (apartment_id, full_name, phone, email, national_id, resident_type, move_in_date, move_out_date, notes, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
       ).run(
         apartmentId,
         payload.full_name || null,
@@ -155,12 +117,12 @@ function addResident(payload) {
 function updateResident(payload) {
   const { residentId, managerId } = payload;
   try {
-    const owned = ownedResident(residentId, managerId);
+    const owned = findOwnedResident(residentId, managerId);
     if (!owned) return { success: false, message: "Sakin bulunamadı veya bu işlem için yetkiniz yok." };
 
     db.prepare(
       `UPDATE residents SET full_name = ?, phone = ?, email = ?, national_id = ?, resident_type = ?,
-       move_in_date = ?, move_out_date = ?, notes = ?, updated_at = datetime('now') WHERE id = ?`,
+       move_in_date = ?, move_out_date = ?, notes = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`,
     ).run(
       payload.full_name || null,
       payload.phone || null,
@@ -183,11 +145,10 @@ function updateResident(payload) {
 function moveOutResident(payload) {
   const { residentId, managerId, moveOutDate } = payload;
   try {
-    const owned = ownedResident(residentId, managerId);
+    const owned = findOwnedResident(residentId, managerId);
     if (!owned) return { success: false, message: "Sakin bulunamadı veya bu işlem için yetkiniz yok." };
 
-    // Setting move_out_date to today/past deactivates the resident via trg_residents_move_out.
-    db.prepare(`UPDATE residents SET move_out_date = ?, updated_at = datetime('now') WHERE id = ?`).run(
+    db.prepare(`UPDATE residents SET move_out_date = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`).run(
       moveOutDate,
       residentId,
     );

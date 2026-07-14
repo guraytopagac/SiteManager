@@ -147,6 +147,15 @@
   transform: translateY(-1px);
 }
 
+.status-badge-static {
+  cursor: default;
+}
+
+.status-badge-static:hover {
+  opacity: 1;
+  transform: none;
+}
+
 .status-paid {
   background: var(--color-success-bg);
   color: var(--color-success-text);

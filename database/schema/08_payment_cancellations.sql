@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS payment_cancellations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  cancelled_at TEXT NOT NULL DEFAULT (datetime('now')) CHECK(datetime(cancelled_at) IS NOT NULL),
+  cancelled_at TEXT NOT NULL DEFAULT (datetime('now', '+3 hours')) CHECK(datetime(cancelled_at) IS NOT NULL),
   cancel_reason TEXT NOT NULL CHECK(length(trim(cancel_reason)) > 0 AND length(cancel_reason) <= 300),
   payment_id INTEGER NOT NULL UNIQUE,
   cancelled_by INTEGER NOT NULL,

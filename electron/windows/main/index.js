@@ -4,12 +4,11 @@ const serve = require("electron-serve").default;
 const { buildMenu } = require("../../menu");
 
 const loadURL = serve({ directory: path.join(__dirname, "../../../dist") });
+const iconPath = path.join(__dirname, "../../../assets/icon.ico");
 
 let mainWindow = null;
 
 function createMainWindow(isDev) {
-  const iconPath = path.join(__dirname, "../../../assets/icon.ico");
-
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,

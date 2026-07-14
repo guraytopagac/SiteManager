@@ -6,7 +6,6 @@
     <title>Mavikent — Splash Preview</title>
     <link rel="stylesheet" href="splash.css" />
     <style>
-      /* Dev-only control bar — not part of the real splash */
       #preview-bar {
         position: fixed;
         top: 0;
@@ -46,14 +45,24 @@
     <div id="preview-bar">
       <span class="preview-label">Önizleme:</span>
       <button data-state="starting">Başlatılıyor</button>
+      <button data-state="error">Hata (güncelleme kontrolü başarısız)</button>
       <button data-state="available">Güncelleme bulundu</button>
       <button data-state="progress">İndiriliyor (%42)</button>
       <button data-state="downloaded">Hazır + Yeniden başlat</button>
+      <button data-state="closing">Kapanış geçişi</button>
       <button data-state="reset">Sıfırla</button>
     </div>
 
+    <div class="splash-scrim"></div>
     <div class="splash-content">
-      <img src="../../../assets/logo.webp" alt="Mavikent Logo" width="72" height="72" class="splash-logo" />
+      <img
+        src="../../../assets/logo.webp"
+        alt="Mavikent Logo"
+        width="72"
+        height="72"
+        class="splash-logo"
+        decoding="async"
+      />
 
       <h1 class="splash-title">Mavikent Site Yönetimi</h1>
 
@@ -91,7 +100,6 @@
     </div>
 
     <script>
-      // Mock the preload bridge so splash.js runs unchanged in a plain browser.
       const listeners = {};
       const register = (name) => (cb) => {
         listeners[name] = cb;
@@ -103,6 +111,7 @@
         onStatus: register("status"),
         onUpdateAvailable: register("available"),
         onDownloadProgress: register("progress"),
+        onClosing: register("closing"),
         onUpdateDownloaded: register("downloaded"),
         sendRestartChoice: (restart) =>
           console.log("[preview] restart choice:", restart ? "Şimdi Yeniden Başlat" : "Daha Sonra"),
@@ -110,17 +119,23 @@
     </script>
     <script src="splash.js"></script>
     <script>
-      // Drive the mock via the control bar.
       const fire = (name, data) => listeners[name] && listeners[name](data);
       fire("version", { version: "1.2.0" });
 
       const scenarios = {
         starting: () => fire("status", { text: "Başlatılıyor" }),
+        error: () => fire("status", { text: "Güncelleme kontrol edilemedi, atlanıyor", isError: true }),
         available: () => fire("available", { version: "1.2.1" }),
         progress: () => {
           fire("available", { version: "1.2.1" });
-          fire("progress", { percent: 42, transferred: 20 * 1024 * 1024, total: 48 * 1024 * 1024 });
+          fire("progress", {
+            percent: 42,
+            transferred: 20 * 1024 * 1024,
+            total: 48 * 1024 * 1024,
+            bytesPerSecond: 3.5 * 1024 * 1024,
+          });
         },
+        closing: () => fire("closing"),
         downloaded: () => {
           fire("available", { version: "1.2.1" });
           fire("progress", { percent: 100, transferred: 48 * 1024 * 1024, total: 48 * 1024 * 1024 });

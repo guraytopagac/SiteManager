@@ -1,7 +1,17 @@
 const { db } = require("../../../database/db");
+const { createDbErrorResolver } = require("../shared/dbError");
 
 const ALLOWED_TABLES = new Set(["incomes", "expenses"]);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+const COLUMN_LABELS = {
+  amount: "Tutar",
+  date: "Tarih",
+  description: "Açıklama",
+  category: "Kategori",
+};
+
+const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
 
 function insertRecord(table, recordData, label) {
   if (!ALLOWED_TABLES.has(table)) {
@@ -18,12 +28,15 @@ function insertRecord(table, recordData, label) {
     return { success: false, message: "Geçersiz tarih formatı." };
   }
 
-  const recordDate = recordData.date || new Date().toISOString().split("T")[0];
-  const description = recordData.description?.trim() || "";
+  const recordDate = recordData.date || new Date(Date.now() + 3 * 3600 * 1000).toISOString().split("T")[0];
+  const description = recordData.description || "";
   if (!description) return { success: false, message: "Açıklama alanı zorunludur." };
-  const category = recordData.category?.trim() || "other";
+  const category = recordData.category || "other";
   const result = db
-    .prepare(`INSERT INTO ${table} (amount, date, description, category, manager_id) VALUES (?, ?, ?, ?, ?)`)
+    .prepare(
+      `INSERT INTO ${table} (amount, date, description, category, manager_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
+    )
     .run(amount, recordDate, description, category, recordData.managerId);
   return { success: true, id: result.lastInsertRowid, message: `${label} başarıyla eklendi.` };
 }
@@ -33,7 +46,7 @@ function addIncome(incomeData) {
     return insertRecord("incomes", incomeData, "Gelir kaydı");
   } catch (err) {
     console.error("[financial.service] addIncome:", err);
-    return { success: false, message: "Gelir eklenirken bir veri tabanı hatası oluştu." };
+    return { success: false, message: resolveDbError(err, "Gelir ekleme") };
   }
 }
 
@@ -42,13 +55,13 @@ function addExpense(expenseData) {
     return insertRecord("expenses", expenseData, "Gider kaydı");
   } catch (err) {
     console.error("[financial.service] addExpense:", err);
-    return { success: false, message: "Gider eklenirken bir veri tabanı hatası oluştu." };
+    return { success: false, message: resolveDbError(err, "Gider ekleme") };
   }
 }
 
 function getTransactions(managerId) {
   try {
-    const data = db
+    const transactions = db
       .prepare(
         `SELECT id, amount, date, description, category, 'income' AS type,
                 is_cancelled, cancelled_at, cancel_reason FROM incomes WHERE manager_id = ?
@@ -58,7 +71,7 @@ function getTransactions(managerId) {
          ORDER BY date DESC, id DESC`,
       )
       .all(managerId, managerId);
-    return { success: true, data };
+    return { success: true, data: transactions };
   } catch (err) {
     console.error("[financial.service] getTransactions:", err);
     return { success: false, message: "İşlem geçmişi alınamadı." };
@@ -83,8 +96,8 @@ function cancelRecord(table, id, userId, reason) {
   }
 
   db.prepare(
-    `UPDATE ${table} SET is_cancelled = 1, cancelled_at = datetime('now'), cancel_reason = ?, cancelled_by = ?,
-     updated_at = datetime('now') WHERE id = ?`,
+    `UPDATE ${table} SET is_cancelled = 1, cancelled_at = datetime('now', '+3 hours'), cancel_reason = ?, cancelled_by = ?,
+     updated_at = datetime('now', '+3 hours') WHERE id = ?`,
   ).run(reason, userId, id);
 
   return { success: true, message: "Kayıt başarıyla iptal edildi." };
@@ -95,7 +108,7 @@ function cancelIncome(id, userId, reason) {
     return cancelRecord("incomes", id, userId, reason);
   } catch (err) {
     console.error("[financial.service] cancelIncome:", err);
-    return { success: false, message: "Gelir iptal edilirken bir hata oluştu." };
+    return { success: false, message: resolveDbError(err, "Gelir iptali") };
   }
 }
 
@@ -104,7 +117,7 @@ function cancelExpense(id, userId, reason) {
     return cancelRecord("expenses", id, userId, reason);
   } catch (err) {
     console.error("[financial.service] cancelExpense:", err);
-    return { success: false, message: "Gider iptal edilirken bir hata oluştu." };
+    return { success: false, message: resolveDbError(err, "Gider iptali") };
   }
 }
 

@@ -3,10 +3,18 @@ import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import "./Setup.css";
 import { showAlert, swalBase, getCssVar } from "@/utils/alert";
-import { FiCheck, FiEye, FiEyeOff, FiLock, FiShield, FiKey, FiUser, FiAlertCircle, FiArrowRight } from "react-icons/fi";
+import {
+  FiCheck,
+  FiEye,
+  FiEyeOff,
+  FiLock,
+  FiCheckCircle,
+  FiUser,
+  FiAlertCircle,
+  FiInfo,
+  FiArrowRight,
+} from "react-icons/fi";
 
-// Simple client-side password strength: length + character variety. Purely for guidance;
-// the real minimum (8 chars) is enforced by the handler and DB.
 function scorePassword(pw) {
   if (!pw) return 0;
   let score = 0;
@@ -15,11 +23,13 @@ function scorePassword(pw) {
   if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
   if (/\d/.test(pw)) score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
-  return Math.min(score, 4);
+  // Empty field stays "Nötr"; any input scores at least "Zayıf".
+  if (pw.length === 0) return 0;
+  return Math.min(Math.max(score, 1), 4);
 }
 
 const STRENGTH = [
-  { label: "", cls: "" },
+  { label: "—", cls: "neutral" },
   { label: "Zayıf", cls: "weak" },
   { label: "Orta", cls: "fair" },
   { label: "İyi", cls: "good" },
@@ -79,6 +89,12 @@ function Setup() {
       confirmButtonText: "Kaydettim, Devam Et",
       confirmButtonColor: getCssVar("--button-color"),
       allowOutsideClick: false,
+      // Keep the popup's own pop animation (cheap), but don't fade the backdrop:
+      // the setup screen has two blur(20px) panels behind the modal and HW
+      // acceleration is disabled, so fading the backdrop forces a per-frame
+      // recomposite of those panels (the jank). Static backdrop = smooth pop.
+      showClass: { popup: "swal2-show", backdrop: "" },
+      hideClass: { popup: "swal2-hide", backdrop: "" },
     });
 
     showAlert.toast("Kurulum tamamlandı", "Artık giriş yapabilirsiniz.");
@@ -90,33 +106,45 @@ function Setup() {
       <div className="setup-card">
         {/* ── Welcome / branding panel ── */}
         <aside className="setup-welcome">
-          <span className="setup-kicker">
-            <FiShield size={15} />
-            İlk Kurulum
-          </span>
-          <h1 className="setup-welcome-title">Hoş Geldiniz</h1>
-          <p className="setup-welcome-text">
-            Mavikent Site Yönetimi&apos;ni kullanmaya başlamak için yönetici hesabınızı güvenceye alın.
-          </p>
+          <h1 className="setup-welcome-title">İlk Kurulum</h1>
+          <p className="setup-welcome-lead">Hoş Geldiniz</p>
+
+          <div className="setup-notice">
+            <FiInfo className="setup-notice-icon" size={20} />
+            <div>
+              <p className="setup-notice-title">Güvenlik Notu</p>
+              <p className="setup-notice-text">
+                Bu hesap uygulamadaki tüm yetkilere sahiptir, bu yüzden şifresini kimseyle paylaşmayın. Kurulum sonrası
+                size bir kurtarma kodu verilecektir. Şifrenizi unutursanız yeni bir şifreyi yalnızca bu kodla
+                belirleyebilirsiniz. Bu nedenle kodu güvenli bir yerde saklayın.
+              </p>
+            </div>
+          </div>
+
+          <p className="setup-adv-label">Uygulama Avantajları</p>
           <ul className="setup-steps">
             <li>
-              <FiShield />
-              <span>Kendi belirlediğiniz güçlü bir admin şifresi</span>
+              <FiCheckCircle />
+              <span>Aidat, gelir ve giderleri tek ekrandan yönetin</span>
             </li>
             <li>
-              <FiKey />
-              <span>Şifrenizi unutursanız için tek kullanımlık kurtarma kodu</span>
+              <FiCheckCircle />
+              <span>Detaylı PDF raporları anında oluşturun</span>
             </li>
             <li>
-              <FiCheck />
-              <span>Kurulum sonrası doğrudan giriş</span>
+              <FiCheckCircle />
+              <span>Verileriniz yalnızca sizin bilgisayarınızda kalsın</span>
+            </li>
+            <li>
+              <FiCheckCircle />
+              <span>Yardıma ihtiyacınız olduğunda e-posta ile ulaşın</span>
             </li>
           </ul>
         </aside>
 
         {/* ── Form panel ── */}
         <section className="setup-form-panel">
-          <h2 className="setup-form-title">Admin şifrenizi belirleyin</h2>
+          <h2 className="setup-form-title">Yönetici şifrenizi belirleyin</h2>
           <p className="setup-form-sub">Aşağıdaki kullanıcı adıyla giriş yapacaksınız.</p>
 
           <form className="setup-form" onSubmit={handleSubmit}>
@@ -160,16 +188,14 @@ function Setup() {
               </button>
             </div>
 
-            {password.length > 0 && (
-              <div className={`setup-strength ${STRENGTH[strength].cls}`}>
-                <div className="setup-strength-segments">
-                  {[1, 2, 3, 4].map((i) => (
-                    <span key={i} className={i <= strength ? "on" : ""} />
-                  ))}
-                </div>
-                <span className="setup-strength-label">{STRENGTH[strength].label}</span>
+            <div className={`setup-strength ${STRENGTH[strength].cls}`}>
+              <div className="setup-strength-segments">
+                {[1, 2, 3, 4].map((i) => (
+                  <span key={i} className={i <= strength ? "on" : ""} />
+                ))}
               </div>
-            )}
+              <span className="setup-strength-label">{STRENGTH[strength].label}</span>
+            </div>
 
             <div className="setup-input-wrapper">
               <FiLock className="setup-icon" size={18} />
@@ -189,10 +215,10 @@ function Setup() {
 
             <ul className="setup-rules">
               <li className={hasMinLength ? "ok" : ""}>
-                <FiCheck size={13} /> En az 8 karakter
+                <FiCheck size={13} /> 8+ karakter
               </li>
               <li className={passwordsMatch ? "ok" : ""}>
-                <FiCheck size={13} /> Şifreler eşleşiyor
+                <FiCheck size={13} /> Eşleşiyor
               </li>
             </ul>
 
@@ -214,6 +240,13 @@ function Setup() {
               )}
             </button>
           </form>
+
+          <div className="setup-form-foot">
+            <p>
+              <FiLock size={13} />
+              İpucu: Büyük/küçük harf, rakam ve sembol karışımı şifrenizi güçlendirir.
+            </p>
+          </div>
         </section>
       </div>
     </div>

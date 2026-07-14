@@ -6,7 +6,7 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #04080f url("../../../assets/backgrounds/splash-bg.jpg") center center / cover no-repeat;
+  background: #04080f url("../../../assets/backgrounds/splash/bg.jpg") center center / cover no-repeat;
   color: #e2f0f9;
   height: 100vh;
   width: 100vw;
@@ -17,6 +17,19 @@ body {
   -webkit-app-region: drag;
   overflow: hidden;
   position: relative;
+  transition: opacity 0.18s ease;
+}
+
+body.splash-closing {
+  opacity: 0;
+}
+
+.splash-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(ellipse at center, rgba(4, 8, 15, 0.35) 0%, rgba(4, 8, 15, 0.72) 100%);
+  pointer-events: none;
 }
 
 .splash-content {
@@ -27,11 +40,13 @@ body {
   align-items: center;
   padding: 0 32px;
   text-align: center;
+  animation: splash-content-in 0.5s ease both;
 }
 
 .splash-logo {
   margin-bottom: 16px;
   filter: drop-shadow(0 0 18px rgba(45, 158, 226, 0.45));
+  animation: splash-logo-in 0.6s ease both;
 }
 
 .splash-title {
@@ -78,9 +93,9 @@ body {
   display: none;
 }
 
-@keyframes blink {
-  0%, 100% { opacity: 0.2; }
-  50% { opacity: 1; }
+.splash-status.splash-status-error {
+  color: #ff8a80;
+  font-weight: 600;
 }
 
 .splash-dot {
@@ -90,8 +105,12 @@ body {
   line-height: 1;
   margin-left: 1px;
 }
-.splash-dot:nth-child(2) { animation-delay: 0.2s; }
-.splash-dot:nth-child(3) { animation-delay: 0.4s; }
+.splash-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.splash-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
 
 .splash-progress-wrap {
   width: 380px;
@@ -113,12 +132,23 @@ body {
 }
 
 .splash-progress-fill {
+  position: relative;
   height: 100%;
   background: linear-gradient(90deg, #0d9488, #2de2c4);
   border-radius: 99px;
   width: 0%;
   transition: width 0.35s ease;
   box-shadow: 0 0 8px rgba(45, 226, 196, 0.6);
+  overflow: hidden;
+}
+
+.splash-progress-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  width: 60%;
+  animation: splash-progress-shimmer 1.4s ease-in-out infinite;
 }
 
 .splash-progress-info {
@@ -159,11 +189,6 @@ body {
   display: flex;
 }
 
-@keyframes splash-fade-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 .splash-restart-text {
   font-size: 0.85rem;
   color: #c3d6e6;
@@ -183,7 +208,10 @@ body {
   padding: 8px 18px;
   border-radius: 8px;
   border: 1px solid transparent;
-  transition: filter 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  transition:
+    filter 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .splash-btn:focus-visible {
@@ -221,4 +249,70 @@ body {
   padding: 5px 16px;
   border-radius: 99px;
   background: rgba(19, 32, 53, 0.4);
+}
+
+@keyframes splash-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes splash-logo-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes splash-progress-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(220%);
+  }
+}
+
+@keyframes splash-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-content,
+  .splash-logo,
+  .splash-dot,
+  .splash-progress-fill::after,
+  .splash-restart-prompt {
+    animation: none !important;
+  }
+
+  body {
+    transition: none !important;
+  }
 }

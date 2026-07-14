@@ -18,7 +18,7 @@ Mevcut durum ve mimari için bkz. `CLAUDE.md`.
 | 2 | 2–3 | Kullanıcıya görünür hızlı kazanımlar | Ö1 aidat hatırlatma, Ö3 gelişmiş filtreler |
 | 3 | 4–5 | Raporlama ve veri çıkışı | Ö4 PDF makbuz, Ö5 CSV/Excel dışa aktarım, Ö6 dashboard trend grafiği |
 | 4 | 6–7 | Veri güvenliği altyapısı | A1 otomatik yedekleme, A2 yedek klasörü senkronu |
-| 5 | 8+ | Ölçek ve refactor | T1 Apartments.jsx bölme, T2 sayfalama, (karar sonrası) çok bina desteği |
+| 5 | 8+ | Ölçek ve refactor | T2 sayfalama, (karar sonrası) çok bina desteği |
 
 ---
 
@@ -138,13 +138,6 @@ Mevcut durum ve mimari için bkz. `CLAUDE.md`.
 
 ## Faz 5 — Ölçek ve Refactor (Hafta 8+)
 
-### T1. `Apartments.jsx` Bölme 🟡
-
-- **Amaç:** ~736 satırlık dosyayı alt bileşenlere ayırmak (daire listesi, detay modalı, ödeme modalı, ödeme geçmişi).
-- **Neden:** Projenin en büyük dosyası; her yeni özellik (Ö2, Ö4) onu daha da büyütüyor. 3+ dosya etkilediği için başlamadan kullanıcıya sor.
-- **Bağımlılık:** Ö2 ve Ö4 tamamlandıktan **sonra** (aynı dosyada çakışmayı önlemek için).
-- **Tamamlanma kriteri:** Davranış birebir aynı; hiçbir bileşen 300 satırı geçmez; ESLint temiz.
-
 ### T2. Transactions Sayfalama 🟡
 
 - **Amaç:** `getTransactions`'a `LIMIT/OFFSET` (veya keyset) sayfalama.
@@ -166,9 +159,7 @@ Mevcut durum ve mimari için bkz. `CLAUDE.md`.
 | # | Borç | Risk | Öneri |
 | - | ---- | ---- | ----- |
 | 1 | `getPaymentHistory` sahiplik doğrulamıyor | Veri izolasyonu ihlali | **G1 — Faz 1'de kapat** |
-| 2 | `Apartments.jsx` ~736 satır (Reports 347, AdminDashboard 327 de büyüyor) | Bakım maliyeti, merge çakışmaları | T1; yeni özellikte dosyayı büyütmek yerine bileşen çıkar |
 | 3 | Test kapsamı dar | Finansal mantıkta sessiz regresyon | G3; yeni service fonksiyonu = beraberinde test |
-| 4 | Handler'lardaki validasyon kodu tekrarlı (her handler aynı `{success:false}` + try/catch kalıbı) | Tutarsızlaşma riski | Ortak `wrapHandler(fn)` yardımcı fonksiyonu düşünülebilir — 3+ dosya refactor'u, kullanıcıya sor |
 | 5 | `getTransactions` sınırsız satır döner | Büyüyen veride UI/IPC yavaşlaması | T2 sayfalama |
 | 6 | Para `REAL` (float) | Kuruş yuvarlama sapmaları birikebilir | Bilinçli karar (ADR #8); şikâyet gelirse kuruş-integer migration planla — şimdilik dokunma |
 | 7 | Ayar saklama altyapısı yok | A1/A2 ve gelecek özellikler engelleniyor | A1 kapsamında JSON tabanlı settings modülü |
@@ -195,7 +186,7 @@ Bilinçli olarak **eklenmeyecekler:** bildirim/e-posta gönderimi (offline ilkes
 ## Optimizasyon Önerileri (kod yazmadan tespit — uygulaması ayrı görev)
 
 - **SQLite:** Sorgu planları hiç denetlenmedi; T2 sırasında kritik sorgulara `EXPLAIN QUERY PLAN` bak. `PRAGMA optimize` kapanışta zaten çalışıyor — yeterli.
-- **React:** Sayfalar lazy — iyi. Büyük listelerde (Apartments, Transactions) satır bileşenlerini `memo`lamak T1/T2 sırasında değerlendirilebilir; öncesinde ölçmeden optimize etme.
+- **React:** Sayfalar lazy — iyi. Büyük listelerde (Apartments/ApartmentsManage, Transactions) satır bileşenlerini `memo`lamak T2 sırasında değerlendirilebilir; öncesinde ölçmeden optimize etme.
 - **IPC:** Tek seferde büyük payload dönen çağrılar (getTransactions) T2 ile sınırlanacak; bunun dışında darboğaz yok.
 - **Electron:** `sandbox:true` geçişi (borç #8) ve CSP header'ı eklenmesi orta vadeli güvenlik iyileştirmeleri; ikisi de davranış kırma riski taşır, ayrı görev olarak ve kullanıcı onayıyla.
 - **Bundle:** Yeni bağımlılık eklerken önce mevcut stack'le çözülebilir mi diye bak (Ö5/Ö6 önerileri bu ilkeyle "bağımlılıksız" seçildi).

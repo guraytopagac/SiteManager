@@ -33,7 +33,7 @@ function login(credentials) {
     }
 
     if (bcrypt.compareSync(credentials.password, user.password_hash)) {
-      db.prepare(`UPDATE users SET last_login = datetime('now') WHERE id = ?`).run(user.id);
+      db.prepare(`UPDATE users SET last_login = datetime('now', '+3 hours') WHERE id = ?`).run(user.id);
 
       return { success: true, user: toSafeUser(user) };
     }
@@ -51,7 +51,8 @@ function getManagers() {
       .prepare(`SELECT id, username, email, is_active, last_login FROM users WHERE role = 'manager' ORDER BY id ASC`)
       .all();
     return { success: true, data };
-  } catch {
+  } catch (err) {
+    console.error("[auth.service] getManagers:", err);
     return { success: false, message: "Yönetici listesi alınamadı." };
   }
 }
@@ -59,7 +60,10 @@ function getManagers() {
 function createManager(managerData) {
   try {
     const hashedPassword = bcrypt.hashSync(managerData.password, BCRYPT_ROUNDS);
-    db.prepare(`INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)`).run(
+    db.prepare(
+      `INSERT INTO users (username, email, password_hash, created_at, updated_at)
+       VALUES (?, ?, ?, datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
+    ).run(
       managerData.username,
       managerData.email,
       hashedPassword,
@@ -83,7 +87,8 @@ function updateManagerStatus(id, isActive) {
     if (result.changes === 0) return { success: false, message: "Yönetici bulunamadı." };
     const msg = isActive ? "Yönetici hesabı aktif edildi." : "Yönetici hesabı deaktif edildi.";
     return { success: true, message: msg };
-  } catch {
+  } catch (err) {
+    console.error("[auth.service] updateManagerStatus:", err);
     return { success: false, message: "İşlem gerçekleştirilemedi." };
   }
 }
@@ -98,19 +103,18 @@ function changePassword(userId, oldPassword, newPassword) {
     if (bcrypt.compareSync(newPassword, user.password_hash))
       return { success: false, message: "Yeni şifre eski şifreyle aynı olamaz." };
 
-    const newHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
-    db.prepare(`UPDATE users SET password_hash = ?, password_changed_at = datetime('now') WHERE id = ?`).run(
-      newHash,
+    const newPasswordHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
+    db.prepare(`UPDATE users SET password_hash = ?, password_changed_at = datetime('now', '+3 hours') WHERE id = ?`).run(
+      newPasswordHash,
       userId,
     );
     return { success: true, message: "Şifre başarıyla değiştirildi." };
-  } catch {
+  } catch (err) {
+    console.error("[auth.service] changePassword:", err);
     return { success: false, message: "Şifre güncellenemedi." };
   }
 }
 
-// Reset the admin password using the single-use recovery code (login screen, no session).
-// On success the recovery code is rotated and the new one is returned so the user can re-save it.
 function resetAdminPassword(recoveryCode, newPassword) {
   try {
     if (!newPassword || newPassword.length < 8)
@@ -118,53 +122,48 @@ function resetAdminPassword(recoveryCode, newPassword) {
 
     const admin = db.prepare(`SELECT id, recovery_hash FROM users WHERE role = 'admin' LIMIT 1`).get();
     if (!admin || !admin.recovery_hash) {
-      bcrypt.compareSync("dummy", DUMMY_HASH); // timing parity
+      bcrypt.compareSync("dummy", DUMMY_HASH);
       return { success: false, message: "Kurtarma kodu tanımlı değil. Lütfen destek ile iletişime geçin." };
     }
 
-    const normalized = normalizeRecoveryCode(recoveryCode);
-    if (!bcrypt.compareSync(normalized || "", admin.recovery_hash))
+    const normalizedRecoveryCode = normalizeRecoveryCode(recoveryCode);
+    if (!bcrypt.compareSync(normalizedRecoveryCode || "", admin.recovery_hash))
       return { success: false, message: "Kurtarma kodu hatalı." };
 
-    const newHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
-    const next = generateRecoveryCode();
-    const nextHash = bcrypt.hashSync(next.rawCode, BCRYPT_ROUNDS);
+    const newPasswordHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
+    const newRecoveryCode = generateRecoveryCode();
+    const newRecoveryHash = bcrypt.hashSync(newRecoveryCode.rawCode, BCRYPT_ROUNDS);
     db.prepare(
-      `UPDATE users SET password_hash = ?, password_changed_at = datetime('now'), recovery_hash = ? WHERE id = ?`,
-    ).run(newHash, nextHash, admin.id);
+      `UPDATE users SET password_hash = ?, password_changed_at = datetime('now', '+3 hours'), recovery_hash = ? WHERE id = ?`,
+    ).run(newPasswordHash, newRecoveryHash, admin.id);
 
-    return { success: true, message: "Admin şifresi sıfırlandı.", recoveryCode: next.display };
+    return { success: true, message: "Admin şifresi sıfırlandı.", recoveryCode: newRecoveryCode.displayCode };
   } catch (err) {
     console.error("[auth.service] resetAdminPassword:", err);
     return { success: false, message: "Şifre sıfırlanamadı." };
   }
 }
 
-// Generate/rotate the admin recovery code. Gated by the admin's current password
-// (IPC has no server-side session), so a logged-in manager cannot mint a code.
 function regenerateRecoveryCode(password) {
   try {
     const admin = db.prepare(`SELECT id, password_hash FROM users WHERE role = 'admin' LIMIT 1`).get();
     if (!admin) {
-      bcrypt.compareSync("dummy", DUMMY_HASH); // timing parity
+      bcrypt.compareSync("dummy", DUMMY_HASH);
       return { success: false, message: "Admin hesabı bulunamadı." };
     }
-    if (!bcrypt.compareSync(password || "", admin.password_hash))
-      return { success: false, message: "Şifre hatalı." };
+    if (!bcrypt.compareSync(password || "", admin.password_hash)) return { success: false, message: "Şifre hatalı." };
 
-    const next = generateRecoveryCode();
-    const nextHash = bcrypt.hashSync(next.rawCode, BCRYPT_ROUNDS);
-    db.prepare(`UPDATE users SET recovery_hash = ? WHERE id = ?`).run(nextHash, admin.id);
+    const newRecoveryCode = generateRecoveryCode();
+    const newRecoveryHash = bcrypt.hashSync(newRecoveryCode.rawCode, BCRYPT_ROUNDS);
+    db.prepare(`UPDATE users SET recovery_hash = ? WHERE id = ?`).run(newRecoveryHash, admin.id);
 
-    return { success: true, message: "Yeni kurtarma kodu oluşturuldu.", recoveryCode: next.display };
+    return { success: true, message: "Yeni kurtarma kodu oluşturuldu.", recoveryCode: newRecoveryCode.displayCode };
   } catch (err) {
     console.error("[auth.service] regenerateRecoveryCode:", err);
     return { success: false, message: "Kurtarma kodu oluşturulamadı." };
   }
 }
 
-// First-run setup: true only for a freshly seeded admin that has never set a password
-// (password_changed_at IS NULL). Existing installs are protected by migration 008.
 function getSetupState() {
   try {
     const admin = db.prepare(`SELECT password_changed_at FROM users WHERE role = 'admin' LIMIT 1`).get();
@@ -176,9 +175,6 @@ function getSetupState() {
   }
 }
 
-// Complete first-run setup: the admin chooses their own password. Gated on the fresh-seed
-// state (password_changed_at IS NULL), so it locks itself once setup is done — a logged-out
-// caller cannot use it to overwrite an existing admin password. Returns a fresh recovery code.
 function completeAdminSetup(password) {
   try {
     if (!password || password.length < 8) return { success: false, message: "Şifre en az 8 karakter olmalıdır." };
@@ -187,14 +183,14 @@ function completeAdminSetup(password) {
     if (!admin) return { success: false, message: "Admin hesabı bulunamadı." };
     if (admin.password_changed_at != null) return { success: false, message: "Kurulum zaten tamamlanmış." };
 
-    const newHash = bcrypt.hashSync(password, BCRYPT_ROUNDS);
-    const next = generateRecoveryCode();
-    const nextHash = bcrypt.hashSync(next.rawCode, BCRYPT_ROUNDS);
+    const newPasswordHash = bcrypt.hashSync(password, BCRYPT_ROUNDS);
+    const newRecoveryCode = generateRecoveryCode();
+    const newRecoveryHash = bcrypt.hashSync(newRecoveryCode.rawCode, BCRYPT_ROUNDS);
     db.prepare(
-      `UPDATE users SET password_hash = ?, password_changed_at = datetime('now'), recovery_hash = ? WHERE id = ?`,
-    ).run(newHash, nextHash, admin.id);
+      `UPDATE users SET password_hash = ?, password_changed_at = datetime('now', '+3 hours'), recovery_hash = ? WHERE id = ?`,
+    ).run(newPasswordHash, newRecoveryHash, admin.id);
 
-    return { success: true, message: "Admin hesabı kuruldu.", recoveryCode: next.display };
+    return { success: true, message: "Admin hesabı kuruldu.", recoveryCode: newRecoveryCode.displayCode };
   } catch (err) {
     console.error("[auth.service] completeAdminSetup:", err);
     return { success: false, message: "Kurulum tamamlanamadı." };

@@ -1,11 +1,18 @@
 const { ipcMain } = require("electron");
 const { autoUpdater } = require("electron-updater");
-const { sendToSplash, getSplashWindow } = require("../windows/splash");
+const { sendToSplash, getSplashWindow } = require("./windows/splash");
 
 const CHECK_TIMEOUT_MS = 20000;
 const DOWNLOAD_STALL_TIMEOUT_MS = 60000;
 
 const DOWNLOAD_STALLED_MESSAGE = `Update download made no progress for ${DOWNLOAD_STALL_TIMEOUT_MS / 1000}s (connection likely dropped); skipping the update and booting the app.`;
+
+function setTaskbarProgress(value, options) {
+  const splash = getSplashWindow();
+  if (splash && !splash.isDestroyed()) {
+    splash.setProgressBar(value, options);
+  }
+}
 
 function checkForUpdatesBeforeStartup() {
   return new Promise((resolve) => {
@@ -16,6 +23,8 @@ function checkForUpdatesBeforeStartup() {
       clearTimeout(idleTimeout);
       idleTimeout = setTimeout(() => {
         console.warn(`[Main] ${giveUpReason}`);
+        sendToSplash("splash:status", { text: "Güncelleme kontrol edilemedi, atlanıyor", isError: true });
+        setTaskbarProgress(1, { mode: "error" });
         continueStartup();
       }, ms);
     };
@@ -31,11 +40,19 @@ function checkForUpdatesBeforeStartup() {
     };
 
     const eventHandlers = [
-      ["update-not-available", continueStartup],
+      [
+        "update-not-available",
+        () => {
+          setTaskbarProgress(-1);
+          continueStartup();
+        },
+      ],
       [
         "error",
         (err) => {
           console.error("[Main] Update error:", err.message);
+          sendToSplash("splash:status", { text: "Güncelleme kontrol edilemedi, atlanıyor", isError: true });
+          setTaskbarProgress(1, { mode: "error" });
           continueStartup();
         },
       ],
@@ -50,10 +67,12 @@ function checkForUpdatesBeforeStartup() {
         "download-progress",
         (progress) => {
           waitForProgress(DOWNLOAD_STALL_TIMEOUT_MS, DOWNLOAD_STALLED_MESSAGE);
+          setTaskbarProgress(progress.percent / 100);
           sendToSplash("splash:download-progress", {
             percent: Math.round(progress.percent),
             transferred: progress.transferred,
             total: progress.total,
+            bytesPerSecond: progress.bytesPerSecond,
           });
         },
       ],
@@ -61,6 +80,7 @@ function checkForUpdatesBeforeStartup() {
         "update-downloaded",
         async () => {
           clearTimeout(idleTimeout);
+          setTaskbarProgress(-1);
           sendToSplash("splash:update-downloaded", {});
 
           const userWantsRestart = await askToRestart();

@@ -17,9 +17,9 @@ function generateRecoveryCode() {
     groups.push(rawCode.slice(i, i + 4));
   }
 
-  const display = groups.join("-");
+  const displayCode = groups.join("-");
 
-  return { rawCode, display };
+  return { rawCode, displayCode };
 }
 
 function normalizeRecoveryCode(input) {
@@ -34,8 +34,8 @@ function seedAdminAccount(db) {
 
   try {
     db.prepare(
-      `INSERT INTO users (username, email, password_hash, recovery_hash, role, is_active)
-       VALUES (?, ?, 'SETUP_PENDING', NULL, 'admin', 1)`,
+      `INSERT INTO users (username, email, password_hash, recovery_hash, role, is_active, created_at, updated_at)
+       VALUES (?, ?, 'SETUP_PENDING', NULL, 'admin', 1, datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
     ).run(DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_EMAIL);
   } catch (err) {
     console.error("[Seed] Failed to create admin account:", err.message);

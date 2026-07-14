@@ -1,5 +1,5 @@
 const CH = require("../../ipc/channels");
-const { createSafeHandler } = require("../../ipc/safeHandler");
+const { createSafeHandler } = require("../shared/safeHandler");
 const duesService = require("./service");
 
 const safeHandler = createSafeHandler("dues");
@@ -35,7 +35,7 @@ function validateRecordPaymentData(payload) {
   if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
     return { success: false, message: "Geçersiz tarih bilgisi." };
   }
-  if (!paymentData?.amount || paymentData.amount <= 0) {
+  if (typeof paymentData?.amount !== "number" || !Number.isFinite(paymentData.amount) || paymentData.amount <= 0) {
     return { success: false, message: "Geçersiz ödeme tutarı." };
   }
   if (paymentData.amount > MAX_PAYMENT_AMOUNT) {

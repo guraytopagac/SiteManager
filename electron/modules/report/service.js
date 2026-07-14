@@ -19,7 +19,8 @@ function getReportData(managerId, year, month) {
     const yearStr = String(year);
     const monthStr = String(month).padStart(2, "0");
     const startDate = `${yearStr}-${monthStr}-01`;
-    const endDate = new Date(year, month, 0).toISOString().split("T")[0];
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${yearStr}-${monthStr}-${String(lastDay).padStart(2, "0")}`;
 
     const incomes = fetchByMonth("incomes", managerId, startDate, endDate);
     const expenses = fetchByMonth("expenses", managerId, startDate, endDate);

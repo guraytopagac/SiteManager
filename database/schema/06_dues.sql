@@ -6,8 +6,8 @@ CREATE TABLE IF NOT EXISTS dues (
   due_amount REAL NOT NULL CHECK(due_amount > 0 AND due_amount <= 50000),
   paid_amount REAL NOT NULL DEFAULT 0 CHECK(paid_amount >= 0 AND paid_amount <= due_amount),
   status TEXT NOT NULL DEFAULT 'unpaid' CHECK(status IN ('unpaid', 'partial', 'paid')),
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now')),
+  created_at TEXT DEFAULT (datetime('now', '+3 hours')),
+  updated_at TEXT DEFAULT (datetime('now', '+3 hours')),
   FOREIGN KEY(apartment_id) REFERENCES apartments(id) ON DELETE CASCADE,
   UNIQUE(apartment_id, year, month)
 );
@@ -16,5 +16,5 @@ CREATE TRIGGER IF NOT EXISTS trg_dues_updated_at
   AFTER UPDATE ON dues FOR EACH ROW
   WHEN OLD.updated_at = NEW.updated_at
 BEGIN
-  UPDATE dues SET updated_at = datetime('now') WHERE id = NEW.id;
+  UPDATE dues SET updated_at = datetime('now', '+3 hours') WHERE id = NEW.id;
 END;

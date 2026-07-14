@@ -59,8 +59,9 @@ const CHANNELS = Object.freeze({
   }),
 });
 
-const allValues = Object.values(CHANNELS).flatMap(Object.values);
-const uniqueValues = new Set(allValues);
-if (uniqueValues.size !== allValues.length) throw new Error("channels.js: duplicate channel value detected");
+const allChannelValues = Object.values(CHANNELS).flatMap(Object.values);
+const uniqueChannelValues = new Set(allChannelValues);
+if (uniqueChannelValues.size !== allChannelValues.length)
+  throw new Error("channels.js: duplicate channel value detected");
 
 module.exports = CHANNELS;

@@ -6,7 +6,7 @@ async function runBackup(mainWindow) {
   const { db } = require("../../../database/db");
   const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
     title: "Veritabanının Yedeğini Kaydet",
-    defaultPath: `mavikent-yedek-${new Date().toISOString().slice(0, 10)}.db`,
+    defaultPath: `mavikent-yedek-${new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10)}.db`,
     filters: [{ name: "SQLite Veritabanı", extensions: ["db"] }],
   });
 
@@ -88,14 +88,10 @@ async function runRestore(mainWindow) {
     return;
   }
 
-  // Close the active connection so Windows releases the file lock
-  // Done after temp backup succeeds — closing before would leave the app with no DB on error
   closeDb();
 
   try {
     await fs.promises.copyFile(filePaths[0], dbPath);
-    // Drop any stale WAL/SHM belonging to the previous DB so SQLite does not
-    // replay them onto the freshly restored database on next launch
     await fs.promises.unlink(dbPath + "-wal").catch(() => {});
     await fs.promises.unlink(dbPath + "-shm").catch(() => {});
     await fs.promises.unlink(tempBackup).catch(() => {});
@@ -109,13 +105,16 @@ async function runRestore(mainWindow) {
     app.exit();
   } catch (err) {
     await fs.promises.copyFile(tempBackup, dbPath).catch(() => {});
+    await fs.promises.unlink(tempBackup).catch(() => {});
     await dialog.showMessageBox(mainWindow, {
       type: "error",
       title: "Yükleme Hatası",
-      message: "Yükleme başarısız. Önceki veritabanı korundu.",
+      message: "Yükleme başarısız. Önceki veritabanı korundu. Uygulama yeniden başlatılıyor...",
       detail: err.message,
       buttons: ["Tamam"],
     });
+    app.relaunch();
+    app.exit();
   }
 }
 

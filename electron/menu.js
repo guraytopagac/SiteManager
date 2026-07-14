@@ -5,6 +5,7 @@ const CH = require("./ipc/channels");
 const { runBackup, runRestore } = require("./modules/backup/service");
 const { openGuide } = require("./windows/guide");
 const ICON_PATH = path.join(__dirname, "../assets/icon.ico");
+
 const SUPPORT_EMAIL = "guray.topagac.dev@gmail.com";
 
 function buildMenu(mainWindow, isDev) {

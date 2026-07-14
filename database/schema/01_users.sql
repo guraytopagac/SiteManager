@@ -14,14 +14,14 @@ CREATE TABLE IF NOT EXISTS users (
     password_changed_at IS NULL OR
     datetime(password_changed_at) IS NOT NULL
   ),
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+  created_at TEXT DEFAULT (datetime('now', '+3 hours')),
+  updated_at TEXT DEFAULT (datetime('now', '+3 hours'))
 );
 
 CREATE TRIGGER IF NOT EXISTS trg_users_updated_at
   AFTER UPDATE ON users FOR EACH ROW
   WHEN OLD.updated_at = NEW.updated_at
 BEGIN
-  UPDATE users SET updated_at = datetime('now') WHERE id = NEW.id;
+  UPDATE users SET updated_at = datetime('now', '+3 hours') WHERE id = NEW.id;
 END;
 

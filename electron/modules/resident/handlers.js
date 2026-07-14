@@ -1,5 +1,5 @@
 const CH = require("../../ipc/channels");
-const { createSafeHandler } = require("../../ipc/safeHandler");
+const { createSafeHandler } = require("../shared/safeHandler");
 const residentService = require("./service");
 
 const safeHandler = createSafeHandler("resident");
@@ -57,7 +57,6 @@ function validateResidentDates(data) {
   return null;
 }
 
-// Validate the resident field set. Every field is optional; empty string is allowed.
 function validateResidentFields(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     return { success: false, message: "Geçersiz istek." };

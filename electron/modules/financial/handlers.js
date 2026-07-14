@@ -1,5 +1,5 @@
 const CH = require("../../ipc/channels");
-const { createSafeHandler } = require("../../ipc/safeHandler");
+const { createSafeHandler } = require("../shared/safeHandler");
 const financialService = require("./service");
 
 const safeHandler = createSafeHandler("financial");
@@ -11,8 +11,16 @@ const MAX_REASON_LENGTH = 300;
 const INCOME_CATEGORIES = ["dues", "other"];
 const EXPENSE_CATEGORIES = ["maintenance", "cleaning", "utility", "staff", "other"];
 
-// Mirrors the amount/description/category CHECK constraints on incomes/expenses so that
-// out-of-range input yields a Turkish message here instead of a generic DB error downstream.
+const TRIMMED_FIELDS = ["description", "category"];
+function normalizeFinancialData(data) {
+  for (const field of TRIMMED_FIELDS) {
+    if (typeof data[field] === "string") {
+      data[field] = data[field].trim();
+    }
+  }
+  return data;
+}
+
 function validateAmountDescriptionCategory(data, allowedCategories) {
   if (!Number.isFinite(data.amount) || data.amount <= 0) {
     return { success: false, message: "Geçersiz tutar." };
@@ -29,17 +37,15 @@ function validateAmountDescriptionCategory(data, allowedCategories) {
   if (typeof data.date !== "string" || !ISO_DATE_RE.test(data.date) || data.date < "2000-01-01") {
     return { success: false, message: "Geçersiz tarih." };
   }
-  const description = typeof data.description === "string" ? data.description.trim() : "";
+  const description = typeof data.description === "string" ? data.description : "";
   if (!description) {
     return { success: false, message: "Açıklama alanı zorunludur." };
   }
   if (description.length > MAX_DESCRIPTION_LENGTH) {
     return { success: false, message: "Açıklama en fazla 500 karakter olabilir." };
   }
-  // category is optional; service defaults to 'other'. Only validate when provided.
   if (data.category != null && data.category !== "") {
-    const category = typeof data.category === "string" ? data.category.trim() : data.category;
-    if (!allowedCategories.includes(category)) {
+    if (!allowedCategories.includes(data.category)) {
       return { success: false, message: "Geçersiz kategori." };
     }
   }
@@ -50,6 +56,7 @@ function validateIncomeData(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     return { success: false, message: "Geçersiz istek." };
   }
+  normalizeFinancialData(data);
   return validateAmountDescriptionCategory(data, INCOME_CATEGORIES);
 }
 
@@ -57,6 +64,7 @@ function validateExpenseData(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     return { success: false, message: "Geçersiz istek." };
   }
+  normalizeFinancialData(data);
   return validateAmountDescriptionCategory(data, EXPENSE_CATEGORIES);
 }
 

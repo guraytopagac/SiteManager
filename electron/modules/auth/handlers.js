@@ -1,6 +1,6 @@
 const { DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_EMAIL } = require("../../../database/seed");
 const CH = require("../../ipc/channels");
-const { createSafeHandler } = require("../../ipc/safeHandler");
+const { createSafeHandler } = require("../shared/safeHandler");
 const authService = require("./service");
 
 const safeHandler = createSafeHandler("auth");

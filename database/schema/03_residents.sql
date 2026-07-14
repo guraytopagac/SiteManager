@@ -15,20 +15,18 @@ CREATE TABLE IF NOT EXISTS residents (
   ),
   is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0, 1)),
   notes TEXT,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now')),
+  created_at TEXT DEFAULT (datetime('now', '+3 hours')),
+  updated_at TEXT DEFAULT (datetime('now', '+3 hours')),
   apartment_id INTEGER NOT NULL,
   FOREIGN KEY(apartment_id) REFERENCES apartments(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_residents_apartment_id ON residents(apartment_id);
 
--- Only deactivate once the move-out date has arrived; a future move_out_date
--- keeps the resident active so their data stays visible until they leave.
 CREATE TRIGGER IF NOT EXISTS trg_residents_move_out
   AFTER UPDATE OF move_out_date ON residents FOR EACH ROW
   WHEN NEW.move_out_date IS NOT NULL AND NEW.is_active = 1
-       AND NEW.move_out_date <= date('now')
+       AND NEW.move_out_date <= date('now', '+3 hours')
 BEGIN
   UPDATE residents SET is_active = 0 WHERE id = NEW.id;
 END;
@@ -36,7 +34,7 @@ END;
 CREATE TRIGGER IF NOT EXISTS trg_residents_move_out_insert
   AFTER INSERT ON residents FOR EACH ROW
   WHEN NEW.move_out_date IS NOT NULL AND NEW.is_active = 1
-       AND NEW.move_out_date <= date('now')
+       AND NEW.move_out_date <= date('now', '+3 hours')
 BEGIN
   UPDATE residents SET is_active = 0 WHERE id = NEW.id;
 END;

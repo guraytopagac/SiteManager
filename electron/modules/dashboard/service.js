@@ -32,9 +32,9 @@ function fetchStats(managerId, year, month) {
 
 function getStats(managerId) {
   try {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
+    const now = new Date(Date.now() + 3 * 3600 * 1000);
+    const currentYear = now.getUTCFullYear();
+    const currentMonth = now.getUTCMonth() + 1;
 
     const { totalIncome, totalExpense, currentMonthDue, totalOverdue } = fetchStats(
       managerId,

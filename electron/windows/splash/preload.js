@@ -13,5 +13,6 @@ contextBridge.exposeInMainWorld("splashAPI", {
   onUpdateAvailable: (listener) => safeOn("splash:update-available", listener),
   onDownloadProgress: (listener) => safeOn("splash:download-progress", listener),
   onUpdateDownloaded: (listener) => safeOn("splash:update-downloaded", listener),
+  onClosing: (listener) => safeOn("splash:closing", listener),
   sendRestartChoice: (restart) => ipcRenderer.send("splash:restart-choice", { restart }),
 });

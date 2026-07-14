@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS apartments (
   square_meters REAL CHECK(square_meters IS NULL OR (square_meters > 0 AND square_meters <= 1000)),
   due_amount REAL NOT NULL CHECK(due_amount > 0 AND due_amount <= 50000),
   is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0, 1)),
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now')),
+  created_at TEXT DEFAULT (datetime('now', '+3 hours')),
+  updated_at TEXT DEFAULT (datetime('now', '+3 hours')),
   FOREIGN KEY(manager_id) REFERENCES users(id) ON DELETE RESTRICT
 );
 

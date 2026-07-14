@@ -16,27 +16,42 @@ function formatMB(bytes) {
   return (bytes / 1024 / 1024).toFixed(1) + " MB";
 }
 
+function formatEta(seconds) {
+  if (!isFinite(seconds) || seconds < 0) return "";
+  if (seconds < 60) return Math.ceil(seconds) + " sn kaldı";
+  return Math.ceil(seconds / 60) + " dk kaldı";
+}
+
+let currentVersion = "";
+
 if (window.splashAPI) {
   window.splashAPI.onVersion(({ version }) => {
+    currentVersion = version;
     versionEl.textContent = "v" + version;
   });
 
-  window.splashAPI.onStatus(({ text }) => {
-    statusEl.innerHTML =
-      text + '<span class="splash-dot">.</span><span class="splash-dot">.</span><span class="splash-dot">.</span>';
+  window.splashAPI.onStatus(({ text, isError }) => {
+    statusEl.classList.toggle("splash-status-error", Boolean(isError));
+    statusEl.innerHTML = isError
+      ? text
+      : text + '<span class="splash-dot">.</span><span class="splash-dot">.</span><span class="splash-dot">.</span>';
   });
 
   window.splashAPI.onUpdateAvailable(({ version }) => {
-    updateBadgeText.textContent = "v" + version;
+    updateBadgeText.textContent = currentVersion ? "v" + currentVersion + " → v" + version : "v" + version;
     updateBadge.classList.add("splash-visible");
     statusEl.classList.add("splash-hidden");
     progressWrap.classList.add("splash-visible");
   });
 
-  window.splashAPI.onDownloadProgress(({ percent, transferred, total }) => {
+  window.splashAPI.onDownloadProgress(({ percent, transferred, total, bytesPerSecond }) => {
     progressFill.style.width = percent + "%";
     progressPercent.textContent = "%" + percent;
     progressSize.textContent = total > 0 ? formatMB(transferred) + " / " + formatMB(total) : "";
+
+    const remainingBytes = total - transferred;
+    const eta = bytesPerSecond > 0 ? formatEta(remainingBytes / bytesPerSecond) : "";
+    progressStatus.textContent = eta ? "( İndiriliyor " + eta + " )" : "( Güncelleme indiriliyor ... )";
   });
 
   window.splashAPI.onUpdateDownloaded(() => {
@@ -58,6 +73,10 @@ if (window.splashAPI) {
 
   restartNowBtn.addEventListener("click", () => sendChoice(true));
   restartLaterBtn.addEventListener("click", () => sendChoice(false));
+
+  window.splashAPI.onClosing(() => {
+    document.body.classList.add("splash-closing");
+  });
 
   window.splashAPI.ready();
 }

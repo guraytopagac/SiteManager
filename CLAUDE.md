@@ -76,7 +76,7 @@ Sıra **kritiktir**, değiştirme:
 5. **Yalnızca paketli sürümde:** `checkForUpdatesBeforeStartup()` — güncelleme kontrolü **migration'lardan ÖNCE** çalışır (v1.1.9 kararı: bozuk migration çıkan bir sürüm, güncelleme ile kurtarılabilsin diye)
 6. `runMigrations(db)` → migrations + schema yükleme
 7. `registerIpcHandlers(ipcMain)` → tüm handler'lar kaydedilir
-8. `seedAdminAccount(db)` → admin satırı yoksa oluşturulur
+8. `seedAdminAccount(db)` → admin satırı yoksa oluşturulur; oluşturma başarısız olursa hata dialog'u gösterilip `app.quit()` ile çıkılır (admin'siz uygulamanın açılmasına izin verilmez)
 9. Ana pencere oluşturulur, `ready-to-show`'da splash kapanır
 
 ### 2.3 Pencereler — `electron/windows/`
@@ -137,8 +137,6 @@ SiteManager/
 │   ├── ipc/
 │   │   ├── channels.js        # Tüm IPC kanal sabitleri (Object.freeze + duplicate kontrolü).
 │   │   │                      #   Handler'lar VE preload buradan import eder — string'i asla elle yazma
-│   │   ├── safeHandler.js     # createSafeHandler(domain) → her handler'ı tek tip try/catch + loglama
-│   │   │                      #   zarfına sarar; event'i yutar, hata detayını renderer'a sızdırmaz
 │   │   └── index.js           # registerIpcHandlers — modules/*/handlers.js'i alfabetik sırayla kaydeder
 │   ├── modules/               # Domain bazlı gruplama: her domain handler (validasyon) + service (SQL) çifti
 │   │   ├── apartment/{handlers,service}.js
@@ -149,9 +147,13 @@ SiteManager/
 │   │   ├── report/{handlers,service}.js
 │   │   ├── resident/{handlers,service}.js  # Sakin yaşam döngüsü (ekle/düzenle/çıkış/geçmiş)
 │   │   ├── system/handlers.js         # Servisi yok — sadece app version döner
-│   │   └── backup/service.js          # Handler'ı yok — IPC dışı, menu.js doğrudan çağırır
-│   ├── launch/
-│   │   └── autoUpdater.js      # Açılışta splash'e bağlı güncelleme akışı (timeout'lu)
+│   │   ├── backup/service.js          # Handler'ı yok — IPC dışı, menu.js doğrudan çağırır
+│   │   └── shared/                    # Domain'ler arası paylaşılan yardımcılar (handler/service değil)
+│   │       ├── safeHandler.js         # createSafeHandler(domain) → her handler'ı tek tip try/catch + loglama
+│   │       │                          #   zarfına sarar; event'i yutar, hata detayını renderer'a sızdırmaz
+│   │       └── dbError.js             # createDbErrorResolver(columnLabels) → CHECK/UNIQUE/NOT NULL/FK
+│   │                                  #   SQLite hatalarını Türkçe mesaja çevirir (resolveDbError, §9)
+│   ├── autoUpdater.js          # Açılışta splash'e bağlı güncelleme akışı (timeout'lu)
 │   ├── windows/
 │   │   ├── main/index.js       # Ana pencere oluşturma + electron-serve
 │   │   ├── splash/             # Açılış ekranı (kendi preload'u ile)
@@ -171,7 +173,7 @@ SiteManager/
     └── style.css        # Global stiller — light/dark tema CSS değişkenleri
 ```
 
-**Dosya boyutu uyarısı:** `src/pages/Apartments/Apartments.jsx` (~700+ satır) projenin en büyük dosyasıdır; büyütmeden önce alt bileşenlere bölmeyi düşün (bkz. ROADMAP teknik borç).
+**Apartments sayfa bölünmesi:** `src/pages/Apartments/` artık tek dosya değildir — `Apartments.jsx` salt-okunur aidat/daire listesini, `ApartmentsManage.jsx` daire işlemlerini (düzenle/sil/ödeme/toplu aidat modalları) barındırır; ortak parçalar `components/`, sabitler `constants.js`, aidat veri çekme mantığı `useDues.js` hook'unda toplanmıştır (bkz. §11 Rotalar).
 
 ---
 
@@ -192,7 +194,7 @@ Renderer: window.electronAPI.recordPayment({...})
 
 1. **Kanal string'leri yalnızca `electron/ipc/channels.js`'te tanımlanır.** Handler ve preload aynı sabiti import eder; `channels.js` duplicate değerde açılışta hata fırlatır.
 2. **Yeni endpoint eklerken 4 dosya değişir:** `channels.js` (sabit) → `modules/<domain>/handlers.js` (validasyon) → `modules/<domain>/service.js` (SQL) → `preload.js` (electronAPI metodu). Yeni domain ise `ipc/index.js`'e kayıt ekle. Bu dokümandaki §10 tablosunu da güncelle.
-3. **Handler deseni — `safeHandler`:** Her handler `createSafeHandler("<domain>")` ile üretilen `safeHandler(channel, fn, errorMessage?)` zarfına sarılır (bkz. `electron/ipc/safeHandler.js`). Modül başında bir kez `const safeHandler = createSafeHandler("<domain>")` tanımlanır; her `ipcMain.handle(CH.X, safeHandler(CH.X, (payload) => {...}))` şeklinde yazılır. Zarf: Electron'un `event` argümanını yutar (handler yalnızca payload alır), `fn`'in sonucunu (senkron/async) olduğu gibi döndürür, beklenmeyen throw/reject'i yakalayıp `console.error("[<domain>.handlers] <channel>:", err)` loglar ve jenerik `errorMessage` (varsayılan `"İşlem sırasında bir hata oluştu."`) döner. **Handler içinde elle try/catch yazma** — özel bir hata mesajı gerekiyorsa 3. parametreyle geç (ör. report `SAVE_FILE` → `"Dosya kaydedilemedi."`). İstisna: `event` nesnesine ihtiyaç duyan veya `{success}` sözleşmesi dışında ham değer döndüren handler (ör. `system` → düz version string'i) sarılmaz.
+3. **Handler deseni — `safeHandler`:** Her handler `createSafeHandler("<domain>")` ile üretilen `safeHandler(channel, fn, errorMessage?)` zarfına sarılır (bkz. `electron/modules/shared/safeHandler.js`). Modül başında bir kez `const safeHandler = createSafeHandler("<domain>")` tanımlanır; her `ipcMain.handle(CH.X, safeHandler(CH.X, (payload) => {...}))` şeklinde yazılır. Zarf: Electron'un `event` argümanını yutar (handler yalnızca payload alır), `fn`'in sonucunu (senkron/async) olduğu gibi döndürür, beklenmeyen throw/reject'i yakalayıp `console.error("[<domain>.handlers] <channel>:", err)` loglar ve jenerik `errorMessage` (varsayılan `"İşlem sırasında bir hata oluştu."`) döner. **Handler içinde elle try/catch yazma** — özel bir hata mesajı gerekiyorsa 3. parametreyle geç (ör. report `SAVE_FILE` → `"Dosya kaydedilemedi."`). İstisna: `event` nesnesine ihtiyaç duyan veya `{success}` sözleşmesi dışında ham değer döndüren handler (ör. `system` → düz version string'i) sarılmaz.
 4. **Dönüş sözleşmesi:** Her handler `{ success: boolean, ... }` döner (yukarıdaki `system` istisnası hariç). Hata durumunda `message` alanı kullanıcıya gösterilebilir Türkçe metindir; iç hata detayı renderer'a sızdırılmaz. İş kuralı ihlali `{ success:false, message }` **döndürerek** bildirilir (throw değil) — throw yalnızca beklenmeyen hatalar içindir ve `safeHandler`'ın `catch`'ine düşer.
 5. **main→renderer eventleri** (`EVENTS.*`, `splash:*`) `webContents.send` ile gönderilir; preload `safeOn` unsubscribe fonksiyonu döner — React `useEffect` cleanup'ında çağrılmalıdır.
 6. **Yetkilendirme:** IPC katmanında oturum doğrulaması yoktur (tek kullanıcılı masaüstü uygulaması). Veri izolasyonu `managerId` parametresiyle sağlanır — manager'a ait sorgular her zaman `WHERE manager_id = ?` içermelidir. Bilinen açık: `getPaymentHistory` yalnızca `dueId` alır (ROADMAP'te düzeltme görevi var).
@@ -313,14 +315,15 @@ expenses              (id, amount, date, description,
 - Birden fazla yazma içeren işlemler `db.transaction(() => {...})()` içinde
 - Manager verisi sorgularında `manager_id = ?` filtresi zorunlu (bkz. §5.2 madde 5)
 - Para `REAL` saklanır (bilinçli karar: TL tutarları, tek kullanıcılı defter — kuruş hassasiyeti toplamalarda `ROUND` ile yönetilir); ekranda `src/utils/format.js` ile `₺` formatlanır
-- Tarihler ISO-8601 `TEXT` (`YYYY-MM-DD` veya `datetime('now')`)
+- Tarihler ISO-8601 `TEXT` (`YYYY-MM-DD` veya `datetime('now', '+3 hours')`)
+- **Saat dilimi:** Tüm otomatik zaman damgaları **Türkiye yerel saati (UTC+3)** ile saklanır. Türkiye 2016'dan beri DST kullanmadığından sabit `+3 hours` deterministiktir. Kural: her `created_at/updated_at/cancelled_at/last_login/...` yazımı `datetime('now', '+3 hours')` kullanır (schema DEFAULT'ları, trigger'lar ve INSERT/UPDATE'lerde açıkça). Kullanıcının seçtiği takvim tarihleri (`date`, `payment_date`, `move_in_date`, `move_out_date`) kaydırılmaz. JS tarafında "bugün"/"şu an" da TR bazlıdır (`new Date(Date.now() + 3*3600*1000)`; bkz. `format.js` `getToday`). Okuma tarafı (`format.js`) saklanan değeri **olduğu gibi yerel** parse eder — ikinci bir UTC→yerel çevrimi yapılmaz. Eski UTC veriler `010_shift_timestamps_to_tr_time.sql` ile +3 saat kaydırıldı.
 
 ---
 
 ## 8. Kritik İş Kuralları
 
 1. **Aidat kaydı silinemez** — yalnızca düzenlenebilir.
-2. **`getDuesForMonth`** — o ay için eksik aidat kayıtları `INSERT OR IGNORE` ile otomatik oluşturulur (aktif daireler için, o anki `apartments.due_amount` ile).
+2. **`getDuesForMonth`** — aidat kaydı olmayan aktif daireler `LEFT JOIN` + `COALESCE(d.due_amount, a.due_amount)` ile **sanal** (persist edilmemiş) olarak listelenir; okuma sırasında `dues` satırı **oluşturulmaz**. Gerçek `dues` satırı yalnızca ödeme anında `recordPayment` içinde `INSERT OR IGNORE` ile (o anki `apartments.due_amount` ile) oluşur.
 3. **`bulkUpdateDueAmount`** — yalnızca `apartments.due_amount`'ı günceller; mevcut `dues` kayıtlarına dokunmaz. Yeni tutar sonraki ay oluşturulduğunda etkili olur.
 4. **Gelir/gider silinemez** — `cancelIncome`/`cancelExpense` ile `is_cancelled=1` yapılır; iptal nedeni ve iptal eden kaydedilir.
 5. **Ödeme iptali** — `due_payments` kaydı silinmez; `payment_cancellations`'a immutable kayıt eklenir. Bağlı `incomes` kaydı otomatik iptal edilir. `paid_amount` çıkarma ile değil, **aktif ödemelerin `SUM`'ı ile yeniden hesaplanır** (idempotent, tutarlı).
@@ -334,7 +337,7 @@ expenses              (id, amount, date, description,
 9. **Ödeme kaydı → gelir kaydı:** `recordPayment` aynı transaction'da `incomes`'a `category='dues'`, `due_payment_id` bağlı bir kayıt ekler. Aidat geliri asla elle girilmez.
 10. **Yedekleme/geri yükleme** (`electron/modules/backup/service.js`, menüden çağrılır, IPC değil):
     - Yedek: `db.backup(filePath)` (WAL-güvenli online backup) + hedefteki artık `-wal/-shm` temizliği
-    - Geri yükleme: seçilen dosyada `integrity_check` → onay → mevcut DB `.bak`'a kopyalanır → `closeDb()` (Windows dosya kilidi için) → kopyala → eski `-wal/-shm` silinir (yeni DB'ye replay olmasın) → `app.relaunch()`. Hata olursa `.bak`'tan geri dönülür.
+    - Geri yükleme: seçilen dosyada `integrity_check` → onay → mevcut DB `.bak`'a kopyalanır → `closeDb()` (Windows dosya kilidi için) → kopyala → eski `-wal/-shm` silinir (yeni DB'ye replay olmasın) → `app.relaunch()`. Hata olursa `.bak`'tan geri dönülür ve **bu yolda da `app.relaunch()` çağrılır** — `closeDb()` sonrası bağlantı yeniden açılmadığından, uygulama ölü bağlantıyla kalmasın diye geri yüklenen dosyayla temiz başlatılır.
 
 ---
 
@@ -361,8 +364,9 @@ Handler katmanı asıl güvenlik sınırıdır (preload atlatılabilir varsayıl
 - `apartment/handlers.js` → `normalizeApartmentData` (`TRIMMED_FIELDS` listesi: yalnızca `apartment_no`), `ADD` ve `UPDATE` yollarında çağrılır.
 - `resident/handlers.js` → `normalizeResidentData` (tüm sakin string alanları: `full_name, phone, email, national_id, resident_type, move_in_date, move_out_date, notes`), `ADD` ve `UPDATE` yollarında çağrılır.
 - `auth/handlers.js` → `normalizeIdentityFields` (`username`, `email`), `LOGIN` ve `CREATE_MANAGER` yollarında çağrılır.
+- `financial/handlers.js` → `normalizeFinancialData` (`TRIMMED_FIELDS`: `description`, `category`), `ADD_INCOME` ve `ADD_EXPENSE` yollarında çağrılır; **service (`insertRecord`) tekrar trim'lemez.**
 - **Şifreler asla trim'lenmez** (baştaki/sondaki boşluk kasıtlı olabilir).
-- `financial` `description`/`category` ile `dues`/`financial` `reason` alanları da handler/service sınırında kırpılır (financial `insertRecord` içinde, cancel/reason ise handler'da `.trim()` ile).
+- `dues`/`financial` `reason` (iptal nedeni) alanları handler'da `.trim()` ile kırpılıp service'e öyle geçirilir.
 
 ---
 
@@ -392,6 +396,7 @@ Kanal adları için tek kaynak: `electron/ipc/channels.js`.
 - **Alert/Dialog:** doğrudan `Swal.fire` çağırma; `src/utils/alert.js` sarmalayıcısını kullan (tema uyumu orada)
 - **Formatlama:** para/tarih için `src/utils/format.js`; magic string'ler `src/utils/constants.js`
 - **Tema:** light/dark, `style.css` içindeki CSS değişkenleri; bileşen CSS'lerinde renkleri değişken üzerinden kullan, hex sabitleme
+- **Okunabilirlik (hedef kitle):** Kullanıcıların çoğunluğu **40+ yaş** apartman yöneticileridir. Yazı boyutlarını okunabilir tut — gövde/etiket metinleri için ~0.9rem altına inme, ana giriş alanları ~1rem+ olmalı. Uzun bir metni tek satıra sığdırmak için fontu okunmaz derecede küçültme; bunun yerine metni sar, kısalt ya da kapsayıcıyı genişlet (küçük font okunabilirliğe feda edilmez).
 
 ### Rotalar
 
@@ -402,7 +407,8 @@ Kanal adları için tek kaynak: `electron/ipc/channels.js`.
 | `/admin` | AdminDashboard | admin |
 | `/dashboard` | Dashboard | manager |
 | `/add-apartment` | AddApartment | manager |
-| `/apartments` | Apartments | manager |
+| `/apartments` | Apartments | manager (salt-okunur aidat/daire görüntüleme) |
+| `/apartments/manage` | ApartmentsManage | manager (daire işlemleri: düzenle/sil/ödeme/toplu aidat — modallar) |
 | `/residents` | Residents | manager |
 | `/add-income` | AddIncome | manager |
 | `/add-expense` | AddExpense | manager |
@@ -500,8 +506,10 @@ npm run reset-appdata  # Paketli sürümün %APPDATA% verisini siler
 | 8 | Para `REAL` | TL defteri, tek kullanıcı; kuruş hassasiyeti ROUND ile yönetilir. Hassas muhasebe gerekirse kuruş-integer'a migration düşünülür |
 | 9 | HashRouter | Paketli Electron'da `file://`/custom protocol altında BrowserRouter path'leri kırılır |
 | 10 | Setup akışı: `SETUP_PENDING` sentinel + zorunlu ilk kurulum ekranı | Varsayılan şifre riski sıfırlanır; kurtarma kodu bir kez gösterilir (v1.2.0) |
-| 11 | Ortak `safeHandler` zarfı (`ipc/safeHandler.js`) | Her handler'daki tekrar eden try/catch + loglama + `event` yutma boilerplate'i tek yerde toplanır; handler'lar yalnızca validasyon + service çağrısına odaklanır |
+| 11 | Ortak `safeHandler` zarfı (`electron/modules/shared/safeHandler.js`) | Her handler'daki tekrar eden try/catch + loglama + `event` yutma boilerplate'i tek yerde toplanır; handler'lar yalnızca validasyon + service çağrısına odaklanır |
 | 12 | Sakin yönetimi ayrı `resident` domain + `/residents` sayfası; merge-form sezgisi yerine açık aksiyonlar | `updateApartment`'a gömülü üç yönlü sakin dallanması (`isResidentReplacement`) sorumlulukları karıştırıyor ve kısmi güncellemede veri kaybı riski taşıyordu. Ekle/Düzenle/Çıkış/Geçmiş açık aksiyonları kullanıcı niyetini tahmin etmeye gerek bırakmaz; daire formları yalnızca daire tutar |
+| 13 | `resolveDbError` ortaklaştırıldı — `createDbErrorResolver(columnLabels)` (`electron/modules/shared/dbError.js`) | `apartment`, `financial`, `resident` service'lerinde tekrar eden UNIQUE/CHECK/NOT NULL/FK → Türkçe mesaj çevirisi tek yerde toplanır; her domain kendi `columnLabels` sözlüğüyle resolver üretir |
+| 14 | Apartments sayfası `Apartments.jsx` (salt-okunur liste) ve `ApartmentsManage.jsx` (daire işlemleri) olarak ikiye bölündü | Tek dosya 700+ satıra ulaşmıştı (ROADMAP T1); okuma ve yönetim sorumlulukları ayrışınca her dosya küçülüp bakımı kolaylaştı — ortak parçalar `components/`, `constants.js`, `useDues.js`'e taşındı |
 
 Yeni önemli karar aldığında bu tabloya bir satır ekle: **karar + gerekçe**, tahmin bırakma.
 

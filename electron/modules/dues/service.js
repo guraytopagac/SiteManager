@@ -8,7 +8,7 @@ function calcDueStatus(dueAmount, paidAmount) {
 
 function getDuesForMonth(managerId, year, month) {
   try {
-    const data = db
+    const monthlyDuesData = db
       .prepare(
         `
       SELECT a.id AS apartment_id, a.apartment_no, a.floor, a.type, a.square_meters,
@@ -28,7 +28,7 @@ function getDuesForMonth(managerId, year, month) {
       )
       .all(year, month, managerId);
 
-    return { success: true, data };
+    return { success: true, data: monthlyDuesData };
   } catch (err) {
     console.error("[dues.service] getDuesForMonth:", err);
     return { success: false, message: "Aidat verileri alınamadı." };
@@ -62,21 +62,21 @@ function recordPayment(apartmentId, year, month, paymentData) {
       const { lastInsertRowid: paymentId } = db
         .prepare(
           `
-        INSERT INTO due_payments (due_id, amount, payment_method, payment_date, note, collected_by)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO due_payments (due_id, amount, payment_method, payment_date, note, collected_by, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, datetime('now', '+3 hours'))
       `,
         )
         .run(due.id, amount, payment_method, payment_date, note || null, collected_by);
 
       db.prepare(
         `
-        INSERT INTO incomes (amount, date, description, category, manager_id, due_payment_id)
-        VALUES (?, ?, ?, 'dues', ?, ?)
+        INSERT INTO incomes (amount, date, description, category, manager_id, due_payment_id, created_at, updated_at)
+        VALUES (?, ?, ?, 'dues', ?, ?, datetime('now', '+3 hours'), datetime('now', '+3 hours'))
       `,
       ).run(amount, payment_date, `Aidat Ödemesi - Daire ${apartment.apartment_no}`, collected_by, paymentId);
 
       const newPaidAmount = parseFloat((due.paid_amount + amount).toFixed(2));
-      db.prepare(`UPDATE dues SET paid_amount = ?, status = ?, updated_at = datetime('now') WHERE id = ?`).run(
+      db.prepare(`UPDATE dues SET paid_amount = ?, status = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`).run(
         newPaidAmount,
         calcDueStatus(due.due_amount, newPaidAmount),
         due.id,
@@ -109,7 +109,10 @@ function cancelPayment(paymentId, userId, reason) {
       const alreadyCancelled = db.prepare(`SELECT id FROM payment_cancellations WHERE payment_id = ?`).get(paymentId);
       if (alreadyCancelled) throw new Error("Bu ödeme zaten iptal edilmiş.");
 
-      db.prepare(`INSERT INTO payment_cancellations (payment_id, cancel_reason, cancelled_by) VALUES (?, ?, ?)`).run(
+      db.prepare(
+        `INSERT INTO payment_cancellations (payment_id, cancel_reason, cancelled_by, cancelled_at)
+         VALUES (?, ?, ?, datetime('now', '+3 hours'))`,
+      ).run(
         paymentId,
         reason,
         userId,
@@ -117,8 +120,8 @@ function cancelPayment(paymentId, userId, reason) {
 
       db.prepare(
         `
-        UPDATE incomes SET is_cancelled = 1, cancelled_at = datetime('now'), cancel_reason = ?, cancelled_by = ?,
-        updated_at = datetime('now') WHERE due_payment_id = ? AND is_cancelled = 0
+        UPDATE incomes SET is_cancelled = 1, cancelled_at = datetime('now', '+3 hours'), cancel_reason = ?, cancelled_by = ?,
+        updated_at = datetime('now', '+3 hours') WHERE due_payment_id = ? AND is_cancelled = 0
       `,
       ).run(reason, userId, paymentId);
 
@@ -136,7 +139,7 @@ function cancelPayment(paymentId, userId, reason) {
 
       const { due_amount } = db.prepare(`SELECT due_amount FROM dues WHERE id = ?`).get(payment.due_id);
       const newPaidAmount = parseFloat(Number(activePaidTotal).toFixed(2));
-      db.prepare(`UPDATE dues SET paid_amount = ?, status = ?, updated_at = datetime('now') WHERE id = ?`).run(
+      db.prepare(`UPDATE dues SET paid_amount = ?, status = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`).run(
         newPaidAmount,
         calcDueStatus(due_amount, newPaidAmount),
         payment.due_id,
@@ -146,7 +149,7 @@ function cancelPayment(paymentId, userId, reason) {
     return { success: true, message: "Ödeme başarıyla iptal edildi." };
   } catch (err) {
     console.error("[dues.service] cancelPayment:", err);
-    return { success: false, message: err.isBusiness ? err.message : "Ödeme iptal edilemedi." };
+    return { success: false, message: err.message || "Ödeme iptal edilemedi." };
   }
 }
 

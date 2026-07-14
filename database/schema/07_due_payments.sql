@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS due_payments (
     date(payment_date) >= '2000-01-01'
   ),
   note TEXT CHECK(note IS NULL OR length(note) <= 500),
-  created_at TEXT DEFAULT (datetime('now')),
+  created_at TEXT DEFAULT (datetime('now', '+3 hours')),
   FOREIGN KEY(due_id) REFERENCES dues(id) ON DELETE RESTRICT,
   FOREIGN KEY(collected_by) REFERENCES users(id) ON DELETE RESTRICT
 );

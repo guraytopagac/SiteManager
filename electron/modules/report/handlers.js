@@ -1,7 +1,7 @@
 const fs = require("fs");
 const { dialog } = require("electron");
 const CH = require("../../ipc/channels");
-const { createSafeHandler } = require("../../ipc/safeHandler");
+const { createSafeHandler } = require("../shared/safeHandler");
 const reportService = require("./service");
 
 const safeHandler = createSafeHandler("report");

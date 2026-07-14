@@ -1,5 +1,5 @@
 const CH = require("../../ipc/channels");
-const { createSafeHandler } = require("../../ipc/safeHandler");
+const { createSafeHandler } = require("../shared/safeHandler");
 const apartmentService = require("./service");
 
 const safeHandler = createSafeHandler("apartment");

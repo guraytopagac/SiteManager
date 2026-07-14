@@ -12,13 +12,18 @@ function createSplashWindow() {
     center: true,
     alwaysOnTop: false,
     skipTaskbar: false,
+    show: false,
     icon: path.join(__dirname, "../../../assets/icon.ico"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: false,
+      sandbox: true,
     },
+  });
+
+  splashWindow.once("ready-to-show", () => {
+    if (!splashWindow.isDestroyed()) splashWindow.show();
   });
 
   splashWindow.loadFile(path.join(__dirname, "splash.html"));
@@ -32,13 +37,24 @@ function sendToSplash(channel, data) {
 }
 
 function closeSplashAndShowMain(mainWindow) {
-  if (splashWindow && !splashWindow.isDestroyed()) {
-    splashWindow.close();
+  const splash = splashWindow;
+
+  const showMain = () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.maximize();
+      mainWindow.show();
+    }
+  };
+
+  if (splash && !splash.isDestroyed()) {
+    splash.webContents.send("splash:closing");
     splashWindow = null;
-  }
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.maximize();
-    mainWindow.show();
+    setTimeout(() => {
+      if (!splash.isDestroyed()) splash.close();
+      showMain();
+    }, 180);
+  } else {
+    showMain();
   }
 }
 

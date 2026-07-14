@@ -1,5 +1,5 @@
 const path = require("path");
-const { BrowserWindow } = require("electron");
+const { app, BrowserWindow } = require("electron");
 const ICON_PATH = path.join(__dirname, "../../../assets/icon.ico");
 
 let guideWin = null;
@@ -18,7 +18,9 @@ function openGuide() {
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: false },
     resizable: false,
   });
-  guideWin.loadFile(path.join(__dirname, "guide.html"));
+  guideWin.loadFile(path.join(__dirname, "guide.html"), {
+    query: { v: app.getVersion() },
+  });
   guideWin.on("closed", () => {
     guideWin = null;
   });
