@@ -163,11 +163,10 @@ SiteManager/
 │   └── preload.js              # contextBridge — safeInvoke/safeOn ile kanal whitelist
 │
 └── src/
-    ├── components/      # Footer vb. paylaşılan bileşenler
-    ├── router/          # ProtectedRoute (rol bazlı rota koruması)
-    ├── hooks/           # useTheme, useCurrentUser (sessionStorage + 'user-session-changed' eventi)
+    ├── components/      # Footer (sürüm + sürüm notları modalı), ErrorBoundary, PageLoader, ProtectedRoute (rol bazlı rota koruması) vb. paylaşılan bileşenler
+    ├── hooks/           # useTheme, useCurrentUser (oturum kaynağı: get/set/clearCurrentUser + 'user-session-changed' eventi)
     ├── pages/           # Her sayfa kendi klasöründe (JSX + CSS), App.jsx'te lazy-load
-    ├── utils/           # alert.js (SweetAlert2 sarmalayıcı), constants.js, format.js (₺/tarih format)
+    ├── utils/           # alert.js (SweetAlert2 sarmalayıcı), constants.js, format.js (₺/tarih format), releaseNotes.js (yama notları — Footer modalında gösterilir)
     ├── App.jsx          # Rotalar (HashRouter) + StartupRedirect (setup/login yönlendirmesi)
     ├── main.jsx         # React mount
     └── style.css        # Global stiller — light/dark tema CSS değişkenleri
@@ -209,9 +208,14 @@ Renderer: window.electronAPI.recordPayment({...})
 | `manager` | Aidat, gelir/gider, daire, raporlar    |
 
 - Şifreler `bcryptjs` ile hash'lenir; düz metin hiçbir yerde saklanmaz/loglanmaz
-- **Oturum:** `sessionStorage` → `currentUser` anahtarı (`SESSION_USER_KEY` sabiti). `useCurrentUser` hook'u okur; oturum değişikliği `user-session-changed` window eventi ile yayılır. Oturum kapatma tamamen client-side: `sessionStorage.clear()` + event dispatch (IPC yok)
+- **Oturum:** `sessionStorage` → `currentUser` anahtarı (`SESSION_USER_KEY` sabiti). Oturum durumunun tek doğruluk kaynağı `src/hooks/useCurrentUser.js`'tir — yazma/temizleme `sessionStorage`'a elle dokunmadan buradaki helper'larla yapılır:
+  - `useCurrentUser()` — reaktif okuma hook'u (React bileşenlerinde).
+  - `getCurrentUser()` — hook dışı tek seferlik okuma (event handler'lar vb.).
+  - `setCurrentUser(user)` — login sonrası oturumu yazar (yalnızca `id, role, username, email, last_login` alanları persist edilir) + `user-session-changed` eventini yayınlar.
+  - `clearCurrentUser()` — logout: `sessionStorage.clear()` + event yayınlar (IPC yok).
+  - **Kural:** `sessionStorage.setItem/clear` + elle `dispatchEvent` yazma; bu helper'ları kullan (event dispatch'i unutma hatasını önler, persist edilen alan seti tek yerde). Oturum değişikliği `user-session-changed` window eventi ile yayılır; `useCurrentUser` dinler.
 - **"Beni hatırla":** 30 günlük session token
-- **Rota koruması:** `src/router/ProtectedRoute.jsx` rol bazlı; yanlış rol → kendi dashboard'una redirect
+- **Rota koruması:** `src/components/ProtectedRoute/ProtectedRoute.jsx` rol bazlı; yanlış rol → kendi dashboard'una redirect
 - Admin hesabı yalnızca bir adet olabilir; `seed.js` `is_active`'e bakmaksızın `role='admin'` varlığını kontrol eder
 
 ### İlk Kurulum (Setup) Akışı
@@ -393,9 +397,9 @@ Kanal adları için tek kaynak: `electron/ipc/channels.js`.
 - **Routing:** HashRouter (Electron `file://`/`app://` uyumu için — BrowserRouter kullanma). Rotalar `App.jsx`'te, tüm sayfalar `lazy()` + `Suspense`
 - **State yönetimi:** Global state kütüphanesi **yoktur** (bilinçli karar — uygulama küçük). Sayfa state'i lokal `useState`/`useEffect`; oturum `sessionStorage` + `useCurrentUser`; tema `useTheme` (CSS değişkenleri + `onToggleTheme` IPC eventi)
 - **Veri çekme deseni:** sayfa mount'ta `electronAPI` çağırır, `res.success` kontrol eder, hata mesajını SweetAlert ile gösterir. Cache katmanı yok — her sayfa girişinde taze veri
-- **Alert/Dialog:** doğrudan `Swal.fire` çağırma; `src/utils/alert.js` sarmalayıcısını kullan (tema uyumu orada)
+- **Alert/Dialog:** SweetAlert **yalnızca `src/utils/alert.js`'te** kullanılır — sayfalar/bileşenler `sweetalert2`'yi import etmez, `showAlert` metodlarını çağırır. Yeni bir dialog gerekiyorsa `alert.js`'e metod ekle (tema renkleri, `heightAuto:false` ve buton gelenekleri orada tek noktada). `swalBase`/`swalColors` export'ları kaldırıldı.
 - **Formatlama:** para/tarih için `src/utils/format.js`; magic string'ler `src/utils/constants.js`
-- **Tema:** light/dark, `style.css` içindeki CSS değişkenleri; bileşen CSS'lerinde renkleri değişken üzerinden kullan, hex sabitleme
+- **Tema:** light/dark, `style.css` içindeki CSS değişkenleri; bileşen CSS'lerinde renkleri değişken üzerinden kullan, hex sabitleme. Accent türevleri `--accent-focus-ring / --accent-selection / --accent-tint` ailesindedir. **Not:** boşluk/köşe yarıçapı için token ölçeği (`--space-*`, `--radius-*`) yoktur — literal px değerleri kullanılır. `style.css` yalnızca global reset + tema değişkenleri + temel eleman stillerini (body, tipografi, buton, form, scrollbar, toast) barındırır; **paylaşılan `.u-*` yardımcı sınıfı yoktur** (kullanılmadıkları için kaldırıldı — yeni sayfa stilini kendi CSS dosyasında yaz).
 - **Okunabilirlik (hedef kitle):** Kullanıcıların çoğunluğu **40+ yaş** apartman yöneticileridir. Yazı boyutlarını okunabilir tut — gövde/etiket metinleri için ~0.9rem altına inme, ana giriş alanları ~1rem+ olmalı. Uzun bir metni tek satıra sığdırmak için fontu okunmaz derecede küçültme; bunun yerine metni sar, kısalt ya da kapsayıcıyı genişlet (küçük font okunabilirliğe feda edilmez).
 
 ### Rotalar
@@ -465,10 +469,11 @@ npm run reset-appdata  # Paketli sürümün %APPDATA% verisini siler
 ### Release Adımları (kullanıcı onayıyla)
 
 1. `package.json` → `version` yükselt (semver: bugfix=patch, özellik=minor)
-2. Commit mesajı geleneği: `feat: vX.Y.Z — kısa Türkçe açıklama` / `fix: vX.Y.Z — ...`
-3. `npm run dist` → `dist_electron/Mavikent-Site-Yonetimi-Setup-X.Y.Z.exe`
-4. GitHub Release oluştur (tag `vX.Y.Z`); `electron-updater` `latest.yml` + installer'ı release asset'lerinden okur
-5. Otomatik güncelleme: açılışta kontrol (20 sn timeout, indirme için 60 sn stall watchdog — internet yoksa/yavaşsa uygulama açılmaya devam eder). Kullanıcı "Şimdi Yeniden Başlat" derse `quitAndInstall`
+2. **Yama notları (`src/utils/releaseNotes.js`) güncellenmeli** — yeni sürüm yayınlanmadan önce uygulama içi sürüm notları da güncellenir (Footer'daki "Sürüm Notları" modalında gösterilir). Kural: **yalnızca son 3 yama** listede kalır — yeni sürümü diziye **başa** ekle, en eski (4.) kaydı sil. Her kayıt `{ version, date (YYYY-MM-DD), title, changes: [...] }` biçimindedir; `version` `package.json` ile aynı olmalı, `changes` kullanıcıya dönük kısa Türkçe maddelerdir.
+3. Commit mesajı geleneği: `feat: vX.Y.Z — kısa Türkçe açıklama` / `fix: vX.Y.Z — ...`
+4. `npm run dist` → `dist_electron/Mavikent-Site-Yonetimi-Setup-X.Y.Z.exe`
+5. GitHub Release oluştur (tag `vX.Y.Z`); `electron-updater` `latest.yml` + installer'ı release asset'lerinden okur
+6. Otomatik güncelleme: açılışta kontrol (20 sn timeout, indirme için 60 sn stall watchdog — internet yoksa/yavaşsa uygulama açılmaya devam eder). Kullanıcı "Şimdi Yeniden Başlat" derse `quitAndInstall`
 
 ### Build Ortam Notları (Windows)
 

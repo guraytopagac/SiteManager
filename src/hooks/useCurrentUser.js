@@ -1,24 +1,64 @@
 import { useEffect, useState } from "react";
 import { SESSION_USER_KEY } from "../utils/constants";
 
-function getUser() {
+const SESSION_CHANGED_EVENT = "user-session-changed";
+
+function pickSessionFields(user) {
+  if (!user?.id) return null;
+  const { id, role, username, email, last_login } = user;
+  return { id, role, username, email, last_login };
+}
+
+function isSameSessionUser(a, b) {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return (
+    a.id === b.id &&
+    a.role === b.role &&
+    a.username === b.username &&
+    a.email === b.email &&
+    a.last_login === b.last_login
+  );
+}
+
+export function getCurrentUser() {
   try {
-    const sessionUser = JSON.parse(sessionStorage.getItem(SESSION_USER_KEY));
-    if (!sessionUser?.id) return null;
-    const { id, role, username, email, last_login } = sessionUser;
-    return { id, role, username, email, last_login };
+    return pickSessionFields(JSON.parse(sessionStorage.getItem(SESSION_USER_KEY)));
   } catch {
     return null;
   }
 }
 
+export function setCurrentUser(user) {
+  const sessionUser = pickSessionFields(user);
+  if (!sessionUser) return;
+  sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(sessionUser));
+  window.dispatchEvent(new Event(SESSION_CHANGED_EVENT));
+}
+
+export function clearCurrentUser() {
+  sessionStorage.clear();
+  window.dispatchEvent(new Event(SESSION_CHANGED_EVENT));
+}
+
+export function isUserRole(user, expectedRole) {
+  return user?.role === expectedRole;
+}
+
 export function useCurrentUser() {
-  const [user, setUser] = useState(getUser);
+  const [user, setUser] = useState(getCurrentUser);
 
   useEffect(() => {
-    const handler = () => setUser(getUser());
-    window.addEventListener("user-session-changed", handler);
-    return () => window.removeEventListener("user-session-changed", handler);
+    const handler = () =>
+      setUser((currentUser) => {
+        const updatedUser = getCurrentUser();
+        if (isSameSessionUser(currentUser, updatedUser)) {
+          return currentUser;
+        }
+        return updatedUser;
+      });
+    window.addEventListener(SESSION_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(SESSION_CHANGED_EVENT, handler);
   }, []);
 
   return user;

@@ -1,9 +1,8 @@
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import Swal from "sweetalert2";
 import "./Apartments.css";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { showAlert, swalBase, getCssVar } from "@/utils/alert";
+import { showAlert } from "@/utils/alert";
 import { useDues } from "./useDues";
 import DuesSummary from "./components/DuesSummary";
 import DuesTable from "./components/DuesTable";
@@ -35,18 +34,11 @@ function ApartmentsManage() {
   }, [refetch]);
 
   const handleDelete = async (due) => {
-    const result = await Swal.fire({
-      ...swalBase(),
-      title: "Daireyi Sil",
-      html: `<b>Daire ${due.apartment_no}</b> pasife alınacak ve listeden kaldırılacak.`,
-      icon: "warning",
-      showCancelButton: true,
-      reverseButtons: true,
-      confirmButtonText: "Evet, Sil",
-      cancelButtonText: "Vazgeç",
-      confirmButtonColor: getCssVar("--danger"),
-      cancelButtonColor: getCssVar("--text-secondary"),
-    });
+    const result = await showAlert.confirmDanger(
+      "Daireyi Sil",
+      { html: `<b>Daire ${due.apartment_no}</b> pasife alınacak ve listeden kaldırılacak.` },
+      "Evet, Sil",
+    );
 
     if (!result.isConfirmed) return;
 

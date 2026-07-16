@@ -81,36 +81,36 @@
 .stat-card-kasa {
   background: linear-gradient(
     90deg,
-    var(--stat-kasa),
-    color-mix(in srgb, var(--stat-kasa) 35%, var(--card-background-2)) 100%
+    var(--stat-balance),
+    color-mix(in srgb, var(--stat-balance) 35%, var(--card-background-2)) 100%
   );
-  border-color: color-mix(in srgb, var(--stat-kasa) 60%, transparent);
+  border-color: color-mix(in srgb, var(--stat-balance) 60%, transparent);
   box-shadow:
-    0 10px 24px color-mix(in srgb, var(--stat-kasa) 40%, transparent),
+    0 10px 24px color-mix(in srgb, var(--stat-balance) 40%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .stat-card-tahsilat {
   background: linear-gradient(
     90deg,
-    var(--stat-tahsilat),
-    color-mix(in srgb, var(--stat-tahsilat) 35%, var(--card-background-2)) 100%
+    var(--stat-collection),
+    color-mix(in srgb, var(--stat-collection) 35%, var(--card-background-2)) 100%
   );
-  border-color: color-mix(in srgb, var(--stat-tahsilat) 60%, transparent);
+  border-color: color-mix(in srgb, var(--stat-collection) 60%, transparent);
   box-shadow:
-    0 10px 24px color-mix(in srgb, var(--stat-tahsilat) 40%, transparent),
+    0 10px 24px color-mix(in srgb, var(--stat-collection) 40%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .stat-card-gecikme {
   background: linear-gradient(
     90deg,
-    var(--stat-gecikme),
-    color-mix(in srgb, var(--stat-gecikme) 35%, var(--card-background-2)) 100%
+    var(--stat-overdue),
+    color-mix(in srgb, var(--stat-overdue) 35%, var(--card-background-2)) 100%
   );
-  border-color: color-mix(in srgb, var(--stat-gecikme) 60%, transparent);
+  border-color: color-mix(in srgb, var(--stat-overdue) 60%, transparent);
   box-shadow:
-    0 10px 24px color-mix(in srgb, var(--stat-gecikme) 40%, transparent),
+    0 10px 24px color-mix(in srgb, var(--stat-overdue) 40%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
@@ -162,31 +162,31 @@
 
 .action-card:hover {
   border-color: var(--button-color);
-  background-color: var(--accent-subtle);
+  background-color: var(--accent-tint);
 }
 
 .action-card-green {
-  border-color: color-mix(in srgb, var(--stat-kasa) 55%, transparent);
+  border-color: color-mix(in srgb, var(--stat-balance) 55%, transparent);
 }
 
 .action-card-green:hover {
-  border-color: var(--stat-kasa);
+  border-color: var(--stat-balance);
 }
 
 .action-card-blue {
-  border-color: color-mix(in srgb, var(--stat-tahsilat) 55%, transparent);
+  border-color: color-mix(in srgb, var(--stat-collection) 55%, transparent);
 }
 
 .action-card-blue:hover {
-  border-color: var(--stat-tahsilat);
+  border-color: var(--stat-collection);
 }
 
 .action-card-red {
-  border-color: color-mix(in srgb, var(--stat-gecikme) 55%, transparent);
+  border-color: color-mix(in srgb, var(--stat-overdue) 55%, transparent);
 }
 
 .action-card-red:hover {
-  border-color: var(--stat-gecikme);
+  border-color: var(--stat-overdue);
 }
 
 .action-card-disabled {
@@ -214,18 +214,18 @@
 }
 
 .action-icon-badge-green {
-  background: color-mix(in srgb, var(--stat-kasa) 25%, transparent);
-  color: var(--stat-kasa);
+  background: color-mix(in srgb, var(--stat-balance) 25%, transparent);
+  color: var(--stat-balance);
 }
 
 .action-icon-badge-blue {
-  background: color-mix(in srgb, var(--stat-tahsilat) 25%, transparent);
-  color: var(--stat-tahsilat);
+  background: color-mix(in srgb, var(--stat-collection) 25%, transparent);
+  color: var(--stat-collection);
 }
 
 .action-icon-badge-red {
-  background: color-mix(in srgb, var(--stat-gecikme) 25%, transparent);
-  color: var(--stat-gecikme);
+  background: color-mix(in srgb, var(--stat-overdue) 25%, transparent);
+  color: var(--stat-overdue);
 }
 
 .icon {

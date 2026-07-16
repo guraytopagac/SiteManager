@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiGrid, FiUsers, FiSettings, FiLogOut, FiEdit2, FiX, FiUser, FiMail, FiLock, FiPower, FiEdit, FiKey } from "react-icons/fi";
-import Swal from "sweetalert2";
 import "./AdminDashboard.css";
-import { showAlert, swalBase, getCssVar } from "@/utils/alert";
+import { showAlert } from "@/utils/alert";
 import { formatShortDate, formatTime } from "@/utils/format";
+import { clearCurrentUser } from "@/hooks/useCurrentUser";
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -89,12 +89,9 @@ function AdminDashboard() {
       ? `"${manager.username}" hesabını aktif etmek istiyor musunuz?`
       : `"${manager.username}" hesabını deaktif etmek istiyor musunuz? Bu yönetici giriş yapamaz hale gelir.`;
 
-    const result = await showAlert.confirm(
-      willActivate ? "Hesabı Aktif Et" : "Hesabı Deaktif Et",
-      confirmText,
-      willActivate ? "Aktif Et" : "Deaktif Et",
-      !willActivate,
-    );
+    const result = willActivate
+      ? await showAlert.confirm("Hesabı Aktif Et", confirmText, "Aktif Et")
+      : await showAlert.confirmDanger("Hesabı Deaktif Et", confirmText, "Deaktif Et");
 
     if (!result.isConfirmed) return;
 
@@ -102,7 +99,7 @@ function AdminDashboard() {
     const response = await window.electronAPI.updateManagerStatus(manager.id, willActivate);
 
     if (response.success) {
-      showAlert.success(response.message, "", 1800);
+      showAlert.success(response.message, "");
       fetchManagers();
     } else {
       showAlert.error("Hata", response.message);
@@ -110,55 +107,24 @@ function AdminDashboard() {
   };
 
   const handleGenerateRecovery = async () => {
-    const { value: password } = await Swal.fire({
-      ...swalBase(),
+    const password = await showAlert.passwordPrompt({
       title: "Kurtarma Kodu Oluştur",
       text: "Kimliğinizi doğrulamak için admin şifrenizi girin. Yeni kod üretildiğinde eski kod geçersiz olur.",
-      input: "password",
-      inputPlaceholder: "Admin şifreniz",
-      showCancelButton: true,
-      reverseButtons: true,
       confirmButtonText: "Oluştur",
-      cancelButtonText: "Vazgeç",
-      confirmButtonColor: getCssVar("--button-color"),
-      cancelButtonColor: getCssVar("--text-secondary"),
-      preConfirm: (val) => {
-        if (!val) {
-          Swal.showValidationMessage("Şifre zorunludur.");
-          return false;
-        }
-        return val;
-      },
     });
 
     if (!password) return;
 
     const res = await window.electronAPI.regenerateRecoveryCode(password);
     if (res.success) {
-      navigator.clipboard?.writeText(res.recoveryCode);
-      await Swal.fire({
-        ...swalBase(),
-        icon: "success",
-        title: "Kurtarma Kodunuz",
-        html: `
-          <code id="swal-recovery-code" style="font-size:1.2em;letter-spacing:1px"></code><br /><br />
-          Kod panoya kopyalandı. Güvenli bir yerde saklayın; şifrenizi unutursanız giriş
-          ekranından bu kodla sıfırlayabilirsiniz.
-        `,
-        didOpen: () => {
-          document.getElementById("swal-recovery-code").textContent = res.recoveryCode;
-        },
-        confirmButtonText: "Anladım",
-        confirmButtonColor: getCssVar("--button-color"),
-      });
+      await showAlert.regeneratedCode(res.recoveryCode);
     } else {
       showAlert.error("Hata", res.message);
     }
   };
 
   const handleLogout = () => {
-    sessionStorage.clear();
-    window.dispatchEvent(new Event("user-session-changed"));
+    clearCurrentUser();
     navigate("/", { replace: true });
   };
 

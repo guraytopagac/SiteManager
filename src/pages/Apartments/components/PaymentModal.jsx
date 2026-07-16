@@ -81,17 +81,13 @@ function PaymentModal({ due, year, month, currentUser, onClose, onPaymentSaved }
   };
 
   const handleCancel = async (paymentId) => {
-    const { value: reason } = await showAlert.cancelInput(
-      "Ödemeyi İptal Et",
-      "İptal Nedeni",
-      "Lütfen iptal nedenini yazın...",
-    );
+    const reason = await showAlert.cancelReason("Ödemeyi İptal Et");
 
     if (!reason) return;
 
     const res = await window.electronAPI.cancelPayment({ paymentId, userId: currentUser.id, reason });
     if (res.success) {
-      showAlert.success("İptal Edildi", res.message, 1800);
+      showAlert.success("İptal Edildi", res.message);
       onPaymentSaved();
       fetchHistory();
     } else {

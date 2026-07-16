@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCurrentUser, clearCurrentUser } from "@/hooks/useCurrentUser";
 import { showAlert } from "@/utils/alert";
 import {
   FiDollarSign,
@@ -75,8 +75,7 @@ function Dashboard() {
   const handleLogout = async () => {
     const result = await showAlert.confirm("Çıkış Yap", "Oturumu kapatmak istiyor musunuz?", "Evet, Çık");
     if (!result.isConfirmed) return;
-    sessionStorage.clear();
-    window.dispatchEvent(new Event("user-session-changed"));
+    clearCurrentUser();
     navigate("/", { replace: true });
   };
 

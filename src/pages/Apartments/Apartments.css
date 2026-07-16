@@ -121,7 +121,7 @@
 }
 
 .apartment-table tbody tr:hover {
-  background: var(--accent-subtle);
+  background: var(--accent-tint);
 }
 
 .apartment-table tbody tr:last-child td {
@@ -216,7 +216,7 @@
   transform: translateY(-1px);
 }
 .edit-btn:hover {
-  background: var(--accent-subtle);
+  background: var(--accent-tint);
 }
 .delete-btn:hover {
   background: var(--color-danger-bg);

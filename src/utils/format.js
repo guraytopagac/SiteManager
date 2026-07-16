@@ -15,8 +15,3 @@ export const formatShortDate = (dateStr) =>
 
 export const formatTime = (dateStr) =>
   asLocalDate(dateStr).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
-
-export const formatBytes = (bytes) => {
-  if (!bytes) return "0 MB";
-  return (bytes / 1024 / 1024).toFixed(1) + " MB";
-};

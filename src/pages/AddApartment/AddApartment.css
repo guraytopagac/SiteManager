@@ -93,7 +93,7 @@
 .add-apartment-container .input-group textarea:focus {
   outline: none;
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px var(--accent-subtle);
+  box-shadow: 0 0 0 3px var(--accent-tint);
 }
 
 /* ---- Actions ---- */

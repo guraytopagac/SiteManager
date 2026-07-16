@@ -88,7 +88,7 @@
 }
 
 .resident-table tbody tr:hover {
-  background: var(--accent-subtle);
+  background: var(--accent-tint);
 }
 
 .resident-table tbody tr:last-child td {

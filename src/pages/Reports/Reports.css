@@ -226,7 +226,7 @@
 }
 
 .report-table tbody tr:hover {
-  background: var(--accent-subtle);
+  background: var(--accent-tint);
 }
 
 .report-table tbody tr:last-child td {

@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Profile.css";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCurrentUser, isUserRole } from "@/hooks/useCurrentUser";
 import { showAlert } from "@/utils/alert";
 import { formatDateTime } from "@/utils/format";
 
@@ -69,7 +69,7 @@ function Profile() {
           </div>
           <div className="info-item">
             <span className="info-label">Rol</span>
-            <span className="info-value role-badge">{currentUser?.role === "admin" ? "Yönetici" : "Sorumlu"}</span>
+            <span className="info-value role-badge">{isUserRole(currentUser, "admin") ? "Yönetici" : "Sorumlu"}</span>
           </div>
           <div className="info-item">
             <span className="info-label">Son Giriş</span>

@@ -6,10 +6,10 @@
   --setup-teal: #2dd4bf;
   --setup-teal-dim: #14b8a6;
   --setup-bg: #0a1220;
-  --setup-panel: rgba(15, 26, 43, 0.72);
+  --setup-panel: rgba(15, 26, 43, 0.94);
   --setup-input: rgba(11, 20, 34, 0.85);
   --setup-line: rgba(45, 212, 191, 0.22);
-  --setup-img: url("../../../assets/backgrounds/setup/dark.jpg");
+  --setup-card-border: 1px solid var(--setup-line);
   --setup-text: #e6f6f2;
   --setup-heading: #ffffff;
   --setup-muted: rgba(230, 246, 242, 0.72);
@@ -18,12 +18,19 @@
   --setup-input-border: rgba(255, 255, 255, 0.09);
   --setup-btn-text: #ffffff;
   --setup-track: rgba(255, 255, 255, 0.1);
-  --setup-wash: linear-gradient(
+  --setup-wash-dark: linear-gradient(
     100deg,
     rgba(6, 12, 22, 0.62) 0%,
     rgba(6, 12, 22, 0.34) 34%,
     rgba(6, 12, 22, 0.1) 56%,
     rgba(6, 12, 22, 0) 72%
+  );
+  --setup-wash-light: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.28) 34%,
+    rgba(255, 255, 255, 0.08) 56%,
+    rgba(255, 255, 255, 0) 72%
   );
 }
 
@@ -32,25 +39,18 @@
   --setup-teal: #0d9488;
   --setup-teal-dim: #14b8a6;
   --setup-bg: #eef2f6;
-  --setup-panel: rgba(255, 255, 255, 0.68);
+  --setup-panel: rgba(255, 255, 255, 0.94);
   --setup-input: rgba(255, 255, 255, 0.75);
   --setup-line: rgba(13, 148, 136, 0.22);
-  --setup-img: url("../../../assets/backgrounds/setup/light.jpg");
+  --setup-card-border: 1.5px solid rgba(13, 148, 136, 0.45);
   --setup-text: #23404f;
   --setup-heading: #0f2b38;
   --setup-muted: rgba(35, 64, 79, 0.72);
   --setup-sub: rgba(35, 64, 79, 0.58);
   --setup-faint: rgba(35, 64, 79, 0.45);
-  --setup-input-border: rgba(0, 0, 0, 0.1);
+  --setup-input-border: rgba(13, 148, 136, 0.35);
   --setup-btn-text: #0f766e;
-  --setup-track: rgba(0, 0, 0, 0.08);
-  --setup-wash: linear-gradient(
-    100deg,
-    rgba(255, 255, 255, 0.55) 0%,
-    rgba(255, 255, 255, 0.28) 34%,
-    rgba(255, 255, 255, 0.08) 56%,
-    rgba(255, 255, 255, 0) 72%
-  );
+  --setup-track: rgba(15, 23, 42, 0.18);
 }
 
 .setup-page-bg {
@@ -60,18 +60,29 @@
   align-items: center;
   justify-content: center;
   padding-bottom: var(--footer-height);
-  background: var(--setup-bg) var(--setup-img) left center / cover no-repeat;
+  background:
+    var(--setup-wash-dark),
+    var(--setup-bg) url("../../../assets/backgrounds/setup/dark.jpg") left center / cover no-repeat;
   color: var(--setup-text);
 }
 
-/* Smooth left-to-right dark wash so the welcome text sits on calm darkness
-   while the artwork stays visible toward the edges. */
+/* Light theme artwork (with its own wash baked in) sits on top of the dark
+   base and crossfades on theme switch — mirrors the login screen exactly. */
 .setup-page-bg::before {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: var(--setup-wash);
+  background:
+    var(--setup-wash-light),
+    url("../../../assets/backgrounds/setup/light.jpg") left center / cover no-repeat;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 0;
+}
+
+[data-theme="light"] .setup-page-bg::before {
+  opacity: 1;
 }
 
 .setup-card {
@@ -90,9 +101,7 @@
 .setup-form-panel {
   border-radius: 22px;
   background: var(--setup-panel);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--setup-line);
+  border: var(--setup-card-border);
   box-shadow:
     0 0 0 1px rgba(45, 212, 191, 0.08),
     0 0 55px rgba(20, 184, 166, 0.15),
@@ -219,9 +228,7 @@
   padding: 40px 38px;
   border-radius: 22px;
   background: var(--setup-panel);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--setup-line);
+  border: var(--setup-card-border);
   box-shadow:
     0 0 0 1px rgba(45, 212, 191, 0.1),
     0 0 60px rgba(20, 184, 166, 0.18),

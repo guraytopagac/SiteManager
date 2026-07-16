@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Swal from "sweetalert2";
 import "./Setup.css";
-import { showAlert, swalBase, getCssVar } from "@/utils/alert";
+import { showAlert } from "@/utils/alert";
 import {
   FiCheck,
   FiEye,
@@ -71,31 +70,7 @@ function Setup() {
       return;
     }
 
-    navigator.clipboard?.writeText(res.recoveryCode);
-    await Swal.fire({
-      ...swalBase(),
-      icon: "success",
-      title: "Hesabınız Hazır",
-      html: `
-        Admin şifreniz belirlendi.<br /><br />
-        <b>Kurtarma kodunuz</b> (panoya kopyalandı):<br />
-        <code id="swal-recovery-code" style="font-size:1.1em;letter-spacing:1px"></code><br /><br />
-        Şifrenizi unutursanız giriş ekranından bu kodla sıfırlayabilirsiniz.<br />
-        Güvenli bir yerde saklayın — bir daha gösterilmeyecek.
-      `,
-      didOpen: () => {
-        document.getElementById("swal-recovery-code").textContent = res.recoveryCode;
-      },
-      confirmButtonText: "Kaydettim, Devam Et",
-      confirmButtonColor: getCssVar("--button-color"),
-      allowOutsideClick: false,
-      // Keep the popup's own pop animation (cheap), but don't fade the backdrop:
-      // the setup screen has two blur(20px) panels behind the modal and HW
-      // acceleration is disabled, so fading the backdrop forces a per-frame
-      // recomposite of those panels (the jank). Static backdrop = smooth pop.
-      showClass: { popup: "swal2-show", backdrop: "" },
-      hideClass: { popup: "swal2-hide", backdrop: "" },
-    });
+    await showAlert.setupCode(res.recoveryCode);
 
     showAlert.toast("Kurulum tamamlandı", "Artık giriş yapabilirsiniz.");
     navigate("/login", { replace: true, state: { username: "admin" } });

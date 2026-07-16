@@ -136,7 +136,7 @@
 }
 
 .transactions-table tbody tr:hover {
-  background: var(--accent-subtle);
+  background: var(--accent-tint);
 }
 
 .transactions-table tbody tr:last-child td {

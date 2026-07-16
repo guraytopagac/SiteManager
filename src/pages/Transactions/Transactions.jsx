@@ -80,17 +80,13 @@ function Transactions() {
 
   const handleCancel = useCallback(
     async (t) => {
-      const { value: reason } = await showAlert.cancelInput(
-        `${t.type === "income" ? "Geliri" : "Gideri"} İptal Et`,
-        "İptal Nedeni",
-        "Lütfen iptal nedenini yazın...",
-      );
+      const reason = await showAlert.cancelReason(`${t.type === "income" ? "Geliri" : "Gideri"} İptal Et`);
       if (!reason) return;
 
       const fn = t.type === "income" ? window.electronAPI.cancelIncome : window.electronAPI.cancelExpense;
       const res = await fn({ id: t.id, userId: currentUser.id, reason });
       if (res.success) {
-        showAlert.success("İptal Edildi", res.message, 1800);
+        showAlert.success("İptal Edildi", res.message);
         fetchTransactions();
       } else {
         showAlert.error("Hata", res.message);
