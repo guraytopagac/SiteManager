@@ -151,26 +151,3 @@
   cursor: not-allowed;
   transform: none;
 }
-
-@media (max-width: 560px) {
-  .add-apartment-container {
-    padding: 20px 16px 32px;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .span-full {
-    grid-column: 1;
-  }
-
-  .form-actions {
-    flex-direction: column-reverse;
-  }
-
-  .add-apartment-container .btn-primary,
-  .add-apartment-container .btn-secondary {
-    width: 100%;
-  }
-}

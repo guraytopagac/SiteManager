@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { SESSION_USER_KEY } from "../utils/constants";
 
+export const VALID_ROLES = ["admin", "manager"];
+
+const SESSION_USER_KEY = "currentUser";
 const SESSION_CHANGED_EVENT = "user-session-changed";
 
 function pickSessionFields(user) {
-  if (!user?.id) return null;
+  if (!user?.id || !VALID_ROLES.includes(user.role)) return null;
   const { id, role, username, email, last_login } = user;
   return { id, role, username, email, last_login };
 }
@@ -41,8 +43,12 @@ export function clearCurrentUser() {
   window.dispatchEvent(new Event(SESSION_CHANGED_EVENT));
 }
 
-export function isUserRole(user, expectedRole) {
+export function hasRole(user, expectedRole) {
   return user?.role === expectedRole;
+}
+
+export function homePathFor(user) {
+  return hasRole(user, "admin") ? "/admin" : "/dashboard";
 }
 
 export function useCurrentUser() {

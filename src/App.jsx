@@ -3,7 +3,7 @@ import { HashRouter as Router, Routes, Route, Navigate, Outlet } from "react-rou
 import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary.jsx";
 import Footer from "./components/Footer/Footer.jsx";
 import PageLoader from "./components/PageLoader/PageLoader.jsx";
-import { useCurrentUser, isUserRole } from "./hooks/useCurrentUser.js";
+import { useCurrentUser, homePathFor } from "./hooks/useCurrentUser.js";
 import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute.jsx";
 
 const Setup = lazy(() => import("./pages/Setup/Setup.jsx"));
@@ -41,7 +41,7 @@ function StartupRedirect() {
   }, [currentUser]);
 
   if (currentUser) {
-    return <Navigate to={isUserRole(currentUser, "admin") ? "/admin" : "/dashboard"} replace />;
+    return <Navigate to={homePathFor(currentUser)} replace />;
   }
 
   if (!setupTarget) return <PageLoader message="Yükleniyor..." fullscreen />;
@@ -55,8 +55,22 @@ function App() {
         <ErrorBoundary>
           <Suspense fallback={<PageLoader message="Sayfa yükleniyor..." />}>
             <Routes>
-              <Route path="/setup" element={<Setup />} />
-              <Route path="/login" element={<Login />} />
+              <Route
+                path="/setup"
+                element={
+                  <ProtectedRoute guestOnly>
+                    <Setup />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/login"
+                element={
+                  <ProtectedRoute guestOnly>
+                    <Login />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Admin routes */}
               <Route

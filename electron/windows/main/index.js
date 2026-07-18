@@ -1,5 +1,5 @@
 const path = require("path");
-const { BrowserWindow, Menu } = require("electron");
+const { BrowserWindow, Menu, screen } = require("electron");
 const serve = require("electron-serve").default;
 const { buildMenu } = require("../../menu");
 
@@ -9,11 +9,17 @@ const iconPath = path.join(__dirname, "../../../assets/icon.ico");
 let mainWindow = null;
 
 function createMainWindow(isDev) {
+  const { workAreaSize } = screen.getPrimaryDisplay();
+  const width = Math.min(1200, workAreaSize.width);
+  const height = Math.min(800, workAreaSize.height);
+  const minWidth = Math.min(1140, workAreaSize.width);
+  const minHeight = Math.min(720, workAreaSize.height);
+
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    minWidth: 900,
-    minHeight: 600,
+    width,
+    height,
+    minWidth,
+    minHeight,
     title: "Mavikent Site Yönetimi Uygulaması",
     icon: iconPath,
     show: false,

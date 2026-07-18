@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FiGrid, FiUsers, FiSettings, FiLogOut, FiEdit2, FiX, FiUser, FiMail, FiLock, FiPower, FiEdit, FiKey } from "react-icons/fi";
 import "./AdminDashboard.css";
 import { showAlert } from "@/utils/alert";
-import { formatShortDate, formatTime } from "@/utils/format";
+import { formatDateShort, formatTime } from "@/utils/date";
 import { clearCurrentUser } from "@/hooks/useCurrentUser";
 
 function AdminDashboard() {
@@ -89,11 +89,11 @@ function AdminDashboard() {
       ? `"${manager.username}" hesabını aktif etmek istiyor musunuz?`
       : `"${manager.username}" hesabını deaktif etmek istiyor musunuz? Bu yönetici giriş yapamaz hale gelir.`;
 
-    const result = willActivate
+    const confirmed = willActivate
       ? await showAlert.confirm("Hesabı Aktif Et", confirmText, "Aktif Et")
       : await showAlert.confirmDanger("Hesabı Deaktif Et", confirmText, "Deaktif Et");
 
-    if (!result.isConfirmed) return;
+    if (!confirmed) return;
 
     setOpenMenuFor(null);
     const response = await window.electronAPI.updateManagerStatus(manager.id, willActivate);
@@ -189,7 +189,7 @@ function AdminDashboard() {
                     <td className="cell-date">
                       {manager.last_login ? (
                         <>
-                          <div>{formatShortDate(manager.last_login)}</div>
+                          <div>{formatDateShort(manager.last_login)}</div>
                           <div className="cell-date-time">{formatTime(manager.last_login)}</div>
                         </>
                       ) : (

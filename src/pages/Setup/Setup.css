@@ -1,23 +1,30 @@
-/* ─── First-run setup — dark branded screen (matches mockup) ────────────────── */
-/* Intentionally dark regardless of app theme: it sits on a dark geometric
-   background image (added later). Drop the image into .setup-page-bg. */
-
 :root {
-  --setup-teal: #2dd4bf;
-  --setup-teal-dim: #14b8a6;
-  --setup-bg: #0a1220;
-  --setup-panel: rgba(15, 26, 43, 0.94);
-  --setup-input: rgba(11, 20, 34, 0.85);
-  --setup-line: rgba(45, 212, 191, 0.22);
-  --setup-card-border: 1px solid var(--setup-line);
+  --setup-accent: #2dd4bf;
+  --setup-page-bg: #0a1220;
+  --setup-card-bg: rgba(15, 26, 43, 0.94);
+  --setup-input-bg: rgba(11, 20, 34, 0.85);
+  --setup-field-bg: var(--setup-input-bg);
+  --setup-border: rgba(45, 212, 191, 0.22);
+  --setup-card-border: 1px solid var(--setup-border);
   --setup-text: #e6f6f2;
   --setup-heading: #ffffff;
-  --setup-muted: rgba(230, 246, 242, 0.72);
-  --setup-sub: rgba(230, 246, 242, 0.55);
-  --setup-faint: rgba(230, 246, 242, 0.4);
+  --setup-muted: rgba(230, 246, 242, 0.82);
+  --setup-secondary: rgba(230, 246, 242, 0.68);
+  --setup-tertiary: rgba(230, 246, 242, 0.55);
   --setup-input-border: rgba(255, 255, 255, 0.09);
   --setup-btn-text: #ffffff;
-  --setup-track: rgba(255, 255, 255, 0.1);
+  --setup-btn-bg: rgba(45, 212, 191, 0.2);
+  --setup-btn-bg-hover: rgba(45, 212, 191, 0.38);
+  --setup-btn-border: var(--setup-accent);
+  --setup-btn-border-hover: var(--setup-accent);
+  --setup-btn-glow: 0 3px 16px rgba(45, 212, 191, 0.18);
+  --setup-btn-glow-hover: 0 6px 22px rgba(45, 212, 191, 0.4);
+  --setup-btn-shadow-active: 0 2px 8px rgba(45, 212, 191, 0.25);
+  --setup-inactive: rgba(255, 255, 255, 0.1);
+  --setup-track: var(--setup-inactive);
+  --setup-adv-label: #5eead4;
+  --setup-rule-tint: rgba(45, 212, 191, 0.12);
+  --setup-rule-idle: rgba(255, 255, 255, 0.06);
   --setup-wash-dark: linear-gradient(
     100deg,
     rgba(6, 12, 22, 0.62) 0%,
@@ -34,40 +41,49 @@
   );
 }
 
-/* ── Light theme overrides ── */
 [data-theme="light"] {
-  --setup-teal: #0d9488;
-  --setup-teal-dim: #14b8a6;
-  --setup-bg: #eef2f6;
-  --setup-panel: rgba(255, 255, 255, 0.94);
-  --setup-input: rgba(255, 255, 255, 0.75);
-  --setup-line: rgba(13, 148, 136, 0.22);
-  --setup-card-border: 1.5px solid rgba(13, 148, 136, 0.45);
-  --setup-text: #23404f;
-  --setup-heading: #0f2b38;
-  --setup-muted: rgba(35, 64, 79, 0.72);
-  --setup-sub: rgba(35, 64, 79, 0.58);
-  --setup-faint: rgba(35, 64, 79, 0.45);
-  --setup-input-border: rgba(13, 148, 136, 0.35);
-  --setup-btn-text: #0f766e;
-  --setup-track: rgba(15, 23, 42, 0.18);
+  --setup-accent: #0d9488;
+  --setup-page-bg: #f2f7f7;
+  --setup-card-bg: rgba(255, 255, 255, 0.96);
+  --setup-input-bg: #e7f2f0;
+  --setup-field-bg: var(--setup-input-bg);
+  --setup-border: rgba(13, 148, 136, 0.28);
+  --setup-card-border: 1.5px solid rgba(13, 148, 136, 0.34);
+  --setup-text: #1c3b42;
+  --setup-heading: #0c2a30;
+  --setup-muted: rgba(28, 59, 66, 0.78);
+  --setup-secondary: rgba(28, 59, 66, 0.64);
+  --setup-tertiary: rgba(28, 59, 66, 0.48);
+  --setup-input-border: rgba(13, 148, 136, 0.32);
+  --setup-btn-text: #ffffff;
+  --setup-btn-bg: #0d9488;
+  --setup-btn-bg-hover: #12a094;
+  --setup-btn-border: #0f766e;
+  --setup-btn-border-hover: #0b8378;
+  --setup-btn-glow: 0 3px 14px rgba(15, 118, 110, 0.22);
+  --setup-btn-glow-hover: 0 6px 20px rgba(15, 118, 110, 0.28);
+  --setup-btn-shadow-active: 0 2px 8px rgba(15, 118, 110, 0.2);
+  --setup-inactive: rgba(12, 42, 48, 0.16);
+  --setup-track: rgba(12, 42, 48, 0.24);
+  --setup-adv-label: #0f766e;
+  --setup-rule-tint: rgba(13, 148, 136, 0.14);
+  --setup-rule-idle: rgba(12, 42, 48, 0.06);
 }
 
 .setup-page-bg {
   position: fixed;
   inset: 0;
+  overflow-y: auto;
   display: flex;
-  align-items: center;
+  align-items: safe center;
   justify-content: center;
-  padding-bottom: var(--footer-height);
+  padding: 24px 0 calc(var(--footer-height) + 24px);
   background:
     var(--setup-wash-dark),
-    var(--setup-bg) url("../../../assets/backgrounds/setup/dark.jpg") left center / cover no-repeat;
+    var(--setup-page-bg) url("../../../assets/backgrounds/setup/dark.jpg") left center / cover no-repeat;
   color: var(--setup-text);
 }
 
-/* Light theme artwork (with its own wash baked in) sits on top of the dark
-   base and crossfades on theme switch — mirrors the login screen exactly. */
 .setup-page-bg::before {
   content: "";
   position: absolute;
@@ -77,7 +93,6 @@
     var(--setup-wash-light),
     url("../../../assets/backgrounds/setup/light.jpg") left center / cover no-repeat;
   opacity: 0;
-  transition: opacity 0.3s ease;
   z-index: 0;
 }
 
@@ -91,48 +106,60 @@
   display: flex;
   align-items: stretch;
   justify-content: center;
-  gap: 28px;
-  width: 1100px;
+  width: 1200px;
   max-width: calc(100vw - 80px);
-}
-
-/* Shared card surface (welcome + form) */
-.setup-welcome,
-.setup-form-panel {
+  overflow: hidden;
   border-radius: 22px;
-  background: var(--setup-panel);
+  background: var(--setup-card-bg);
   border: var(--setup-card-border);
   box-shadow:
-    0 0 0 1px rgba(45, 212, 191, 0.08),
-    0 0 55px rgba(20, 184, 166, 0.15),
-    0 20px 60px rgba(0, 0, 0, 0.5);
+    0 0 0 1px rgba(45, 212, 191, 0.1),
+    0 0 60px rgba(20, 184, 166, 0.18),
+    0 20px 60px rgba(0, 0, 0, 0.55);
 }
 
-/* ── Left: welcome card ── */
 .setup-welcome {
+  position: relative;
   flex: 1 1 auto;
-  max-width: 470px;
+  max-width: 500px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 46px 42px;
+  padding: 46px 72px 46px 42px;
 }
 
-.setup-kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  align-self: flex-start;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--setup-teal);
-  margin-bottom: 16px;
+.setup-welcome::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to bottom,
+    rgba(45, 212, 191, 0) 0%,
+    var(--setup-border) 22%,
+    var(--setup-accent) 50%,
+    var(--setup-border) 78%,
+    rgba(45, 212, 191, 0) 100%
+  );
+  opacity: 0.7;
 }
 
-.setup-kicker svg {
-  flex-shrink: 0;
+/* Light theme: the 22%/78% stops use a 0.22-alpha teal that all but vanishes
+   on white, so the rule reads as short. Push the stops toward the ends and
+   darken them instead of changing the shared gradient. */
+[data-theme="light"] .setup-welcome::after {
+  background: linear-gradient(
+    to bottom,
+    rgba(13, 148, 136, 0) 0%,
+    rgba(13, 148, 136, 0.45) 10%,
+    var(--setup-accent) 50%,
+    rgba(13, 148, 136, 0.45) 90%,
+    rgba(13, 148, 136, 0) 100%
+  );
+  opacity: 1;
 }
 
 .setup-welcome-title {
@@ -141,7 +168,7 @@
   letter-spacing: -0.5px;
   line-height: 1.05;
   margin-bottom: 6px;
-  color: var(--setup-teal);
+  color: var(--setup-accent);
 }
 
 .setup-welcome-lead {
@@ -151,22 +178,21 @@
   margin-bottom: 24px;
 }
 
-/* Warning / notice card */
 .setup-notice {
   display: flex;
   align-items: flex-start;
   gap: 13px;
   padding: 16px 18px;
-  margin-bottom: 28px;
+  margin-bottom: 40px;
   border-radius: 14px;
-  background: var(--setup-input);
+  background: var(--setup-field-bg);
   border: 1px solid var(--setup-input-border);
 }
 
 .setup-notice-icon {
   flex-shrink: 0;
   margin-top: 1px;
-  color: var(--setup-teal);
+  color: var(--setup-accent);
 }
 
 .setup-notice-title {
@@ -185,11 +211,11 @@
 }
 
 .setup-adv-label {
-  font-size: 0.82rem;
+  font-size: 1rem;
   font-weight: 700;
-  letter-spacing: 1.5px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--setup-sub);
+  color: var(--setup-adv-label);
   margin-bottom: 16px;
 }
 
@@ -211,28 +237,32 @@
   color: var(--setup-muted);
 }
 
-.setup-steps svg {
+/* Light's muted/secondary tones sit at roughly 4.9:1 and below on the white
+   card — too faint for body copy the user is meant to actually read. Hierarchy
+   in light comes from size, weight and the teal accents instead, so all of this
+   text runs at full strength. */
+[data-theme="light"] .setup-steps li,
+[data-theme="light"] .setup-form-sub,
+[data-theme="light"] .setup-form-foot p,
+[data-theme="light"] .setup-notice-text,
+[data-theme="light"] .setup-rules li {
+  color: var(--setup-text);
+}
+
+.setup-step-icon {
   flex-shrink: 0;
   width: 18px;
   height: 18px;
-  color: var(--setup-teal);
+  color: var(--setup-accent);
   stroke-width: 2;
 }
 
-/* ── Right: glowing form card ── */
 .setup-form-panel {
-  flex: 0 0 580px;
+  flex: 0 0 650px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 40px 38px;
-  border-radius: 22px;
-  background: var(--setup-panel);
-  border: var(--setup-card-border);
-  box-shadow:
-    0 0 0 1px rgba(45, 212, 191, 0.1),
-    0 0 60px rgba(20, 184, 166, 0.18),
-    0 20px 60px rgba(0, 0, 0, 0.55);
+  padding: 40px 38px 40px 68px;
 }
 
 .setup-form-title {
@@ -244,7 +274,7 @@
 
 .setup-form-sub {
   font-size: 1.02rem;
-  color: var(--setup-sub);
+  color: var(--setup-secondary);
   margin-bottom: 26px;
 }
 
@@ -254,7 +284,6 @@
   gap: 15px;
 }
 
-/* Inputs */
 .setup-input-wrapper {
   position: relative;
 }
@@ -264,7 +293,7 @@
   left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--setup-faint);
+  color: var(--setup-tertiary);
   pointer-events: none;
 }
 
@@ -272,7 +301,7 @@
   width: 100%;
   padding: 15px 18px 15px 46px;
   font-size: 1.08rem;
-  background: var(--setup-input);
+  background: var(--setup-field-bg);
   border: 1px solid var(--setup-input-border);
   border-radius: 11px;
   color: var(--setup-text);
@@ -281,24 +310,20 @@
     box-shadow 0.2s ease;
 }
 
-.setup-input.has-toggle {
-  padding-right: 52px;
-}
-
 .setup-input::placeholder {
-  color: var(--setup-faint);
+  color: var(--setup-tertiary);
 }
 
 .setup-input:focus {
   outline: none;
-  border-color: var(--setup-teal);
+  border-color: var(--setup-accent);
   box-shadow:
     0 0 0 3px rgba(45, 212, 191, 0.14),
     0 0 18px rgba(45, 212, 191, 0.25);
 }
 
-/* Locked (read-only) username field */
 .setup-input-locked {
+  padding-right: 52px;
   cursor: default;
   color: var(--setup-muted);
   font-weight: 600;
@@ -319,10 +344,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--setup-faint);
+  color: var(--setup-tertiary);
   border-left: 1px solid var(--setup-input-border);
   border-radius: 0 10px 10px 0;
   pointer-events: none;
+}
+
+.setup-input.has-toggle {
+  padding-right: 52px;
 }
 
 .setup-toggle {
@@ -335,7 +364,7 @@
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: var(--setup-faint);
+  color: var(--setup-tertiary);
   border: none;
   border-left: 1px solid var(--setup-input-border);
   border-radius: 0 10px 10px 0;
@@ -344,27 +373,24 @@
 }
 
 .setup-toggle:hover {
-  color: var(--setup-teal);
+  color: var(--setup-accent);
 }
 
-/* Strength meter — segmented, red → green */
 .setup-strength {
   display: flex;
-  align-items: center;
-  gap: 0;
-  margin-top: -5px;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: -3px;
 }
 
 .setup-strength-segments {
-  flex: 1;
   display: flex;
-  gap: 6px;
-  margin-right: 10px;
+  gap: 5px;
 }
 
 .setup-strength-segments span {
   flex: 1;
-  height: 4px;
+  height: 6px;
   border-radius: 999px;
   background: var(--setup-track);
   transition:
@@ -373,147 +399,185 @@
 }
 
 .setup-strength-segments span.on:nth-child(1) {
-  background-color: #f87171;
-  box-shadow: 0 0 8px rgba(248, 113, 113, 0.5);
+  background-color: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
 }
 .setup-strength-segments span.on:nth-child(2) {
-  background-color: #fbbf24;
-  box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+  background-color: #f97316;
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.5);
 }
 .setup-strength-segments span.on:nth-child(3) {
-  background-color: #a3e635;
-  box-shadow: 0 0 8px rgba(163, 230, 53, 0.5);
+  background-color: #facc15;
+  box-shadow: 0 0 8px rgba(250, 204, 21, 0.5);
 }
 .setup-strength-segments span.on:nth-child(4) {
-  background-color: #34d399;
-  box-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+  background-color: #9cc464;
+  box-shadow: 0 0 8px rgba(156, 196, 100, 0.5);
+}
+.setup-strength-segments span.on:nth-child(5) {
+  background-color: #1fd75b;
+  box-shadow: 0 0 8px rgba(31, 215, 91, 0.5);
 }
 
 .setup-strength-label {
-  flex: 0 0 46px;
-  font-size: 0.88rem;
-  font-weight: 600;
-  line-height: 1.15;
+  display: block;
+  padding: 5px 0;
+  border-radius: 7px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
   text-align: center;
+  transition:
+    background-color 0.4s ease,
+    border-color 0.4s ease,
+    color 0.4s ease;
 }
 
 .setup-strength.neutral .setup-strength-label {
-  color: var(--setup-muted, #94a3b8);
+  background: var(--setup-inactive);
+  border: 1px solid transparent;
+  color: var(--setup-secondary);
+  font-weight: 600;
 }
-.setup-strength.weak .setup-strength-label {
+.setup-strength.veryweak .setup-strength-label {
+  background: rgba(239, 68, 68, 0.16);
+  border: 1px solid rgba(239, 68, 68, 0.45);
   color: #f87171;
 }
+.setup-strength.weak .setup-strength-label {
+  background: rgba(249, 115, 22, 0.16);
+  border: 1px solid rgba(249, 115, 22, 0.45);
+  color: #f97316;
+}
 .setup-strength.fair .setup-strength-label {
-  color: #fbbf24;
+  background: rgba(250, 204, 21, 0.16);
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  color: #facc15;
 }
 .setup-strength.good .setup-strength-label {
-  color: #a3e635;
+  background: rgba(156, 196, 100, 0.16);
+  border: 1px solid rgba(156, 196, 100, 0.45);
+  color: #9cc464;
 }
 .setup-strength.strong .setup-strength-label {
-  color: #34d399;
+  background: rgba(31, 215, 91, 0.16);
+  border: 1px solid rgba(31, 215, 91, 0.45);
+  color: #1fd75b;
 }
 
-/* Requirement chips — single horizontal row */
+/* Light inherits the fills and borders defined above rather than overriding
+   them: the level tint is what stops this strip reading as a fourth input, and
+   at those alphas it stays quieter than the teal CTA. Only the text is swapped
+   for a darker shade of the same hue — the segment colours are too light to
+   read on the white card. */
+[data-theme="light"] .setup-strength.veryweak .setup-strength-label {
+  color: #b91c1c;
+}
+[data-theme="light"] .setup-strength.weak .setup-strength-label {
+  color: #c2410c;
+}
+[data-theme="light"] .setup-strength.fair .setup-strength-label {
+  color: #a16207;
+}
+[data-theme="light"] .setup-strength.good .setup-strength-label {
+  color: #4d7c0f;
+}
+[data-theme="light"] .setup-strength.strong .setup-strength-label {
+  color: #15803d;
+}
+
 .setup-rules {
   list-style: none;
   margin: 4px 0 0;
-  padding: 12px 16px;
+  padding: 8px 10px;
   border-radius: 11px;
-  background: var(--setup-input);
+  background: var(--setup-input-bg);
   border: 1px solid var(--setup-input-border);
-  display: flex;
-  flex-wrap: nowrap;
-  justify-content: space-evenly;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
 }
 
 .setup-rules li {
   display: flex;
   align-items: center;
   gap: 7px;
+  padding: 5px 9px;
+  border-radius: 8px;
   white-space: nowrap;
-  font-size: 0.92rem;
-  color: var(--setup-faint);
-  transition: color 0.2s ease;
+  font-size: 0.95rem;
+  color: var(--setup-muted);
+  background: var(--setup-rule-idle);
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
-.setup-rules li svg {
+/* All three states share one construction: a solid disc with a dark glyph on
+   it. In dark the disc carries the colour and the glyph stays near-black, so
+   the pending disc has to be a solid light grey rather than the 10%-alpha wash
+   the rest of the dark theme uses for inactive surfaces. */
+.setup-rule-icon {
   flex-shrink: 0;
   padding: 3px;
   border-radius: 50%;
-  background: var(--setup-track);
-  color: var(--setup-faint);
+  background: rgba(230, 246, 242, 0.6);
+  color: #0a1220;
   box-sizing: content-box;
   transition:
     background 0.2s ease,
     color 0.2s ease;
 }
 
-.setup-rules li.ok {
-  color: var(--setup-teal);
+.setup-rules li.setup-rule-valid {
+  color: var(--setup-accent);
+  background: var(--setup-rule-tint);
 }
 
-.setup-rules li.ok svg {
-  background: var(--setup-teal-dim);
+[data-theme="light"] .setup-rules li.setup-rule-valid {
+  color: #0f766e;
+}
+
+[data-theme="light"] .setup-rule-valid .setup-rule-icon {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.setup-rule-valid .setup-rule-icon {
+  background: #14b8a6;
   color: #04211d;
 }
 
-/* Submit — ghost teal with glow */
-.setup-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 22px;
-  padding: 15px 0;
-  font-size: 1.12rem;
-  font-weight: 700;
-  border-radius: 12px;
-  color: var(--setup-btn-text);
-  background: rgba(45, 212, 191, 0.08);
-  border: 1.5px solid var(--setup-teal);
-  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+/* Light mirrors dark's construction with the contrast inverted: the disc goes
+   solid and dark, the glyph white. The pending disc is a desaturated slate of
+   the text hue so it reads as "not yet" next to the teal and red discs. */
+[data-theme="light"] .setup-rule-icon {
+  background: #5c7d84;
+  color: #ffffff;
 }
 
-.setup-btn:hover:not(:disabled) {
-  background: var(--setup-teal);
-  color: #04211d;
-  box-shadow: 0 4px 16px rgba(45, 212, 191, 0.3);
+/* Third state, between valid and the neutral default: a rule the user has
+   actually broken. Pending rules keep the default grey — nothing is wrong yet,
+   the field feeding them is simply still empty. */
+.setup-rules li.setup-rule-failed {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.12);
 }
 
-.setup-btn:active:not(:disabled) {
-  box-shadow: 0 2px 8px rgba(45, 212, 191, 0.25);
+.setup-rule-failed .setup-rule-icon {
+  background: #ef4444;
+  color: #2a0708;
 }
 
-.setup-btn:disabled {
-  opacity: 0.65;
-  cursor: default;
+[data-theme="light"] .setup-rules li.setup-rule-failed {
+  color: #b91c1c;
 }
 
-/* Footer note — sits just below the form */
-.setup-form-foot {
-  margin-top: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+[data-theme="light"] .setup-rule-failed .setup-rule-icon {
+  background: #b91c1c;
+  color: #ffffff;
 }
 
-.setup-form-foot p {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.95rem;
-  line-height: 1.5;
-  white-space: nowrap;
-  color: var(--setup-sub);
-}
-
-.setup-form-foot svg {
-  flex-shrink: 0;
-  color: var(--setup-teal);
-}
-
-/* Error */
 .setup-error {
   display: flex;
   align-items: center;
@@ -526,39 +590,121 @@
   font-size: 1rem;
 }
 
-.setup-error svg {
+[data-theme="light"] .setup-error {
+  background: rgba(185, 28, 28, 0.08);
+  border-color: rgba(185, 28, 28, 0.35);
+  color: #b91c1c;
+}
+
+.setup-error-icon {
   flex-shrink: 0;
 }
 
-/* Faint brand watermark, bottom-right of the card */
-/* ── Responsive: stack on narrow windows ── */
-@media (max-width: 900px) {
-  .setup-card {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 32px;
-    width: 440px;
+.setup-btn {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 22px;
+  padding: 15px 0;
+  font-size: 1.12rem;
+  font-weight: 700;
+  border-radius: 12px;
+  color: var(--setup-btn-text);
+  background: var(--setup-btn-bg);
+  border: 2px solid var(--setup-btn-border);
+  box-shadow: var(--setup-btn-glow);
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.setup-btn-arrow {
+  flex-shrink: 0;
+}
+
+.setup-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 45%;
+  pointer-events: none;
+  transform: skewX(-20deg);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  opacity: 0;
+}
+
+.setup-btn:hover:not(:disabled) {
+  background: var(--setup-btn-bg-hover);
+  border-color: var(--setup-btn-border-hover);
+  box-shadow: var(--setup-btn-glow-hover);
+  transform: translateY(-1px);
+}
+
+@keyframes setupBtnShine {
+  from {
+    left: -60%;
+  }
+  to {
+    left: 115%;
+  }
+}
+
+.setup-btn:hover:not(:disabled)::before {
+  opacity: 1;
+  animation: setupBtnShine 0.75s ease-out;
+}
+
+.setup-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--setup-btn-shadow-active);
+}
+
+.setup-btn:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.setup-form-foot {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setup-form-foot p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: var(--setup-secondary);
+}
+
+.setup-foot-icon {
+  flex-shrink: 0;
+  color: var(--setup-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .setup-btn:hover:not(:disabled) {
+    transform: none;
   }
 
-  .setup-welcome {
-    max-width: none;
-    text-align: center;
-    align-items: center;
-  }
-
-  .setup-kicker {
-    align-self: center;
-  }
-
-  .setup-welcome-title {
-    font-size: 2rem;
-  }
-
-  .setup-steps {
-    text-align: left;
-  }
-
-  .setup-form-panel {
-    flex-basis: auto;
+  .setup-btn:hover:not(:disabled)::before {
+    animation: none;
+    opacity: 0;
   }
 }

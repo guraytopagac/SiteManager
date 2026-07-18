@@ -166,6 +166,7 @@ Mevcut durum ve mimari için bkz. `CLAUDE.md`.
 | 8 | `sandbox:false` | Electron güvenlik yüzeyi | Preload'un require ihtiyacı kalkarsa (bundle edilirse) `sandbox:true`'ya geç — düşük öncelik |
 | 9 | Renderer'da hata loglanmıyor | Kullanıcı hatası teşhis edilemiyor | İleride `window.onerror` → IPC → electron-log köprüsü (yeni kanal, kullanıcıya sor) |
 | 10 | Rapor sorgularında index denetimi yapılmadı | Veri büyüyünce yavaş rapor | T2 ile birlikte `EXPLAIN QUERY PLAN` kontrolü; gerekirse `dues(year,month)`, `incomes(manager_id,date)` indexleri |
+| 11 | Dialog renkleri JS'ten inline yazılıyor (`alert.js` → `theme()`/`base()`, `confirmButtonColor` vb.) | Renkler dialog açıldığı anda donuyor: dialog açıkken tema değiştirilirse zemin/butonlar eski temada kalır, `swal-*` sınıflarıyla gelen renkler yeni temaya geçer → karışık görünüm (ör. lacivert zeminde açık tema uyarı kutusu okunmaz) | Popup/buton renklerini `style.css`'e CSS değişkeni olarak taşı, `theme()`'i kaldır. Tüm dialogları etkiler, gözle regresyon kontrolü ister — ayrı görev. Gerçek kullanımda düşük olasılık (kullanıcı dialog açıkken tema değiştirmiyor), o yüzden düşük öncelik |
 
 ---
 

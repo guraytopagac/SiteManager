@@ -44,10 +44,10 @@ function AddApartment() {
     setSubmitting(false);
 
     if (response.success) {
-      const result = await showAlert.confirm("Başarılı!", response.message, "Başka Daire Ekle", {
+      const addAnother = await showAlert.confirm("Başarılı!", response.message, "Başka Daire Ekle", {
         cancelText: "Dashboard'a Dön",
       });
-      if (result.isConfirmed) {
+      if (addAnother) {
         setApartmentData(INITIAL_DATA);
       } else {
         navigate("/dashboard");
@@ -60,8 +60,8 @@ function AddApartment() {
   const handleCancel = () => {
     const hasData = Object.values(apartmentData).some((v) => v !== "");
     if (!hasData) return navigate("/dashboard");
-    showAlert.confirm("İptal", "Girilen bilgiler kaybolacak. Emin misiniz?", "Evet, Çık").then((r) => {
-      if (r.isConfirmed) navigate("/dashboard");
+    showAlert.confirm("İptal", "Girilen bilgiler kaybolacak. Emin misiniz?", "Evet, Çık").then((confirmed) => {
+      if (confirmed) navigate("/dashboard");
     });
   };
 

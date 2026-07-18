@@ -176,14 +176,3 @@
   border-color: var(--button-color);
   color: var(--button-color);
 }
-
-@media (max-width: 480px) {
-  .profile-container {
-    padding: 16px;
-  }
-
-  .info-grid,
-  .password-row {
-    grid-template-columns: 1fr;
-  }
-}

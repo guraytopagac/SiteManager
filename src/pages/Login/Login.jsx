@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import "./Login.css";
 import logoImgWebp from "../../../assets/logo.webp";
 import { showAlert } from "@/utils/alert";
-import { setCurrentUser, isUserRole } from "@/hooks/useCurrentUser";
+import { setCurrentUser, homePathFor } from "@/hooks/useCurrentUser";
 import { FiUser, FiLock, FiEye, FiEyeOff, FiAlertCircle, FiArrowRight } from "react-icons/fi";
 
 function Login() {
@@ -48,7 +48,7 @@ function Login() {
     if (success) {
       setCurrentUser(user);
       showAlert.toast(user.username + " — Hoş Geldiniz", message);
-      navigate(isUserRole(user, "admin") ? "/admin" : "/dashboard");
+      navigate(homePathFor(user), { replace: true });
     } else {
       setIsSubmitting(false);
       setError(message);
@@ -71,7 +71,7 @@ function Login() {
               type="text"
               placeholder="Kullanıcı adınızı girin"
               autoComplete="username"
-              autoFocus
+              autoFocus={!location.state?.username}
               value={username}
               onChange={(e) => {
                 setUsername(e.target.value);
@@ -87,6 +87,7 @@ function Login() {
               type={showPassword ? "text" : "password"}
               placeholder="Şifrenizi girin"
               autoComplete="current-password"
+              autoFocus={!!location.state?.username}
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
@@ -100,13 +101,17 @@ function Login() {
               onClick={() => setShowPassword((v) => !v)}
               aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
             >
-              {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+              {showPassword ? (
+                <FiEyeOff className="login-toggle-icon" size={18} />
+              ) : (
+                <FiEye className="login-toggle-icon" size={18} />
+              )}
             </button>
           </div>
 
           {error && (
             <div className="login-error">
-              <FiAlertCircle size={15} />
+              <FiAlertCircle className="login-error-icon" size={15} />
               {error}
             </div>
           )}
@@ -117,7 +122,7 @@ function Login() {
             ) : (
               <>
                 Giriş Yap
-                <FiArrowRight size={18} strokeWidth={2.5} />
+                <FiArrowRight className="login-btn-icon" size={18} strokeWidth={2.5} />
               </>
             )}
           </button>

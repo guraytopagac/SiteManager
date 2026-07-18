@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./Transactions.css";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { showAlert } from "@/utils/alert";
-import { formatDate } from "@/utils/format";
+import { formatDate } from "@/utils/date";
 
 const TYPE_LABELS = { income: "Gelir", expense: "Gider" };
 

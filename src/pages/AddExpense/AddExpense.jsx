@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./AddExpense.css";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { showAlert } from "@/utils/alert";
-import { getToday } from "@/utils/format";
+import { getToday } from "@/utils/date";
 
 function AddExpense() {
   const navigate = useNavigate();

@@ -1,7 +1,7 @@
 {
   "name": "mavikent-site-yonetimi",
   "private": true,
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Mavikent Site Yönetimi Uygulaması",
   "author": "Güray Topağaç",
   "type": "commonjs",

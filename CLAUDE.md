@@ -166,7 +166,7 @@ SiteManager/
     ├── components/      # Footer (sürüm + sürüm notları modalı), ErrorBoundary, PageLoader, ProtectedRoute (rol bazlı rota koruması) vb. paylaşılan bileşenler
     ├── hooks/           # useTheme, useCurrentUser (oturum kaynağı: get/set/clearCurrentUser + 'user-session-changed' eventi)
     ├── pages/           # Her sayfa kendi klasöründe (JSX + CSS), App.jsx'te lazy-load
-    ├── utils/           # alert.js (SweetAlert2 sarmalayıcı), constants.js, format.js (₺/tarih format), releaseNotes.js (yama notları — Footer modalında gösterilir)
+    ├── utils/           # alert.js (SweetAlert2 sarmalayıcı), date.js (tarih/saat format), releaseNotes.js (yama notları + HTML üretimi + "görüldü" durumu — Footer modalında gösterilir)
     ├── App.jsx          # Rotalar (HashRouter) + StartupRedirect (setup/login yönlendirmesi)
     ├── main.jsx         # React mount
     └── style.css        # Global stiller — light/dark tema CSS değişkenleri
@@ -208,7 +208,7 @@ Renderer: window.electronAPI.recordPayment({...})
 | `manager` | Aidat, gelir/gider, daire, raporlar    |
 
 - Şifreler `bcryptjs` ile hash'lenir; düz metin hiçbir yerde saklanmaz/loglanmaz
-- **Oturum:** `sessionStorage` → `currentUser` anahtarı (`SESSION_USER_KEY` sabiti). Oturum durumunun tek doğruluk kaynağı `src/hooks/useCurrentUser.js`'tir — yazma/temizleme `sessionStorage`'a elle dokunmadan buradaki helper'larla yapılır:
+- **Oturum:** `sessionStorage` → `currentUser` anahtarı (`SESSION_USER_KEY` sabiti, `useCurrentUser.js` içinde tanımlıdır). Oturum durumunun tek doğruluk kaynağı `src/hooks/useCurrentUser.js`'tir — yazma/temizleme `sessionStorage`'a elle dokunmadan buradaki helper'larla yapılır:
   - `useCurrentUser()` — reaktif okuma hook'u (React bileşenlerinde).
   - `getCurrentUser()` — hook dışı tek seferlik okuma (event handler'lar vb.).
   - `setCurrentUser(user)` — login sonrası oturumu yazar (yalnızca `id, role, username, email, last_login` alanları persist edilir) + `user-session-changed` eventini yayınlar.
@@ -318,9 +318,9 @@ expenses              (id, amount, date, description,
 - Her sorgu **prepared statement** (`db.prepare(...).run/get/all`) — string birleştirme ile SQL üretme; dinamik filtre gerekiyorsa WHERE parçalarını koşullu kur, değerleri her zaman parametre olarak geçir
 - Birden fazla yazma içeren işlemler `db.transaction(() => {...})()` içinde
 - Manager verisi sorgularında `manager_id = ?` filtresi zorunlu (bkz. §5.2 madde 5)
-- Para `REAL` saklanır (bilinçli karar: TL tutarları, tek kullanıcılı defter — kuruş hassasiyeti toplamalarda `ROUND` ile yönetilir); ekranda `src/utils/format.js` ile `₺` formatlanır
+- Para `REAL` saklanır (bilinçli karar: TL tutarları, tek kullanıcılı defter — kuruş hassasiyeti toplamalarda `ROUND` ile yönetilir); ekranda `toLocaleString("tr-TR")` + `₺` ile formatlanır (paylaşılan bir para yardımcısı yoktur — her sayfa kendi içinde formatlar)
 - Tarihler ISO-8601 `TEXT` (`YYYY-MM-DD` veya `datetime('now', '+3 hours')`)
-- **Saat dilimi:** Tüm otomatik zaman damgaları **Türkiye yerel saati (UTC+3)** ile saklanır. Türkiye 2016'dan beri DST kullanmadığından sabit `+3 hours` deterministiktir. Kural: her `created_at/updated_at/cancelled_at/last_login/...` yazımı `datetime('now', '+3 hours')` kullanır (schema DEFAULT'ları, trigger'lar ve INSERT/UPDATE'lerde açıkça). Kullanıcının seçtiği takvim tarihleri (`date`, `payment_date`, `move_in_date`, `move_out_date`) kaydırılmaz. JS tarafında "bugün"/"şu an" da TR bazlıdır (`new Date(Date.now() + 3*3600*1000)`; bkz. `format.js` `getToday`). Okuma tarafı (`format.js`) saklanan değeri **olduğu gibi yerel** parse eder — ikinci bir UTC→yerel çevrimi yapılmaz. Eski UTC veriler `010_shift_timestamps_to_tr_time.sql` ile +3 saat kaydırıldı.
+- **Saat dilimi:** Tüm otomatik zaman damgaları **Türkiye yerel saati (UTC+3)** ile saklanır. Türkiye 2016'dan beri DST kullanmadığından sabit `+3 hours` deterministiktir. Kural: her `created_at/updated_at/cancelled_at/last_login/...` yazımı `datetime('now', '+3 hours')` kullanır (schema DEFAULT'ları, trigger'lar ve INSERT/UPDATE'lerde açıkça). Kullanıcının seçtiği takvim tarihleri (`date`, `payment_date`, `move_in_date`, `move_out_date`) kaydırılmaz. JS tarafında "bugün"/"şu an" da TR bazlıdır (`new Date(Date.now() + 3*3600*1000)`; bkz. `date.js` `getToday`). Okuma tarafı (`date.js`) saklanan değeri **olduğu gibi yerel** parse eder — ikinci bir UTC→yerel çevrimi yapılmaz. Eski UTC veriler `010_shift_timestamps_to_tr_time.sql` ile +3 saat kaydırıldı.
 
 ---
 
@@ -398,7 +398,12 @@ Kanal adları için tek kaynak: `electron/ipc/channels.js`.
 - **State yönetimi:** Global state kütüphanesi **yoktur** (bilinçli karar — uygulama küçük). Sayfa state'i lokal `useState`/`useEffect`; oturum `sessionStorage` + `useCurrentUser`; tema `useTheme` (CSS değişkenleri + `onToggleTheme` IPC eventi)
 - **Veri çekme deseni:** sayfa mount'ta `electronAPI` çağırır, `res.success` kontrol eder, hata mesajını SweetAlert ile gösterir. Cache katmanı yok — her sayfa girişinde taze veri
 - **Alert/Dialog:** SweetAlert **yalnızca `src/utils/alert.js`'te** kullanılır — sayfalar/bileşenler `sweetalert2`'yi import etmez, `showAlert` metodlarını çağırır. Yeni bir dialog gerekiyorsa `alert.js`'e metod ekle (tema renkleri, `heightAuto:false` ve buton gelenekleri orada tek noktada). `swalBase`/`swalColors` export'ları kaldırıldı.
-- **Formatlama:** para/tarih için `src/utils/format.js`; magic string'ler `src/utils/constants.js`
+  - **Dönüş sözleşmesi:** `confirm`/`confirmDanger` ham `SweetAlertResult` değil **`boolean`** döner (`if (confirmed)` — `result.isConfirmed` yazma). `prompt`/`cancelReason`/`passwordPrompt`/`adminRecoveryForm` değeri döner, vazgeçilirse `null`. Yeni bir dialog metodu eklerken bu deseni koru: çağıran SweetAlert'in sonuç nesnesini görmemelidir.
+  - **Trim:** `prompt` ve `formDialog` girdileri **her zaman** trim'lenir; tek istisna `type/input: "password"` alanlarıdır (baştaki/sondaki boşluk kasıtlı olabilir — §9 ile aynı kural). Opt-in `trim` bayrağı yoktur, çağrı yerinden trim geçme.
+  - **Dialog stilleri `style.css`'te**, `swal-*` sınıflarında tutulur (`swal-form-description`, `swal-code`, `swal-copy-row`, `swal-copy-button`, `swal-copy-note`) — `alert.js`'in ürettiği HTML'e inline `style="font-size:..."` yazma.
+  - **Kurtarma kodu diyalogları** (`setupCode`/`resetCode`/`regeneratedCode`) panoya **otomatik yazmaz**; kullanıcı "Kodu Kopyala" butonuna basar, sonuç yan nota yazılır. Kullanıcı istemeden panosuna dokunma.
+- **Formatlama:** tarih/saat için `src/utils/date.js`. Bu dosya tarih alanının tek sahibidir: `MONTHS` (Türkçe ay adları), `formatMonthYear(year, month)`, `getToday`/`getCurrentYear`/`getCurrentMonth` (hepsi TR bazlı) ve `formatDate`/`formatDateShort`/`formatTime`/`formatDateTime` buradan gelir. **Kural:** "bugün/şu anki yıl/ay" için renderer'da ham `new Date()` kullanma (makine saat dilimine bağlı kalır — §7.4); ay adı dizisini sayfa içinde tekrar tanımlama. Formatlayıcılar boş/geçersiz girdide `"—"` döner, çağıran tarafta elle null kontrolü gerekmez (ham ISO değeri ekrana basma — `move_in_date` gibi tarih alanlarını da bu formatlayıcılardan geçir). Saat içermeyen bir değere `formatTime` verilirse `"—"` döner (uydurma `00:00` üretmez); `formatDateTime` de bu durumda yalnızca tarihi döndürür. Para formatlama paylaşılan bir yardımcıda değildir — kullanan sayfa `toLocaleString("tr-TR")` ile kendisi formatlar
+- **Sabitler:** paylaşılan bir `utils/constants.js` **yoktur** — her sabit onu kullanan modülde tanımlanır (`THEME_KEY`/`VALID_THEMES` → `useTheme.js`, `SESSION_USER_KEY` → `useCurrentUser.js`). Birden fazla modülden kullanılan sabit, sahibi olan modülden export edilir (`VALID_ROLES` → `useCurrentUser.js`). Sabitler için ayrı bir çöplük dosyası açma
 - **Tema:** light/dark, `style.css` içindeki CSS değişkenleri; bileşen CSS'lerinde renkleri değişken üzerinden kullan, hex sabitleme. Accent türevleri `--accent-focus-ring / --accent-selection / --accent-tint` ailesindedir. **Not:** boşluk/köşe yarıçapı için token ölçeği (`--space-*`, `--radius-*`) yoktur — literal px değerleri kullanılır. `style.css` yalnızca global reset + tema değişkenleri + temel eleman stillerini (body, tipografi, buton, form, scrollbar, toast) barındırır; **paylaşılan `.u-*` yardımcı sınıfı yoktur** (kullanılmadıkları için kaldırıldı — yeni sayfa stilini kendi CSS dosyasında yaz).
 - **Okunabilirlik (hedef kitle):** Kullanıcıların çoğunluğu **40+ yaş** apartman yöneticileridir. Yazı boyutlarını okunabilir tut — gövde/etiket metinleri için ~0.9rem altına inme, ana giriş alanları ~1rem+ olmalı. Uzun bir metni tek satıra sığdırmak için fontu okunmaz derecede küçültme; bunun yerine metni sar, kısalt ya da kapsayıcıyı genişlet (küçük font okunabilirliğe feda edilmez).
 
@@ -537,6 +542,7 @@ Sık yapılan hatalar (yapma):
 - `dues`/`incomes`/`expenses` kaydını DELETE etmek (iptal mekanizması kullan)
 - Renderer'dan `require`/Node API kullanmaya çalışmak
 - SweetAlert'i doğrudan çağırmak (`utils/alert.js` kullan)
+- `showAlert.confirm` sonucunda `result.isConfirmed` beklemek — metod boolean döner (§11)
 - `manager_id` filtresi olmadan manager verisi sorgulamak
 - Handler içinde elle try/catch yazmak (`safeHandler` zarfı kullan — §5.2 madde 3)
 - Metin alanını service'te tekrar trim'lemek — normalizasyon handler'da tek yerde yapılır (§9); şifreyi trim'lemek

@@ -14,12 +14,12 @@ function BulkUpdateModal({ currentUser, onClose, onSaved }) {
       return;
     }
 
-    const confirm = await showAlert.confirm(
+    const confirmed = await showAlert.confirm(
       "Toplu Aidat Güncelleme",
       `Tüm dairelerin aidat tutarı ${parsed.toLocaleString("tr-TR")} ₺ olarak güncellenecek. Onaylıyor musunuz?`,
       "Evet, Güncelle",
     );
-    if (!confirm.isConfirmed) return;
+    if (!confirmed) return;
 
     setIsSubmitting(true);
     const res = await window.electronAPI.bulkUpdateDueAmount(currentUser.id, parsed);

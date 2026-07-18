@@ -4,7 +4,7 @@ import PropTypes from "prop-types";
 import "./Residents.css";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { showAlert } from "@/utils/alert";
-import { getToday } from "@/utils/format";
+import { formatDateShort, getToday } from "@/utils/date";
 
 const RESIDENT_TYPE_LABELS = {
   owner: "Malik",
@@ -252,7 +252,7 @@ function HistoryModal({ apartment, currentUser, onClose }) {
                 <span className="rh-name">{r.full_name || "—"}</span>
                 {r.resident_type && <span className="rh-type">{RESIDENT_TYPE_LABELS[r.resident_type]}</span>}
                 <span className="rh-dates">
-                  {r.move_in_date || "?"} → {r.move_out_date || "…"}
+                  {formatDateShort(r.move_in_date)} → {r.move_out_date ? formatDateShort(r.move_out_date) : "…"}
                 </span>
                 {r.is_active ? <span className="rh-active-badge">Aktif</span> : null}
               </li>

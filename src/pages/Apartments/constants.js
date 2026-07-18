@@ -1,18 +1,3 @@
-export const MONTHS = [
-  "Ocak",
-  "Şubat",
-  "Mart",
-  "Nisan",
-  "Mayıs",
-  "Haziran",
-  "Temmuz",
-  "Ağustos",
-  "Eylül",
-  "Ekim",
-  "Kasım",
-  "Aralık",
-];
-
 export const STATUS_LABELS = {
   unpaid: "Ödenmedi",
   partial: "Kısmen Ödendi",

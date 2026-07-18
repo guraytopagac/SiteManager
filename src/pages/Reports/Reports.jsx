@@ -5,25 +5,11 @@ import autoTable from "jspdf-autotable";
 import "./Reports.css";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { showAlert } from "@/utils/alert";
-
-const MONTHS = [
-  "Ocak",
-  "Şubat",
-  "Mart",
-  "Nisan",
-  "Mayıs",
-  "Haziran",
-  "Temmuz",
-  "Ağustos",
-  "Eylül",
-  "Ekim",
-  "Kasım",
-  "Aralık",
-];
+import { MONTHS, formatMonthYear, getCurrentYear, getCurrentMonth } from "@/utils/date";
 
 const DUE_STATUS_LABELS = { paid: "Ödendi", partial: "Kısmi", unpaid: "Ödenmedi" };
 
-const currentYear = new Date().getFullYear();
+const currentYear = getCurrentYear();
 const YEARS = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
 function fmt(amount) {
@@ -41,8 +27,8 @@ function Reports() {
   const navigate = useNavigate();
   const currentUser = useCurrentUser();
 
-  const [year, setYear] = useState(() => new Date().getFullYear());
-  const [month, setMonth] = useState(() => new Date().getMonth() + 1);
+  const [year, setYear] = useState(() => getCurrentYear());
+  const [month, setMonth] = useState(() => getCurrentMonth());
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("finance");
@@ -72,7 +58,7 @@ function Reports() {
 
   const buildPdf = () => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const title = `Mavikent Site Yönetimi — ${MONTHS[month - 1]} ${year} Raporu`;
+    const title = `Mavikent Site Yönetimi — ${formatMonthYear(year, month)} Raporu`;
     const pageW = doc.internal.pageSize.getWidth();
 
     doc.setFont("helvetica", "bold");

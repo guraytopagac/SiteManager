@@ -1,6 +1,7 @@
 import { useState, useEffect, useLayoutEffect } from "react";
 
-import { THEME_KEY, VALID_THEMES } from "../utils/constants";
+const THEME_KEY = "theme";
+const VALID_THEMES = ["light", "dark"];
 
 function getInitialTheme() {
   const savedTheme = localStorage.getItem(THEME_KEY);

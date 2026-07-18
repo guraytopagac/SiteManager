@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./Apartments.css";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { showAlert } from "@/utils/alert";
+import { getCurrentYear, getCurrentMonth } from "@/utils/date";
 import { useDues } from "./useDues";
 import DuesSummary from "./components/DuesSummary";
 import DuesTable from "./components/DuesTable";
@@ -13,11 +14,11 @@ import BulkUpdateModal from "./components/BulkUpdateModal";
 
 function ApartmentsManage() {
   const navigate = useNavigate();
-  const now = new Date();
+  const currentYear = getCurrentYear();
   const currentUser = useCurrentUser();
 
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [selectedMonth, setSelectedMonth] = useState(() => getCurrentMonth());
   const [selectedApartmentId, setSelectedApartmentId] = useState(null);
   const [editingApartment, setEditingApartment] = useState(null);
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
@@ -34,13 +35,13 @@ function ApartmentsManage() {
   }, [refetch]);
 
   const handleDelete = async (due) => {
-    const result = await showAlert.confirmDanger(
+    const confirmed = await showAlert.confirmDanger(
       "Daireyi Sil",
       { html: `<b>Daire ${due.apartment_no}</b> pasife alınacak ve listeden kaldırılacak.` },
       "Evet, Sil",
     );
 
-    if (!result.isConfirmed) return;
+    if (!confirmed) return;
 
     const res = await window.electronAPI.deleteApartment(due.apartment_id, currentUser.id);
     if (res.success) {
@@ -52,7 +53,7 @@ function ApartmentsManage() {
   };
 
   const yearOptions = [];
-  for (let y = now.getFullYear(); y >= now.getFullYear() - 3; y--) yearOptions.push(y);
+  for (let y = currentYear; y >= currentYear - 3; y--) yearOptions.push(y);
 
   if (loading) return <div className="loading">Verileriniz Yükleniyor...</div>;
   if (errorMessage)

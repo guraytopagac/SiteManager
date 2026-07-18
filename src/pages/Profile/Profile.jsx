@@ -1,9 +1,9 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Profile.css";
-import { useCurrentUser, isUserRole } from "@/hooks/useCurrentUser";
+import { useCurrentUser, hasRole } from "@/hooks/useCurrentUser";
 import { showAlert } from "@/utils/alert";
-import { formatDateTime } from "@/utils/format";
+import { formatDateTime } from "@/utils/date";
 
 function validatePasswordForm(oldPassword, newPassword, confirmPassword) {
   if (!oldPassword) return "Mevcut şifrenizi girmelisiniz.";
@@ -69,12 +69,12 @@ function Profile() {
           </div>
           <div className="info-item">
             <span className="info-label">Rol</span>
-            <span className="info-value role-badge">{isUserRole(currentUser, "admin") ? "Yönetici" : "Sorumlu"}</span>
+            <span className="info-value role-badge">{hasRole(currentUser, "admin") ? "Yönetici" : "Sorumlu"}</span>
           </div>
           <div className="info-item">
             <span className="info-label">Son Giriş</span>
             <span className="info-value">
-              {currentUser?.last_login ? formatDateTime(currentUser.last_login) : "—"}
+              {formatDateTime(currentUser?.last_login)}
             </span>
           </div>
         </div>

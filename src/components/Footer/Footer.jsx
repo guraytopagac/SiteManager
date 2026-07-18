@@ -2,37 +2,32 @@ import { useEffect, useState } from "react";
 import { FiSun, FiMoon } from "react-icons/fi";
 import { useTheme } from "../../hooks/useTheme.js";
 import { showAlert } from "../../utils/alert.js";
-import { formatDate, getToday } from "../../utils/format.js";
-import { RELEASE_NOTES } from "../../utils/releaseNotes.js";
+import { getCurrentYear } from "../../utils/date.js";
+import { hasUnseenReleaseNotes, markReleaseNotesSeen, renderReleaseNotesHtml } from "../../utils/releaseNotes.js";
 import "./Footer.css";
 
-const CURRENT_YEAR = getToday().slice(0, 4);
-
-const RELEASE_NOTES_HTML = `<div class="release-notes">${RELEASE_NOTES.map(
-  (release) => `
-      <section class="release-note">
-        <h3 class="release-note-version">
-          <span>v${release.version} — ${release.title}</span>
-          ${release.date ? `<time class="release-note-date" datetime="${release.date}">${formatDate(release.date)}</time>` : ""}
-        </h3>
-        <ul class="release-note-list">
-          ${release.changes.map((change) => `<li>${change}</li>`).join("")}
-        </ul>
-      </section>`,
-).join("")}</div>`;
+const CURRENT_YEAR = getCurrentYear();
 
 function Footer() {
   const [version, setVersion] = useState(null);
+  const [hasUnseen, setHasUnseen] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     window.electronAPI
       ?.getAppVersion()
-      .then(setVersion)
+      .then((appVersion) => {
+        setVersion(appVersion);
+        setHasUnseen(hasUnseenReleaseNotes(appVersion));
+      })
       .catch(() => setVersion(""));
   }, []);
 
-  const showReleaseNotes = () => showAlert.info("Sürüm Notları", RELEASE_NOTES_HTML);
+  const showReleaseNotes = () => {
+    markReleaseNotesSeen(version);
+    setHasUnseen(false);
+    return showAlert.info("Sürüm Notları", renderReleaseNotesHtml(version));
+  };
 
   return (
     <footer className="footer" aria-label="Uygulama alt bilgisi">
@@ -53,10 +48,11 @@ function Footer() {
           <button
             className="footer-version"
             onClick={showReleaseNotes}
-            title="Sürüm notlarını gör"
-            aria-label={`Sürüm ${version} — sürüm notlarını gör`}
+            title={hasUnseen ? "Bu sürümde neler değişti?" : "Sürüm notlarını gör"}
+            aria-label={`Sürüm ${version} — sürüm notlarını gör${hasUnseen ? " (yeni)" : ""}`}
           >
             v{version}
+            {hasUnseen && <span className="footer-version-dot" aria-hidden="true" />}
           </button>
         )}
       </div>

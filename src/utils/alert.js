@@ -53,8 +53,8 @@ const dismissDialog = (title, body, icon) =>
     confirmButtonColor: t.confirm,
   }));
 
-const confirmDialog = (title, body, confirmText, { cancelText = "Vazgeç", pickConfirmColor }) =>
-  fire((t) => ({
+const confirmDialog = async (title, body, confirmText, { cancelText = "Vazgeç", pickConfirmColor }) => {
+  const { isConfirmed } = await fire((t) => ({
     ...base(t),
     ...bodyOf(body),
     title,
@@ -66,12 +66,23 @@ const confirmDialog = (title, body, confirmText, { cancelText = "Vazgeç", pickC
     confirmButtonColor: pickConfirmColor(t),
     cancelButtonColor: t.cancel,
   }));
+  return isConfirmed;
+};
 
 const CODE_ELEMENT_ID = "swal-recovery-code";
+const COPY_BUTTON_ELEMENT_ID = "swal-copy-code";
 const COPY_NOTE_ELEMENT_ID = "swal-copy-note";
 
-const CODE_LINE = `<code id="${CODE_ELEMENT_ID}" style="font-size:1.1em;letter-spacing:1px"></code>`;
-const COPY_NOTE_LINE = `<div id="${COPY_NOTE_ELEMENT_ID}" style="font-size:0.9em;margin-top:0.6em"></div>`;
+const COPY_LABEL_IDLE = "Kodu Kopyala";
+const COPY_LABEL_DONE = "✓ Kopyalandı";
+const COPY_RESET_DELAY = 2000;
+
+const CODE_LINE = `<code id="${CODE_ELEMENT_ID}" class="swal-code"></code>`;
+const COPY_LINE = `
+  <div class="swal-copy-row">
+    <button type="button" id="${COPY_BUTTON_ELEMENT_ID}" class="swal-copy-button">${COPY_LABEL_IDLE}</button>
+    <span id="${COPY_NOTE_ELEMENT_ID}" class="swal-copy-note"></span>
+  </div>`;
 
 const copyToClipboard = async (value) => {
   try {
@@ -82,30 +93,53 @@ const copyToClipboard = async (value) => {
   }
 };
 
-const codeDialog = async ({ title, code, html, confirmButtonText, staticBackdrop = false }) => {
-  const copied = await copyToClipboard(code);
+const codeDialog = ({ title, code, html, confirmButtonText, staticBackdrop = false, width }) => {
+  let resetTimer = null;
+
   return fire((t) => ({
     ...base(t),
     ...(staticBackdrop ? { ...STATIC_BACKDROP, allowOutsideClick: false } : {}),
+    ...(width ? { width } : {}),
     icon: "success",
     title,
     html,
+    customClass: { htmlContainer: "swal-code-body", title: "swal-code-title" },
     didOpen: () => {
       const codeEl = document.getElementById(CODE_ELEMENT_ID);
       if (codeEl) codeEl.textContent = code;
 
+      const buttonEl = document.getElementById(COPY_BUTTON_ELEMENT_ID);
       const noteEl = document.getElementById(COPY_NOTE_ELEMENT_ID);
-      if (noteEl) {
-        noteEl.textContent = copied
-          ? "Kod panoya kopyalandı."
-          : "Kod panoya kopyalanamadı — lütfen yukarıdaki kodu elle kopyalayın.";
-        noteEl.style.color = copied ? t.text : t.danger;
-      }
+      if (!buttonEl || !noteEl) return;
+
+      buttonEl.addEventListener("click", async () => {
+        const copied = await copyToClipboard(code);
+        clearTimeout(resetTimer);
+
+        if (!copied) {
+          noteEl.textContent = "Panoya kopyalanamadı — lütfen kodu elle kopyalayın.";
+          noteEl.classList.add("is-error");
+          return;
+        }
+
+        noteEl.textContent = "";
+        noteEl.classList.remove("is-error");
+        buttonEl.textContent = COPY_LABEL_DONE;
+        buttonEl.classList.add("is-copied");
+
+        resetTimer = setTimeout(() => {
+          buttonEl.textContent = COPY_LABEL_IDLE;
+          buttonEl.classList.remove("is-copied");
+        }, COPY_RESET_DELAY);
+      });
     },
+    willClose: () => clearTimeout(resetTimer),
     confirmButtonText,
     confirmButtonColor: t.confirm,
   }));
 };
+
+const isPasswordInput = (type) => type === "password";
 
 const fieldElementId = (id) => `swal-field-${id}`;
 
@@ -118,13 +152,22 @@ const formDialog = async ({ title, description, fields, confirmButtonText, cance
   const { value } = await fire((t) => ({
     ...base(t),
     title,
-    html: [
-      description && `<p style="font-size:0.9em;margin-bottom:1em">${escapeHtml(description)}</p>`,
-      ...fields.map(fieldHtml),
-    ]
+    html: [description && `<p class="swal-form-description">${escapeHtml(description)}</p>`, ...fields.map(fieldHtml)]
       .filter(Boolean)
       .join("\n"),
     focusConfirm: false,
+    didOpen: () => {
+      const inputs = fields.map(({ id }) => document.getElementById(fieldElementId(id))).filter(Boolean);
+      inputs[0]?.focus();
+      inputs.forEach((el) =>
+        el.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            Swal.clickConfirm();
+          }
+        }),
+      );
+    },
     showCancelButton: true,
     reverseButtons: true,
     confirmButtonText,
@@ -132,9 +175,9 @@ const formDialog = async ({ title, description, fields, confirmButtonText, cance
     confirmButtonColor: t.confirm,
     cancelButtonColor: t.cancel,
     preConfirm: () => {
-      const entries = fields.map(({ id, trim = false }) => {
+      const entries = fields.map(({ id, type = "text" }) => {
         const el = document.getElementById(fieldElementId(id));
-        return [id, el && (trim ? el.value.trim() : el.value)];
+        return [id, el && (isPasswordInput(type) ? el.value : el.value.trim())];
       });
 
       if (entries.some(([, val]) => val === null || val === undefined || val === false)) {
@@ -167,8 +210,8 @@ export const showAlert = {
       toast: true,
       position: "top",
       backdrop: false,
-      width: 420,
-      padding: "1.1em 1.5em",
+      width: 500,
+      padding: "1.3em 1.7em",
       customClass: {
         popup: "toast-popup",
         title: "toast-title",
@@ -223,10 +266,9 @@ export const showAlert = {
     inputPlaceholder,
     confirmButtonText = "Tamam",
     cancelText = "Vazgeç",
-    trim = false,
     validate,
   }) => {
-    const shouldTrim = input === "password" ? false : trim;
+    const shouldTrim = !isPasswordInput(input);
 
     const { value } = await fire((t) => ({
       ...base(t),
@@ -262,7 +304,6 @@ export const showAlert = {
       inputPlaceholder: "Lütfen iptal nedenini yazın...",
       confirmButtonText: "Evet, İptal Etmek İstiyorum",
       cancelText: "Geri Dön",
-      trim: true,
       validate: (val) => (!val ? "İptal nedeni zorunludur." : null),
     }),
 
@@ -281,7 +322,7 @@ export const showAlert = {
       title: "Admin Şifre Sıfırlama",
       description: "İlk kurulumda verilen kurtarma kodunu girin ve yeni bir şifre belirleyin.",
       fields: [
-        { id: "recoveryCode", placeholder: "Kurtarma kodu", trim: true },
+        { id: "recoveryCode", placeholder: "Kurtarma kodu" },
         {
           id: "newPassword",
           type: "password",
@@ -302,15 +343,16 @@ export const showAlert = {
       title: "Hesabınız Hazır",
       code,
       html: `
-        Admin şifreniz belirlendi.<br /><br />
+        Yönetici şifreniz belirlendi.<br /><br />
         <b>Kurtarma kodunuz:</b><br />
         ${CODE_LINE}
-        ${COPY_NOTE_LINE}<br />
-        Şifrenizi unutursanız giriş ekranından bu kodla sıfırlayabilirsiniz.<br />
-        Güvenli bir yerde saklayın — bir daha gösterilmeyecek.
+        ${COPY_LINE}<br />
+        <p class="swal-note">Şifrenizi unutursanız giriş ekranından bu kodla yeni şifre belirlersiniz.</p>
+        <p class="swal-warning">Bu kod bir daha gösterilmeyecek — güvenli bir yerde saklayın.</p>
       `,
       confirmButtonText: "Kaydettim, Devam Et",
       staticBackdrop: true,
+      width: "34em",
     }),
 
   resetCode: (code) =>
@@ -318,13 +360,14 @@ export const showAlert = {
       title: "Şifre Sıfırlandı",
       code,
       html: `
-        Admin şifreniz güncellendi.<br /><br />
+        Yönetici şifreniz güncellendi.<br /><br />
         <b>Yeni kurtarma kodunuz:</b><br />
         ${CODE_LINE}
-        ${COPY_NOTE_LINE}<br />
+        ${COPY_LINE}
         Bu kodu güvenli bir yerde saklayın — eski kod artık geçersizdir.
       `,
       confirmButtonText: "Anladım",
+      width: "37em",
     }),
 
   regeneratedCode: (code) =>
@@ -333,7 +376,7 @@ export const showAlert = {
       code,
       html: `
         ${CODE_LINE}
-        ${COPY_NOTE_LINE}<br />
+        ${COPY_LINE}
         Güvenli bir yerde saklayın; şifrenizi unutursanız giriş ekranından bu kodla
         sıfırlayabilirsiniz.
       `,

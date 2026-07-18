@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, cloneElement } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 import { useCurrentUser, clearCurrentUser } from "@/hooks/useCurrentUser";
@@ -38,7 +38,7 @@ const ICONS = {
 };
 
 function Icon({ name }) {
-  return <span className="icon">{ICONS[name]}</span>;
+  return <span className="icon">{cloneElement(ICONS[name], { className: "icon-svg" })}</span>;
 }
 
 function Dashboard() {
@@ -73,8 +73,8 @@ function Dashboard() {
   }, [currentUser.id, reloadToken]);
 
   const handleLogout = async () => {
-    const result = await showAlert.confirm("Çıkış Yap", "Oturumu kapatmak istiyor musunuz?", "Evet, Çık");
-    if (!result.isConfirmed) return;
+    const confirmed = await showAlert.confirm("Çıkış Yap", "Oturumu kapatmak istiyor musunuz?", "Evet, Çık");
+    if (!confirmed) return;
     clearCurrentUser();
     navigate("/", { replace: true });
   };

@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import PropTypes from "prop-types";
 import { showAlert } from "@/utils/alert";
-import { getToday } from "@/utils/format";
-import { MONTHS, PAYMENT_METHOD_LABELS, OVERPAY_TOLERANCE } from "../constants";
+import { getToday, formatMonthYear } from "@/utils/date";
+import { PAYMENT_METHOD_LABELS, OVERPAY_TOLERANCE } from "../constants";
 
 function PaymentModal({ due, year, month, currentUser, onClose, onPaymentSaved }) {
   const [amount, setAmount] = useState("");
@@ -104,7 +104,7 @@ function PaymentModal({ due, year, month, currentUser, onClose, onPaymentSaved }
         <div className="modal-header">
           <div>
             <p className="modal-subtitle">
-              {MONTHS[due.month - 1]} {due.year}
+              {formatMonthYear(due.year, due.month)}
             </p>
             <h3 className="modal-title">Daire {due.apartment_no}</h3>
           </div>

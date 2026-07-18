@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import { MONTHS } from "../constants";
+import { MONTHS } from "@/utils/date";
 
 function MonthYearSelector({ selectedMonth, selectedYear, onMonthChange, onYearChange, yearOptions }) {
   return (

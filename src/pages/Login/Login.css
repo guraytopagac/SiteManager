@@ -177,7 +177,7 @@ input.login-password-input {
   transition: color 0.2s ease;
 }
 
-.login-password-toggle svg {
+.login-toggle-icon {
   display: block;
 }
 
@@ -214,7 +214,7 @@ input.login-password-input {
     box-shadow 0.2s ease;
 }
 
-.login-btn svg {
+.login-btn-icon {
   display: block;
 }
 
@@ -283,6 +283,6 @@ input.login-password-input {
   color: #b91c1c;
 }
 
-.login-error svg {
+.login-error-icon {
   display: block;
 }
