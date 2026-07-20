@@ -34,7 +34,7 @@ function validateApartmentData(data) {
     return { success: false, message: "Daire numarası 1-10 karakter olmalı ve yalnızca harf/rakam içermelidir." };
   }
   if (!Number.isInteger(data.managerId) || data.managerId <= 0) {
-    return { success: false, message: "Geçersiz yönetici ID." };
+    return { success: false, message: "Geçersiz site yöneticisi ID." };
   }
   if (typeof data.type !== "string" || !APARTMENT_TYPES.includes(data.type)) {
     return { success: false, message: "Geçersiz daire tipi." };

@@ -320,10 +320,6 @@
   margin: 0 0 12px;
 }
 
-.modal-section-title-spaced {
-  margin-top: 16px;
-}
-
 .section-divider {
   margin: 40px 0;
   opacity: 0.2;
@@ -369,12 +365,6 @@
   color: var(--text-color);
   font-size: 0.9rem;
   resize: vertical;
-}
-
-.receipt-name {
-  font-size: 0.78rem;
-  opacity: 0.6;
-  margin-top: 2px;
 }
 
 .paid-notice {
@@ -552,17 +542,6 @@
   min-width: unset;
   padding: 8px 16px;
   font-size: 0.85rem;
-}
-
-.history-btn {
-  display: block;
-  margin-top: 12px;
-}
-
-.resident-history-section {
-  border-top: 1px solid var(--border-default);
-  padding-top: 12px;
-  margin-top: 12px;
 }
 
 .resident-history-list {

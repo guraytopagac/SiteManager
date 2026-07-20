@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import PropTypes from "prop-types";
 import "./Residents.css";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { showAlert } from "@/utils/alert";
@@ -139,13 +138,6 @@ function ResidentFormModal({ apartment, currentUser, onClose, onSaved }) {
   );
 }
 
-ResidentFormModal.propTypes = {
-  apartment: PropTypes.object.isRequired,
-  currentUser: PropTypes.object.isRequired,
-  onClose: PropTypes.func.isRequired,
-  onSaved: PropTypes.func.isRequired,
-};
-
 function MoveOutModal({ apartment, currentUser, onClose, onSaved }) {
   const [moveOutDate, setMoveOutDate] = useState(() => getToday());
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -203,13 +195,6 @@ function MoveOutModal({ apartment, currentUser, onClose, onSaved }) {
   );
 }
 
-MoveOutModal.propTypes = {
-  apartment: PropTypes.object.isRequired,
-  currentUser: PropTypes.object.isRequired,
-  onClose: PropTypes.func.isRequired,
-  onSaved: PropTypes.func.isRequired,
-};
-
 function HistoryModal({ apartment, currentUser, onClose }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -263,12 +248,6 @@ function HistoryModal({ apartment, currentUser, onClose }) {
     </div>
   );
 }
-
-HistoryModal.propTypes = {
-  apartment: PropTypes.object.isRequired,
-  currentUser: PropTypes.object.isRequired,
-  onClose: PropTypes.func.isRequired,
-};
 
 function Residents() {
   const navigate = useNavigate();

@@ -1,4 +1,3 @@
-import PropTypes from "prop-types";
 import { MONTHS } from "@/utils/date";
 
 function MonthYearSelector({ selectedMonth, selectedYear, onMonthChange, onYearChange, yearOptions }) {
@@ -21,13 +20,5 @@ function MonthYearSelector({ selectedMonth, selectedYear, onMonthChange, onYearC
     </div>
   );
 }
-
-MonthYearSelector.propTypes = {
-  selectedMonth: PropTypes.number.isRequired,
-  selectedYear: PropTypes.number.isRequired,
-  onMonthChange: PropTypes.func.isRequired,
-  onYearChange: PropTypes.func.isRequired,
-  yearOptions: PropTypes.arrayOf(PropTypes.number).isRequired,
-};
 
 export default MonthYearSelector;

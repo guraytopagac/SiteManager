@@ -32,7 +32,7 @@ function AdminDashboard() {
     if (response.success) {
       setManagers(response.data);
     } else {
-      showAlert.error("Hata", "Yöneticiler yüklenemedi.");
+      showAlert.error("Hata", "Site yöneticileri yüklenemedi.");
     }
     setLoading(false);
   };
@@ -46,7 +46,7 @@ function AdminDashboard() {
       if (response.success) {
         setManagers(response.data);
       } else {
-        showAlert.error("Hata", "Yöneticiler yüklenemedi.");
+        showAlert.error("Hata", "Site yöneticileri yüklenemedi.");
       }
       setLoading(false);
     })();
@@ -74,7 +74,7 @@ function AdminDashboard() {
     setIsSubmitting(false);
 
     if (response.success) {
-      showAlert.success("Yönetici Oluşturuldu", response.message);
+      showAlert.success("Site Yöneticisi Oluşturuldu", response.message);
       setFormData({ username: "", email: "", password: "" });
       setIsPanelOpen(false);
       fetchManagers();
@@ -87,7 +87,7 @@ function AdminDashboard() {
     const willActivate = manager.is_active === 0;
     const confirmText = willActivate
       ? `"${manager.username}" hesabını aktif etmek istiyor musunuz?`
-      : `"${manager.username}" hesabını deaktif etmek istiyor musunuz? Bu yönetici giriş yapamaz hale gelir.`;
+      : `"${manager.username}" hesabını deaktif etmek istiyor musunuz? Bu site yöneticisi giriş yapamaz hale gelir.`;
 
     const confirmed = willActivate
       ? await showAlert.confirm("Hesabı Aktif Et", confirmText, "Aktif Et")
@@ -138,7 +138,7 @@ function AdminDashboard() {
               <FiGrid /> Genel Bakış
             </div>
             <div className="admin-nav-item active">
-              <FiUsers /> Yöneticiler
+              <FiUsers /> Site Yöneticileri
             </div>
             <button className="admin-nav-item admin-nav-btn" onClick={handleGenerateRecovery}>
               <FiKey /> Kurtarma Kodu
@@ -154,9 +154,9 @@ function AdminDashboard() {
 
         <main className="admin-main">
           <div className="admin-main-header">
-            <h2 className="admin-main-title">Yöneticiler</h2>
+            <h2 className="admin-main-title">Site Yöneticileri</h2>
             <button className="btn-add-manager" onClick={() => setIsPanelOpen(true)}>
-              Yeni Yönetici Ekle
+              Yeni Site Yöneticisi Ekle
             </button>
           </div>
 
@@ -178,7 +178,7 @@ function AdminDashboard() {
                 {managers.length === 0 ? (
                   <tr>
                     <td className="cell-empty" colSpan={5}>
-                      Henüz yönetici bulunmuyor.
+                      Henüz site yöneticisi bulunmuyor.
                     </td>
                   </tr>
                 ) : (
@@ -240,7 +240,7 @@ function AdminDashboard() {
           <div className="panel-overlay" onClick={() => setIsPanelOpen(false)} />
           <aside className="add-manager-panel">
             <div className="panel-header">
-              <h2 className="section-heading">Yeni Yönetici Ekle</h2>
+              <h2 className="section-heading">Yeni Site Yöneticisi Ekle</h2>
               <button className="icon-btn" onClick={() => setIsPanelOpen(false)}>
                 <FiX />
               </button>
@@ -286,7 +286,7 @@ function AdminDashboard() {
                 />
               </div>
               <button type="submit" className="btn-action btn-create" disabled={isSubmitting}>
-                {isSubmitting ? "Oluşturuluyor..." : "Yönetici Oluştur"}
+                {isSubmitting ? "Oluşturuluyor..." : "Site Yöneticisi Oluştur"}
               </button>
             </form>
           </aside>

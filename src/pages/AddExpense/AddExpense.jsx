@@ -22,7 +22,7 @@ function AddExpense() {
     const managerId = currentUser?.id;
 
     if (!managerId) {
-      showAlert.error("Oturum Hatası", "Yönetici bilgisi bulunamadı. Lütfen tekrar giriş yapın.");
+      showAlert.error("Oturum Hatası", "Site yöneticisi bilgisi bulunamadı. Lütfen tekrar giriş yapın.");
       return;
     }
 

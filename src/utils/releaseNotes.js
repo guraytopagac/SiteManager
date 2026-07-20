@@ -2,7 +2,18 @@ import { formatDate } from "./date.js";
 
 const RELEASE_NOTES_SEEN_KEY = "releaseNotesSeenVersion";
 
-export const RELEASE_NOTES = [
+const RELEASE_NOTES = [
+  {
+    version: "1.5.0",
+    date: "2026-07-20",
+    title: "Şifre kurtarma ekranı ve giriş güvenliği",
+    changes: [
+      "Şifrenizi unuttuysanız artık ayrı bir kurtarma ekranından iki adımda sıfırlayabilirsiniz.",
+      "Yeni şifrenizi girerken tekrar alanı, göster/gizle düğmesi ve güç göstergesi eşlik ediyor.",
+      "Şifre alanlarında Caps Lock açıkken uyarı beliriyor.",
+      "Giriş, kurulum ve kurtarma ekranları yenilendi; yazılar büyütülerek okunabilirlik artırıldı.",
+    ],
+  },
   {
     version: "1.4.0",
     date: "2026-07-18",
@@ -25,23 +36,13 @@ export const RELEASE_NOTES = [
       "Genel arayüz ve okunabilirlik iyileştirmeleri.",
     ],
   },
-  {
-    version: "1.2.0",
-    date: "2026-07-05",
-    title: "İlk kurulum akışı ve şifre kurtarma",
-    changes: [
-      "İlk açılışta yönetici şifresi belirleme ekranı eklendi.",
-      "Admin için tek kullanımlık kurtarma kodu ile şifre sıfırlama.",
-      "Temaya duyarlı kurulum ekranı.",
-    ],
-  },
 ];
 
 const renderRelease = (release, currentVersion) => `
       <section class="release-note${release.version === currentVersion ? " release-note-current" : ""}">
         <h3 class="release-note-version">
           <span>
-            v${release.version} — ${release.title}
+            v${release.version}: ${release.title}
             ${release.version === currentVersion ? '<span class="release-note-badge">Şu anki sürüm</span>' : ""}
           </span>
           ${release.date ? `<time class="release-note-date" datetime="${release.date}">${formatDate(release.date)}</time>` : ""}

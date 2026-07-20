@@ -26,7 +26,7 @@ function Footer() {
   const showReleaseNotes = () => {
     markReleaseNotesSeen(version);
     setHasUnseen(false);
-    return showAlert.info("Sürüm Notları", renderReleaseNotesHtml(version));
+    return showAlert.releaseNotes(renderReleaseNotesHtml(version));
   };
 
   return (
@@ -49,7 +49,7 @@ function Footer() {
             className="footer-version"
             onClick={showReleaseNotes}
             title={hasUnseen ? "Bu sürümde neler değişti?" : "Sürüm notlarını gör"}
-            aria-label={`Sürüm ${version} — sürüm notlarını gör${hasUnseen ? " (yeni)" : ""}`}
+            aria-label={`Sürüm ${version}, sürüm notlarını gör${hasUnseen ? " (yeni)" : ""}`}
           >
             v{version}
             {hasUnseen && <span className="footer-version-dot" aria-hidden="true" />}

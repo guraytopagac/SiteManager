@@ -1,73 +1,61 @@
 :root {
-  --setup-accent: #2dd4bf;
+  --setup-accent: #38a5f7;
   --setup-page-bg: #0a1220;
   --setup-card-bg: rgba(15, 26, 43, 0.94);
   --setup-input-bg: rgba(11, 20, 34, 0.85);
   --setup-field-bg: var(--setup-input-bg);
-  --setup-border: rgba(45, 212, 191, 0.22);
-  --setup-card-border: 1px solid var(--setup-border);
-  --setup-text: #e6f6f2;
-  --setup-heading: #ffffff;
-  --setup-muted: rgba(230, 246, 242, 0.82);
-  --setup-secondary: rgba(230, 246, 242, 0.68);
-  --setup-tertiary: rgba(230, 246, 242, 0.55);
+  --setup-border: rgba(56, 165, 247, 0.22);
+  --setup-card-border: var(--setup-border);
+  --setup-text: #e6f0fb;
+  --setup-heading: #eaf2ff;
+  --setup-muted: rgba(230, 240, 251, 0.82);
+  --setup-secondary: rgba(230, 240, 251, 0.68);
+  --setup-tertiary: rgba(230, 240, 251, 0.55);
   --setup-input-border: rgba(255, 255, 255, 0.09);
   --setup-btn-text: #ffffff;
-  --setup-btn-bg: rgba(45, 212, 191, 0.2);
-  --setup-btn-bg-hover: rgba(45, 212, 191, 0.38);
+  --setup-btn-bg: rgba(56, 165, 247, 0.2);
+  --setup-btn-bg-hover: rgba(56, 165, 247, 0.38);
   --setup-btn-border: var(--setup-accent);
   --setup-btn-border-hover: var(--setup-accent);
-  --setup-btn-glow: 0 3px 16px rgba(45, 212, 191, 0.18);
-  --setup-btn-glow-hover: 0 6px 22px rgba(45, 212, 191, 0.4);
-  --setup-btn-shadow-active: 0 2px 8px rgba(45, 212, 191, 0.25);
+  --setup-btn-glow: rgba(56, 165, 247, 0.18);
+  --setup-btn-glow-hover: rgba(56, 165, 247, 0.4);
+  --setup-btn-shadow-active: rgba(56, 165, 247, 0.25);
+  --setup-divider-mid: rgba(56, 165, 247, 0.15);
+  --setup-divider-core: rgba(56, 165, 247, 0.7);
   --setup-inactive: rgba(255, 255, 255, 0.1);
   --setup-track: var(--setup-inactive);
-  --setup-adv-label: #5eead4;
-  --setup-rule-tint: rgba(45, 212, 191, 0.12);
+  --setup-rule-tint: rgba(56, 165, 247, 0.12);
   --setup-rule-idle: rgba(255, 255, 255, 0.06);
-  --setup-wash-dark: linear-gradient(
-    100deg,
-    rgba(6, 12, 22, 0.62) 0%,
-    rgba(6, 12, 22, 0.34) 34%,
-    rgba(6, 12, 22, 0.1) 56%,
-    rgba(6, 12, 22, 0) 72%
-  );
-  --setup-wash-light: linear-gradient(
-    100deg,
-    rgba(255, 255, 255, 0.55) 0%,
-    rgba(255, 255, 255, 0.28) 34%,
-    rgba(255, 255, 255, 0.08) 56%,
-    rgba(255, 255, 255, 0) 72%
-  );
 }
 
 [data-theme="light"] {
-  --setup-accent: #0d9488;
-  --setup-page-bg: #f2f7f7;
+  --setup-accent: #1d4ed8;
+  --setup-page-bg: #f2f5fb;
   --setup-card-bg: rgba(255, 255, 255, 0.96);
-  --setup-input-bg: #e7f2f0;
+  --setup-input-bg: #e8eefb;
   --setup-field-bg: var(--setup-input-bg);
-  --setup-border: rgba(13, 148, 136, 0.28);
-  --setup-card-border: 1.5px solid rgba(13, 148, 136, 0.34);
-  --setup-text: #1c3b42;
-  --setup-heading: #0c2a30;
-  --setup-muted: rgba(28, 59, 66, 0.78);
-  --setup-secondary: rgba(28, 59, 66, 0.64);
-  --setup-tertiary: rgba(28, 59, 66, 0.48);
-  --setup-input-border: rgba(13, 148, 136, 0.32);
+  --setup-border: rgba(29, 78, 216, 0.28);
+  --setup-card-border: rgba(29, 78, 216, 0.34);
+  --setup-text: #1c2f4a;
+  --setup-heading: #14306b;
+  --setup-muted: rgba(28, 47, 74, 0.78);
+  --setup-secondary: rgba(28, 47, 74, 0.64);
+  --setup-tertiary: rgba(28, 47, 74, 0.48);
+  --setup-input-border: rgba(29, 78, 216, 0.32);
   --setup-btn-text: #ffffff;
-  --setup-btn-bg: #0d9488;
-  --setup-btn-bg-hover: #12a094;
-  --setup-btn-border: #0f766e;
-  --setup-btn-border-hover: #0b8378;
-  --setup-btn-glow: 0 3px 14px rgba(15, 118, 110, 0.22);
-  --setup-btn-glow-hover: 0 6px 20px rgba(15, 118, 110, 0.28);
-  --setup-btn-shadow-active: 0 2px 8px rgba(15, 118, 110, 0.2);
-  --setup-inactive: rgba(12, 42, 48, 0.16);
-  --setup-track: rgba(12, 42, 48, 0.24);
-  --setup-adv-label: #0f766e;
-  --setup-rule-tint: rgba(13, 148, 136, 0.14);
-  --setup-rule-idle: rgba(12, 42, 48, 0.06);
+  --setup-btn-bg: #1d4ed8;
+  --setup-btn-bg-hover: #2563eb;
+  --setup-btn-border: #1e40af;
+  --setup-btn-border-hover: #1d4ed8;
+  --setup-btn-glow: rgba(30, 64, 175, 0.22);
+  --setup-btn-glow-hover: rgba(30, 64, 175, 0.28);
+  --setup-btn-shadow-active: rgba(30, 64, 175, 0.2);
+  --setup-divider-mid: rgba(29, 78, 216, 0.45);
+  --setup-divider-core: #1d4ed8;
+  --setup-inactive: rgba(15, 33, 69, 0.16);
+  --setup-track: rgba(15, 33, 69, 0.24);
+  --setup-rule-tint: rgba(29, 78, 216, 0.14);
+  --setup-rule-idle: rgba(15, 33, 69, 0.06);
 }
 
 .setup-page-bg {
@@ -78,9 +66,7 @@
   align-items: safe center;
   justify-content: center;
   padding: 24px 0 calc(var(--footer-height) + 24px);
-  background:
-    var(--setup-wash-dark),
-    var(--setup-page-bg) url("../../../assets/backgrounds/setup/dark.jpg") left center / cover no-repeat;
+  background: var(--setup-page-bg) url("../../../assets/backgrounds/setup/dark.jpg") left center / cover no-repeat;
   color: var(--setup-text);
 }
 
@@ -89,10 +75,9 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    var(--setup-wash-light),
-    url("../../../assets/backgrounds/setup/light.jpg") left center / cover no-repeat;
+  background: url("../../../assets/backgrounds/setup/light.jpg") left center / cover no-repeat;
   opacity: 0;
+  transition: opacity 0.3s ease;
   z-index: 0;
 }
 
@@ -111,10 +96,10 @@
   overflow: hidden;
   border-radius: 22px;
   background: var(--setup-card-bg);
-  border: var(--setup-card-border);
+  border: 1px solid var(--setup-card-border);
   box-shadow:
-    0 0 0 1px rgba(45, 212, 191, 0.1),
-    0 0 60px rgba(20, 184, 166, 0.18),
+    0 0 0 1px rgba(56, 165, 247, 0.1),
+    0 0 60px rgba(41, 193, 251, 0.18),
     0 20px 60px rgba(0, 0, 0, 0.55);
 }
 
@@ -138,28 +123,25 @@
   border-radius: 999px;
   background: linear-gradient(
     to bottom,
-    rgba(45, 212, 191, 0) 0%,
-    var(--setup-border) 22%,
-    var(--setup-accent) 50%,
-    var(--setup-border) 78%,
-    rgba(45, 212, 191, 0) 100%
+    transparent 0%,
+    var(--setup-divider-mid) 16%,
+    var(--setup-divider-core) 50%,
+    var(--setup-divider-mid) 84%,
+    transparent 100%
   );
-  opacity: 0.7;
 }
 
-/* Light theme: the 22%/78% stops use a 0.22-alpha teal that all but vanishes
-   on white, so the rule reads as short. Push the stops toward the ends and
-   darken them instead of changing the shared gradient. */
-[data-theme="light"] .setup-welcome::after {
-  background: linear-gradient(
-    to bottom,
-    rgba(13, 148, 136, 0) 0%,
-    rgba(13, 148, 136, 0.45) 10%,
-    var(--setup-accent) 50%,
-    rgba(13, 148, 136, 0.45) 90%,
-    rgba(13, 148, 136, 0) 100%
-  );
-  opacity: 1;
+.setup-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.setup-logo {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
 }
 
 .setup-welcome-title {
@@ -167,22 +149,20 @@
   font-weight: 800;
   letter-spacing: -0.5px;
   line-height: 1.05;
-  margin-bottom: 6px;
   color: var(--setup-accent);
 }
 
 .setup-welcome-lead {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--setup-heading);
+  font-size: 1.08rem;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--setup-muted);
   margin-bottom: 24px;
 }
 
 .setup-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 13px;
   padding: 16px 18px;
+  margin-right: 16px;
   margin-bottom: 40px;
   border-radius: 14px;
   background: var(--setup-field-bg);
@@ -191,31 +171,58 @@
 
 .setup-notice-icon {
   flex-shrink: 0;
-  margin-top: 1px;
   color: var(--setup-accent);
 }
 
 .setup-notice-title {
-  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 1.15rem;
   font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
   color: var(--setup-heading);
-  margin-bottom: 6px;
+  margin-bottom: 12px;
 }
 
-.setup-notice-text {
-  font-size: 1.02rem;
-  line-height: 1.6;
+.setup-notice-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.setup-notice-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 1rem;
+  line-height: 1.55;
   color: var(--setup-muted);
 }
 
-.setup-adv-label {
-  font-size: 1rem;
+.setup-notice-list strong {
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--setup-adv-label);
+  color: var(--setup-heading);
+}
+
+.setup-notice-item-icon {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  margin-top: 3px;
+  color: var(--setup-accent);
+  stroke-width: 2;
+}
+
+.setup-adv-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--setup-heading);
   margin-bottom: 16px;
 }
 
@@ -237,14 +244,10 @@
   color: var(--setup-muted);
 }
 
-/* Light's muted/secondary tones sit at roughly 4.9:1 and below on the white
-   card — too faint for body copy the user is meant to actually read. Hierarchy
-   in light comes from size, weight and the teal accents instead, so all of this
-   text runs at full strength. */
 [data-theme="light"] .setup-steps li,
 [data-theme="light"] .setup-form-sub,
 [data-theme="light"] .setup-form-foot p,
-[data-theme="light"] .setup-notice-text,
+[data-theme="light"] .setup-notice-list li,
 [data-theme="light"] .setup-rules li {
   color: var(--setup-text);
 }
@@ -269,11 +272,12 @@
   font-size: 1.6rem;
   font-weight: 700;
   margin-bottom: 5px;
-  color: var(--setup-heading);
+  color: var(--setup-accent);
 }
 
 .setup-form-sub {
   font-size: 1.02rem;
+  line-height: 1.55;
   color: var(--setup-secondary);
   margin-bottom: 26px;
 }
@@ -318,8 +322,8 @@
   outline: none;
   border-color: var(--setup-accent);
   box-shadow:
-    0 0 0 3px rgba(45, 212, 191, 0.14),
-    0 0 18px rgba(45, 212, 191, 0.25);
+    0 0 0 3px rgba(56, 165, 247, 0.14),
+    0 0 18px rgba(56, 165, 247, 0.25);
 }
 
 .setup-input-locked {
@@ -423,7 +427,7 @@
   display: block;
   padding: 5px 0;
   border-radius: 7px;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 700;
   line-height: 1.2;
   text-align: center;
@@ -465,11 +469,6 @@
   color: #1fd75b;
 }
 
-/* Light inherits the fills and borders defined above rather than overriding
-   them: the level tint is what stops this strip reading as a fourth input, and
-   at those alphas it stays quieter than the teal CTA. Only the text is swapped
-   for a darker shade of the same hue — the segment colours are too light to
-   read on the white card. */
 [data-theme="light"] .setup-strength.veryweak .setup-strength-label {
   color: #b91c1c;
 }
@@ -504,8 +503,7 @@
   gap: 7px;
   padding: 5px 9px;
   border-radius: 8px;
-  white-space: nowrap;
-  font-size: 0.95rem;
+  font-size: 1rem;
   color: var(--setup-muted);
   background: var(--setup-rule-idle);
   transition:
@@ -513,15 +511,11 @@
     color 0.2s ease;
 }
 
-/* All three states share one construction: a solid disc with a dark glyph on
-   it. In dark the disc carries the colour and the glyph stays near-black, so
-   the pending disc has to be a solid light grey rather than the 10%-alpha wash
-   the rest of the dark theme uses for inactive surfaces. */
 .setup-rule-icon {
   flex-shrink: 0;
   padding: 3px;
   border-radius: 50%;
-  background: rgba(230, 246, 242, 0.6);
+  background: rgba(230, 240, 251, 0.6);
   color: #0a1220;
   box-sizing: content-box;
   transition:
@@ -535,30 +529,24 @@
 }
 
 [data-theme="light"] .setup-rules li.setup-rule-valid {
-  color: #0f766e;
+  color: #1e40af;
 }
 
 [data-theme="light"] .setup-rule-valid .setup-rule-icon {
-  background: #0f766e;
+  background: #1e40af;
   color: #ffffff;
 }
 
 .setup-rule-valid .setup-rule-icon {
-  background: #14b8a6;
-  color: #04211d;
+  background: #38a5f7;
+  color: #06182b;
 }
 
-/* Light mirrors dark's construction with the contrast inverted: the disc goes
-   solid and dark, the glyph white. The pending disc is a desaturated slate of
-   the text hue so it reads as "not yet" next to the teal and red discs. */
 [data-theme="light"] .setup-rule-icon {
-  background: #5c7d84;
+  background: #5c6d84;
   color: #ffffff;
 }
 
-/* Third state, between valid and the neutral default: a rule the user has
-   actually broken. Pending rules keep the default grey — nothing is wrong yet,
-   the field feeding them is simply still empty. */
 .setup-rules li.setup-rule-failed {
   color: #f87171;
   background: rgba(239, 68, 68, 0.12);
@@ -615,7 +603,7 @@
   color: var(--setup-btn-text);
   background: var(--setup-btn-bg);
   border: 2px solid var(--setup-btn-border);
-  box-shadow: var(--setup-btn-glow);
+  box-shadow: 0 3px 16px var(--setup-btn-glow);
   transition:
     background 0.18s ease,
     border-color 0.18s ease,
@@ -648,7 +636,7 @@
 .setup-btn:hover:not(:disabled) {
   background: var(--setup-btn-bg-hover);
   border-color: var(--setup-btn-border-hover);
-  box-shadow: var(--setup-btn-glow-hover);
+  box-shadow: 0 6px 22px var(--setup-btn-glow-hover);
   transform: translateY(-1px);
 }
 
@@ -668,7 +656,7 @@
 
 .setup-btn:active:not(:disabled) {
   transform: translateY(0);
-  box-shadow: var(--setup-btn-shadow-active);
+  box-shadow: 0 2px 8px var(--setup-btn-shadow-active);
 }
 
 .setup-btn:disabled {

@@ -4,7 +4,7 @@
   --footer-height: 46px;
   --footer-bg: rgba(13, 22, 40, 0.96);
   --footer-border: rgba(255, 255, 255, 0.1);
-  --footer-shadow: 0 -2px 12px rgba(0, 0, 0, 0.35);
+  --footer-shadow: rgba(0, 0, 0, 0.35);
   --footer-text: rgba(255, 255, 255, 0.75);
   --footer-text-strong: rgba(255, 255, 255, 0.92);
   --footer-surface: rgba(255, 255, 255, 0.12);
@@ -71,7 +71,7 @@
 
   --footer-bg: rgba(226, 232, 240, 0.97);
   --footer-border: rgba(15, 23, 42, 0.16);
-  --footer-shadow: 0 -2px 14px rgba(15, 23, 42, 0.12);
+  --footer-shadow: rgba(15, 23, 42, 0.12);
   --footer-text: rgba(15, 23, 42, 0.72);
   --footer-text-strong: rgba(15, 23, 42, 0.92);
   --footer-surface: rgba(15, 23, 42, 0.08);
@@ -282,11 +282,6 @@ textarea:focus-visible {
   font-size: 1.05rem !important;
 }
 
-.swal-form-description {
-  font-size: 0.95rem;
-  margin-bottom: 1em;
-}
-
 .swal-code {
   font-size: 1.5rem;
   letter-spacing: 1px;
@@ -335,13 +330,15 @@ textarea:focus-visible {
   font-size: 2.1rem;
 }
 
-.swal2-popup:not(.toast-popup) {
-  border: 2px solid var(--border-default);
-  box-shadow: 0 12px 40px var(--card-shadow);
+.swal2-container.swal2-backdrop-show {
+  background: rgba(3, 8, 18, 0.55);
 }
 
-/* Deliberately not inheriting .swal-code-body: this block is secondary to the
-   code above it and stays small when the top block grows. */
+.swal2-popup:not(.toast-popup) {
+  border: 2px solid var(--border-default);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+}
+
 .swal-note {
   font-size: 0.95rem;
   line-height: 1.5;

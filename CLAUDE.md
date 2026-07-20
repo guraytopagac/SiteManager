@@ -96,7 +96,8 @@ Sıra **kritiktir**, değiştirme:
 - **Naming:** değişkenler `camelCase`, React bileşenleri `PascalCase`, sabitler `UPPER_SNAKE_CASE`, IPC kanal string'leri `domain:kebab-case`
 - **Modül sistemi:** `electron/` ve `database/` → CommonJS (`require`); `src/` → ESM (`import`). Karıştırma.
 - **Import sırası** (CommonJS dosyalarda): 1) Node builtin, 2) external paketler, 3) local (`./`, `../`). Her grup kendi içinde alfabetik.
-- **PropTypes:** Renderer bileşenlerinde prop doğrulaması `prop-types` ile yapılır (TypeScript yok)
+- **Prop doğrulaması yoktur** (TypeScript de yok). `prop-types` bağımlılığı ve tüm `Component.propTypes` blokları kaldırıldı (2026-07-20): React 19 `propTypes` denetimini paketten çıkardı, tanımlar sessizce yok sayılıyordu — yanlış tip için hiçbir uyarı üretilmiyordu. Yeni bileşene `propTypes` **ekleme**; prop sözleşmesini destructuring imzasından ve varsayılan değerlerden okunur tut
+- **Yorum yazma:** Koda açıklama yorumu (`//`, `/* */`) **eklenmez** — kod kendini anlatmalıdır. Bir kararın gerekçesi korunacaksa yorum yerine bu dokümana yaz: mimari/iş kuralı ilgili bölüme, kalıcı bir tercih §17 ADR tablosuna, teknik borç `ROADMAP.md`'ye. Mevcut yorumları toplu temizleme amacıyla silme; yalnızca yenisini ekleme.
 
 ### Yapmadan Önce Kullanıcıya Sor
 
@@ -163,10 +164,12 @@ SiteManager/
 │   └── preload.js              # contextBridge — safeInvoke/safeOn ile kanal whitelist
 │
 └── src/
-    ├── components/      # Footer (sürüm + sürüm notları modalı), ErrorBoundary, PageLoader, ProtectedRoute (rol bazlı rota koruması) vb. paylaşılan bileşenler
-    ├── hooks/           # useTheme, useCurrentUser (oturum kaynağı: get/set/clearCurrentUser + 'user-session-changed' eventi)
+    ├── components/      # Footer (sürüm + sürüm notları modalı), ErrorBoundary, PageLoader, ProtectedRoute (rol bazlı rota koruması),
+    │                    #   CapsLockIndicator (şifre alanı içi Caps Lock uyarısı) vb. paylaşılan bileşenler
+    ├── hooks/           # useTheme, useCurrentUser (oturum kaynağı: get/set/clearCurrentUser + 'user-session-changed' eventi),
+    │                    #   useCapsLockOn (Caps Lock durumu — boolean döner)
     ├── pages/           # Her sayfa kendi klasöründe (JSX + CSS), App.jsx'te lazy-load
-    ├── utils/           # alert.js (SweetAlert2 sarmalayıcı), date.js (tarih/saat format), releaseNotes.js (yama notları + HTML üretimi + "görüldü" durumu — Footer modalında gösterilir)
+    ├── utils/           # alert.js (SweetAlert2 sarmalayıcı), date.js (tarih/saat format), passwordStrength.js (şifre skoru + kural/ölçer üretimi — Setup ve Recover paylaşır), releaseNotes.js (yama notları + HTML üretimi + "görüldü" durumu — Footer modalında gösterilir)
     ├── App.jsx          # Rotalar (HashRouter) + StartupRedirect (setup/login yönlendirmesi)
     ├── main.jsx         # React mount
     └── style.css        # Global stiller — light/dark tema CSS değişkenleri
@@ -202,10 +205,12 @@ Renderer: window.electronAPI.recordPayment({...})
 
 ## 6. Kullanıcı Rolleri, Kimlik Doğrulama ve Oturum
 
-| Rol       | Yetki                                  |
-| --------- | -------------------------------------- |
-| `admin`   | Tüm işlemler + manager hesabı yönetimi |
-| `manager` | Aidat, gelir/gider, daire, raporlar    |
+| Rol (DB değeri) | UI etiketi (Türkçe) | Yetki |
+| --------------- | ------------------- | ----- |
+| `admin`   | **Sistem Yöneticisi** | Tüm işlemler + site yöneticisi hesabı yönetimi |
+| `manager` | **Site Yöneticisi**   | Aidat, gelir/gider, daire, sakin, raporlar |
+
+**Terminoloji kuralı (2026-07-20):** Kullanıcıya görünen her metinde `admin` → "Sistem Yöneticisi", `manager` → "Site Yöneticisi" yazılır. Yalın **"Yönetici" kelimesi tek başına kullanılmaz** — iki rolü de karşıladığı için hangisinden bahsedildiği belirsiz kalır (önceki durum: `AdminDashboard` manager'lara "Yönetici" derken `Profile` admin'e "Yönetici", manager'a hiçbir yerde geçmeyen "Sorumlu" diyordu). DB'deki `role` değerleri (`admin`/`manager`) **değişmedi**; bu yalnızca arayüz/mesaj metni kuralıdır. İstisna: `passwordStrength.js` zayıf şifre kara listesindeki `"yönetici"` girdisi bir etiket değil, dokunulmaz.
 
 - Şifreler `bcryptjs` ile hash'lenir; düz metin hiçbir yerde saklanmaz/loglanmaz
 - **Oturum:** `sessionStorage` → `currentUser` anahtarı (`SESSION_USER_KEY` sabiti, `useCurrentUser.js` içinde tanımlıdır). Oturum durumunun tek doğruluk kaynağı `src/hooks/useCurrentUser.js`'tir — yazma/temizleme `sessionStorage`'a elle dokunmadan buradaki helper'larla yapılır:
@@ -214,7 +219,7 @@ Renderer: window.electronAPI.recordPayment({...})
   - `setCurrentUser(user)` — login sonrası oturumu yazar (yalnızca `id, role, username, email, last_login` alanları persist edilir) + `user-session-changed` eventini yayınlar.
   - `clearCurrentUser()` — logout: `sessionStorage.clear()` + event yayınlar (IPC yok).
   - **Kural:** `sessionStorage.setItem/clear` + elle `dispatchEvent` yazma; bu helper'ları kullan (event dispatch'i unutma hatasını önler, persist edilen alan seti tek yerde). Oturum değişikliği `user-session-changed` window eventi ile yayılır; `useCurrentUser` dinler.
-- **"Beni hatırla":** 30 günlük session token
+- **Kalıcı oturum ("Beni hatırla") YOKTUR.** Oturum yalnızca `sessionStorage`'dadır; uygulama kapanınca silinir, her açılışta giriş gerekir. Kod tabanında session token, kalıcı kimlik doğrulama tablosu/kolonu veya ilgili IPC endpoint'i bulunmaz — böyle bir şey varmış gibi kod yazma. (Gerekçe ve olası ekleme için bkz. `ROADMAP.md`.)
 - **Rota koruması:** `src/components/ProtectedRoute/ProtectedRoute.jsx` rol bazlı; yanlış rol → kendi dashboard'una redirect
 - Admin hesabı yalnızca bir adet olabilir; `seed.js` `is_active`'e bakmaksızın `role='admin'` varlığını kontrol eder
 
@@ -229,7 +234,7 @@ Renderer: window.electronAPI.recordPayment({...})
 ### Admin Şifre Kurtarma
 
 - Kurtarma kodu: 16 karakter, `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` alfabesi (I/O/0/1 yok — okuma hatasını önlemek için), `XXXX-XXXX-XXXX-XXXX` gösterimi. `normalizeRecoveryCode` girişteki tire/boşluk/küçük harfi tolere eder
-- `resetAdminPassword(recoveryCode, newPassword)` giriş ekranından, oturumsuz çalışır; kod **tek kullanımlıktır**, her kullanımda yenisi üretilir
+- `resetAdminPassword(recoveryCode, newPassword)` **`/recover` sayfasından** (giriş ekranındaki "Şifremi unuttum?" bağlantısı), oturumsuz çalışır; kod **tek kullanımlıktır**, her kullanımda yenisi üretilir. Sayfa iki adımlıdır (1: kurtarma kodu, 2: yeni şifre + tekrar); **kod adım 1'de sunucuya sorulmaz** — yalnızca format doğrulanır, gerçek doğrulama tek `resetAdminPassword` çağrısında olur. Kod hatalı dönerse adım 1'e dönülür ve **girilen şifre state'te korunur** (kullanıcı baştan yazmaz)
 - Giriş yapmış admin `regenerateRecoveryCode(password)` ile (mevcut şifre doğrulanarak) yeni kod üretebilir
 - `recovery_hash` bcrypt ile saklanır; manager'larda `NULL`
 
@@ -400,12 +405,16 @@ Kanal adları için tek kaynak: `electron/ipc/channels.js`.
 - **Alert/Dialog:** SweetAlert **yalnızca `src/utils/alert.js`'te** kullanılır — sayfalar/bileşenler `sweetalert2`'yi import etmez, `showAlert` metodlarını çağırır. Yeni bir dialog gerekiyorsa `alert.js`'e metod ekle (tema renkleri, `heightAuto:false` ve buton gelenekleri orada tek noktada). `swalBase`/`swalColors` export'ları kaldırıldı.
   - **Dönüş sözleşmesi:** `confirm`/`confirmDanger` ham `SweetAlertResult` değil **`boolean`** döner (`if (confirmed)` — `result.isConfirmed` yazma). `prompt`/`cancelReason`/`passwordPrompt`/`adminRecoveryForm` değeri döner, vazgeçilirse `null`. Yeni bir dialog metodu eklerken bu deseni koru: çağıran SweetAlert'in sonuç nesnesini görmemelidir.
   - **Trim:** `prompt` ve `formDialog` girdileri **her zaman** trim'lenir; tek istisna `type/input: "password"` alanlarıdır (baştaki/sondaki boşluk kasıtlı olabilir — §9 ile aynı kural). Opt-in `trim` bayrağı yoktur, çağrı yerinden trim geçme.
-  - **Dialog stilleri `style.css`'te**, `swal-*` sınıflarında tutulur (`swal-form-description`, `swal-code`, `swal-copy-row`, `swal-copy-button`, `swal-copy-note`) — `alert.js`'in ürettiği HTML'e inline `style="font-size:..."` yazma.
+  - **Genişlik:** `info()` genel amaçlıdır (42em) ve çok yerden çağrılır — bir dialog daha geniş olmalıysa `info`'yu büyütme, kendi metodunu ekle (ör. `releaseNotes()` → 54em, madde listeleri 42em'de kötü sarıyordu).
+  - **Dialog stilleri `style.css`'te**, `swal-*` sınıflarında tutulur (`swal-code`, `swal-copy-row`, `swal-copy-button`, `swal-copy-note`) — `alert.js`'in ürettiği HTML'e inline `style="font-size:..."` yazma.
   - **Kurtarma kodu diyalogları** (`setupCode`/`resetCode`/`regeneratedCode`) panoya **otomatik yazmaz**; kullanıcı "Kodu Kopyala" butonuna basar, sonuç yan nota yazılır. Kullanıcı istemeden panosuna dokunma.
 - **Formatlama:** tarih/saat için `src/utils/date.js`. Bu dosya tarih alanının tek sahibidir: `MONTHS` (Türkçe ay adları), `formatMonthYear(year, month)`, `getToday`/`getCurrentYear`/`getCurrentMonth` (hepsi TR bazlı) ve `formatDate`/`formatDateShort`/`formatTime`/`formatDateTime` buradan gelir. **Kural:** "bugün/şu anki yıl/ay" için renderer'da ham `new Date()` kullanma (makine saat dilimine bağlı kalır — §7.4); ay adı dizisini sayfa içinde tekrar tanımlama. Formatlayıcılar boş/geçersiz girdide `"—"` döner, çağıran tarafta elle null kontrolü gerekmez (ham ISO değeri ekrana basma — `move_in_date` gibi tarih alanlarını da bu formatlayıcılardan geçir). Saat içermeyen bir değere `formatTime` verilirse `"—"` döner (uydurma `00:00` üretmez); `formatDateTime` de bu durumda yalnızca tarihi döndürür. Para formatlama paylaşılan bir yardımcıda değildir — kullanan sayfa `toLocaleString("tr-TR")` ile kendisi formatlar
 - **Sabitler:** paylaşılan bir `utils/constants.js` **yoktur** — her sabit onu kullanan modülde tanımlanır (`THEME_KEY`/`VALID_THEMES` → `useTheme.js`, `SESSION_USER_KEY` → `useCurrentUser.js`). Birden fazla modülden kullanılan sabit, sahibi olan modülden export edilir (`VALID_ROLES` → `useCurrentUser.js`). Sabitler için ayrı bir çöplük dosyası açma
-- **Tema:** light/dark, `style.css` içindeki CSS değişkenleri; bileşen CSS'lerinde renkleri değişken üzerinden kullan, hex sabitleme. Accent türevleri `--accent-focus-ring / --accent-selection / --accent-tint` ailesindedir. **Not:** boşluk/köşe yarıçapı için token ölçeği (`--space-*`, `--radius-*`) yoktur — literal px değerleri kullanılır. `style.css` yalnızca global reset + tema değişkenleri + temel eleman stillerini (body, tipografi, buton, form, scrollbar, toast) barındırır; **paylaşılan `.u-*` yardımcı sınıfı yoktur** (kullanılmadıkları için kaldırıldı — yeni sayfa stilini kendi CSS dosyasında yaz).
-- **Okunabilirlik (hedef kitle):** Kullanıcıların çoğunluğu **40+ yaş** apartman yöneticileridir. Yazı boyutlarını okunabilir tut — gövde/etiket metinleri için ~0.9rem altına inme, ana giriş alanları ~1rem+ olmalı. Uzun bir metni tek satıra sığdırmak için fontu okunmaz derecede küçültme; bunun yerine metni sar, kısalt ya da kapsayıcıyı genişlet (küçük font okunabilirliğe feda edilmez).
+- **Tema:** light/dark, `style.css` içindeki CSS değişkenleri; bileşen CSS'lerinde renkleri değişken üzerinden kullan, hex sabitleme. **Değişken eşiği:** yeni bir CSS değişkeni yalnızca **gerçekten gerekliyse** tanımlanır — bir değer aynı dosyada **birden fazla yerde** kullanılıyorsa veya temaya göre değişiyorsa değişken olur; tek yerde geçen ve temadan bağımsız bir değer için değişken açma (gereksiz token kalabalığı istenmiyor, literal yaz). Accent türevleri `--accent-focus-ring / --accent-selection / --accent-tint` ailesindedir. **Temalar arası tek fark renktir:** iki tema aynı değişken setini aynı anahtarlarla tanımlar; birinde olup diğerinde olmayan gölge/katman/kalınlık **olmaz**. Bunu garantilemek için geometri (offset, blur, spread, `1px solid`, katman sayısı) kuralın içinde literal yazılır, değişken **yalnızca rengi taşır** — `box-shadow: 0 3px 16px var(--x-glow)` doğru, `box-shadow: var(--x-glow)` yanlıştır (ikincisinde bir tema iki katman, diğeri tek katman tanımlayabilir ve fark sessizce kalıcılaşır). Aynı sebeple `[data-theme="light"]` altında yapısal override (farklı `box-shadow` yapısı, farklı `border-width`) yazma; yalnızca değişken değeri ezilir. **Not:** boşluk/köşe yarıçapı için token ölçeği (`--space-*`, `--radius-*`) yoktur — literal px değerleri kullanılır. `style.css` yalnızca global reset + tema değişkenleri + temel eleman stillerini (body, tipografi, buton, form, scrollbar, toast) barındırır; **paylaşılan `.u-*` yardımcı sınıfı yoktur** (kullanılmadıkları için kaldırıldı — yeni sayfa stilini kendi CSS dosyasında yaz).
+- **Şifre alanları:** Her şifre girişi (`Login`, `Setup`, `Recover`) `<CapsLockIndicator />` içerir — alan içinde, göster/gizle butonunun solunda beliren "Büyük Harf" rozeti. Durum takibi bileşenin kendi `useCapsLockOn()` hook'undadır; sayfa **kendi `capsLockOn` state'ini tutmaz, input'a `onKeyUp/onKeyDown/onBlur` bağlamaz**. Hook `document` üzerinde dinler (odak dışı tuş/fare olayları da güncellenir); alan `onBlur`'ünde sıfırlama yapılmaz, çünkü Caps Lock odak kaybedince kapanmıyor. Uyarı **kutulu bir hata bloğu değildir** — kırmızı hata kutusuyla aynı forma sahip olması "bir şeyi yanlış yaptın" izlenimi veriyordu ve belirip kaybolurken altındaki ölçer/kural listesini zıplatıyordu; zeminsiz ve çerçevesiz rozet konumlandırılmış olduğu için akışta yer kaplamaz. Tam cümle `title` + `aria-label`'dadır. Göster/gizle her şifre alanında ayrı state ile çalışır (kullanıcı genelde tek alanı açmak ister)
+- **Okunabilirlik (hedef kitle):** Kullanıcıların çoğunluğu **40+ yaş** apartman yöneticileridir. **Alt sınır 1rem'dir** (önceki ~0.9rem eşiği 2026-07-20'de yükseltildi): gövde, etiket, giriş alanı, buton ve tablo hücresi metni 1rem'in altına inmez. Uzun bir metni tek satıra sığdırmak için fontu küçültme; metni sar, kısalt ya da kapsayıcıyı genişlet (küçük font okunabilirliğe feda edilmez).
+  - **Mevcut durum (2026-07-20):** `src` genelinde 1rem altında **104 tanım / 13 dosya** var (en yoğun: `Apartments.css` 23, `Residents.css` 13, `AdminDashboard.css` 13, `Reports.css` 10, `Transactions.css` 9). Bunlar bilinçli olarak **toplu düzeltilmedi** — yoğun tablo sayfalarında satır yüksekliği/sütun genişliği değişeceği için her sayfa kendi içinde ve gözle doğrulanarak taşınmalıdır. Kural **yeni yazılan koda derhal uygulanır**; eski sayfalar o sayfaya dokunuldukça yükseltilir. Bir sayfayı düzelttiğinde buradaki sayıyı güncelle.
+  - Eşiği tam karşılayan sayfalar: `Login` (en küçük metin 1.05rem), `Setup` (1rem).
 
 ### Rotalar
 
@@ -413,6 +422,7 @@ Kanal adları için tek kaynak: `electron/ipc/channels.js`.
 | ---- | ------- | --- |
 | `/login` | Login | — |
 | `/setup` | Setup | — (yalnızca `needsSetup` iken) |
+| `/recover` | Recover | — (admin şifre sıfırlama, iki adımlı) |
 | `/admin` | AdminDashboard | admin |
 | `/dashboard` | Dashboard | manager |
 | `/add-apartment` | AddApartment | manager |
@@ -520,6 +530,16 @@ npm run reset-appdata  # Paketli sürümün %APPDATA% verisini siler
 | 12 | Sakin yönetimi ayrı `resident` domain + `/residents` sayfası; merge-form sezgisi yerine açık aksiyonlar | `updateApartment`'a gömülü üç yönlü sakin dallanması (`isResidentReplacement`) sorumlulukları karıştırıyor ve kısmi güncellemede veri kaybı riski taşıyordu. Ekle/Düzenle/Çıkış/Geçmiş açık aksiyonları kullanıcı niyetini tahmin etmeye gerek bırakmaz; daire formları yalnızca daire tutar |
 | 13 | `resolveDbError` ortaklaştırıldı — `createDbErrorResolver(columnLabels)` (`electron/modules/shared/dbError.js`) | `apartment`, `financial`, `resident` service'lerinde tekrar eden UNIQUE/CHECK/NOT NULL/FK → Türkçe mesaj çevirisi tek yerde toplanır; her domain kendi `columnLabels` sözlüğüyle resolver üretir |
 | 14 | Apartments sayfası `Apartments.jsx` (salt-okunur liste) ve `ApartmentsManage.jsx` (daire işlemleri) olarak ikiye bölündü | Tek dosya 700+ satıra ulaşmıştı (ROADMAP T1); okuma ve yönetim sorumlulukları ayrışınca her dosya küçülüp bakımı kolaylaştı — ortak parçalar `components/`, `constants.js`, `useDues.js`'e taşındı |
+| 15 | Arka plan görseli **yalnızca giriş ekranlarında** (login/setup/splash) kullanılır; iç sayfalarda yoktur. Görsel dili **soyut mimari çizgi işi**, fotoğraf/render değil | Fotoğraf spesifik olmak zorundadır ve spesifik olduğu an kullanıcıların çoğuyla uyuşmaz (eski login görselleri gökdelen ve lüks villaydı); ayrıca detay/kontrast metin okunabilirliğini düşürür ve tema başına ayrı çekim gerektirdiği için iki tema iki farklı sahne anlatır. Soyut çizgi işi nötr, düşük detaylı ve tek motifin renk çevrimiyle iki temaya eşlenebilir. İç sayfalar günde onlarca kez açılan tablo/rakam ekranlarıdır — arka plan görseli orada kontrastı düşürür ve tekrar gördükçe gürültüye dönüşür (§11 okunabilirlik kuralı) |
+
+| 16 | Admin şifre kurtarma SweetAlert formundan ayrı `/recover` sayfasına taşındı; iki adımlı, yeni IPC endpoint'i olmadan | Tek modalde kod + şifre isteniyordu: şifre tekrarı, göster/gizle ve Caps Lock uyarısı yoktu — kullanıcı göremediği şifreyi yanlış yazarsa tek kullanımlık kod harcanmış ve uygulamaya girilemez oluyordu. Kod alanı da ham `text`'ti (maske/otomatik büyük harf yok). Kod doğrulaması için ayrı bir `verifyRecoveryCode` endpoint'i **bilinçli olarak eklenmedi**: brute-force oracle'ı yaratır ve gereksizdir — adım 1 yalnızca format doğrular, iki adımın state'i tek bileşende tutulduğu için hatalı kodda şifre kaybolmaz |
+
+| 17 | Setup sayfası teal paletten **login ile aynı mavi aileye** geçirildi (dark `--setup-accent: #38a5f7`, light `#1d4ed8`) | Logo mavi gradyandır (`#29c1fb → #1240f0`) ve `--login-accent` (`#38a5f7`) ile aynı aileden; teal olan tek şey Setup'tı. Setup ve login arka arkaya gelen ekranlardır (kurulum biter bitmez `/login`'e yönlendirilir), iki farklı aksan rengi aynı uygulama hissini zayıflatıyordu. Logoyu sayfaya uydurmak yerine sayfa markaya uyduruldu. Şifre gücü ölçerinin kırmızı→yeşil renkleri **tema değil anlam** taşıdığı için dokunulmadı |
+
+| 18 | `prop-types` bağımlılığı ve tüm `Component.propTypes` blokları kaldırıldı (2026-07-20); yerine TypeScript **gelmedi**, prop doğrulaması yok | React 19 `propTypes` denetimini paketten çıkardı: tanımlar sessizce yok sayılıyor. Ölçüldü (React 19.2.7, `renderToString` + kasıtlı yanlış tip) → hiçbir uyarı üretilmedi. Yani 13 tanımın tamamı ölü koddu; çalışmayan bir denetimi tutmak, var olmayan bir korumaya güvenmek demektir. Zorunlu object/func prop'lar eksik geçilirse bileşen zaten anında çöker; `ProtectedRoute`'un `oneOf(VALID_ROLES)` kontrolü de gerçek bir açık kapatmıyordu — `hasRole` katı eşitlik yaptığı için hatalı rol **kapalı tarafa** düşer (erişim reddedilir). Yerine konsola yazan bir guard denendi ve kaldırıldı: hatalı rol zaten ekranda "Erişim reddedildi" toast'ı + yönlendirme olarak görünüyor, rotalar tek dosyada ve iki rol var |
+| 19 | Caps Lock uyarısı paylaşılan `CapsLockIndicator` + `useCapsLockOn` ikilisinde; **alan içi rozet**, metin bloğu değil | Uyarı üç sayfada (Login/Recover/Setup) birebir aynı CSS ile kopyalanmıştı. Kutulu biçim iki sorun taşıyordu: kırmızı hata kutusuyla aynı forma sahip olduğu için hata sanılıyordu ve belirip kaybolurken altındaki içeriği zıplatıyordu. Durum takibinin sayfada tutulması ayrıca hataya açıktı — `onBlur`'de sıfırlanınca başka yere tıklamak uyarıyı Caps Lock hâlâ açıkken kapatıyordu; `document` dinleyicisi bunu çözer. Setup bu uyarının en kritik olduğu ekrandır: Caps Lock açıkken iki alana da aynı şey yazıldığı için "şifreler eşleşiyor" yeşile döner, hesap büyük harfle oluşur ve kullanıcı sonradan giremez (kurtarma kodu gerekir) |
+
+| 20 | Tema değişkenleri **yalnızca renk taşır**; geometri (offset/blur/spread, `1px solid`, katman sayısı) kuralın içinde literal yazılır | Geometri değişkenin içine gömülünce iki tema sessizce ayrışıyordu: Login/Recover/Setup'ta buton glow'u koyuda `0 3px 16px` açıkta `0 3px 14px`, kart çerçevesi koyuda `1px` açıkta `1.5px`, odak halkası koyuda iki katman açıkta tek katmandı; Footer gölgesi 12px/14px ayrılmıştı. Hiçbiri kasıtlı değildi, hepsi kopyala-yapıştır sırasında oluşup fark edilmeden kalmıştı. `box-shadow: var(--x)` yazıldığı sürece bir temaya katman eklemek serbesttir ve gözden kaçar; `box-shadow: 0 3px 16px var(--x-glow)` yazıldığında ise değişken tek bir renk yuvasıdır, yapısal sapma fiziksel olarak mümkün değildir. Aynı sebeple `[data-theme="light"]` altında yapısal override yazılmaz — bu yolla eklenmiş `.login-container` ve `.recover-container` gölge override'ları ile `.setup-welcome::after` gradyan/opacity override'ı kaldırıldı |
 
 Yeni önemli karar aldığında bu tabloya bir satır ekle: **karar + gerekçe**, tahmin bırakma.
 
@@ -542,6 +562,7 @@ Sık yapılan hatalar (yapma):
 - `dues`/`incomes`/`expenses` kaydını DELETE etmek (iptal mekanizması kullan)
 - Renderer'dan `require`/Node API kullanmaya çalışmak
 - SweetAlert'i doğrudan çağırmak (`utils/alert.js` kullan)
+- Koda açıklama yorumu eklemek (gerekçeyi bu dokümana yaz — §3)
 - `showAlert.confirm` sonucunda `result.isConfirmed` beklemek — metod boolean döner (§11)
 - `manager_id` filtresi olmadan manager verisi sorgulamak
 - Handler içinde elle try/catch yazmak (`safeHandler` zarfı kullan — §5.2 madde 3)

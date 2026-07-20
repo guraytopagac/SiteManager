@@ -58,7 +58,7 @@ function Reports() {
 
   const buildPdf = () => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const title = `Mavikent Site Yönetimi — ${formatMonthYear(year, month)} Raporu`;
+    const title = `Mavikent Site Yönetimi ${formatMonthYear(year, month)} Raporu`;
     const pageW = doc.internal.pageSize.getWidth();
 
     doc.setFont("helvetica", "bold");

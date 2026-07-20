@@ -1,7 +1,6 @@
 import { useEffect } from "react";
-import PropTypes from "prop-types";
 import { Navigate } from "react-router-dom";
-import { useCurrentUser, hasRole, homePathFor, VALID_ROLES } from "../../hooks/useCurrentUser";
+import { useCurrentUser, hasRole, homePathFor } from "../../hooks/useCurrentUser";
 import { showAlert } from "../../utils/alert";
 
 function ProtectedRoute({ children, requiredRole, guestOnly = false }) {
@@ -15,8 +14,6 @@ function ProtectedRoute({ children, requiredRole, guestOnly = false }) {
     }
   }, [isForbidden]);
 
-  // Auth screens (/login, /setup): keep a signed-in user out, so history
-  // navigation cannot land them back on a login form they already passed.
   if (guestOnly) {
     return hasSession ? <Navigate to={homePathFor(currentUser)} replace /> : children;
   }
@@ -27,11 +24,5 @@ function ProtectedRoute({ children, requiredRole, guestOnly = false }) {
 
   return children;
 }
-
-ProtectedRoute.propTypes = {
-  children: PropTypes.node.isRequired,
-  requiredRole: PropTypes.oneOf(VALID_ROLES),
-  guestOnly: PropTypes.bool,
-};
 
 export default ProtectedRoute;

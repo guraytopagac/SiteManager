@@ -20,15 +20,7 @@ const base = (t) => ({
 
 const fire = (build) => Swal.fire(build(theme()));
 
-const ESCAPE_MAP = {
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  '"': "&quot;",
-  "'": "&#39;",
-};
-
-const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (ch) => ESCAPE_MAP[ch]);
+const isPasswordInput = (type) => type === "password";
 
 const STATIC_BACKDROP = {
   showClass: { popup: "swal2-show", backdrop: "" },
@@ -117,7 +109,7 @@ const codeDialog = ({ title, code, html, confirmButtonText, staticBackdrop = fal
         clearTimeout(resetTimer);
 
         if (!copied) {
-          noteEl.textContent = "Panoya kopyalanamadı — lütfen kodu elle kopyalayın.";
+          noteEl.textContent = "Panoya kopyalanamadı. Lütfen kodu elle kopyalayın.";
           noteEl.classList.add("is-error");
           return;
         }
@@ -137,64 +129,6 @@ const codeDialog = ({ title, code, html, confirmButtonText, staticBackdrop = fal
     confirmButtonText,
     confirmButtonColor: t.confirm,
   }));
-};
-
-const isPasswordInput = (type) => type === "password";
-
-const fieldElementId = (id) => `swal-field-${id}`;
-
-const fieldHtml = ({ id, type = "text", placeholder = "", autocomplete = "off" }) =>
-  `<input id="${fieldElementId(id)}" type="${escapeHtml(type)}" class="swal2-input" placeholder="${escapeHtml(
-    placeholder,
-  )}" autocomplete="${escapeHtml(autocomplete)}" />`;
-
-const formDialog = async ({ title, description, fields, confirmButtonText, cancelText = "Vazgeç", validate }) => {
-  const { value } = await fire((t) => ({
-    ...base(t),
-    title,
-    html: [description && `<p class="swal-form-description">${escapeHtml(description)}</p>`, ...fields.map(fieldHtml)]
-      .filter(Boolean)
-      .join("\n"),
-    focusConfirm: false,
-    didOpen: () => {
-      const inputs = fields.map(({ id }) => document.getElementById(fieldElementId(id))).filter(Boolean);
-      inputs[0]?.focus();
-      inputs.forEach((el) =>
-        el.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            Swal.clickConfirm();
-          }
-        }),
-      );
-    },
-    showCancelButton: true,
-    reverseButtons: true,
-    confirmButtonText,
-    cancelButtonText: cancelText,
-    confirmButtonColor: t.confirm,
-    cancelButtonColor: t.cancel,
-    preConfirm: () => {
-      const entries = fields.map(({ id, type = "text" }) => {
-        const el = document.getElementById(fieldElementId(id));
-        return [id, el && (isPasswordInput(type) ? el.value : el.value.trim())];
-      });
-
-      if (entries.some(([, val]) => val === null || val === undefined || val === false)) {
-        Swal.showValidationMessage("Form yüklenemedi, lütfen tekrar deneyin.");
-        return false;
-      }
-
-      const values = Object.fromEntries(entries);
-      const message = validate?.(values);
-      if (message) {
-        Swal.showValidationMessage(message);
-        return false;
-      }
-      return values;
-    },
-  }));
-  return value ?? null;
 };
 
 export const showAlert = {
@@ -242,6 +176,16 @@ export const showAlert = {
       title,
       html,
       width: "42em",
+      confirmButtonText: "Kapat",
+      confirmButtonColor: t.confirm,
+    })),
+
+  releaseNotes: (html) =>
+    fire((t) => ({
+      ...base(t),
+      title: "Sürüm Notları",
+      html,
+      width: "54em",
       confirmButtonText: "Kapat",
       confirmButtonColor: t.confirm,
     })),
@@ -317,38 +261,17 @@ export const showAlert = {
       validate: (val) => (!val ? "Şifre zorunludur." : null),
     }),
 
-  adminRecoveryForm: () =>
-    formDialog({
-      title: "Admin Şifre Sıfırlama",
-      description: "İlk kurulumda verilen kurtarma kodunu girin ve yeni bir şifre belirleyin.",
-      fields: [
-        { id: "recoveryCode", placeholder: "Kurtarma kodu" },
-        {
-          id: "newPassword",
-          type: "password",
-          placeholder: "Yeni şifre (en az 8 karakter)",
-          autocomplete: "new-password",
-        },
-      ],
-      confirmButtonText: "Şifreyi Sıfırla",
-      validate: ({ recoveryCode, newPassword }) => {
-        if (!recoveryCode) return "Kurtarma kodu zorunludur.";
-        if (!newPassword || newPassword.length < 8) return "Yeni şifre en az 8 karakter olmalıdır.";
-        return null;
-      },
-    }),
-
   setupCode: (code) =>
     codeDialog({
       title: "Hesabınız Hazır",
       code,
       html: `
-        Yönetici şifreniz belirlendi.<br /><br />
+        Sistem yöneticisi şifreniz belirlendi.<br /><br />
         <b>Kurtarma kodunuz:</b><br />
         ${CODE_LINE}
         ${COPY_LINE}<br />
         <p class="swal-note">Şifrenizi unutursanız giriş ekranından bu kodla yeni şifre belirlersiniz.</p>
-        <p class="swal-warning">Bu kod bir daha gösterilmeyecek — güvenli bir yerde saklayın.</p>
+        <p class="swal-warning">Bu kod bir daha gösterilmeyecek. Güvenli bir yerde saklayın.</p>
       `,
       confirmButtonText: "Kaydettim, Devam Et",
       staticBackdrop: true,
@@ -360,13 +283,14 @@ export const showAlert = {
       title: "Şifre Sıfırlandı",
       code,
       html: `
-        Yönetici şifreniz güncellendi.<br /><br />
+        Sistem yöneticisi şifreniz güncellendi.<br /><br />
         <b>Yeni kurtarma kodunuz:</b><br />
         ${CODE_LINE}
         ${COPY_LINE}
-        Bu kodu güvenli bir yerde saklayın — eski kod artık geçersizdir.
+        Bu kodu güvenli bir yerde saklayın. Eski kod artık geçersizdir.
       `,
       confirmButtonText: "Anladım",
+      staticBackdrop: true,
       width: "37em",
     }),
 

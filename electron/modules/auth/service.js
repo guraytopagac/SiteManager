@@ -53,7 +53,7 @@ function getManagers() {
     return { success: true, data };
   } catch (err) {
     console.error("[auth.service] getManagers:", err);
-    return { success: false, message: "Yönetici listesi alınamadı." };
+    return { success: false, message: "Site yöneticisi listesi alınamadı." };
   }
 }
 
@@ -68,7 +68,7 @@ function createManager(managerData) {
       managerData.email,
       hashedPassword,
     );
-    return { success: true, message: "Yönetici hesabı başarıyla oluşturuldu." };
+    return { success: true, message: "Site yöneticisi hesabı başarıyla oluşturuldu." };
   } catch (err) {
     console.error("[auth.service] createManager:", err.message);
     if (err.message?.includes("UNIQUE"))
@@ -84,8 +84,8 @@ function updateManagerStatus(id, isActive) {
     const result = db
       .prepare(`UPDATE users SET is_active = ? WHERE id = ? AND role = 'manager'`)
       .run(isActive ? 1 : 0, id);
-    if (result.changes === 0) return { success: false, message: "Yönetici bulunamadı." };
-    const msg = isActive ? "Yönetici hesabı aktif edildi." : "Yönetici hesabı deaktif edildi.";
+    if (result.changes === 0) return { success: false, message: "Site yöneticisi bulunamadı." };
+    const msg = isActive ? "Site yöneticisi hesabı aktif edildi." : "Site yöneticisi hesabı deaktif edildi.";
     return { success: true, message: msg };
   } catch (err) {
     console.error("[auth.service] updateManagerStatus:", err);

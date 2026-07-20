@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import PropTypes from "prop-types";
 import "./PageLoader.css";
 
 function PageLoader({ message = "Yükleniyor...", delay = 150, fullscreen = false }) {
@@ -22,11 +21,5 @@ function PageLoader({ message = "Yükleniyor...", delay = 150, fullscreen = fals
     </div>
   );
 }
-
-PageLoader.propTypes = {
-  message: PropTypes.string,
-  delay: PropTypes.number,
-  fullscreen: PropTypes.bool,
-};
 
 export default PageLoader;

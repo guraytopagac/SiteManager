@@ -1,5 +1,4 @@
 import { useState } from "react";
-import PropTypes from "prop-types";
 import { showAlert } from "@/utils/alert";
 import { APARTMENT_TYPES } from "../constants";
 
@@ -89,12 +88,5 @@ function EditModal({ apartment, currentUser, onClose, onSaved }) {
     </div>
   );
 }
-
-EditModal.propTypes = {
-  apartment: PropTypes.object.isRequired,
-  currentUser: PropTypes.object.isRequired,
-  onClose: PropTypes.func.isRequired,
-  onSaved: PropTypes.func.isRequired,
-};
 
 export default EditModal;

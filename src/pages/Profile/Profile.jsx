@@ -69,7 +69,7 @@ function Profile() {
           </div>
           <div className="info-item">
             <span className="info-label">Rol</span>
-            <span className="info-value role-badge">{hasRole(currentUser, "admin") ? "Yönetici" : "Sorumlu"}</span>
+            <span className="info-value role-badge">{hasRole(currentUser, "admin") ? "Sistem Yöneticisi" : "Site Yöneticisi"}</span>
           </div>
           <div className="info-item">
             <span className="info-label">Son Giriş</span>

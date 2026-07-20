@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import PropTypes from "prop-types";
 import { showAlert } from "@/utils/alert";
 import { getToday, formatMonthYear } from "@/utils/date";
 import { PAYMENT_METHOD_LABELS, OVERPAY_TOLERANCE } from "../constants";
@@ -216,14 +215,5 @@ function PaymentModal({ due, year, month, currentUser, onClose, onPaymentSaved }
     </div>
   );
 }
-
-PaymentModal.propTypes = {
-  due: PropTypes.object.isRequired,
-  year: PropTypes.number.isRequired,
-  month: PropTypes.number.isRequired,
-  currentUser: PropTypes.object.isRequired,
-  onClose: PropTypes.func.isRequired,
-  onPaymentSaved: PropTypes.func.isRequired,
-};
 
 export default PaymentModal;

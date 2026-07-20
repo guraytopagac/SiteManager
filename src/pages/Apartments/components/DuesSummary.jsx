@@ -1,4 +1,3 @@
-import PropTypes from "prop-types";
 
 function DuesSummary({ dues }) {
   const totalDue = dues.reduce((sum, d) => sum + d.due_amount, 0);
@@ -28,9 +27,5 @@ function DuesSummary({ dues }) {
     </div>
   );
 }
-
-DuesSummary.propTypes = {
-  dues: PropTypes.array.isRequired,
-};
 
 export default DuesSummary;

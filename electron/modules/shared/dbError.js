@@ -39,4 +39,4 @@ function createDbErrorResolver(columnLabels = {}) {
   };
 }
 
-module.exports = { createDbErrorResolver, extractConstraintCol };
+module.exports = { createDbErrorResolver };

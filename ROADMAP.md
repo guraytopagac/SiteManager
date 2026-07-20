@@ -167,6 +167,9 @@ Mevcut durum ve mimari için bkz. `CLAUDE.md`.
 | 9 | Renderer'da hata loglanmıyor | Kullanıcı hatası teşhis edilemiyor | İleride `window.onerror` → IPC → electron-log köprüsü (yeni kanal, kullanıcıya sor) |
 | 10 | Rapor sorgularında index denetimi yapılmadı | Veri büyüyünce yavaş rapor | T2 ile birlikte `EXPLAIN QUERY PLAN` kontrolü; gerekirse `dues(year,month)`, `incomes(manager_id,date)` indexleri |
 | 11 | Dialog renkleri JS'ten inline yazılıyor (`alert.js` → `theme()`/`base()`, `confirmButtonColor` vb.) | Renkler dialog açıldığı anda donuyor: dialog açıkken tema değiştirilirse zemin/butonlar eski temada kalır, `swal-*` sınıflarıyla gelen renkler yeni temaya geçer → karışık görünüm (ör. lacivert zeminde açık tema uyarı kutusu okunmaz) | Popup/buton renklerini `style.css`'e CSS değişkeni olarak taşı, `theme()`'i kaldır. Tüm dialogları etkiler, gözle regresyon kontrolü ister — ayrı görev. Gerçek kullanımda düşük olasılık (kullanıcı dialog açıkken tema değiştirmiyor), o yüzden düşük öncelik |
+| 13 | 1rem okunabilirlik eşiğinin altında **104 tanım / 13 dosya** (`Apartments.css` 23, `Residents.css` 13, `AdminDashboard.css` 13, `Reports.css` 10, `Transactions.css` 9, diğerleri 36) | 40+ hedef kitlede küçük yazı okunabilirlik sorunu; CLAUDE.md §11 eşiği 2026-07-20'de 0.9rem'den 1rem'e çıkarıldı ama mevcut sayfalar taşınmadı | Sayfa sayfa yükselt, **toplu sweep yapma** — yoğun tablo sayfalarında satır yüksekliği ve sütun genişliği değişir, her sayfa iki temada gözle doğrulanmalı. `Login` ve `Setup` tamamlandı. Her sayfa bitince CLAUDE.md §11'deki sayacı güncelle |
+| 14 | `.prettierrc` yok; kod ~100 karakter genişlikte yazılmış, Prettier varsayılanı 80 | `npx prettier --check` neredeyse her dosyayı uyumsuz gösteriyor → format denetimi sinyal olarak işe yaramıyor | Projenin gerçek genişliğini tespit edip config dosyası ekle. **Mevcut dosyaları aynı değişiklikte reformat etme** — tek seferde tüm repo'yu biçimlendirmek gerçek değişiklikleri gömer |
+| 12 | `Setup.css`, `Login.css` ve `Recover.css` kendi paralel tema değişken setlerini taşıyor (`--setup-*`, `--login-*`, `--recover-*`), `style.css`'teki global token'lardan bağımsız | Tema/renk kararı dört yerde yaşıyor: global accent değişince bu ekranlar eski renkte kalır, her tema ayarında dosyaları elle eşitlemek gerekiyor (v1.4.0 ve v1.5.0 yenilemelerinde bu maliyet iki kez görüldü). `Login.css` ile `Recover.css` neredeyse birebir aynı seti tanımlıyor | Giriş ekranları kendi arka plan görselleri ve tam ekran düzeniyle bilinçli olarak ayrı — şimdilik kalsın. En azından `Login`/`Recover` ikilisi tek sete indirilebilir (kardeş ekranlar, aynı değerler). ADR 20 gereği geometri kurala literal yazılır, değişken yalnızca renk taşır — birleştirme sırasında bu korunmalı |
 
 ---
 
@@ -179,6 +182,12 @@ Mevcut durum ve mimari için bkz. `CLAUDE.md`.
 5. **Bakım modu / kilit ekranı** — yönetici masadan kalkınca hızlı kilit (şifre ile açma); ortak kullanılan bilgisayarlarda gizlilik.
 6. **Gider bütçesi** — kategori bazlı aylık bütçe + aşım uyarısı; Dashboard kartı olarak.
 7. **Performans izleme (dev)** — yavaş IPC çağrılarını (>100 ms) electron-log'a yazan basit sarmalayıcı; teknik borç #10'un erken uyarısı.
+8. **Setup ve splash arka planlarının görsel dili** — Login (2026-07-19) soyut apartman çizgi işine geçirildi (CLAUDE.md ADR #15). Kalan işler:
+   - `setup/light.jpg` (2026-07-19) node-network motifi korunarak **maviye** yeniden üretildi; ADR #17 palet geçişiyle uyumlu. `setup/dark.jpg` hâlâ **teal** ve artık sayfadaki tek uyumsuz parça — aynı motifin mavi karşılığı üretilmeli (bright azure `#38a5f7` + `#29c1fb` düğümler, lacivert `#0a1220` zemin, solda yoğun / sağda boş 16:9).
+   - `splash/bg.jpg` hâlâ eski görselinde.
+   - Motif birliği ayrı bir borç: setup node-network, login ise soyut apartman çizgi işi. ADR #15 "giriş ekranlarının tamamı aynı görsel dilde" diyor; uzun vadede ikisi tek aileye çekilmeli.
+   Düşük öncelik; tamamen tutarlılık işi.
+9. **Setup sol sütun metinleri** — `Setup.jsx`'teki "Başlamadan Önce" uyarı kutusu ve "Kurulumdan Sonra" özellik listesi (2026-07-20) yeniden yazıldı: uyarı tek paragraftan iki maddeye bölündü, özellik listesi madde başına ayrı ikona geçti, dördüncü madde destek e-postası yerine yedeklemeye çevrildi. Liste **uygulamanın o anki yeteneklerini** anlatır, bu yüzden yeni özellikler geldikçe gözden geçirilmeli (Ö4 makbuz, Ö5 dışa aktarım, Ö6 trend grafiği, A1 otomatik yedekleme). Kısıtlar: dört madde tek satırda kalmalı (en uzunu ~45 karakter), fiiller emir kipinde, `Kurulumdan Sonra` ve `Başlamadan Önce` başlıkları aynı stili paylaşır (`.setup-notice-title` / `.setup-adv-label`). A1 geldiğinde yedekleme maddesi "otomatik" vurgusuyla güncellenmeli.
 
 Bilinçli olarak **eklenmeyecekler:** bildirim/e-posta gönderimi (offline ilkesine aykırı, SMTP yapılandırma yükü), plugin mimarisi (tek geliştirici + kapalı kapsam için aşırı mühendislik), çevrimiçi senkron/çoklu cihaz (sunucusuz mimari temel karar).
 
@@ -203,5 +212,14 @@ Bilinçli olarak **eklenmeyecekler:** bildirim/e-posta gönderimi (offline ilkes
 | Yedek zamanlayıcı (A1) | `setInterval` vs `node-cron` | `setInterval` |
 | Ayar saklama (A1) | `settings` tablosu vs userData JSON | userData JSON |
 | Bulut yedek (A2) | OAuth vs senkron klasörü | Senkron klasörü (OAuth rafa kalktı) |
+| Kalıcı oturum ("Beni hatırla") | Eklenmesin vs kalıcı token | **Eklenmesin** — aşağıdaki nota bakınız |
 
 Bu kararlar ilgili göreve başlarken kullanıcıya sorulur; onaylanan karar bu tablodan silinip görev metnine işlenir.
+
+### Not: Kalıcı oturum ("Beni hatırla")
+
+CLAUDE.md §6 uzun süre "30 günlük session token" yazıyordu; **böyle bir şey hiç var olmadı** — `auth` modülünde ve şemada token/session/remember izi yok. Yanlış satır silindi (2026-07-18).
+
+Eklenmesi hâlinde gerekenler: `users`'a kolon veya yeni tablo (migration + schema çifti), en az bir yeni IPC endpoint (channels + handlers + service + preload), `useCurrentUser`'ın `sessionStorage` dışına taşınması, token'ın diskte nasıl saklanacağına dair güvenlik kararı.
+
+**Öneri: eklenmesin.** Tek kullanıcılı, tamamen offline, kullanıcının kendi makinesinde çalışan bir uygulamada kalıcı oturum, şifre korumasını fiilen devre dışı bırakır; kazanç girişte birkaç saniyedir. Buna karşılık oturumun süreçle birlikte ölmesi (mevcut davranış) sistemin en sade ve en güvenli taraflarından biridir. Kullanıcı açıkça talep etmedikçe açılmamalı.

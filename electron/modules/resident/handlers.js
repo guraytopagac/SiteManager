@@ -104,7 +104,7 @@ function validateResidentFields(data) {
 
 function validateManagerId(managerId) {
   if (!Number.isInteger(managerId) || managerId <= 0) {
-    return { success: false, message: "Geçersiz yönetici ID." };
+    return { success: false, message: "Geçersiz site yöneticisi ID." };
   }
   return null;
 }

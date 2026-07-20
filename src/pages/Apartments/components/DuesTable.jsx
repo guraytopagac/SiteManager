@@ -1,4 +1,3 @@
-import PropTypes from "prop-types";
 import { STATUS_LABELS } from "../constants";
 
 /**
@@ -63,11 +62,5 @@ function DuesTable({ dues, onStatusClick, renderRowActions }) {
     </table>
   );
 }
-
-DuesTable.propTypes = {
-  dues: PropTypes.array.isRequired,
-  onStatusClick: PropTypes.func,
-  renderRowActions: PropTypes.func,
-};
 
 export default DuesTable;

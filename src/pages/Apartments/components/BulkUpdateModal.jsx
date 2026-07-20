@@ -1,5 +1,4 @@
 import { useState } from "react";
-import PropTypes from "prop-types";
 import { showAlert } from "@/utils/alert";
 
 function BulkUpdateModal({ currentUser, onClose, onSaved }) {
@@ -73,11 +72,5 @@ function BulkUpdateModal({ currentUser, onClose, onSaved }) {
     </div>
   );
 }
-
-BulkUpdateModal.propTypes = {
-  currentUser: PropTypes.object.isRequired,
-  onClose: PropTypes.func.isRequired,
-  onSaved: PropTypes.func.isRequired,
-};
 
 export default BulkUpdateModal;

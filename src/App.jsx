@@ -8,6 +8,7 @@ import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute.jsx";
 
 const Setup = lazy(() => import("./pages/Setup/Setup.jsx"));
 const Login = lazy(() => import("./pages/Login/Login.jsx"));
+const Recover = lazy(() => import("./pages/Recover/Recover.jsx"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard/AdminDashboard.jsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard/Dashboard.jsx"));
 const AddApartment = lazy(() => import("./pages/AddApartment/AddApartment.jsx"));
@@ -68,6 +69,14 @@ function App() {
                 element={
                   <ProtectedRoute guestOnly>
                     <Login />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/recover"
+                element={
+                  <ProtectedRoute guestOnly>
+                    <Recover />
                   </ProtectedRoute>
                 }
               />

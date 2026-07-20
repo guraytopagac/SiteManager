@@ -29,7 +29,7 @@ function validateAmountDescriptionCategory(data, allowedCategories) {
     return { success: false, message: "Tutar 1.000.000₺'yi aşamaz." };
   }
   if (!Number.isInteger(data.managerId) || data.managerId <= 0) {
-    return { success: false, message: "Geçersiz yönetici ID." };
+    return { success: false, message: "Geçersiz site yöneticisi ID." };
   }
   if (!data.date) {
     return { success: false, message: "Eksik alan: tarih bilgisi." };

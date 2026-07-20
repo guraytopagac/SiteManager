@@ -94,15 +94,6 @@
   transform: translateY(-1px);
 }
 
-.button-excel {
-  background: var(--income-color);
-  color: white;
-}
-.button-excel:hover {
-  filter: brightness(0.88);
-  transform: translateY(-1px);
-}
-
 .button-back {
   background: var(--button-color);
   color: white;
@@ -255,12 +246,6 @@
   background: var(--color-warning-bg);
   color: var(--color-warning-text);
 }
-.status-pending,
-.status-overdue {
-  background: var(--color-danger-bg);
-  color: var(--color-danger-text);
-}
-
 .date-cell {
   font-size: 0.85rem;
   opacity: 0.75;
