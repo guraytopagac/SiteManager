@@ -39,20 +39,10 @@ const TIME_OPTIONS = { hour: "2-digit", minute: "2-digit" };
 const SHORT_DATE_OPTIONS = { day: "2-digit", month: "2-digit", year: "numeric" };
 
 export const getToday = () => nowInTr().toISOString().slice(0, 10);
-
 export const getCurrentYear = () => Number(getToday().slice(0, 4));
-
 export const getCurrentMonth = () => Number(getToday().slice(5, 7));
-
 export const formatDate = (value) => format(value, { day: "numeric", month: "long", year: "numeric" });
-
 export const formatDateShort = (value) => format(value, SHORT_DATE_OPTIONS);
-
-export const formatTime = (value) => {
-  const parsed = parse(value);
-  if (!parsed || !parsed.hasTime) return EMPTY;
-  return parsed.date.toLocaleTimeString(LOCALE, TIME_OPTIONS);
-};
 
 export const formatDateTime = (value) => {
   const parsed = parse(value);

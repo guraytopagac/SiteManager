@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS incomes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  manager_id INTEGER NOT NULL,
+  building_id INTEGER NOT NULL,
   due_payment_id INTEGER UNIQUE,
   amount REAL NOT NULL CHECK(amount > 0 AND amount <= 1000000),
   date TEXT NOT NULL CHECK(date(date) IS NOT NULL AND date >= '2000-01-01'),
@@ -16,13 +16,13 @@ CREATE TABLE IF NOT EXISTS incomes (
     (is_cancelled = 0 AND cancelled_at IS NULL AND cancel_reason IS NULL AND cancelled_by IS NULL) OR
     (is_cancelled = 1 AND cancelled_at IS NOT NULL AND cancel_reason IS NOT NULL AND cancelled_by IS NOT NULL)
   ),
-  FOREIGN KEY(manager_id) REFERENCES users(id) ON DELETE RESTRICT,
+  FOREIGN KEY(building_id) REFERENCES buildings(id) ON DELETE RESTRICT,
   FOREIGN KEY(due_payment_id) REFERENCES due_payments(id) ON DELETE RESTRICT,
   FOREIGN KEY(cancelled_by) REFERENCES users(id) ON DELETE RESTRICT
 );
 
-CREATE INDEX IF NOT EXISTS idx_incomes_manager_date ON incomes(manager_id, date);
-CREATE INDEX IF NOT EXISTS idx_incomes_active_only ON incomes(manager_id, date) WHERE is_cancelled = 0;
+CREATE INDEX IF NOT EXISTS idx_incomes_building_date ON incomes(building_id, date);
+CREATE INDEX IF NOT EXISTS idx_incomes_active_only ON incomes(building_id, date) WHERE is_cancelled = 0;
 
 CREATE TRIGGER IF NOT EXISTS trg_incomes_prevent_update_after_cancel
   BEFORE UPDATE ON incomes FOR EACH ROW

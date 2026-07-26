@@ -30,14 +30,11 @@
   --button-text: #ffffff;
   --accent-tint: rgba(20, 184, 166, 0.12);
 
-  /* Copy button is deliberately theme-invariant: it keeps the light theme's
-     blue/green with white ink in both themes, so it is not wired to
-     --button-color / --success, which flip to bright tones in the dark theme. */
   --swal-copy-bg: #4f6ef7;
   --swal-copy-bg-done: #16a34a;
   --swal-copy-ink: #ffffff;
+  --swal-popup-border: #1e3350;
 
-  /* A tint over the dialog surface, not an opaque block. */
   --swal-warning-bg: rgba(248, 113, 113, 0.12);
   --swal-warning-border: #f87171;
   --swal-warning-text: #fca5a5;
@@ -64,6 +61,9 @@
   --expense-text: #fca5a5;
 
   --card-shadow: rgba(0, 0, 0, 0.35);
+  --page-surface-1: #101c2f;
+  --page-surface-2: #16253c;
+  --page-shadow: rgba(0, 0, 0, 0.45);
 }
 
 [data-theme="light"] {
@@ -77,8 +77,8 @@
   --footer-surface: rgba(15, 23, 42, 0.08);
   --footer-surface-hover: rgba(15, 23, 42, 0.15);
 
-  --background-color-1: #f8fafc;
-  --background-color-2: #f1f5f9;
+  --background-color-1: #e6ecf5;
+  --background-color-2: #dfe6f1;
   --card-background-1: #ffffff;
   --card-background-2: #f1f5f9;
   --dot-color: rgba(100, 116, 139, 0.45);
@@ -100,11 +100,10 @@
   --success: #16a34a;
   --danger: #dc2626;
   --warning: #d97706;
-  /* Same tint and strip as the dark theme; only the ink differs, because
-     #fca5a5 on this theme's white dialog would drop to 1.6:1. */
   --swal-warning-bg: rgba(248, 113, 113, 0.12);
   --swal-warning-border: #f87171;
   --swal-warning-text: #b91c1c;
+  --swal-popup-border: #cbd5e1;
   --color-success-bg: #dcfce7;
   --color-success-text: #15803d;
   --color-warning-bg: #fef3c7;
@@ -124,6 +123,9 @@
   --expense-text: #b91c1c;
 
   --card-shadow: rgba(0, 0, 0, 0.12);
+  --page-surface-1: #ffffff;
+  --page-surface-2: #f6f8fc;
+  --page-shadow: rgba(15, 23, 42, 0.1);
 }
 
 * {
@@ -148,10 +150,21 @@ body {
   justify-content: center;
   align-items: center;
   padding-bottom: var(--footer-height);
-  /* No transition here on purpose: animating the viewport-sized dot-pattern
-     gradient forced a full CPU re-raster every frame on theme change
-     (hardware acceleration is disabled app-wide). Measured 18.1ms -> 6.1ms
-     median frame time by dropping this and the Setup overlay fade. */
+}
+
+.dashboard-container,
+.apartments-container,
+.residents-container,
+.transactions-container,
+.reports-container,
+.profile-container,
+.income-container,
+.expense-container,
+.add-apartment-container {
+  background: linear-gradient(180deg, var(--page-surface-2), var(--page-surface-1));
+  border: 1px solid var(--border-default);
+  border-radius: 20px;
+  box-shadow: 0 10px 32px var(--page-shadow);
 }
 
 h1,
@@ -335,7 +348,7 @@ textarea:focus-visible {
 }
 
 .swal2-popup:not(.toast-popup) {
-  border: 2px solid var(--border-default);
+  border: 2px solid var(--swal-popup-border);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
 }
 

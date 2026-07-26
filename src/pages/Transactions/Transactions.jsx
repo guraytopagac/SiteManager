@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Transactions.css";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { showAlert } from "@/utils/alert";
 import { formatDate } from "@/utils/date";
 
@@ -26,18 +27,19 @@ const formatCurrency = (n) => `${n.toLocaleString("tr-TR")} ₺`;
 function Transactions() {
   const navigate = useNavigate();
   const currentUser = useCurrentUser();
+  const building = useCurrentBuilding();
 
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
 
   const fetchTransactions = useCallback(async () => {
-    if (!currentUser?.id) {
+    if (!building?.id) {
       navigate("/", { replace: true });
       return;
     }
     try {
-      const response = await window.electronAPI.getTransactions(currentUser.id);
+      const response = await window.electronAPI.getTransactions(building.id);
       if (response.success) {
         setTransactions(response.data);
       } else {
@@ -48,18 +50,18 @@ function Transactions() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, navigate]);
+  }, [building, navigate]);
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
-      if (!currentUser?.id) {
+      if (!building?.id) {
         navigate("/", { replace: true });
         return;
       }
       try {
-        const response = await window.electronAPI.getTransactions(currentUser.id);
+        const response = await window.electronAPI.getTransactions(building.id);
         if (cancelled) return;
         if (response.success) {
           setTransactions(response.data);
@@ -76,7 +78,7 @@ function Transactions() {
     return () => {
       cancelled = true;
     };
-  }, [currentUser, navigate]);
+  }, [building, navigate]);
 
   const handleCancel = useCallback(
     async (t) => {
@@ -84,7 +86,7 @@ function Transactions() {
       if (!reason) return;
 
       const fn = t.type === "income" ? window.electronAPI.cancelIncome : window.electronAPI.cancelExpense;
-      const res = await fn({ id: t.id, userId: currentUser.id, reason });
+      const res = await fn({ id: t.id, buildingId: building.id, userId: currentUser.id, reason });
       if (res.success) {
         showAlert.success("İptal Edildi", res.message);
         fetchTransactions();
@@ -92,7 +94,7 @@ function Transactions() {
         showAlert.error("Hata", res.message);
       }
     },
-    [currentUser, fetchTransactions],
+    [building, currentUser, fetchTransactions],
   );
 
   const filtered = useMemo(

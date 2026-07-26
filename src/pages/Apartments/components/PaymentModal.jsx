@@ -3,7 +3,7 @@ import { showAlert } from "@/utils/alert";
 import { getToday, formatMonthYear } from "@/utils/date";
 import { PAYMENT_METHOD_LABELS, OVERPAY_TOLERANCE } from "../constants";
 
-function PaymentModal({ due, year, month, currentUser, onClose, onPaymentSaved }) {
+function PaymentModal({ due, year, month, currentUser, building, onClose, onPaymentSaved }) {
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [paymentDate, setPaymentDate] = useState(() => getToday());
@@ -15,17 +15,17 @@ function PaymentModal({ due, year, month, currentUser, onClose, onPaymentSaved }
 
   const fetchHistory = useCallback(async () => {
     setHistoryLoading(true);
-    const res = await window.electronAPI.getPaymentHistory(due.id);
+    const res = await window.electronAPI.getPaymentHistory(due.id, building.id);
     if (res.success) setHistory(res.data);
     setHistoryLoading(false);
-  }, [due.id]);
+  }, [due.id, building.id]);
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
       setHistoryLoading(true);
-      const res = await window.electronAPI.getPaymentHistory(due.id);
+      const res = await window.electronAPI.getPaymentHistory(due.id, building.id);
       if (cancelled) return;
       if (res.success) setHistory(res.data);
       setHistoryLoading(false);
@@ -34,7 +34,7 @@ function PaymentModal({ due, year, month, currentUser, onClose, onPaymentSaved }
     return () => {
       cancelled = true;
     };
-  }, [due.id]);
+  }, [due.id, building.id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -84,7 +84,7 @@ function PaymentModal({ due, year, month, currentUser, onClose, onPaymentSaved }
 
     if (!reason) return;
 
-    const res = await window.electronAPI.cancelPayment({ paymentId, userId: currentUser.id, reason });
+    const res = await window.electronAPI.cancelPayment({ paymentId, buildingId: building.id, userId: currentUser.id, reason });
     if (res.success) {
       showAlert.success("İptal Edildi", res.message);
       onPaymentSaved();

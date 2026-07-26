@@ -28,8 +28,8 @@ function validateAmountDescriptionCategory(data, allowedCategories) {
   if (data.amount > MAX_AMOUNT) {
     return { success: false, message: "Tutar 1.000.000₺'yi aşamaz." };
   }
-  if (!Number.isInteger(data.managerId) || data.managerId <= 0) {
-    return { success: false, message: "Geçersiz site yöneticisi ID." };
+  if (!Number.isInteger(data.buildingId) || data.buildingId <= 0) {
+    return { success: false, message: "Geçersiz bina ID." };
   }
   if (!data.date) {
     return { success: false, message: "Eksik alan: tarih bilgisi." };
@@ -68,9 +68,9 @@ function validateExpenseData(data) {
   return validateAmountDescriptionCategory(data, EXPENSE_CATEGORIES);
 }
 
-function validateGetTransactionsData(managerId) {
-  if (!Number.isInteger(managerId) || managerId <= 0) {
-    return { success: false, message: "Geçersiz kullanıcı ID." };
+function validateGetTransactionsData(buildingId) {
+  if (!Number.isInteger(buildingId) || buildingId <= 0) {
+    return { success: false, message: "Geçersiz bina ID." };
   }
   return null;
 }
@@ -79,9 +79,12 @@ function validateCancelData(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return { success: false, message: "Geçersiz istek." };
   }
-  const { id, userId, reason } = payload;
+  const { id, buildingId, userId, reason } = payload;
   if (!Number.isInteger(id) || id <= 0) {
     return { success: false, message: "Geçersiz kayıt ID." };
+  }
+  if (!Number.isInteger(buildingId) || buildingId <= 0) {
+    return { success: false, message: "Geçersiz bina ID." };
   }
   if (!Number.isInteger(userId) || userId <= 0) {
     return { success: false, message: "Geçersiz kullanıcı ID." };
@@ -120,12 +123,12 @@ function registerFinancialHandlers(ipcMain) {
 
   ipcMain.handle(
     CH.FINANCIAL.GET_TRANSACTIONS,
-    safeHandler(CH.FINANCIAL.GET_TRANSACTIONS, (managerId) => {
-      const error = validateGetTransactionsData(managerId);
+    safeHandler(CH.FINANCIAL.GET_TRANSACTIONS, (buildingId) => {
+      const error = validateGetTransactionsData(buildingId);
       if (error) {
         return error;
       }
-      return financialService.getTransactions(managerId);
+      return financialService.getTransactions(buildingId);
     }),
   );
 
@@ -136,7 +139,7 @@ function registerFinancialHandlers(ipcMain) {
       if (error) {
         return error;
       }
-      return financialService.cancelIncome(payload.id, payload.userId, payload.reason.trim());
+      return financialService.cancelIncome(payload.id, payload.buildingId, payload.userId, payload.reason.trim());
     }),
   );
 
@@ -147,7 +150,7 @@ function registerFinancialHandlers(ipcMain) {
       if (error) {
         return error;
       }
-      return financialService.cancelExpense(payload.id, payload.userId, payload.reason.trim());
+      return financialService.cancelExpense(payload.id, payload.buildingId, payload.userId, payload.reason.trim());
     }),
   );
 }

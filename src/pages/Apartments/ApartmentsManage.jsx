@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Apartments.css";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { showAlert } from "@/utils/alert";
 import { getCurrentYear, getCurrentMonth } from "@/utils/date";
 import { useDues } from "./useDues";
@@ -16,6 +17,7 @@ function ApartmentsManage() {
   const navigate = useNavigate();
   const currentYear = getCurrentYear();
   const currentUser = useCurrentUser();
+  const building = useCurrentBuilding();
 
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedMonth, setSelectedMonth] = useState(() => getCurrentMonth());
@@ -23,7 +25,7 @@ function ApartmentsManage() {
   const [editingApartment, setEditingApartment] = useState(null);
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
 
-  const { dues, loading, errorMessage, refetch } = useDues(currentUser?.id, selectedYear, selectedMonth);
+  const { dues, loading, errorMessage, refetch } = useDues(building?.id, selectedYear, selectedMonth);
 
   const selectedDue = useMemo(
     () => (selectedApartmentId ? dues.find((d) => d.apartment_id === selectedApartmentId) || null : null),
@@ -43,7 +45,7 @@ function ApartmentsManage() {
 
     if (!confirmed) return;
 
-    const res = await window.electronAPI.deleteApartment(due.apartment_id, currentUser.id);
+    const res = await window.electronAPI.deleteApartment(due.apartment_id, building.id);
     if (res.success) {
       await showAlert.success("Silindi", res.message);
       refetch();
@@ -115,6 +117,7 @@ function ApartmentsManage() {
           year={selectedYear}
           month={selectedMonth}
           currentUser={currentUser}
+          building={building}
           onClose={() => setSelectedApartmentId(null)}
           onPaymentSaved={handlePaymentSaved}
         />
@@ -123,7 +126,7 @@ function ApartmentsManage() {
       {editingApartment && (
         <EditModal
           apartment={editingApartment}
-          currentUser={currentUser}
+          building={building}
           onClose={() => setEditingApartment(null)}
           onSaved={() => {
             setEditingApartment(null);
@@ -134,7 +137,7 @@ function ApartmentsManage() {
 
       {showBulkUpdate && (
         <BulkUpdateModal
-          currentUser={currentUser}
+          building={building}
           onClose={() => setShowBulkUpdate(false)}
           onSaved={() => {
             setShowBulkUpdate(false);

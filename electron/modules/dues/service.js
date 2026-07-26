@@ -6,7 +6,7 @@ function calcDueStatus(dueAmount, paidAmount) {
   return "unpaid";
 }
 
-function getDuesForMonth(managerId, year, month) {
+function getDuesForMonth(buildingId, year, month) {
   try {
     const monthlyDuesData = db
       .prepare(
@@ -16,17 +16,15 @@ function getDuesForMonth(managerId, year, month) {
              COALESCE(d.due_amount, a.due_amount) AS due_amount,
              COALESCE(d.paid_amount, 0) AS paid_amount,
              COALESCE(d.status, 'unpaid') AS status,
-             r.full_name AS resident_name, r.phone AS resident_phone, r.email AS resident_email,
-             r.national_id AS resident_national_id, r.resident_type, r.move_in_date AS resident_move_in_date,
-             r.move_out_date AS resident_move_out_date, r.notes AS resident_notes
+             r.full_name AS resident_name
       FROM apartments a
       LEFT JOIN dues d ON d.apartment_id = a.id AND d.year = ? AND d.month = ?
       LEFT JOIN residents r ON r.apartment_id = a.id AND r.is_active = 1
-      WHERE a.manager_id = ? AND a.is_active = 1
+      WHERE a.building_id = ? AND a.is_active = 1
       ORDER BY a.apartment_no ASC
     `,
       )
-      .all(year, month, managerId);
+      .all(year, month, buildingId);
 
     return { success: true, data: monthlyDuesData };
   } catch (err) {
@@ -39,7 +37,7 @@ function recordPayment(apartmentId, year, month, paymentData) {
   try {
     db.transaction(() => {
       const apartment = db
-        .prepare(`SELECT id, apartment_no, due_amount FROM apartments WHERE id = ? AND is_active = 1`)
+        .prepare(`SELECT id, apartment_no, due_amount, building_id FROM apartments WHERE id = ? AND is_active = 1`)
         .get(apartmentId);
       if (!apartment) throw new Error("Daire bulunamadı.");
 
@@ -70,17 +68,15 @@ function recordPayment(apartmentId, year, month, paymentData) {
 
       db.prepare(
         `
-        INSERT INTO incomes (amount, date, description, category, manager_id, due_payment_id, created_at, updated_at)
+        INSERT INTO incomes (amount, date, description, category, building_id, due_payment_id, created_at, updated_at)
         VALUES (?, ?, ?, 'dues', ?, ?, datetime('now', '+3 hours'), datetime('now', '+3 hours'))
       `,
-      ).run(amount, payment_date, `Aidat Ödemesi - Daire ${apartment.apartment_no}`, collected_by, paymentId);
+      ).run(amount, payment_date, `Aidat Ödemesi - Daire ${apartment.apartment_no}`, apartment.building_id, paymentId);
 
       const newPaidAmount = parseFloat((due.paid_amount + amount).toFixed(2));
-      db.prepare(`UPDATE dues SET paid_amount = ?, status = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`).run(
-        newPaidAmount,
-        calcDueStatus(due.due_amount, newPaidAmount),
-        due.id,
-      );
+      db.prepare(
+        `UPDATE dues SET paid_amount = ?, status = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`,
+      ).run(newPaidAmount, calcDueStatus(due.due_amount, newPaidAmount), due.id);
     })();
 
     return { success: true, message: "Ödeme başarıyla kaydedildi." };
@@ -90,7 +86,7 @@ function recordPayment(apartmentId, year, month, paymentData) {
   }
 }
 
-function cancelPayment(paymentId, userId, reason) {
+function cancelPayment(paymentId, buildingId, userId, reason) {
   try {
     db.transaction(() => {
       const payment = db
@@ -100,10 +96,10 @@ function cancelPayment(paymentId, userId, reason) {
         FROM due_payments dp
         JOIN dues d ON dp.due_id = d.id
         JOIN apartments a ON d.apartment_id = a.id
-        WHERE dp.id = ? AND a.manager_id = ?
+        WHERE dp.id = ? AND a.building_id = ?
       `,
         )
-        .get(paymentId, userId);
+        .get(paymentId, buildingId);
       if (!payment) throw new Error("Ödeme kaydı bulunamadı.");
 
       const alreadyCancelled = db.prepare(`SELECT id FROM payment_cancellations WHERE payment_id = ?`).get(paymentId);
@@ -112,11 +108,7 @@ function cancelPayment(paymentId, userId, reason) {
       db.prepare(
         `INSERT INTO payment_cancellations (payment_id, cancel_reason, cancelled_by, cancelled_at)
          VALUES (?, ?, ?, datetime('now', '+3 hours'))`,
-      ).run(
-        paymentId,
-        reason,
-        userId,
-      );
+      ).run(paymentId, reason, userId);
 
       db.prepare(
         `
@@ -139,11 +131,9 @@ function cancelPayment(paymentId, userId, reason) {
 
       const { due_amount } = db.prepare(`SELECT due_amount FROM dues WHERE id = ?`).get(payment.due_id);
       const newPaidAmount = parseFloat(Number(activePaidTotal).toFixed(2));
-      db.prepare(`UPDATE dues SET paid_amount = ?, status = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`).run(
-        newPaidAmount,
-        calcDueStatus(due_amount, newPaidAmount),
-        payment.due_id,
-      );
+      db.prepare(
+        `UPDATE dues SET paid_amount = ?, status = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`,
+      ).run(newPaidAmount, calcDueStatus(due_amount, newPaidAmount), payment.due_id);
     })();
 
     return { success: true, message: "Ödeme başarıyla iptal edildi." };
@@ -153,8 +143,7 @@ function cancelPayment(paymentId, userId, reason) {
   }
 }
 
-function getPaymentHistory(dueId) {
-  if (!dueId) return { success: true, data: [] };
+function getPaymentHistory(dueId, buildingId) {
   try {
     const data = db
       .prepare(
@@ -165,13 +154,15 @@ function getPaymentHistory(dueId) {
              cu.username AS cancelled_by_username
       FROM due_payments dp
       JOIN users u ON dp.collected_by = u.id
+      JOIN dues d ON dp.due_id = d.id
+      JOIN apartments a ON d.apartment_id = a.id
       LEFT JOIN payment_cancellations pc ON pc.payment_id = dp.id
       LEFT JOIN users cu ON cu.id = pc.cancelled_by
-      WHERE dp.due_id = ?
+      WHERE dp.due_id = ? AND a.building_id = ?
       ORDER BY dp.created_at DESC
     `,
       )
-      .all(dueId);
+      .all(dueId, buildingId);
     return { success: true, data };
   } catch (err) {
     console.error("[dues.service] getPaymentHistory:", err);

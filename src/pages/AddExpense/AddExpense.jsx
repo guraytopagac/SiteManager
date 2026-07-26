@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AddExpense.css";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { showAlert } from "@/utils/alert";
 import { getToday } from "@/utils/date";
 
 function AddExpense() {
   const navigate = useNavigate();
-  const currentUser = useCurrentUser();
+  const building = useCurrentBuilding();
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("other");
@@ -19,10 +19,10 @@ function AddExpense() {
     const cleanDescription = description.trim();
     const parsedAmount = Math.round(Number(amount) * 100) / 100;
     const today = getToday();
-    const managerId = currentUser?.id;
+    const buildingId = building?.id;
 
-    if (!managerId) {
-      showAlert.error("Oturum Hatası", "Site yöneticisi bilgisi bulunamadı. Lütfen tekrar giriş yapın.");
+    if (!buildingId) {
+      showAlert.error("Oturum Hatası", "Bina seçilmedi. Lütfen bir bina seçin.");
       return;
     }
 
@@ -43,7 +43,7 @@ function AddExpense() {
         description: cleanDescription,
         category,
         date: today,
-        managerId: managerId,
+        buildingId: buildingId,
       });
 
       if (response.success) {

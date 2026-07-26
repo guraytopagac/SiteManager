@@ -1,27 +1,16 @@
-const { DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_EMAIL } = require("../../../database/seed");
 const CH = require("../../ipc/channels");
 const { createSafeHandler } = require("../shared/safeHandler");
 const authService = require("./service");
 
 const safeHandler = createSafeHandler("auth");
 
-const USERNAME_RE = /^[A-Za-z0-9_]{3,}$/;
-const EMAIL_RE = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-const NON_ASCII_RE = /[^\x20-\x7E]/;
 const MIN_PASSWORD_LENGTH = 8;
-
-function validateEmailFormat(email) {
-  if (email.length > 254) {
-    return "E-posta adresi çok uzun (en fazla 254 karakter).";
-  }
-  if (NON_ASCII_RE.test(email)) {
-    return "E-posta adresinde Türkçe veya özel karakter kullanılamaz.";
-  }
-  if (!EMAIL_RE.test(email)) {
-    return "Geçerli bir e-posta adresi girin (örn. ornek@site.com).";
-  }
-  return null;
-}
+const MIN_NAME_LENGTH = 2;
+const MAX_NAME_LENGTH = 60;
+const USERNAME_RE = /^[A-Za-z0-9_]{3,}$/;
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const MIN_EMAIL_LENGTH = 5;
+const MAX_EMAIL_LENGTH = 254;
 
 function normalizeIdentityFields(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) {
@@ -39,52 +28,32 @@ function validateLoginData(credentials) {
   if (!credentials || typeof credentials !== "object" || Array.isArray(credentials)) {
     return { success: false, message: "Geçersiz istek." };
   }
+  normalizeIdentityFields(credentials);
   if (!credentials.username || !credentials.password) {
     return { success: false, message: "Kullanıcı adı ve şifre zorunludur." };
   }
   return null;
 }
 
-function validateCreateManagerData(data) {
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
-    return { success: false, message: "Geçersiz istek." };
-  }
-  const { username, password, email } = data;
-  if (!username || !password || !email) {
-    return { success: false, message: "Kullanıcı adı, şifre ve e-posta zorunludur." };
-  }
-  if (password.length < MIN_PASSWORD_LENGTH) {
-    return { success: false, message: "Şifre en az 8 karakter olmalıdır." };
-  }
-  const emailError = validateEmailFormat(email);
-  if (emailError) {
-    return { success: false, message: emailError };
-  }
-  if (email.toLowerCase() === DEFAULT_ADMIN_EMAIL.toLowerCase()) {
-    return { success: false, message: "Bu e-posta adresi kullanılamaz." };
-  }
-  if (!USERNAME_RE.test(username)) {
-    return {
-      success: false,
-      message: "Kullanıcı adı en az 3 karakter olmalı, yalnızca İngilizce harf, rakam ve _ içermelidir.",
-    };
-  }
-  if (username.toLowerCase() === DEFAULT_ADMIN_USERNAME.toLowerCase()) {
-    return { success: false, message: "Bu kullanıcı adı kullanılamaz." };
-  }
-  return null;
-}
-
-function validateUpdateManagerStatusData(payload) {
+function validateTransferAccountData(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return { success: false, message: "Geçersiz istek." };
   }
-  const { id, isActive } = payload;
-  if (!Number.isInteger(id) || id <= 0) {
-    return { success: false, message: "Geçersiz kullanıcı ID." };
+  if (typeof payload.newPerson === "string") {
+    payload.newPerson = payload.newPerson.trim();
   }
-  if (typeof isActive !== "boolean") {
-    return { success: false, message: "Geçersiz durum değeri." };
+  const { userId, password, newPerson } = payload;
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return { success: false, message: "Geçersiz hesap ID." };
+  }
+  if (typeof password !== "string" || !password) {
+    return { success: false, message: "Mevcut şifre zorunludur." };
+  }
+  if (typeof newPerson !== "string" || !newPerson) {
+    return { success: false, message: "Yeni yöneticinin adı zorunludur." };
+  }
+  if (newPerson.length < MIN_NAME_LENGTH || newPerson.length > MAX_NAME_LENGTH) {
+    return { success: false, message: "Yönetici adı 2 ile 60 karakter arasında olmalıdır." };
   }
   return null;
 }
@@ -103,7 +72,31 @@ function validateChangePasswordData(payload) {
   return null;
 }
 
-function validateResetAdminPasswordData(data) {
+function validateUpdateEmailData(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return { success: false, message: "Geçersiz istek." };
+  }
+  if (typeof payload.email === "string") {
+    payload.email = payload.email.trim();
+  }
+  const { userId, email } = payload;
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return { success: false, message: "Geçersiz hesap ID." };
+  }
+  if (email === "" || email === null || email === undefined) {
+    payload.email = null;
+    return null;
+  }
+  if (typeof email !== "string" || email.length < MIN_EMAIL_LENGTH || email.length > MAX_EMAIL_LENGTH) {
+    return { success: false, message: "E-posta adresi 5 ile 254 karakter arasında olmalıdır." };
+  }
+  if (!EMAIL_RE.test(email)) {
+    return { success: false, message: "Geçerli bir e-posta adresi girin." };
+  }
+  return null;
+}
+
+function validateResetAccountPasswordData(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     return { success: false, message: "Geçersiz istek." };
   }
@@ -132,12 +125,33 @@ function validateCompleteSetupData(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     return { success: false, message: "Geçersiz istek." };
   }
-  const { password } = data;
+  if (typeof data.username === "string") {
+    data.username = data.username.trim();
+  }
+  if (typeof data.managerName === "string") {
+    data.managerName = data.managerName.trim();
+  }
+  const { username, password, managerName } = data;
+  if (typeof username !== "string" || !USERNAME_RE.test(username)) {
+    return {
+      success: false,
+      message: "Kullanıcı adı en az 3 karakter olmalı, yalnızca İngilizce harf, rakam ve _ içermelidir.",
+    };
+  }
   if (typeof password !== "string" || !password) {
     return { success: false, message: "Şifre zorunludur." };
   }
   if (password.length < MIN_PASSWORD_LENGTH) {
     return { success: false, message: "Şifre en az 8 karakter olmalıdır." };
+  }
+  if (managerName != null && managerName !== "") {
+    if (
+      typeof managerName !== "string" ||
+      managerName.length < MIN_NAME_LENGTH ||
+      managerName.length > MAX_NAME_LENGTH
+    ) {
+      return { success: false, message: "Ad soyad 2 ile 60 karakter arasında olmalıdır." };
+    }
   }
   return null;
 }
@@ -146,7 +160,6 @@ function registerAuthHandlers(ipcMain) {
   ipcMain.handle(
     CH.AUTH.LOGIN,
     safeHandler(CH.AUTH.LOGIN, (credentials) => {
-      normalizeIdentityFields(credentials);
       const error = validateLoginData(credentials);
       if (error) {
         return error;
@@ -156,30 +169,13 @@ function registerAuthHandlers(ipcMain) {
   );
 
   ipcMain.handle(
-    CH.AUTH.GET_MANAGERS,
-    safeHandler(CH.AUTH.GET_MANAGERS, () => authService.getManagers()),
-  );
-
-  ipcMain.handle(
-    CH.AUTH.CREATE_MANAGER,
-    safeHandler(CH.AUTH.CREATE_MANAGER, (data) => {
-      normalizeIdentityFields(data);
-      const error = validateCreateManagerData(data);
+    CH.AUTH.TRANSFER_ACCOUNT,
+    safeHandler(CH.AUTH.TRANSFER_ACCOUNT, (payload) => {
+      const error = validateTransferAccountData(payload);
       if (error) {
         return error;
       }
-      return authService.createManager(data);
-    }),
-  );
-
-  ipcMain.handle(
-    CH.AUTH.UPDATE_MANAGER_STATUS,
-    safeHandler(CH.AUTH.UPDATE_MANAGER_STATUS, (payload) => {
-      const error = validateUpdateManagerStatusData(payload);
-      if (error) {
-        return error;
-      }
-      return authService.updateManagerStatus(payload.id, payload.isActive);
+      return authService.transferAccount(payload.userId, payload.password, payload.newPerson);
     }),
   );
 
@@ -195,13 +191,24 @@ function registerAuthHandlers(ipcMain) {
   );
 
   ipcMain.handle(
-    CH.AUTH.RESET_ADMIN_PASSWORD,
-    safeHandler(CH.AUTH.RESET_ADMIN_PASSWORD, (data) => {
-      const error = validateResetAdminPasswordData(data);
+    CH.AUTH.UPDATE_EMAIL,
+    safeHandler(CH.AUTH.UPDATE_EMAIL, (payload) => {
+      const error = validateUpdateEmailData(payload);
       if (error) {
         return error;
       }
-      return authService.resetAdminPassword(data.recoveryCode, data.newPassword);
+      return authService.updateEmail(payload.userId, payload.email);
+    }),
+  );
+
+  ipcMain.handle(
+    CH.AUTH.RESET_ACCOUNT_PASSWORD,
+    safeHandler(CH.AUTH.RESET_ACCOUNT_PASSWORD, (data) => {
+      const error = validateResetAccountPasswordData(data);
+      if (error) {
+        return error;
+      }
+      return authService.resetAccountPassword(data.recoveryCode, data.newPassword);
     }),
   );
 
@@ -228,7 +235,7 @@ function registerAuthHandlers(ipcMain) {
       if (error) {
         return error;
       }
-      return authService.completeAdminSetup(data.password);
+      return authService.completeSetup(data.username, data.password, data.managerName);
     }),
   );
 }

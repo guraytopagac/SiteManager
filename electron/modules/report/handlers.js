@@ -13,9 +13,9 @@ function validateGetReportData(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return { success: false, message: "Geçersiz istek." };
   }
-  const { managerId, year, month } = payload;
-  if (!Number.isInteger(managerId) || managerId <= 0) {
-    return { success: false, message: "Geçersiz kullanıcı ID." };
+  const { buildingId, year, month } = payload;
+  if (!Number.isInteger(buildingId) || buildingId <= 0) {
+    return { success: false, message: "Geçersiz bina ID." };
   }
   if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
     return { success: false, message: "Geçersiz tarih bilgisi." };
@@ -48,7 +48,7 @@ function registerReportHandlers(ipcMain) {
       if (error) {
         return error;
       }
-      return reportService.getReportData(payload.managerId, payload.year, payload.month);
+      return reportService.getReportData(payload.buildingId, payload.year, payload.month);
     }),
   );
 

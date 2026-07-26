@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Residents.css";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { showAlert } from "@/utils/alert";
 import { formatDateShort, getToday } from "@/utils/date";
 
@@ -21,7 +21,7 @@ const EMPTY_FORM = {
   notes: "",
 };
 
-function ResidentFormModal({ apartment, currentUser, onClose, onSaved }) {
+function ResidentFormModal({ apartment, building, onClose, onSaved }) {
   const isEdit = Boolean(apartment.resident_id);
   const [form, setForm] = useState(() =>
     isEdit
@@ -47,12 +47,12 @@ function ResidentFormModal({ apartment, currentUser, onClose, onSaved }) {
     const res = isEdit
       ? await window.electronAPI.updateResident({
           residentId: apartment.resident_id,
-          managerId: currentUser.id,
+          buildingId: building.id,
           ...form,
         })
       : await window.electronAPI.addResident({
           apartmentId: apartment.apartment_id,
-          managerId: currentUser.id,
+          buildingId: building.id,
           ...form,
         });
 
@@ -138,7 +138,7 @@ function ResidentFormModal({ apartment, currentUser, onClose, onSaved }) {
   );
 }
 
-function MoveOutModal({ apartment, currentUser, onClose, onSaved }) {
+function MoveOutModal({ apartment, building, onClose, onSaved }) {
   const [moveOutDate, setMoveOutDate] = useState(() => getToday());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -147,7 +147,7 @@ function MoveOutModal({ apartment, currentUser, onClose, onSaved }) {
     setIsSubmitting(true);
     const res = await window.electronAPI.moveOutResident({
       residentId: apartment.resident_id,
-      managerId: currentUser.id,
+      buildingId: building.id,
       moveOutDate,
     });
     setIsSubmitting(false);
@@ -195,7 +195,7 @@ function MoveOutModal({ apartment, currentUser, onClose, onSaved }) {
   );
 }
 
-function HistoryModal({ apartment, currentUser, onClose }) {
+function HistoryModal({ apartment, building, onClose }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -203,7 +203,7 @@ function HistoryModal({ apartment, currentUser, onClose }) {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const res = await window.electronAPI.getResidentHistory(apartment.apartment_id, currentUser.id);
+      const res = await window.electronAPI.getResidentHistory(apartment.apartment_id, building.id);
       if (cancelled) return;
       if (res.success) setHistory(res.data);
       setLoading(false);
@@ -211,7 +211,7 @@ function HistoryModal({ apartment, currentUser, onClose }) {
     return () => {
       cancelled = true;
     };
-  }, [apartment.apartment_id, currentUser.id]);
+  }, [apartment.apartment_id, building.id]);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -251,7 +251,7 @@ function HistoryModal({ apartment, currentUser, onClose }) {
 
 function Residents() {
   const navigate = useNavigate();
-  const currentUser = useCurrentUser();
+  const building = useCurrentBuilding();
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -264,19 +264,19 @@ function Residents() {
     setLoading(true);
     setErrorMessage("");
 
-    if (!currentUser?.id) {
+    if (!building?.id) {
       navigate("/", { replace: true });
       return;
     }
 
-    const res = await window.electronAPI.getResidentsOverview(currentUser.id);
+    const res = await window.electronAPI.getResidentsOverview(building.id);
     if (res.success) {
       setRows(res.data);
     } else {
       setErrorMessage(res.message || "Veriler alınamadı.");
     }
     setLoading(false);
-  }, [currentUser, navigate]);
+  }, [building, navigate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -284,12 +284,12 @@ function Residents() {
       setLoading(true);
       setErrorMessage("");
 
-      if (!currentUser?.id) {
+      if (!building?.id) {
         navigate("/", { replace: true });
         return;
       }
 
-      const res = await window.electronAPI.getResidentsOverview(currentUser.id);
+      const res = await window.electronAPI.getResidentsOverview(building.id);
       if (cancelled) return;
       if (res.success) {
         setRows(res.data);
@@ -301,7 +301,7 @@ function Residents() {
     return () => {
       cancelled = true;
     };
-  }, [currentUser, navigate]);
+  }, [building, navigate]);
 
   const handleSaved = useCallback(() => {
     setFormTarget(null);
@@ -402,7 +402,7 @@ function Residents() {
       {formTarget && (
         <ResidentFormModal
           apartment={formTarget}
-          currentUser={currentUser}
+          building={building}
           onClose={() => setFormTarget(null)}
           onSaved={handleSaved}
         />
@@ -411,7 +411,7 @@ function Residents() {
       {moveOutTarget && (
         <MoveOutModal
           apartment={moveOutTarget}
-          currentUser={currentUser}
+          building={building}
           onClose={() => setMoveOutTarget(null)}
           onSaved={handleSaved}
         />
@@ -420,7 +420,7 @@ function Residents() {
       {historyTarget && (
         <HistoryModal
           apartment={historyTarget}
-          currentUser={currentUser}
+          building={building}
           onClose={() => setHistoryTarget(null)}
         />
       )}

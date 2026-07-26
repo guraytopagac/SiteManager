@@ -1,9 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Login.css";
 import logoImgWebp from "../../../assets/logo.webp";
 import { showAlert } from "@/utils/alert";
-import { setCurrentUser, homePathFor } from "@/hooks/useCurrentUser";
+import { setCurrentUser } from "@/hooks/useCurrentUser";
 import CapsLockIndicator from "@/components/CapsLockIndicator/CapsLockIndicator";
 import { FiUser, FiLock, FiEye, FiEyeOff, FiAlertCircle, FiArrowRight } from "react-icons/fi";
 
@@ -18,6 +18,26 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const passwordRef = useRef(null);
+
+  useEffect(() => {
+    if (location.state?.username) {
+      return;
+    }
+    let isActive = true;
+    window.electronAPI
+      .getSetupState()
+      .then((state) => {
+        if (!isActive || !state?.success || !state.username) {
+          return;
+        }
+        setUsername(state.username);
+        passwordRef.current?.focus();
+      })
+      .catch(() => {});
+    return () => {
+      isActive = false;
+    };
+  }, [location.state?.username]);
 
   const clearError = () => setError("");
 
@@ -37,8 +57,8 @@ function Login() {
 
       if (success) {
         setCurrentUser(user);
-        showAlert.toast("Hoş Geldiniz, " + user.username, message);
-        navigate(homePathFor(user), { replace: true });
+        showAlert.toast("Hoş Geldiniz, " + (user.managerName || user.username), message);
+        navigate("/select-building", { replace: true });
         return;
       }
 

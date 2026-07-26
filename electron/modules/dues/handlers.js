@@ -14,9 +14,9 @@ function validateGetForMonthData(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return { success: false, message: "Geçersiz istek." };
   }
-  const { managerId, year, month } = payload;
-  if (!Number.isInteger(managerId) || managerId <= 0) {
-    return { success: false, message: "Geçersiz kullanıcı ID." };
+  const { buildingId, year, month } = payload;
+  if (!Number.isInteger(buildingId) || buildingId <= 0) {
+    return { success: false, message: "Geçersiz bina ID." };
   }
   if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
     return { success: false, message: "Geçersiz tarih bilgisi." };
@@ -64,9 +64,12 @@ function validateCancelPaymentData(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return { success: false, message: "Geçersiz istek." };
   }
-  const { paymentId, userId, reason } = payload;
+  const { paymentId, buildingId, userId, reason } = payload;
   if (!Number.isInteger(paymentId) || paymentId <= 0) {
     return { success: false, message: "Geçersiz ödeme ID." };
+  }
+  if (!Number.isInteger(buildingId) || buildingId <= 0) {
+    return { success: false, message: "Geçersiz bina ID." };
   }
   if (!Number.isInteger(userId) || userId <= 0) {
     return { success: false, message: "Geçersiz kullanıcı ID." };
@@ -80,9 +83,12 @@ function validateCancelPaymentData(payload) {
   return null;
 }
 
-function validateGetPaymentHistoryData(dueId) {
-  if (!Number.isInteger(dueId) || dueId <= 0) {
+function validateGetPaymentHistoryData(payload) {
+  if (!Number.isInteger(payload?.dueId) || payload.dueId <= 0) {
     return { success: false, message: "Geçersiz aidat ID." };
+  }
+  if (!Number.isInteger(payload.buildingId) || payload.buildingId <= 0) {
+    return { success: false, message: "Geçersiz bina ID." };
   }
   return null;
 }
@@ -95,7 +101,7 @@ function registerDuesHandlers(ipcMain) {
       if (error) {
         return error;
       }
-      return duesService.getDuesForMonth(payload.managerId, payload.year, payload.month);
+      return duesService.getDuesForMonth(payload.buildingId, payload.year, payload.month);
     }),
   );
 
@@ -117,18 +123,18 @@ function registerDuesHandlers(ipcMain) {
       if (error) {
         return error;
       }
-      return duesService.cancelPayment(payload.paymentId, payload.userId, payload.reason.trim());
+      return duesService.cancelPayment(payload.paymentId, payload.buildingId, payload.userId, payload.reason.trim());
     }),
   );
 
   ipcMain.handle(
     CH.DUES.GET_PAYMENT_HISTORY,
-    safeHandler(CH.DUES.GET_PAYMENT_HISTORY, (dueId) => {
-      const error = validateGetPaymentHistoryData(dueId);
+    safeHandler(CH.DUES.GET_PAYMENT_HISTORY, (payload) => {
+      const error = validateGetPaymentHistoryData(payload);
       if (error) {
         return error;
       }
-      return duesService.getPaymentHistory(dueId);
+      return duesService.getPaymentHistory(payload.dueId, payload.buildingId);
     }),
   );
 }

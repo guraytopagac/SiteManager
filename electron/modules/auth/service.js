@@ -1,8 +1,11 @@
+const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const { db } = require("../../../database/db");
 const { generateRecoveryCode, normalizeRecoveryCode } = require("../../../database/seed");
 
 const BCRYPT_ROUNDS = 12;
+const TEMP_PASSWORD_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const TEMP_PASSWORD_LENGTH = 12;
 const DUMMY_HASH = "$2b$12$3X/2XNSPPTIIRZLnRyDSAOjqjj3mreEYkyjbWyz7RkwJbe0MBr8l.";
 
 function toSafeUser(user) {
@@ -10,7 +13,7 @@ function toSafeUser(user) {
     id: user.id,
     username: user.username,
     email: user.email,
-    role: user.role,
+    managerName: user.manager_name,
     last_login: user.last_login,
   };
 }
@@ -22,7 +25,7 @@ function login(credentials) {
 
     const user = db
       .prepare(
-        `SELECT id, username, email, password_hash, role, last_login
+        `SELECT id, username, email, manager_name, password_hash, last_login
          FROM users WHERE username = ? AND is_active = 1`,
       )
       .get(credentials.username);
@@ -45,51 +48,31 @@ function login(credentials) {
   }
 }
 
-function getManagers() {
-  try {
-    const data = db
-      .prepare(`SELECT id, username, email, is_active, last_login FROM users WHERE role = 'manager' ORDER BY id ASC`)
-      .all();
-    return { success: true, data };
-  } catch (err) {
-    console.error("[auth.service] getManagers:", err);
-    return { success: false, message: "Site yöneticisi listesi alınamadı." };
-  }
+function generateTemporaryPassword() {
+  return Array.from(
+    { length: TEMP_PASSWORD_LENGTH },
+    () => TEMP_PASSWORD_ALPHABET[crypto.randomInt(TEMP_PASSWORD_ALPHABET.length)],
+  ).join("");
 }
 
-function createManager(managerData) {
+function transferAccount(userId, password, newPerson) {
   try {
-    const hashedPassword = bcrypt.hashSync(managerData.password, BCRYPT_ROUNDS);
+    const user = db.prepare(`SELECT id, password_hash FROM users WHERE id = ?`).get(userId);
+    if (!user) return { success: false, message: "Hesap bulunamadı." };
+    if (!bcrypt.compareSync(password || "", user.password_hash))
+      return { success: false, message: "Mevcut şifre hatalı." };
+
+    const temporaryPassword = generateTemporaryPassword();
+    const temporaryPasswordHash = bcrypt.hashSync(temporaryPassword, BCRYPT_ROUNDS);
     db.prepare(
-      `INSERT INTO users (username, email, password_hash, created_at, updated_at)
-       VALUES (?, ?, ?, datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
-    ).run(
-      managerData.username,
-      managerData.email,
-      hashedPassword,
-    );
-    return { success: true, message: "Site yöneticisi hesabı başarıyla oluşturuldu." };
-  } catch (err) {
-    console.error("[auth.service] createManager:", err.message);
-    if (err.message?.includes("UNIQUE"))
-      return { success: false, message: "Bu kullanıcı adı veya e-posta zaten kullanımda." };
-    if (err.message?.includes("CHECK"))
-      return { success: false, message: "Geçersiz kullanıcı adı veya e-posta formatı." };
-    return { success: false, message: "Hesap oluşturulamadı." };
-  }
-}
+      `UPDATE users SET password_hash = ?, manager_name = ?, password_changed_at = datetime('now', '+3 hours')
+       WHERE id = ?`,
+    ).run(temporaryPasswordHash, newPerson, userId);
 
-function updateManagerStatus(id, isActive) {
-  try {
-    const result = db
-      .prepare(`UPDATE users SET is_active = ? WHERE id = ? AND role = 'manager'`)
-      .run(isActive ? 1 : 0, id);
-    if (result.changes === 0) return { success: false, message: "Site yöneticisi bulunamadı." };
-    const msg = isActive ? "Site yöneticisi hesabı aktif edildi." : "Site yöneticisi hesabı deaktif edildi.";
-    return { success: true, message: msg };
+    return { success: true, message: "Hesap devri tamamlandı.", temporaryPassword };
   } catch (err) {
-    console.error("[auth.service] updateManagerStatus:", err);
-    return { success: false, message: "İşlem gerçekleştirilemedi." };
+    console.error("[auth.service] transferAccount:", err);
+    return { success: false, message: "Devir tamamlanamadı." };
   }
 }
 
@@ -104,10 +87,9 @@ function changePassword(userId, oldPassword, newPassword) {
       return { success: false, message: "Yeni şifre eski şifreyle aynı olamaz." };
 
     const newPasswordHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
-    db.prepare(`UPDATE users SET password_hash = ?, password_changed_at = datetime('now', '+3 hours') WHERE id = ?`).run(
-      newPasswordHash,
-      userId,
-    );
+    db.prepare(
+      `UPDATE users SET password_hash = ?, password_changed_at = datetime('now', '+3 hours') WHERE id = ?`,
+    ).run(newPasswordHash, userId);
     return { success: true, message: "Şifre başarıyla değiştirildi." };
   } catch (err) {
     console.error("[auth.service] changePassword:", err);
@@ -115,47 +97,73 @@ function changePassword(userId, oldPassword, newPassword) {
   }
 }
 
-function resetAdminPassword(recoveryCode, newPassword) {
+function updateEmail(userId, email) {
+  try {
+    const account = db.prepare(`SELECT id FROM users WHERE id = ?`).get(userId);
+    if (!account) return { success: false, message: "Hesap bulunamadı." };
+
+    db.prepare(`UPDATE users SET email = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`).run(email, userId);
+
+    return {
+      success: true,
+      message: email ? "E-posta adresi güncellendi." : "E-posta adresi kaldırıldı.",
+      email,
+    };
+  } catch (err) {
+    console.error("[auth.service] updateEmail:", err);
+    if (err.message?.includes("CHECK")) return { success: false, message: "Geçersiz e-posta adresi." };
+    return { success: false, message: "E-posta güncellenemedi." };
+  }
+}
+
+function resetAccountPassword(recoveryCode, newPassword) {
   try {
     if (!newPassword || newPassword.length < 8)
       return { success: false, message: "Yeni şifre en az 8 karakter olmalıdır." };
 
-    const admin = db.prepare(`SELECT id, recovery_hash FROM users WHERE role = 'admin' LIMIT 1`).get();
-    if (!admin || !admin.recovery_hash) {
+    const account = db
+      .prepare(`SELECT id, username, recovery_hash FROM users WHERE recovery_hash IS NOT NULL LIMIT 1`)
+      .get();
+    if (!account || !account.recovery_hash) {
       bcrypt.compareSync("dummy", DUMMY_HASH);
       return { success: false, message: "Kurtarma kodu tanımlı değil. Lütfen destek ile iletişime geçin." };
     }
 
     const normalizedRecoveryCode = normalizeRecoveryCode(recoveryCode);
-    if (!bcrypt.compareSync(normalizedRecoveryCode || "", admin.recovery_hash))
-      return { success: false, message: "Kurtarma kodu hatalı." };
+    if (!bcrypt.compareSync(normalizedRecoveryCode || "", account.recovery_hash))
+      return { success: false, code: "INVALID_RECOVERY_CODE", message: "Kurtarma kodu hatalı." };
 
     const newPasswordHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
     const newRecoveryCode = generateRecoveryCode();
     const newRecoveryHash = bcrypt.hashSync(newRecoveryCode.rawCode, BCRYPT_ROUNDS);
     db.prepare(
       `UPDATE users SET password_hash = ?, password_changed_at = datetime('now', '+3 hours'), recovery_hash = ? WHERE id = ?`,
-    ).run(newPasswordHash, newRecoveryHash, admin.id);
+    ).run(newPasswordHash, newRecoveryHash, account.id);
 
-    return { success: true, message: "Admin şifresi sıfırlandı.", recoveryCode: newRecoveryCode.displayCode };
+    return {
+      success: true,
+      message: "Hesap şifresi sıfırlandı.",
+      recoveryCode: newRecoveryCode.displayCode,
+      username: account.username,
+    };
   } catch (err) {
-    console.error("[auth.service] resetAdminPassword:", err);
+    console.error("[auth.service] resetAccountPassword:", err);
     return { success: false, message: "Şifre sıfırlanamadı." };
   }
 }
 
 function regenerateRecoveryCode(password) {
   try {
-    const admin = db.prepare(`SELECT id, password_hash FROM users WHERE role = 'admin' LIMIT 1`).get();
-    if (!admin) {
+    const account = db.prepare(`SELECT id, password_hash FROM users ORDER BY id LIMIT 1`).get();
+    if (!account) {
       bcrypt.compareSync("dummy", DUMMY_HASH);
-      return { success: false, message: "Admin hesabı bulunamadı." };
+      return { success: false, message: "Hesap bulunamadı." };
     }
-    if (!bcrypt.compareSync(password || "", admin.password_hash)) return { success: false, message: "Şifre hatalı." };
+    if (!bcrypt.compareSync(password || "", account.password_hash)) return { success: false, message: "Şifre hatalı." };
 
     const newRecoveryCode = generateRecoveryCode();
     const newRecoveryHash = bcrypt.hashSync(newRecoveryCode.rawCode, BCRYPT_ROUNDS);
-    db.prepare(`UPDATE users SET recovery_hash = ? WHERE id = ?`).run(newRecoveryHash, admin.id);
+    db.prepare(`UPDATE users SET recovery_hash = ? WHERE id = ?`).run(newRecoveryHash, account.id);
 
     return { success: true, message: "Yeni kurtarma kodu oluşturuldu.", recoveryCode: newRecoveryCode.displayCode };
   } catch (err) {
@@ -166,45 +174,45 @@ function regenerateRecoveryCode(password) {
 
 function getSetupState() {
   try {
-    const admin = db.prepare(`SELECT password_changed_at FROM users WHERE role = 'admin' LIMIT 1`).get();
-    const needsSetup = !!admin && admin.password_changed_at == null;
-    return { success: true, needsSetup };
+    const account = db.prepare(`SELECT username, password_changed_at FROM users ORDER BY id LIMIT 1`).get();
+    const needsSetup = !!account && account.password_changed_at == null;
+    return { success: true, needsSetup, username: needsSetup ? null : (account?.username ?? null) };
   } catch (err) {
     console.error("[auth.service] getSetupState:", err);
     return { success: false, message: "Kurulum durumu alınamadı." };
   }
 }
 
-function completeAdminSetup(password) {
+function completeSetup(username, password, managerName) {
   try {
     if (!password || password.length < 8) return { success: false, message: "Şifre en az 8 karakter olmalıdır." };
 
-    const admin = db.prepare(`SELECT id, password_changed_at FROM users WHERE role = 'admin' LIMIT 1`).get();
-    if (!admin) return { success: false, message: "Admin hesabı bulunamadı." };
-    if (admin.password_changed_at != null) return { success: false, message: "Kurulum zaten tamamlanmış." };
+    const account = db.prepare(`SELECT id, password_changed_at FROM users ORDER BY id LIMIT 1`).get();
+    if (!account) return { success: false, message: "Hesap bulunamadı." };
+    if (account.password_changed_at != null) return { success: false, message: "Kurulum zaten tamamlanmış." };
 
     const newPasswordHash = bcrypt.hashSync(password, BCRYPT_ROUNDS);
     const newRecoveryCode = generateRecoveryCode();
     const newRecoveryHash = bcrypt.hashSync(newRecoveryCode.rawCode, BCRYPT_ROUNDS);
     db.prepare(
-      `UPDATE users SET password_hash = ?, password_changed_at = datetime('now', '+3 hours'), recovery_hash = ? WHERE id = ?`,
-    ).run(newPasswordHash, newRecoveryHash, admin.id);
+      `UPDATE users SET username = ?, password_hash = ?, manager_name = ?, password_changed_at = datetime('now', '+3 hours'), recovery_hash = ? WHERE id = ?`,
+    ).run(username, newPasswordHash, managerName || null, newRecoveryHash, account.id);
 
-    return { success: true, message: "Admin hesabı kuruldu.", recoveryCode: newRecoveryCode.displayCode };
+    return { success: true, message: "Hesabınız kuruldu.", recoveryCode: newRecoveryCode.displayCode };
   } catch (err) {
-    console.error("[auth.service] completeAdminSetup:", err);
+    console.error("[auth.service] completeSetup:", err);
+    if (err.message?.includes("CHECK")) return { success: false, message: "Geçersiz kullanıcı adı formatı." };
     return { success: false, message: "Kurulum tamamlanamadı." };
   }
 }
 
 module.exports = {
   login,
-  getManagers,
-  createManager,
-  updateManagerStatus,
+  transferAccount,
   changePassword,
-  resetAdminPassword,
+  updateEmail,
+  resetAccountPassword,
   regenerateRecoveryCode,
   getSetupState,
-  completeAdminSetup,
+  completeSetup,
 };

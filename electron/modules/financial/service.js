@@ -17,7 +17,7 @@ function insertRecord(table, recordData, label) {
   if (!ALLOWED_TABLES.has(table)) {
     return { success: false, message: "Geçersiz işlem türü." };
   }
-  if (!recordData.managerId) {
+  if (!recordData.buildingId) {
     return { success: false, message: "Yetkisiz işlem." };
   }
   const amount = recordData.amount;
@@ -34,10 +34,10 @@ function insertRecord(table, recordData, label) {
   const category = recordData.category || "other";
   const result = db
     .prepare(
-      `INSERT INTO ${table} (amount, date, description, category, manager_id, created_at, updated_at)
+      `INSERT INTO ${table} (amount, date, description, category, building_id, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
     )
-    .run(amount, recordDate, description, category, recordData.managerId);
+    .run(amount, recordDate, description, category, recordData.buildingId);
   return { success: true, id: result.lastInsertRowid, message: `${label} başarıyla eklendi.` };
 }
 
@@ -59,18 +59,18 @@ function addExpense(expenseData) {
   }
 }
 
-function getTransactions(managerId) {
+function getTransactions(buildingId) {
   try {
     const transactions = db
       .prepare(
         `SELECT id, amount, date, description, category, 'income' AS type,
-                is_cancelled, cancelled_at, cancel_reason FROM incomes WHERE manager_id = ?
+                is_cancelled, cancelled_at, cancel_reason FROM incomes WHERE building_id = ?
          UNION ALL
          SELECT id, amount, date, description, category, 'expense' AS type,
-                is_cancelled, cancelled_at, cancel_reason FROM expenses WHERE manager_id = ?
+                is_cancelled, cancelled_at, cancel_reason FROM expenses WHERE building_id = ?
          ORDER BY date DESC, id DESC`,
       )
-      .all(managerId, managerId);
+      .all(buildingId, buildingId);
     return { success: true, data: transactions };
   } catch (err) {
     console.error("[financial.service] getTransactions:", err);
@@ -78,14 +78,14 @@ function getTransactions(managerId) {
   }
 }
 
-function cancelRecord(table, id, userId, reason) {
+function cancelRecord(table, id, buildingId, userId, reason) {
   if (!ALLOWED_TABLES.has(table)) return { success: false, message: "Geçersiz işlem türü." };
 
   const record = db
     .prepare(
-      `SELECT id, is_cancelled${table === "incomes" ? ", due_payment_id" : ""} FROM ${table} WHERE id = ? AND manager_id = ?`,
+      `SELECT id, is_cancelled${table === "incomes" ? ", due_payment_id" : ""} FROM ${table} WHERE id = ? AND building_id = ?`,
     )
-    .get(id, userId);
+    .get(id, buildingId);
   if (!record) return { success: false, message: "Kayıt bulunamadı." };
   if (record.is_cancelled) return { success: false, message: "Bu kayıt zaten iptal edilmiş." };
   if (table === "incomes" && record.due_payment_id != null) {
@@ -103,18 +103,18 @@ function cancelRecord(table, id, userId, reason) {
   return { success: true, message: "Kayıt başarıyla iptal edildi." };
 }
 
-function cancelIncome(id, userId, reason) {
+function cancelIncome(id, buildingId, userId, reason) {
   try {
-    return cancelRecord("incomes", id, userId, reason);
+    return cancelRecord("incomes", id, buildingId, userId, reason);
   } catch (err) {
     console.error("[financial.service] cancelIncome:", err);
     return { success: false, message: resolveDbError(err, "Gelir iptali") };
   }
 }
 
-function cancelExpense(id, userId, reason) {
+function cancelExpense(id, buildingId, userId, reason) {
   try {
-    return cancelRecord("expenses", id, userId, reason);
+    return cancelRecord("expenses", id, buildingId, userId, reason);
   } catch (err) {
     console.error("[financial.service] cancelExpense:", err);
     return { success: false, message: resolveDbError(err, "Gider iptali") };

@@ -102,9 +102,9 @@ function validateResidentFields(data) {
   return validateResidentDates(data);
 }
 
-function validateManagerId(managerId) {
-  if (!Number.isInteger(managerId) || managerId <= 0) {
-    return { success: false, message: "Geçersiz site yöneticisi ID." };
+function validateBuildingId(buildingId) {
+  if (!Number.isInteger(buildingId) || buildingId <= 0) {
+    return { success: false, message: "Geçersiz bina ID." };
   }
   return null;
 }
@@ -116,39 +116,84 @@ function validateId(id, label) {
   return null;
 }
 
+function validateGetHistoryData(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return { success: false, message: "Geçersiz istek." };
+  }
+  const idError = validateId(payload.apartmentId, "daire ID");
+  if (idError) return idError;
+  return validateBuildingId(payload.buildingId);
+}
+
+function validateAddResidentData(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return { success: false, message: "Geçersiz istek." };
+  }
+  const idError = validateId(payload.apartmentId, "daire ID");
+  if (idError) return idError;
+  const bldError = validateBuildingId(payload.buildingId);
+  if (bldError) return bldError;
+  normalizeResidentData(payload);
+  return validateResidentFields(payload);
+}
+
+function validateUpdateResidentData(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return { success: false, message: "Geçersiz istek." };
+  }
+  const idError = validateId(payload.residentId, "sakin ID");
+  if (idError) return idError;
+  const bldError = validateBuildingId(payload.buildingId);
+  if (bldError) return bldError;
+  normalizeResidentData(payload);
+  return validateResidentFields(payload);
+}
+
+function validateMoveOutData(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return { success: false, message: "Geçersiz istek." };
+  }
+  const idError = validateId(payload.residentId, "sakin ID");
+  if (idError) return idError;
+  const bldError = validateBuildingId(payload.buildingId);
+  if (bldError) return bldError;
+  if (typeof payload.moveOutDate === "string") payload.moveOutDate = payload.moveOutDate.trim();
+  if (typeof payload.moveOutDate !== "string" || !isValidIsoDate(payload.moveOutDate)) {
+    return { success: false, message: "Geçersiz çıkış tarihi." };
+  }
+  return null;
+}
+
 function registerResidentHandlers(ipcMain) {
   ipcMain.handle(
     CH.RESIDENT.GET_OVERVIEW,
-    safeHandler(CH.RESIDENT.GET_OVERVIEW, (managerId) => {
-      const error = validateManagerId(managerId);
-      if (error) return error;
-      return residentService.getResidentsOverview(managerId);
+    safeHandler(CH.RESIDENT.GET_OVERVIEW, (buildingId) => {
+      const error = validateBuildingId(buildingId);
+      if (error) {
+        return error;
+      }
+      return residentService.getResidentsOverview(buildingId);
     }),
   );
 
   ipcMain.handle(
     CH.RESIDENT.GET_HISTORY,
     safeHandler(CH.RESIDENT.GET_HISTORY, (payload) => {
-      if (!payload || typeof payload !== "object") return { success: false, message: "Geçersiz istek." };
-      const idError = validateId(payload.apartmentId, "daire ID");
-      if (idError) return idError;
-      const mgrError = validateManagerId(payload.managerId);
-      if (mgrError) return mgrError;
-      return residentService.getResidentHistory(payload.apartmentId, payload.managerId);
+      const error = validateGetHistoryData(payload);
+      if (error) {
+        return error;
+      }
+      return residentService.getResidentHistory(payload.apartmentId, payload.buildingId);
     }),
   );
 
   ipcMain.handle(
     CH.RESIDENT.ADD,
     safeHandler(CH.RESIDENT.ADD, (payload) => {
-      if (!payload || typeof payload !== "object") return { success: false, message: "Geçersiz istek." };
-      const idError = validateId(payload.apartmentId, "daire ID");
-      if (idError) return idError;
-      const mgrError = validateManagerId(payload.managerId);
-      if (mgrError) return mgrError;
-      normalizeResidentData(payload);
-      const error = validateResidentFields(payload);
-      if (error) return error;
+      const error = validateAddResidentData(payload);
+      if (error) {
+        return error;
+      }
       return residentService.addResident(payload);
     }),
   );
@@ -156,14 +201,10 @@ function registerResidentHandlers(ipcMain) {
   ipcMain.handle(
     CH.RESIDENT.UPDATE,
     safeHandler(CH.RESIDENT.UPDATE, (payload) => {
-      if (!payload || typeof payload !== "object") return { success: false, message: "Geçersiz istek." };
-      const idError = validateId(payload.residentId, "sakin ID");
-      if (idError) return idError;
-      const mgrError = validateManagerId(payload.managerId);
-      if (mgrError) return mgrError;
-      normalizeResidentData(payload);
-      const error = validateResidentFields(payload);
-      if (error) return error;
+      const error = validateUpdateResidentData(payload);
+      if (error) {
+        return error;
+      }
       return residentService.updateResident(payload);
     }),
   );
@@ -171,14 +212,9 @@ function registerResidentHandlers(ipcMain) {
   ipcMain.handle(
     CH.RESIDENT.MOVE_OUT,
     safeHandler(CH.RESIDENT.MOVE_OUT, (payload) => {
-      if (!payload || typeof payload !== "object") return { success: false, message: "Geçersiz istek." };
-      const idError = validateId(payload.residentId, "sakin ID");
-      if (idError) return idError;
-      const mgrError = validateManagerId(payload.managerId);
-      if (mgrError) return mgrError;
-      if (typeof payload.moveOutDate === "string") payload.moveOutDate = payload.moveOutDate.trim();
-      if (typeof payload.moveOutDate !== "string" || !isValidIsoDate(payload.moveOutDate)) {
-        return { success: false, message: "Geçersiz çıkış tarihi." };
+      const error = validateMoveOutData(payload);
+      if (error) {
+        return error;
       }
       return residentService.moveOutResident(payload);
     }),

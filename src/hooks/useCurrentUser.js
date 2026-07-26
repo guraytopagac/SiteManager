@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
 
-export const VALID_ROLES = ["admin", "manager"];
-
 const SESSION_USER_KEY = "currentUser";
 const SESSION_CHANGED_EVENT = "user-session-changed";
 
 function pickSessionFields(user) {
-  if (!user?.id || !VALID_ROLES.includes(user.role)) return null;
-  const { id, role, username, email, last_login } = user;
-  return { id, role, username, email, last_login };
+  if (!user?.id) return null;
+  const { id, username, email, managerName, last_login } = user;
+  return { id, username, email, managerName, last_login };
 }
 
 function isSameSessionUser(a, b) {
@@ -16,9 +14,9 @@ function isSameSessionUser(a, b) {
   if (!a || !b) return false;
   return (
     a.id === b.id &&
-    a.role === b.role &&
     a.username === b.username &&
     a.email === b.email &&
+    a.managerName === b.managerName &&
     a.last_login === b.last_login
   );
 }
@@ -41,14 +39,6 @@ export function setCurrentUser(user) {
 export function clearCurrentUser() {
   sessionStorage.clear();
   window.dispatchEvent(new Event(SESSION_CHANGED_EVENT));
-}
-
-export function hasRole(user, expectedRole) {
-  return user?.role === expectedRole;
-}
-
-export function homePathFor(user) {
-  return hasRole(user, "admin") ? "/admin" : "/dashboard";
 }
 
 export function useCurrentUser() {

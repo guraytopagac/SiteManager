@@ -2,7 +2,7 @@ const { app, ipcMain, dialog } = require("electron");
 const log = require("electron-log");
 const { autoUpdater } = require("electron-updater");
 const { runMigrations } = require("../database/migrate");
-const { seedAdminAccount } = require("../database/seed");
+const { seedAccount } = require("../database/seed");
 const registerIpcHandlers = require("./ipc/index.js");
 const { checkForUpdatesBeforeStartup } = require("./autoUpdater");
 const { createMainWindow, getMainWindow } = require("./windows/main");
@@ -59,10 +59,10 @@ app.whenReady().then(async () => {
     registerIpcHandlers(ipcMain);
 
     try {
-      seedAdminAccount(db);
+      seedAccount(db);
     } catch (err) {
-      log.error("Admin hesabı oluşturulamadı", err);
-      dialog.showErrorBox("Başlatma Hatası", `Admin hesabı oluşturulamadı:\n${err.message}`);
+      log.error("Hesap oluşturulamadı", err);
+      dialog.showErrorBox("Başlatma Hatası", `Hesap oluşturulamadı:\n${err.message}`);
       app.quit();
       return;
     }

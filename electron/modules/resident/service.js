@@ -13,23 +13,23 @@ const COLUMN_LABELS = {
 
 const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
 
-function findOwnedActiveApartment(apartmentId, managerId) {
+function findOwnedActiveApartment(apartmentId, buildingId) {
   return db
-    .prepare(`SELECT id FROM apartments WHERE id = ? AND manager_id = ? AND is_active = 1`)
-    .get(apartmentId, managerId);
+    .prepare(`SELECT id FROM apartments WHERE id = ? AND building_id = ? AND is_active = 1`)
+    .get(apartmentId, buildingId);
 }
 
-function findOwnedResident(residentId, managerId) {
+function findOwnedResident(residentId, buildingId) {
   return db
     .prepare(
       `SELECT r.id, r.apartment_id FROM residents r
        JOIN apartments a ON a.id = r.apartment_id
-       WHERE r.id = ? AND a.manager_id = ?`,
+       WHERE r.id = ? AND a.building_id = ?`,
     )
-    .get(residentId, managerId);
+    .get(residentId, buildingId);
 }
 
-function getResidentsOverview(managerId) {
+function getResidentsOverview(buildingId) {
   try {
     const data = db
       .prepare(
@@ -38,10 +38,10 @@ function getResidentsOverview(managerId) {
                 r.resident_type, r.move_in_date, r.move_out_date, r.notes
          FROM apartments a
          LEFT JOIN residents r ON r.apartment_id = a.id AND r.is_active = 1
-         WHERE a.manager_id = ? AND a.is_active = 1
+         WHERE a.building_id = ? AND a.is_active = 1
          ORDER BY a.apartment_no ASC`,
       )
-      .all(managerId);
+      .all(buildingId);
 
     return { success: true, data };
   } catch (err) {
@@ -50,9 +50,9 @@ function getResidentsOverview(managerId) {
   }
 }
 
-function getResidentHistory(apartmentId, managerId) {
+function getResidentHistory(apartmentId, buildingId) {
   try {
-    if (!findOwnedActiveApartment(apartmentId, managerId)) {
+    if (!findOwnedActiveApartment(apartmentId, buildingId)) {
       return { success: false, message: "Daire bulunamadı veya bu işlem için yetkiniz yok." };
     }
 
@@ -74,11 +74,11 @@ function getResidentHistory(apartmentId, managerId) {
 }
 
 function addResident(payload) {
-  const { apartmentId, managerId } = payload;
+  const { apartmentId, buildingId } = payload;
   try {
     let inserted = false;
     db.transaction(() => {
-      if (!findOwnedActiveApartment(apartmentId, managerId)) throw new Error("not_found");
+      if (!findOwnedActiveApartment(apartmentId, buildingId)) throw new Error("not_found");
 
       const existingActiveResident = db
         .prepare(`SELECT id FROM residents WHERE apartment_id = ? AND is_active = 1`)
@@ -115,9 +115,9 @@ function addResident(payload) {
 }
 
 function updateResident(payload) {
-  const { residentId, managerId } = payload;
+  const { residentId, buildingId } = payload;
   try {
-    const owned = findOwnedResident(residentId, managerId);
+    const owned = findOwnedResident(residentId, buildingId);
     if (!owned) return { success: false, message: "Sakin bulunamadı veya bu işlem için yetkiniz yok." };
 
     db.prepare(
@@ -143,9 +143,9 @@ function updateResident(payload) {
 }
 
 function moveOutResident(payload) {
-  const { residentId, managerId, moveOutDate } = payload;
+  const { residentId, buildingId, moveOutDate } = payload;
   try {
-    const owned = findOwnedResident(residentId, managerId);
+    const owned = findOwnedResident(residentId, buildingId);
     if (!owned) return { success: false, message: "Sakin bulunamadı veya bu işlem için yetkiniz yok." };
 
     db.prepare(`UPDATE residents SET move_out_date = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`).run(

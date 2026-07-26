@@ -30,11 +30,12 @@ function validateApartmentData(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     return { success: false, message: "Geçersiz istek." };
   }
+  normalizeApartmentData(data);
   if (typeof data.apartment_no !== "string" || !APARTMENT_NO_RE.test(data.apartment_no)) {
     return { success: false, message: "Daire numarası 1-10 karakter olmalı ve yalnızca harf/rakam içermelidir." };
   }
-  if (!Number.isInteger(data.managerId) || data.managerId <= 0) {
-    return { success: false, message: "Geçersiz site yöneticisi ID." };
+  if (!Number.isInteger(data.buildingId) || data.buildingId <= 0) {
+    return { success: false, message: "Geçersiz bina ID." };
   }
   if (typeof data.type !== "string" || !APARTMENT_TYPES.includes(data.type)) {
     return { success: false, message: "Geçersiz daire tipi." };
@@ -66,7 +67,6 @@ function validateUpdatePayload(payload) {
   if (!Number.isInteger(payload.id) || payload.id <= 0) {
     return { success: false, message: "Geçersiz daire ID." };
   }
-  normalizeApartmentData(payload.data);
   return validateApartmentData(payload.data);
 }
 
@@ -74,12 +74,12 @@ function validateDeletePayload(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return { success: false, message: "Geçersiz istek." };
   }
-  const { id, managerId } = payload;
+  const { id, buildingId } = payload;
   if (!Number.isInteger(id) || id <= 0) {
     return { success: false, message: "Geçersiz daire ID." };
   }
-  if (!Number.isInteger(managerId) || managerId <= 0) {
-    return { success: false, message: "Geçersiz kullanıcı ID." };
+  if (!Number.isInteger(buildingId) || buildingId <= 0) {
+    return { success: false, message: "Geçersiz bina ID." };
   }
   return null;
 }
@@ -88,9 +88,9 @@ function validateBulkUpdateDueAmountPayload(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return { success: false, message: "Geçersiz istek." };
   }
-  const { managerId, amount } = payload;
-  if (!Number.isInteger(managerId) || managerId <= 0) {
-    return { success: false, message: "Geçersiz kullanıcı ID." };
+  const { buildingId, amount } = payload;
+  if (!Number.isInteger(buildingId) || buildingId <= 0) {
+    return { success: false, message: "Geçersiz bina ID." };
   }
   if (!Number.isFinite(amount) || amount <= DUE_AMOUNT_MIN || amount > DUE_AMOUNT_MAX) {
     return { success: false, message: "Aidat tutarı 0'dan büyük olmalı ve 50.000₺'yi geçmemelidir." };
@@ -102,7 +102,6 @@ function registerApartmentHandlers(ipcMain) {
   ipcMain.handle(
     CH.APARTMENT.ADD,
     safeHandler(CH.APARTMENT.ADD, (data) => {
-      normalizeApartmentData(data);
       const error = validateApartmentData(data);
       if (error) {
         return error;
@@ -129,7 +128,7 @@ function registerApartmentHandlers(ipcMain) {
       if (error) {
         return error;
       }
-      return apartmentService.deleteApartment(payload.id, payload.managerId);
+      return apartmentService.deleteApartment(payload.id, payload.buildingId);
     }),
   );
 
@@ -140,7 +139,7 @@ function registerApartmentHandlers(ipcMain) {
       if (error) {
         return error;
       }
-      return apartmentService.bulkUpdateDueAmount(payload.managerId, payload.amount);
+      return apartmentService.bulkUpdateDueAmount(payload.buildingId, payload.amount);
     }),
   );
 }

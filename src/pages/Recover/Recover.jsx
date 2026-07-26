@@ -1,26 +1,10 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Recover.css";
 import { showAlert } from "@/utils/alert";
-import {
-  MIN_PASSWORD_LENGTH,
-  buildPasswordRules,
-  buildStrengthMeter,
-  scorePassword,
-} from "@/utils/passwordStrength";
+import { MIN_PASSWORD_LENGTH, buildPasswordRules, buildStrengthMeter, scorePassword } from "@/utils/passwordStrength";
 import CapsLockIndicator from "@/components/CapsLockIndicator/CapsLockIndicator";
-import {
-  FiAlertCircle,
-  FiArrowLeft,
-  FiArrowRight,
-  FiCheck,
-  FiEye,
-  FiEyeOff,
-  FiKey,
-  FiLock,
-  FiMinus,
-  FiX,
-} from "react-icons/fi";
+import { FiAlertCircle, FiArrowRight, FiCheck, FiEye, FiEyeOff, FiInfo, FiKey, FiLock, FiMinus, FiX } from "react-icons/fi";
 
 const RECOVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const RECOVERY_LENGTH = 16;
@@ -55,10 +39,10 @@ function Recover() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hint, setHint] = useState("");
   const [error, setError] = useState("");
-  const codeRef = useRef(null);
 
   const strength = scorePassword(password);
   const meter = buildStrengthMeter(password, strength);
@@ -66,26 +50,25 @@ function Recover() {
   const isCodeComplete = recoveryDigits.length === RECOVERY_LENGTH;
 
   const handleCodeChange = (e) => {
-    const raw = e.target.value;
-    setHint(hasExcludedCharacter(raw) ? EXCLUDED_HINT : "");
-    setRecoveryDigits(toRecoveryDigits(raw));
+    const enteredCode = e.target.value;
+    setHint(hasExcludedCharacter(enteredCode) ? EXCLUDED_HINT : "");
+    setRecoveryDigits(toRecoveryDigits(enteredCode));
     setError("");
   };
 
   const handleCodeSubmit = (e) => {
     e.preventDefault();
     if (!isCodeComplete) {
-      setError("Kurtarma kodu 16 karakter olmalıdır.");
+      setError(`Kurtarma kodu ${RECOVERY_LENGTH} karakter olmalıdır.`);
       return;
     }
-    setError("");
+    setHint("");
     setStep(2);
   };
 
   const backToCodeStep = (message) => {
     setStep(1);
     setError(message);
-    requestAnimationFrame(() => codeRef.current?.focus());
   };
 
   const handlePasswordSubmit = async (e) => {
@@ -103,57 +86,61 @@ function Recover() {
     setIsSubmitting(true);
     setError("");
 
-    let res;
+    let resetResult;
     try {
-      res = await window.electronAPI.resetAdminPassword({
+      resetResult = await window.electronAPI.resetAccountPassword({
         recoveryCode: recoveryDigits,
         newPassword: password,
       });
     } catch {
-      setIsSubmitting(false);
       setError("Şifre sıfırlanamadı. Lütfen uygulamayı yeniden başlatıp tekrar deneyin.");
       return;
+    } finally {
+      setIsSubmitting(false);
     }
 
-    setIsSubmitting(false);
-
-    if (!res.success) {
-      if (res.message?.startsWith("Kurtarma kodu hatalı")) {
-        backToCodeStep(res.message);
+    if (!resetResult.success) {
+      const failureMessage = resetResult.message || "Şifre sıfırlanamadı.";
+      if (resetResult.code === "INVALID_RECOVERY_CODE") {
+        backToCodeStep(failureMessage);
         return;
       }
-      setError(res.message);
+      setError(failureMessage);
       return;
     }
 
-    await showAlert.resetCode(res.recoveryCode);
+    await showAlert.resetCode({ code: resetResult.recoveryCode, username: resetResult.username });
     showAlert.toast("Şifre sıfırlandı", "Yeni şifrenizle giriş yapabilirsiniz.");
-    navigate("/login", { replace: true, state: { username: "admin" } });
+    navigate("/login", { replace: true });
   };
 
   return (
     <div className="recover-page-bg">
-      <div className="recover-container">
+      <div className={step === 1 ? "recover-container is-code-step" : "recover-container"}>
         <span className="recover-badge">
-          <FiKey size={20} />
+          <FiKey size={28} />
         </span>
-        <h1 className="recover-title">Admin Şifre Sıfırlama</h1>
-        <p className="recover-subtitle">
-          {step === 1
-            ? "İlk kurulumda size verilen kurtarma kodunu girin."
-            : "Yeni sistem yöneticisi şifrenizi belirleyin."}
-        </p>
+        <h1 className="recover-title">
+          <span className="recover-title-role">Hesap</span>
+          <span className="recover-title-action">Şifre Sıfırlama</span>
+        </h1>
 
         <ol className="recover-steps" aria-label="Sıfırlama adımları">
-          <li className={step === 1 ? "is-active" : "is-done"}>
-            <span className="recover-step-no">{step === 1 ? "1" : <FiCheck size={13} />}</span>
+          <li className={step === 1 ? "is-active" : "is-done"} aria-current={step === 1 ? "step" : undefined}>
+            <span className="recover-step-no">{step === 1 ? "1" : <FiCheck size={14} title="Tamamlandı" />}</span>
             Kurtarma kodu
           </li>
-          <li className={step === 2 ? "is-active" : ""}>
+          <li className={step === 2 ? "is-active" : ""} aria-current={step === 2 ? "step" : undefined}>
             <span className="recover-step-no">2</span>
             Yeni şifre
           </li>
         </ol>
+
+        <p className="recover-subtitle">
+          {step === 1
+            ? "İlk kurulumda size verilen kurtarma kodunu girin."
+            : "Hesabınız için yeni bir şifre belirleyin."}
+        </p>
 
         {step === 1 ? (
           <form className="recover-form" onSubmit={handleCodeSubmit}>
@@ -165,10 +152,8 @@ function Recover() {
                 <FiKey className="recover-icon" size={18} />
                 <input
                   id="recover-code"
-                  ref={codeRef}
                   className="recover-input recover-code-input"
                   type="text"
-                  inputMode="text"
                   placeholder="XXXX-XXXX-XXXX-XXXX"
                   autoComplete="off"
                   spellCheck="false"
@@ -181,26 +166,36 @@ function Recover() {
                 />
               </div>
               <p className="recover-help" id="recover-code-help">
-                {hint || `${recoveryDigits.length} / ${RECOVERY_LENGTH} karakter`}
+                {hint || (recoveryDigits.length > 0 ? `${recoveryDigits.length} / ${RECOVERY_LENGTH} karakter` : "")}
               </p>
             </div>
 
             {error && (
               <div className="recover-error" role="alert">
-                <FiAlertCircle className="recover-error-icon" size={15} />
+                <FiAlertCircle className="recover-error-icon" size={16} />
                 {error}
               </div>
             )}
 
-            <button type="submit" className="recover-btn" disabled={!isCodeComplete}>
+            <button type="submit" className="recover-btn">
               Devam
               <FiArrowRight className="recover-btn-icon" size={18} strokeWidth={2.5} />
             </button>
 
-            <button type="button" className="recover-back" onClick={() => navigate("/login")}>
-              <FiArrowLeft size={15} />
+            <button type="button" className="recover-back recover-back-link" onClick={() => navigate("/login")}>
               Giriş ekranına dön
             </button>
+
+            <aside className="recover-note">
+              <FiInfo className="recover-note-icon" size={18} />
+              <div className="recover-note-text">
+                <p className="recover-note-title">Kodunuz elinizde değil mi?</p>
+                <p className="recover-note-body">
+                  Hâlâ giriş yapabiliyorsanız Profil sayfasından yeni bir kod üretin. Hem şifre
+                  hem kod kaybolursa hesaba erişim geri getirilemez.
+                </p>
+              </div>
+            </aside>
           </form>
         ) : (
           <form className="recover-form" onSubmit={handlePasswordSubmit}>
@@ -253,8 +248,8 @@ function Recover() {
                 <FiLock className="recover-icon" size={18} />
                 <input
                   id="recover-confirm"
-                  className="recover-input"
-                  type={showPassword ? "text" : "password"}
+                  className="recover-input has-toggle"
+                  type={showConfirmPassword ? "text" : "password"}
                   placeholder="Şifreyi tekrar girin"
                   autoComplete="new-password"
                   value={confirmPassword}
@@ -264,7 +259,15 @@ function Recover() {
                   }}
                   required
                 />
-                <CapsLockIndicator withToggle={false} />
+                <CapsLockIndicator />
+                <button
+                  type="button"
+                  className="recover-toggle"
+                  onClick={() => setShowConfirmPassword((isVisible) => !isVisible)}
+                  aria-label={showConfirmPassword ? "Şifreyi gizle" : "Şifreyi göster"}
+                >
+                  {showConfirmPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                </button>
               </div>
             </div>
 
@@ -274,7 +277,7 @@ function Recover() {
                 const RuleIcon = { valid: FiCheck, pending: FiMinus, failed: FiX }[state];
                 return (
                   <li key={rule.id} className={`recover-rule-${state}`}>
-                    <RuleIcon className="recover-rule-icon" size={13} />
+                    <RuleIcon className="recover-rule-icon" size={14} />
                     {rule.label}
                   </li>
                 );
@@ -283,7 +286,7 @@ function Recover() {
 
             {error && (
               <div className="recover-error" role="alert">
-                <FiAlertCircle className="recover-error-icon" size={15} />
+                <FiAlertCircle className="recover-error-icon" size={16} />
                 {error}
               </div>
             )}
@@ -304,14 +307,13 @@ function Recover() {
 
             <button
               type="button"
-              className="recover-back"
+              className="recover-back recover-back-link"
               onClick={() => {
                 setStep(1);
                 setError("");
               }}
               disabled={isSubmitting}
             >
-              <FiArrowLeft size={15} />
               Kurtarma koduna dön
             </button>
           </form>

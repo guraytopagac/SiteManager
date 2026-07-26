@@ -1,7 +1,8 @@
 import { useState, useEffect, cloneElement } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
-import { useCurrentUser, clearCurrentUser } from "@/hooks/useCurrentUser";
+import { clearCurrentUser } from "@/hooks/useCurrentUser";
+import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { showAlert } from "@/utils/alert";
 import {
   FiDollarSign,
@@ -43,20 +44,20 @@ function Icon({ name }) {
 
 function Dashboard() {
   const navigate = useNavigate();
-  const currentUser = useCurrentUser();
+  const building = useCurrentBuilding();
   const [stats, setStats] = useState({ cash: 0, collections: 0, delays: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
-    if (!currentUser.id) return;
+    if (!building?.id) return;
     let cancelled = false;
 
     (async () => {
       setLoading(true);
       setError(false);
-      const data = await window.electronAPI.getStats(currentUser.id);
+      const data = await window.electronAPI.getStats(building.id);
       if (cancelled) return;
       if (data.success) {
         setStats(data.payload);
@@ -70,7 +71,7 @@ function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [currentUser.id, reloadToken]);
+  }, [building?.id, reloadToken]);
 
   const handleLogout = async () => {
     const confirmed = await showAlert.confirm("Çıkış Yap", "Oturumu kapatmak istiyor musunuz?", "Evet, Çık");
@@ -102,6 +103,14 @@ function Dashboard() {
 
   return (
     <div className="dashboard-container">
+      {building?.name && (
+        <div className="dashboard-building-row">
+          <h1 className="dashboard-building">{building.name}</h1>
+          <button className="dashboard-switch-building" onClick={() => navigate("/select-building")}>
+            Bina Değiştir
+          </button>
+        </div>
+      )}
       <div className="stat-grid">
         <div className="stat-card stat-card-kasa">
           <div className="stat-card-text">

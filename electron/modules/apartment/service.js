@@ -14,7 +14,7 @@ const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
 function addApartment(apartmentData) {
   try {
     db.prepare(
-      `INSERT INTO apartments (apartment_no, floor, type, square_meters, due_amount, manager_id, created_at, updated_at)
+      `INSERT INTO apartments (apartment_no, floor, type, square_meters, due_amount, building_id, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
     ).run(
       apartmentData.apartment_no,
@@ -22,7 +22,7 @@ function addApartment(apartmentData) {
       apartmentData.type,
       apartmentData.square_meters,
       apartmentData.due_amount,
-      apartmentData.managerId,
+      apartmentData.buildingId,
     );
     return { success: true, message: "Daire eklendi." };
   } catch (err) {
@@ -37,7 +37,7 @@ function updateApartment(id, apartmentData) {
       .prepare(
         `UPDATE apartments
          SET apartment_no = ?, floor = ?, type = ?, square_meters = ?, due_amount = ?, updated_at = datetime('now', '+3 hours')
-         WHERE id = ? AND manager_id = ?`,
+         WHERE id = ? AND building_id = ?`,
       )
       .run(
         apartmentData.apartment_no,
@@ -46,7 +46,7 @@ function updateApartment(id, apartmentData) {
         apartmentData.square_meters,
         apartmentData.due_amount,
         id,
-        apartmentData.managerId,
+        apartmentData.buildingId,
       );
 
     if (result.changes === 0) {
@@ -60,11 +60,13 @@ function updateApartment(id, apartmentData) {
   }
 }
 
-function deleteApartment(id, managerId) {
+function deleteApartment(id, buildingId) {
   try {
     const result = db
-      .prepare(`UPDATE apartments SET is_active = 0, updated_at = datetime('now', '+3 hours') WHERE id = ? AND manager_id = ?`)
-      .run(id, managerId);
+      .prepare(
+        `UPDATE apartments SET is_active = 0, updated_at = datetime('now', '+3 hours') WHERE id = ? AND building_id = ?`,
+      )
+      .run(id, buildingId);
     if (result.changes === 0) return { success: false, message: "Daire bulunamadı veya bu işlem için yetkiniz yok." };
     return { success: true, message: "Daire pasife alındı." };
   } catch (err) {
@@ -73,13 +75,13 @@ function deleteApartment(id, managerId) {
   }
 }
 
-function bulkUpdateDueAmount(managerId, amount) {
+function bulkUpdateDueAmount(buildingId, amount) {
   try {
     const result = db
       .prepare(
-        `UPDATE apartments SET due_amount = ?, updated_at = datetime('now', '+3 hours') WHERE manager_id = ? AND is_active = 1`,
+        `UPDATE apartments SET due_amount = ?, updated_at = datetime('now', '+3 hours') WHERE building_id = ? AND is_active = 1`,
       )
-      .run(amount, managerId);
+      .run(amount, buildingId);
     return { success: true, message: `${result.changes} dairenin aidat tutarı güncellendi.`, count: result.changes };
   } catch (err) {
     console.error("[apartment.service] bulkUpdateDueAmount:", err);

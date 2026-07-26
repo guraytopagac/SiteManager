@@ -59,15 +59,11 @@
   color: var(--text-color);
 }
 
-.role-badge {
-  display: inline-block;
-  width: fit-content;
-  padding: 2px 12px;
-  border-radius: 20px;
-  background: var(--button-color);
-  color: var(--button-text, white);
-  font-size: 0.82rem;
-  font-weight: 600;
+.info-value-editable {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 /* Password form */
@@ -175,4 +171,71 @@
 .profile-container .btn-secondary:hover {
   border-color: var(--button-color);
   color: var(--button-color);
+}
+
+.profile-muted {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin: 0 0 14px;
+}
+
+.profile-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.building-manage-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.building-manage-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  background: var(--card-background-2);
+}
+
+.building-manage-item.is-archived {
+  opacity: 0.7;
+}
+
+.building-manage-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-color);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.building-manage-tag {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 20px;
+  padding: 1px 10px;
+}
+
+.building-manage-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.profile-container .btn-secondary.btn-xs {
+  min-width: 0;
+  height: 36px;
+  padding: 0 14px;
+  font-size: 1rem;
 }

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { showAlert } from "@/utils/alert";
 import { APARTMENT_TYPES } from "../constants";
 
-function EditModal({ apartment, currentUser, onClose, onSaved }) {
+function EditModal({ apartment, building, onClose, onSaved }) {
   const [form, setForm] = useState({
     apartment_no: apartment.apartment_no || "",
     floor: apartment.floor ?? "",
@@ -21,7 +21,7 @@ function EditModal({ apartment, currentUser, onClose, onSaved }) {
       floor: Number(form.floor),
       square_meters: form.square_meters ? Number(form.square_meters) : null,
       due_amount: Number(form.due_amount),
-      managerId: currentUser.id,
+      buildingId: building.id,
     });
     setIsSubmitting(false);
 

@@ -1,7 +1,6 @@
 const crypto = require("crypto");
 
-const DEFAULT_ADMIN_USERNAME = "admin";
-const DEFAULT_ADMIN_EMAIL = "guray.topagac.dev@gmail.com";
+const DEFAULT_USERNAME = "admin";
 
 const RECOVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const RECOVERY_LENGTH = 16;
@@ -28,27 +27,25 @@ function normalizeRecoveryCode(input) {
     .replace(/[^A-Z0-9]/g, "");
 }
 
-function seedAdminAccount(db) {
-  const existing = db.prepare(`SELECT username, email FROM users WHERE role = 'admin' LIMIT 1`).get();
+function seedAccount(db) {
+  const existing = db.prepare(`SELECT username, email FROM users ORDER BY id LIMIT 1`).get();
   if (existing) return { alreadyExists: true, ...existing };
 
   try {
     db.prepare(
-      `INSERT INTO users (username, email, password_hash, recovery_hash, role, is_active, created_at, updated_at)
-       VALUES (?, ?, 'SETUP_PENDING', NULL, 'admin', 1, datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
-    ).run(DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_EMAIL);
+      `INSERT INTO users (username, email, password_hash, recovery_hash, is_active, created_at, updated_at)
+       VALUES (?, NULL, 'SETUP_PENDING', NULL, 1, datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
+    ).run(DEFAULT_USERNAME);
   } catch (err) {
-    console.error("[Seed] Failed to create admin account:", err.message);
+    console.error("[Seed] Failed to create account:", err.message);
     throw err;
   }
 
-  return { username: DEFAULT_ADMIN_USERNAME };
+  return { username: DEFAULT_USERNAME };
 }
 
 module.exports = {
-  seedAdminAccount,
+  seedAccount,
   generateRecoveryCode,
   normalizeRecoveryCode,
-  DEFAULT_ADMIN_USERNAME,
-  DEFAULT_ADMIN_EMAIL,
 };

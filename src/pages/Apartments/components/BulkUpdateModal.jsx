@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { showAlert } from "@/utils/alert";
 
-function BulkUpdateModal({ currentUser, onClose, onSaved }) {
+function BulkUpdateModal({ building, onClose, onSaved }) {
   const [amount, setAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -21,7 +21,7 @@ function BulkUpdateModal({ currentUser, onClose, onSaved }) {
     if (!confirmed) return;
 
     setIsSubmitting(true);
-    const res = await window.electronAPI.bulkUpdateDueAmount(currentUser.id, parsed);
+    const res = await window.electronAPI.bulkUpdateDueAmount(building.id, parsed);
     setIsSubmitting(false);
 
     if (res.success) {

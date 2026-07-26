@@ -4,6 +4,7 @@ Bu dosya geliştirme planını, teknik borç analizini ve gelecek fikirlerini i�
 Mevcut durum ve mimari için bkz. `CLAUDE.md`.
 
 > **Kurallar:**
+>
 > - Bir görev tamamlandığında ilgili bölüm bu dosyadan **silinir**; davranış değiştiyse `CLAUDE.md` güncellenir.
 > - Zorluk skalası: 🟢 kolay (< yarım gün) · 🟡 orta (1–2 gün) · 🔴 zor (3+ gün / mimari karar)
 > - Faz sırası önem/bağımlılık sırasıdır — üstteki bitmeden alttakine geçme (aynı faz içindekiler paralel yapılabilir).
@@ -12,29 +13,17 @@ Mevcut durum ve mimari için bkz. `CLAUDE.md`.
 
 ## Genel Bakış — 8 Haftalık Plan
 
-| Faz | Hafta | Tema | Görevler |
-| --- | ----- | ---- | -------- |
-| 1 | 1 | Güvenlik ve sağlamlaştırma | G1 yetki düzeltmesi, G2 ESLint sıkılaştırma, G3 test kapsamı |
-| 2 | 2–3 | Kullanıcıya görünür hızlı kazanımlar | Ö1 aidat hatırlatma, Ö3 gelişmiş filtreler |
-| 3 | 4–5 | Raporlama ve veri çıkışı | Ö4 PDF makbuz, Ö5 CSV/Excel dışa aktarım, Ö6 dashboard trend grafiği |
-| 4 | 6–7 | Veri güvenliği altyapısı | A1 otomatik yedekleme, A2 yedek klasörü senkronu |
-| 5 | 8+ | Ölçek ve refactor | T2 sayfalama, (karar sonrası) çok bina desteği |
+| Faz | Hafta | Tema                                 | Görevler                                                             |
+| --- | ----- | ------------------------------------ | -------------------------------------------------------------------- |
+| 1   | 1     | Güvenlik ve sağlamlaştırma           | G1 yetki düzeltmesi, G2 ESLint sıkılaştırma, G3 test kapsamı         |
+| 2   | 2–3   | Kullanıcıya görünür hızlı kazanımlar | Ö1 aidat hatırlatma, Ö3 gelişmiş filtreler                           |
+| 3   | 4–5   | Raporlama ve veri çıkışı             | Ö4 PDF makbuz, Ö5 CSV/Excel dışa aktarım, Ö6 dashboard trend grafiği |
+| 4   | 6–7   | Veri güvenliği altyapısı             | A1 otomatik yedekleme, A2 yedek klasörü senkronu                     |
+| 5   | 8+    | Ölçek ve refactor                    | T2 sayfalama, (karar sonrası) çok bina desteği                       |
 
 ---
 
 ## Faz 1 — Güvenlik ve Sağlamlaştırma (Hafta 1)
-
-### G1. `getPaymentHistory` yetki doğrulaması 🟢 — EN YÜKSEK ÖNCELİK
-
-- **Amaç:** Handler'a `managerId` parametresi ekleyip `dueId`'nin o manager'ın dairesine ait olduğunu doğrulamak.
-- **Neden gerekli:** Şu an herhangi bir `dueId` ile başka manager'ın ödeme geçmişi okunabilir — veri izolasyonu kuralının (CLAUDE.md §5.2) tek bilinen ihlali.
-- **Fayda:** Veri izolasyonu tutarlılığı; ileride çok bina desteğinin ön koşulu.
-- **Teknik etki:** IPC parametre değişikliği (kullanıcı onayı gerekir).
-- **Bağımlılık:** Yok.
-- **Risk:** Düşük — mevcut çağıran tek yer `Apartments.jsx`/`Dues` akışı; `managerId` zaten oturumda mevcut.
-- **Dosyalar:** `electron/modules/dues/handlers.js`, `dues/service.js` (JOIN ile sahiplik kontrolü), `preload.js`, çağıran sayfa.
-- **Test:** doğru manager → liste döner; yanlış manager/geçersiz dueId → `{success:false}`.
-- **Tamamlanma kriteri:** Yetkisiz `dueId` ile geçmiş okunamaz; mevcut ekran davranışı değişmez; CLAUDE.md §5.2'deki "bilinen açık" notu silinir.
 
 ### G2. ESLint `no-unused-vars` → `error` 🟢
 
@@ -105,7 +94,7 @@ Mevcut durum ve mimari için bkz. `CLAUDE.md`.
 - **Fayda:** Finansal gidişatın tek bakışta görülmesi.
 - **Teknik etki:** ⚠️ **Karar gerekli:** `recharts` (+~100KB bağımlılık) vs saf SVG. Öneri: **saf SVG** — 6 çubuk/çizgilik basit grafik için bağımlılık maliyetine değmez; tema değişkenleriyle de doğal uyumlu. Yeni IPC endpoint gerekir (`getMonthlyTrend`) — kullanıcıya sor.
 - **Bağımlılık:** Yok.
-- **Dosyalar:** `channels.js`, `financial/handlers.js`, `financial/service.js` (`getMonthlyTrend(managerId, monthCount)`), `preload.js`, `Dashboard.jsx`, yeni `src/components/TrendChart.jsx`.
+- **Dosyalar:** `channels.js`, `financial/handlers.js`, `financial/service.js` (`getMonthlyTrend(buildingId, monthCount)`), `preload.js`, `Dashboard.jsx`, yeni `src/components/TrendChart.jsx`.
 - **Test:** verisiz aylar (0 gösterimi), yıl geçişi (Kasım→Şubat aralığı), iptal kayıtların hariç tutulması, dark tema görünümü.
 - **Tamamlanma kriteri:** Dashboard'da Türkçe ay etiketli (Oca, Şub…) 6 aylık grafik; iptal kayıtlar toplamda yok.
 
@@ -146,30 +135,25 @@ Mevcut durum ve mimari için bkz. `CLAUDE.md`.
 - **Test:** sayfa sınırları, filtre+sayfa kombinasyonu, toplam kayıt sayısı gösterimi.
 - **Tamamlanma kriteri:** 10.000 kayıtlık test verisinde sayfa geçişi < 100 ms.
 
-### T3. Çok Bina Desteği 🔴 — MİMARİ KARAR GEREKTİRİR
-
-- **Durum:** Planlanmış değil; **başlamadan önce kullanıcıyla detaylı konuşulacak.**
-- **Mevcut analiz:** `manager_id` bazlı veri modeli buna kısmen hazır, ancak UI tek bina varsayar. Gerekli olurlarsa: `buildings` tablosu + `apartments.building_id`, bina seçici UI, `currentBuilding` oturum state'i, tüm sorgulara bina filtresi.
-- **Ön koşullar:** G1 (yetki deseni), T2 (veri hacmi artacak), kapsamlı test (G3).
+> **Not:** Çok bina desteği (eski T3 / `buildings` varlığı) **uygulandı** — bir kişi tek hesapla N bina yönetir, bina seçici + `useCurrentBuilding` + `building_id` geçişi tamam (CLAUDE.md ADR #25). Tek role geçiş de tamamlandı (ADR #26); `role`/`display_name` kalıntı kolonları 018 ile silindi.
 
 ---
 
 ## Teknik Borç Analizi
 
-| # | Borç | Risk | Öneri |
-| - | ---- | ---- | ----- |
-| 1 | `getPaymentHistory` sahiplik doğrulamıyor | Veri izolasyonu ihlali | **G1 — Faz 1'de kapat** |
-| 3 | Test kapsamı dar | Finansal mantıkta sessiz regresyon | G3; yeni service fonksiyonu = beraberinde test |
-| 5 | `getTransactions` sınırsız satır döner | Büyüyen veride UI/IPC yavaşlaması | T2 sayfalama |
-| 6 | Para `REAL` (float) | Kuruş yuvarlama sapmaları birikebilir | Bilinçli karar (ADR #8); şikâyet gelirse kuruş-integer migration planla — şimdilik dokunma |
-| 7 | Ayar saklama altyapısı yok | A1/A2 ve gelecek özellikler engelleniyor | A1 kapsamında JSON tabanlı settings modülü |
-| 8 | `sandbox:false` | Electron güvenlik yüzeyi | Preload'un require ihtiyacı kalkarsa (bundle edilirse) `sandbox:true`'ya geç — düşük öncelik |
-| 9 | Renderer'da hata loglanmıyor | Kullanıcı hatası teşhis edilemiyor | İleride `window.onerror` → IPC → electron-log köprüsü (yeni kanal, kullanıcıya sor) |
-| 10 | Rapor sorgularında index denetimi yapılmadı | Veri büyüyünce yavaş rapor | T2 ile birlikte `EXPLAIN QUERY PLAN` kontrolü; gerekirse `dues(year,month)`, `incomes(manager_id,date)` indexleri |
-| 11 | Dialog renkleri JS'ten inline yazılıyor (`alert.js` → `theme()`/`base()`, `confirmButtonColor` vb.) | Renkler dialog açıldığı anda donuyor: dialog açıkken tema değiştirilirse zemin/butonlar eski temada kalır, `swal-*` sınıflarıyla gelen renkler yeni temaya geçer → karışık görünüm (ör. lacivert zeminde açık tema uyarı kutusu okunmaz) | Popup/buton renklerini `style.css`'e CSS değişkeni olarak taşı, `theme()`'i kaldır. Tüm dialogları etkiler, gözle regresyon kontrolü ister — ayrı görev. Gerçek kullanımda düşük olasılık (kullanıcı dialog açıkken tema değiştirmiyor), o yüzden düşük öncelik |
-| 13 | 1rem okunabilirlik eşiğinin altında **104 tanım / 13 dosya** (`Apartments.css` 23, `Residents.css` 13, `AdminDashboard.css` 13, `Reports.css` 10, `Transactions.css` 9, diğerleri 36) | 40+ hedef kitlede küçük yazı okunabilirlik sorunu; CLAUDE.md §11 eşiği 2026-07-20'de 0.9rem'den 1rem'e çıkarıldı ama mevcut sayfalar taşınmadı | Sayfa sayfa yükselt, **toplu sweep yapma** — yoğun tablo sayfalarında satır yüksekliği ve sütun genişliği değişir, her sayfa iki temada gözle doğrulanmalı. `Login` ve `Setup` tamamlandı. Her sayfa bitince CLAUDE.md §11'deki sayacı güncelle |
-| 14 | `.prettierrc` yok; kod ~100 karakter genişlikte yazılmış, Prettier varsayılanı 80 | `npx prettier --check` neredeyse her dosyayı uyumsuz gösteriyor → format denetimi sinyal olarak işe yaramıyor | Projenin gerçek genişliğini tespit edip config dosyası ekle. **Mevcut dosyaları aynı değişiklikte reformat etme** — tek seferde tüm repo'yu biçimlendirmek gerçek değişiklikleri gömer |
-| 12 | `Setup.css`, `Login.css` ve `Recover.css` kendi paralel tema değişken setlerini taşıyor (`--setup-*`, `--login-*`, `--recover-*`), `style.css`'teki global token'lardan bağımsız | Tema/renk kararı dört yerde yaşıyor: global accent değişince bu ekranlar eski renkte kalır, her tema ayarında dosyaları elle eşitlemek gerekiyor (v1.4.0 ve v1.5.0 yenilemelerinde bu maliyet iki kez görüldü). `Login.css` ile `Recover.css` neredeyse birebir aynı seti tanımlıyor | Giriş ekranları kendi arka plan görselleri ve tam ekran düzeniyle bilinçli olarak ayrı — şimdilik kalsın. En azından `Login`/`Recover` ikilisi tek sete indirilebilir (kardeş ekranlar, aynı değerler). ADR 20 gereği geometri kurala literal yazılır, değişken yalnızca renk taşır — birleştirme sırasında bu korunmalı |
+| #   | Borç                                                                                                                                                                                  | Risk                                                                                                                                                                                                                                                                                 | Öneri                                                                                                                                                                                                                                                                                                                    |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 3   | Test kapsamı dar                                                                                                                                                                      | Finansal mantıkta sessiz regresyon                                                                                                                                                                                                                                                   | G3; yeni service fonksiyonu = beraberinde test                                                                                                                                                                                                                                                                           |
+| 5   | `getTransactions` sınırsız satır döner                                                                                                                                                | Büyüyen veride UI/IPC yavaşlaması                                                                                                                                                                                                                                                    | T2 sayfalama                                                                                                                                                                                                                                                                                                             |
+| 6   | Para `REAL` (float)                                                                                                                                                                   | Kuruş yuvarlama sapmaları birikebilir                                                                                                                                                                                                                                                | Bilinçli karar (ADR #8); şikâyet gelirse kuruş-integer migration planla — şimdilik dokunma                                                                                                                                                                                                                               |
+| 7   | Ayar saklama altyapısı yok                                                                                                                                                            | A1/A2 ve gelecek özellikler engelleniyor                                                                                                                                                                                                                                             | A1 kapsamında JSON tabanlı settings modülü                                                                                                                                                                                                                                                                               |
+| 8   | `sandbox:false`                                                                                                                                                                       | Electron güvenlik yüzeyi                                                                                                                                                                                                                                                             | Preload'un require ihtiyacı kalkarsa (bundle edilirse) `sandbox:true`'ya geç — düşük öncelik                                                                                                                                                                                                                             |
+| 9   | Renderer'da hata loglanmıyor                                                                                                                                                          | Kullanıcı hatası teşhis edilemiyor                                                                                                                                                                                                                                                   | İleride `window.onerror` → IPC → electron-log köprüsü (yeni kanal, kullanıcıya sor)                                                                                                                                                                                                                                      |
+| 10  | Rapor sorgularında index denetimi yapılmadı                                                                                                                                           | Veri büyüyünce yavaş rapor                                                                                                                                                                                                                                                           | T2 ile birlikte `EXPLAIN QUERY PLAN` kontrolü; gerekirse `dues(year,month)`, `incomes(building_id,date)` indexleri                                                                                                                                                                                                        |
+| 11  | Dialog renkleri JS'ten inline yazılıyor (`alert.js` → `theme()`/`base()`, `confirmButtonColor` vb.)                                                                                   | Renkler dialog açıldığı anda donuyor: dialog açıkken tema değiştirilirse zemin/butonlar eski temada kalır, `swal-*` sınıflarıyla gelen renkler yeni temaya geçer → karışık görünüm (ör. lacivert zeminde açık tema uyarı kutusu okunmaz)                                             | Popup/buton renklerini `style.css`'e CSS değişkeni olarak taşı, `theme()`'i kaldır. Tüm dialogları etkiler, gözle regresyon kontrolü ister — ayrı görev. Gerçek kullanımda düşük olasılık (kullanıcı dialog açıkken tema değiştirmiyor), o yüzden düşük öncelik                                                          |
+| 13  | 1rem (16px) okunabilirlik eşiğinin altında **94 tanım / 14 dosya** (`Apartments.css` 23, `Residents.css` 13, `Reports.css` 10, `Transactions.css` 10, `Profile.css` 8, `Footer.css` 7, diğerleri) — `AdminDashboard.css` tek role geçişte silindi | 40+ hedef kitlede küçük yazı okunabilirlik sorunu; CLAUDE.md §11 eşiği 2026-07-20'de 0.9rem'den 1rem'e çıkarıldı ama mevcut sayfalar taşınmadı                                                                                                                                       | Sayfa sayfa yükselt, **toplu sweep yapma** — yoğun tablo sayfalarında satır yüksekliği ve sütun genişliği değişir, her sayfa iki temada gözle doğrulanmalı. `Login`, `Setup` ve `Recover` tamamlandı. Her sayfa bitince CLAUDE.md §11'deki sayacı güncelle                                                                          |
+| 14  | `.prettierrc` yok; kod ~100 karakter genişlikte yazılmış, Prettier varsayılanı 80                                                                                                     | `npx prettier --check` neredeyse her dosyayı uyumsuz gösteriyor → format denetimi sinyal olarak işe yaramıyor                                                                                                                                                                        | Projenin gerçek genişliğini tespit edip config dosyası ekle. **Mevcut dosyaları aynı değişiklikte reformat etme** — tek seferde tüm repo'yu biçimlendirmek gerçek değişiklikleri gömer                                                                                                                                   |
+| 12  | `Setup.css`, `Login.css` ve `Recover.css` kendi paralel tema değişken setlerini taşıyor (`--setup-*`, `--login-*`, `--recover-*`), `style.css`'teki global token'lardan bağımsız      | Tema/renk kararı dört yerde yaşıyor: global accent değişince bu ekranlar eski renkte kalır, her tema ayarında dosyaları elle eşitlemek gerekiyor (v1.4.0 ve v1.5.0 yenilemelerinde bu maliyet iki kez görüldü). `Login.css` ile `Recover.css` neredeyse birebir aynı seti tanımlıyor | Giriş ekranları kendi arka plan görselleri ve tam ekran düzeniyle bilinçli olarak ayrı — şimdilik kalsın. En azından `Login`/`Recover` ikilisi tek sete indirilebilir (kardeş ekranlar, aynı değerler). ADR 20 gereği geometri kurala literal yazılır, değişken yalnızca renk taşır — birleştirme sırasında bu korunmalı |
 
 ---
 
@@ -181,12 +165,13 @@ Mevcut durum ve mimari için bkz. `CLAUDE.md`.
 4. **Veri içe aktarım** — Excel'den toplu daire/sakin aktarımı; ilk kurulum süresini dakikalara indirir (Ö5'in tersi, aynı format).
 5. **Bakım modu / kilit ekranı** — yönetici masadan kalkınca hızlı kilit (şifre ile açma); ortak kullanılan bilgisayarlarda gizlilik.
 6. **Gider bütçesi** — kategori bazlı aylık bütçe + aşım uyarısı; Dashboard kartı olarak.
+9. **Hesap devri — kişi bazlı geçmiş koruması** — Bugünkü `transferAccount` devri satırı **yerinde overwrite** eder (`manager_name` + geçici şifre değişir, aynı `users.id` kalır); geçmiş `collected_by`/`cancelled_by` bağları böylece hep aynı hesabı gösterir, "hangi kişi tahsil etti" bilgisi kopar. Alternatif model: devirde yeni yönetici için **yeni `users` satırı** açılır, eski satır `is_active=0` ile arşivlenir. Böylece her ödemenin/iptalin gerçek sahibi (kişi) korunur, giriş her zaman aktif satırla yapılır. **`users.is_active` kolonu bu özellik için bilinçli olarak korunuyor** (bugün yazılmıyor, hep 1; login + createBuilding owner kontrolünde okunuyor — CLAUDE.md §7.2). Bu modele geçilirse: `transferAccount` yeniden yazılır, `getSetupState`/`regenerateRecoveryCode`/`completeSetup`'ın "tek satır" varsayımı (`ORDER BY id LIMIT 1`) **çok satıra** göre gözden geçirilir (aktif satır seçimi), devir sonrası eski satırın binaları (`owner_id`) yeni satıra taşınır.
 7. **Performans izleme (dev)** — yavaş IPC çağrılarını (>100 ms) electron-log'a yazan basit sarmalayıcı; teknik borç #10'un erken uyarısı.
 8. **Setup ve splash arka planlarının görsel dili** — Login (2026-07-19) soyut apartman çizgi işine geçirildi (CLAUDE.md ADR #15). Kalan işler:
    - `setup/light.jpg` (2026-07-19) node-network motifi korunarak **maviye** yeniden üretildi; ADR #17 palet geçişiyle uyumlu. `setup/dark.jpg` hâlâ **teal** ve artık sayfadaki tek uyumsuz parça — aynı motifin mavi karşılığı üretilmeli (bright azure `#38a5f7` + `#29c1fb` düğümler, lacivert `#0a1220` zemin, solda yoğun / sağda boş 16:9).
    - `splash/bg.jpg` hâlâ eski görselinde.
    - Motif birliği ayrı bir borç: setup node-network, login ise soyut apartman çizgi işi. ADR #15 "giriş ekranlarının tamamı aynı görsel dilde" diyor; uzun vadede ikisi tek aileye çekilmeli.
-   Düşük öncelik; tamamen tutarlılık işi.
+     Düşük öncelik; tamamen tutarlılık işi.
 9. **Setup sol sütun metinleri** — `Setup.jsx`'teki "Başlamadan Önce" uyarı kutusu ve "Kurulumdan Sonra" özellik listesi (2026-07-20) yeniden yazıldı: uyarı tek paragraftan iki maddeye bölündü, özellik listesi madde başına ayrı ikona geçti, dördüncü madde destek e-postası yerine yedeklemeye çevrildi. Liste **uygulamanın o anki yeteneklerini** anlatır, bu yüzden yeni özellikler geldikçe gözden geçirilmeli (Ö4 makbuz, Ö5 dışa aktarım, Ö6 trend grafiği, A1 otomatik yedekleme). Kısıtlar: dört madde tek satırda kalmalı (en uzunu ~45 karakter), fiiller emir kipinde, `Kurulumdan Sonra` ve `Başlamadan Önce` başlıkları aynı stili paylaşır (`.setup-notice-title` / `.setup-adv-label`). A1 geldiğinde yedekleme maddesi "otomatik" vurgusuyla güncellenmeli.
 
 Bilinçli olarak **eklenmeyecekler:** bildirim/e-posta gönderimi (offline ilkesine aykırı, SMTP yapılandırma yükü), plugin mimarisi (tek geliştirici + kapalı kapsam için aşırı mühendislik), çevrimiçi senkron/çoklu cihaz (sunucusuz mimari temel karar).
@@ -205,14 +190,14 @@ Bilinçli olarak **eklenmeyecekler:** bildirim/e-posta gönderimi (offline ilkes
 
 ## Kararı Verilmemiş Konular
 
-| Konu | Seçenekler | Öneri (gerekçesi yukarıdaki görevde) |
-| ---- | ---------- | ------------------------------------ |
-| Trend grafiği (Ö6) | `recharts` vs saf SVG | Saf SVG |
-| Dışa aktarım (Ö5) | `xlsx` paketi vs CSV+BOM | CSV+BOM |
-| Yedek zamanlayıcı (A1) | `setInterval` vs `node-cron` | `setInterval` |
-| Ayar saklama (A1) | `settings` tablosu vs userData JSON | userData JSON |
-| Bulut yedek (A2) | OAuth vs senkron klasörü | Senkron klasörü (OAuth rafa kalktı) |
-| Kalıcı oturum ("Beni hatırla") | Eklenmesin vs kalıcı token | **Eklenmesin** — aşağıdaki nota bakınız |
+| Konu                           | Seçenekler                          | Öneri (gerekçesi yukarıdaki görevde)    |
+| ------------------------------ | ----------------------------------- | --------------------------------------- |
+| Trend grafiği (Ö6)             | `recharts` vs saf SVG               | Saf SVG                                 |
+| Dışa aktarım (Ö5)              | `xlsx` paketi vs CSV+BOM            | CSV+BOM                                 |
+| Yedek zamanlayıcı (A1)         | `setInterval` vs `node-cron`        | `setInterval`                           |
+| Ayar saklama (A1)              | `settings` tablosu vs userData JSON | userData JSON                           |
+| Bulut yedek (A2)               | OAuth vs senkron klasörü            | Senkron klasörü (OAuth rafa kalktı)     |
+| Kalıcı oturum ("Beni hatırla") | Eklenmesin vs kalıcı token          | **Eklenmesin** — aşağıdaki nota bakınız |
 
 Bu kararlar ilgili göreve başlarken kullanıcıya sorulur; onaylanan karar bu tablodan silinip görev metnine işlenir.
 
@@ -223,3 +208,4 @@ CLAUDE.md §6 uzun süre "30 günlük session token" yazıyordu; **böyle bir ş
 Eklenmesi hâlinde gerekenler: `users`'a kolon veya yeni tablo (migration + schema çifti), en az bir yeni IPC endpoint (channels + handlers + service + preload), `useCurrentUser`'ın `sessionStorage` dışına taşınması, token'ın diskte nasıl saklanacağına dair güvenlik kararı.
 
 **Öneri: eklenmesin.** Tek kullanıcılı, tamamen offline, kullanıcının kendi makinesinde çalışan bir uygulamada kalıcı oturum, şifre korumasını fiilen devre dışı bırakır; kazanç girişte birkaç saniyedir. Buna karşılık oturumun süreçle birlikte ölmesi (mevcut davranış) sistemin en sade ve en güvenli taraflarından biridir. Kullanıcı açıkça talep etmedikçe açılmamalı.
+

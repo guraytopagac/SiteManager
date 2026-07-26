@@ -1,43 +1,43 @@
 const { db } = require("../../../database/db");
 
-function fetchStats(managerId, year, month) {
+function fetchStats(buildingId, year, month) {
   const { totalIncome } = db
-    .prepare(`SELECT COALESCE(SUM(amount), 0) AS totalIncome FROM incomes WHERE manager_id = ? AND is_cancelled = 0`)
-    .get(managerId);
+    .prepare(`SELECT COALESCE(SUM(amount), 0) AS totalIncome FROM incomes WHERE building_id = ? AND is_cancelled = 0`)
+    .get(buildingId);
 
   const { totalExpense } = db
-    .prepare(`SELECT COALESCE(SUM(amount), 0) AS totalExpense FROM expenses WHERE manager_id = ? AND is_cancelled = 0`)
-    .get(managerId);
+    .prepare(`SELECT COALESCE(SUM(amount), 0) AS totalExpense FROM expenses WHERE building_id = ? AND is_cancelled = 0`)
+    .get(buildingId);
 
   const currentMonthDue = db
     .prepare(
       `SELECT COALESCE(SUM(d.due_amount), 0) AS totalDue, COALESCE(SUM(d.paid_amount), 0) AS totalPaid
        FROM dues d
        JOIN apartments a ON d.apartment_id = a.id
-       WHERE a.manager_id = ? AND a.is_active = 1 AND d.year = ? AND d.month = ?`,
+       WHERE a.building_id = ? AND a.is_active = 1 AND d.year = ? AND d.month = ?`,
     )
-    .get(managerId, year, month);
+    .get(buildingId, year, month);
 
   const { totalOverdue } = db
     .prepare(
       `SELECT COALESCE(SUM(d.due_amount - d.paid_amount), 0) AS totalOverdue
        FROM dues d
        JOIN apartments a ON d.apartment_id = a.id
-       WHERE a.manager_id = ? AND a.is_active = 1 AND (d.year < ? OR (d.year = ? AND d.month < ?)) AND d.status != 'paid'`,
+       WHERE a.building_id = ? AND a.is_active = 1 AND (d.year < ? OR (d.year = ? AND d.month < ?)) AND d.status != 'paid'`,
     )
-    .get(managerId, year, year, month);
+    .get(buildingId, year, year, month);
 
   return { totalIncome, totalExpense, currentMonthDue, totalOverdue };
 }
 
-function getStats(managerId) {
+function getStats(buildingId) {
   try {
     const now = new Date(Date.now() + 3 * 3600 * 1000);
     const currentYear = now.getUTCFullYear();
     const currentMonth = now.getUTCMonth() + 1;
 
     const { totalIncome, totalExpense, currentMonthDue, totalOverdue } = fetchStats(
-      managerId,
+      buildingId,
       currentYear,
       currentMonth,
     );

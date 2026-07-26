@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AddApartment.css";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { showAlert } from "@/utils/alert";
 
 const INITIAL_DATA = {
@@ -14,7 +14,7 @@ const INITIAL_DATA = {
 
 function AddApartment() {
   const navigate = useNavigate();
-  const currentUser = useCurrentUser();
+  const building = useCurrentBuilding();
   const [submitting, setSubmitting] = useState(false);
   const [apartmentData, setApartmentData] = useState(INITIAL_DATA);
 
@@ -39,7 +39,7 @@ function AddApartment() {
       floor: apartmentData.floor !== "" ? Number(apartmentData.floor) : null,
       square_meters: apartmentData.square_meters !== "" ? Number(apartmentData.square_meters) : null,
       due_amount: Number(apartmentData.due_amount),
-      managerId: currentUser.id,
+      buildingId: building.id,
     });
     setSubmitting(false);
 

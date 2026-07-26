@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Apartments.css";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { getCurrentYear, getCurrentMonth } from "@/utils/date";
 import { useDues } from "./useDues";
 import DuesSummary from "./components/DuesSummary";
@@ -11,12 +11,12 @@ import MonthYearSelector from "./components/MonthYearSelector";
 function Apartments() {
   const navigate = useNavigate();
   const currentYear = getCurrentYear();
-  const currentUser = useCurrentUser();
+  const building = useCurrentBuilding();
 
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedMonth, setSelectedMonth] = useState(() => getCurrentMonth());
 
-  const { dues, loading, errorMessage, refetch } = useDues(currentUser?.id, selectedYear, selectedMonth);
+  const { dues, loading, errorMessage, refetch } = useDues(building?.id, selectedYear, selectedMonth);
 
   const yearOptions = [];
   for (let y = currentYear; y >= currentYear - 3; y--) yearOptions.push(y);

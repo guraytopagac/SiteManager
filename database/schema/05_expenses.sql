@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS expenses (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  manager_id INTEGER NOT NULL,
+  building_id INTEGER NOT NULL,
   amount REAL NOT NULL CHECK(amount > 0 AND amount <= 1000000),
   date TEXT NOT NULL CHECK(date(date) IS NOT NULL AND date >= '2000-01-01'),
   description TEXT NOT NULL CHECK(length(trim(description)) > 0 AND length(description) <= 500),
@@ -15,12 +15,12 @@ CREATE TABLE IF NOT EXISTS expenses (
     (is_cancelled = 0 AND cancelled_at IS NULL AND cancel_reason IS NULL AND cancelled_by IS NULL) OR
     (is_cancelled = 1 AND cancelled_at IS NOT NULL AND cancel_reason IS NOT NULL AND cancelled_by IS NOT NULL)
   ),
-  FOREIGN KEY(manager_id) REFERENCES users(id) ON DELETE RESTRICT,
+  FOREIGN KEY(building_id) REFERENCES buildings(id) ON DELETE RESTRICT,
   FOREIGN KEY(cancelled_by) REFERENCES users(id) ON DELETE RESTRICT
 );
 
-CREATE INDEX IF NOT EXISTS idx_expenses_manager_date ON expenses(manager_id, date);
-CREATE INDEX IF NOT EXISTS idx_expenses_active_only ON expenses(manager_id, date) WHERE is_cancelled = 0;
+CREATE INDEX IF NOT EXISTS idx_expenses_building_date ON expenses(building_id, date);
+CREATE INDEX IF NOT EXISTS idx_expenses_active_only ON expenses(building_id, date) WHERE is_cancelled = 0;
 
 CREATE TRIGGER IF NOT EXISTS trg_expenses_prevent_update_after_cancel
   BEFORE UPDATE ON expenses FOR EACH ROW

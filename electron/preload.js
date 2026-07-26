@@ -20,52 +20,63 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Apartment
   addApartment: (apartmentData) => safeInvoke(CH.APARTMENT.ADD, apartmentData),
   updateApartment: (id, data) => safeInvoke(CH.APARTMENT.UPDATE, { id, data }),
-  deleteApartment: (id, managerId) => safeInvoke(CH.APARTMENT.DELETE, { id, managerId }),
-  bulkUpdateDueAmount: (managerId, amount) => safeInvoke(CH.APARTMENT.BULK_UPDATE_DUE_AMOUNT, { managerId, amount }),
+  deleteApartment: (id, buildingId) => safeInvoke(CH.APARTMENT.DELETE, { id, buildingId }),
+  bulkUpdateDueAmount: (buildingId, amount) => safeInvoke(CH.APARTMENT.BULK_UPDATE_DUE_AMOUNT, { buildingId, amount }),
 
   // Auth
   login: (credentials) => safeInvoke(CH.AUTH.LOGIN, credentials),
-  getManagers: () => safeInvoke(CH.AUTH.GET_MANAGERS),
-  createManager: (data) => safeInvoke(CH.AUTH.CREATE_MANAGER, data),
-  updateManagerStatus: (id, isActive) => safeInvoke(CH.AUTH.UPDATE_MANAGER_STATUS, { id, isActive }),
+  transferAccount: ({ userId, password, newPerson }) =>
+    safeInvoke(CH.AUTH.TRANSFER_ACCOUNT, { userId, password, newPerson }),
   changePassword: ({ userId, oldPassword, newPassword }) =>
     safeInvoke(CH.AUTH.CHANGE_PASSWORD, { userId, oldPassword, newPassword }),
-  resetAdminPassword: ({ recoveryCode, newPassword }) =>
-    safeInvoke(CH.AUTH.RESET_ADMIN_PASSWORD, { recoveryCode, newPassword }),
+  updateEmail: ({ userId, email }) => safeInvoke(CH.AUTH.UPDATE_EMAIL, { userId, email }),
+  resetAccountPassword: ({ recoveryCode, newPassword }) =>
+    safeInvoke(CH.AUTH.RESET_ACCOUNT_PASSWORD, { recoveryCode, newPassword }),
   regenerateRecoveryCode: (password) => safeInvoke(CH.AUTH.REGENERATE_RECOVERY_CODE, { password }),
   getSetupState: () => safeInvoke(CH.AUTH.GET_SETUP_STATE),
-  completeAdminSetup: (password) => safeInvoke(CH.AUTH.COMPLETE_SETUP, { password }),
+  completeSetup: ({ username, password, managerName }) =>
+    safeInvoke(CH.AUTH.COMPLETE_SETUP, { username, password, managerName }),
+
+  // Building
+  listBuildings: (ownerId) => safeInvoke(CH.BUILDING.LIST, ownerId),
+  createBuilding: ({ ownerId, name }) => safeInvoke(CH.BUILDING.CREATE, { ownerId, name }),
+  renameBuilding: ({ buildingId, ownerId, name }) => safeInvoke(CH.BUILDING.RENAME, { buildingId, ownerId, name }),
+  updateBuildingStatus: ({ buildingId, ownerId, isActive }) =>
+    safeInvoke(CH.BUILDING.UPDATE_STATUS, { buildingId, ownerId, isActive }),
 
   // Dashboard
-  getStats: (managerId) => safeInvoke(CH.DASHBOARD.GET_STATS, managerId),
+  getStats: (buildingId) => safeInvoke(CH.DASHBOARD.GET_STATS, buildingId),
 
   // Dues
-  getDuesForMonth: (managerId, year, month) => safeInvoke(CH.DUES.GET_FOR_MONTH, { managerId, year, month }),
+  getDuesForMonth: (buildingId, year, month) => safeInvoke(CH.DUES.GET_FOR_MONTH, { buildingId, year, month }),
   recordPayment: ({ apartmentId, year, month, paymentData }) =>
     safeInvoke(CH.DUES.RECORD_PAYMENT, { apartmentId, year, month, paymentData }),
-  cancelPayment: ({ paymentId, userId, reason }) => safeInvoke(CH.DUES.CANCEL_PAYMENT, { paymentId, userId, reason }),
-  getPaymentHistory: (dueId) => safeInvoke(CH.DUES.GET_PAYMENT_HISTORY, dueId),
+  cancelPayment: ({ paymentId, buildingId, userId, reason }) =>
+    safeInvoke(CH.DUES.CANCEL_PAYMENT, { paymentId, buildingId, userId, reason }),
+  getPaymentHistory: (dueId, buildingId) => safeInvoke(CH.DUES.GET_PAYMENT_HISTORY, { dueId, buildingId }),
 
   // Financial
   addIncome: (data) => safeInvoke(CH.FINANCIAL.ADD_INCOME, data),
   addExpense: (data) => safeInvoke(CH.FINANCIAL.ADD_EXPENSE, data),
-  getTransactions: (managerId) => safeInvoke(CH.FINANCIAL.GET_TRANSACTIONS, managerId),
-  cancelIncome: ({ id, userId, reason }) => safeInvoke(CH.FINANCIAL.CANCEL_INCOME, { id, userId, reason }),
-  cancelExpense: ({ id, userId, reason }) => safeInvoke(CH.FINANCIAL.CANCEL_EXPENSE, { id, userId, reason }),
+  getTransactions: (buildingId) => safeInvoke(CH.FINANCIAL.GET_TRANSACTIONS, buildingId),
+  cancelIncome: ({ id, buildingId, userId, reason }) =>
+    safeInvoke(CH.FINANCIAL.CANCEL_INCOME, { id, buildingId, userId, reason }),
+  cancelExpense: ({ id, buildingId, userId, reason }) =>
+    safeInvoke(CH.FINANCIAL.CANCEL_EXPENSE, { id, buildingId, userId, reason }),
 
   // Resident
-  getResidentsOverview: (managerId) => safeInvoke(CH.RESIDENT.GET_OVERVIEW, managerId),
-  getResidentHistory: (apartmentId, managerId) => safeInvoke(CH.RESIDENT.GET_HISTORY, { apartmentId, managerId }),
+  getResidentsOverview: (buildingId) => safeInvoke(CH.RESIDENT.GET_OVERVIEW, buildingId),
+  getResidentHistory: (apartmentId, buildingId) => safeInvoke(CH.RESIDENT.GET_HISTORY, { apartmentId, buildingId }),
   addResident: (data) => safeInvoke(CH.RESIDENT.ADD, data),
   updateResident: (data) => safeInvoke(CH.RESIDENT.UPDATE, data),
-  moveOutResident: ({ residentId, managerId, moveOutDate }) =>
-    safeInvoke(CH.RESIDENT.MOVE_OUT, { residentId, managerId, moveOutDate }),
+  moveOutResident: ({ residentId, buildingId, moveOutDate }) =>
+    safeInvoke(CH.RESIDENT.MOVE_OUT, { residentId, buildingId, moveOutDate }),
 
   // System
   getAppVersion: () => safeInvoke(CH.SYSTEM.GET_APP_VERSION),
 
   // Reports
-  getReportData: (managerId, year, month) => safeInvoke(CH.REPORTS.GET_DATA, { managerId, year, month }),
+  getReportData: (buildingId, year, month) => safeInvoke(CH.REPORTS.GET_DATA, { buildingId, year, month }),
   saveReportFile: (filename, buffer) => safeInvoke(CH.REPORTS.SAVE_FILE, { filename, buffer }),
 
   // Events

@@ -2,19 +2,19 @@ const { db } = require("../../../database/db");
 
 const ALLOWED_TABLES = new Set(["incomes", "expenses"]);
 
-function fetchByMonth(table, managerId, startDate, endDate) {
+function fetchByMonth(table, buildingId, startDate, endDate) {
   if (!ALLOWED_TABLES.has(table)) throw new Error(`İzinsiz tablo: ${table}`);
   return db
     .prepare(
       `SELECT id, amount, date, description
        FROM ${table}
-       WHERE manager_id = ? AND date BETWEEN ? AND ? AND is_cancelled = 0
+       WHERE building_id = ? AND date BETWEEN ? AND ? AND is_cancelled = 0
        ORDER BY date ASC`,
     )
-    .all(managerId, startDate, endDate);
+    .all(buildingId, startDate, endDate);
 }
 
-function getReportData(managerId, year, month) {
+function getReportData(buildingId, year, month) {
   try {
     const yearStr = String(year);
     const monthStr = String(month).padStart(2, "0");
@@ -22,8 +22,8 @@ function getReportData(managerId, year, month) {
     const lastDay = new Date(year, month, 0).getDate();
     const endDate = `${yearStr}-${monthStr}-${String(lastDay).padStart(2, "0")}`;
 
-    const incomes = fetchByMonth("incomes", managerId, startDate, endDate);
-    const expenses = fetchByMonth("expenses", managerId, startDate, endDate);
+    const incomes = fetchByMonth("incomes", buildingId, startDate, endDate);
+    const expenses = fetchByMonth("expenses", buildingId, startDate, endDate);
 
     const dues = db
       .prepare(
@@ -32,10 +32,10 @@ function getReportData(managerId, year, month) {
          FROM dues d
          JOIN apartments a ON d.apartment_id = a.id
          LEFT JOIN residents r ON r.apartment_id = a.id AND r.is_active = 1
-         WHERE a.manager_id = ? AND a.is_active = 1 AND d.year = ? AND d.month = ?
+         WHERE a.building_id = ? AND a.is_active = 1 AND d.year = ? AND d.month = ?
          ORDER BY a.apartment_no ASC`,
       )
-      .all(managerId, year, month);
+      .all(buildingId, year, month);
 
     const totalIncome = incomes.reduce((sum, r) => sum + Number(r.amount), 0);
     const totalExpense = expenses.reduce((sum, r) => sum + Number(r.amount), 0);

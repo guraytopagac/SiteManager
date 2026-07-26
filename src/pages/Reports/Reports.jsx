@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import "./Reports.css";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { showAlert } from "@/utils/alert";
 import { MONTHS, formatMonthYear, getCurrentYear, getCurrentMonth } from "@/utils/date";
 
@@ -25,7 +25,7 @@ function buildFinanceRows(data) {
 
 function Reports() {
   const navigate = useNavigate();
-  const currentUser = useCurrentUser();
+  const building = useCurrentBuilding();
 
   const [year, setYear] = useState(() => getCurrentYear());
   const [month, setMonth] = useState(() => getCurrentMonth());
@@ -34,10 +34,10 @@ function Reports() {
   const [activeTab, setActiveTab] = useState("finance");
 
   const fetchReport = async () => {
-    if (!currentUser?.id) return;
+    if (!building?.id) return;
     setLoading(true);
     try {
-      const response = await window.electronAPI.getReportData(currentUser.id, year, month);
+      const response = await window.electronAPI.getReportData(building.id, year, month);
       if (response.success) {
         setReportData(response.data);
         setActiveTab("finance");
@@ -58,7 +58,8 @@ function Reports() {
 
   const buildPdf = () => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const title = `Mavikent Site Yönetimi ${formatMonthYear(year, month)} Raporu`;
+    const buildingName = building?.name || "Mavikent Site Yönetimi";
+    const title = `${buildingName} ${formatMonthYear(year, month)} Raporu`;
     const pageW = doc.internal.pageSize.getWidth();
 
     doc.setFont("helvetica", "bold");

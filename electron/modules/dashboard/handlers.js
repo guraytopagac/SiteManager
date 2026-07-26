@@ -4,9 +4,9 @@ const dashboardService = require("./service");
 
 const safeHandler = createSafeHandler("dashboard");
 
-function validateGetStatsData(managerId) {
-  if (!Number.isInteger(managerId) || managerId <= 0) {
-    return { success: false, message: "Geçersiz kullanıcı ID." };
+function validateGetStatsData(buildingId) {
+  if (!Number.isInteger(buildingId) || buildingId <= 0) {
+    return { success: false, message: "Geçersiz bina ID." };
   }
   return null;
 }
@@ -14,12 +14,12 @@ function validateGetStatsData(managerId) {
 function registerDashboardHandlers(ipcMain) {
   ipcMain.handle(
     CH.DASHBOARD.GET_STATS,
-    safeHandler(CH.DASHBOARD.GET_STATS, (managerId) => {
-      const error = validateGetStatsData(managerId);
+    safeHandler(CH.DASHBOARD.GET_STATS, (buildingId) => {
+      const error = validateGetStatsData(buildingId);
       if (error) {
         return error;
       }
-      return dashboardService.getStats(managerId);
+      return dashboardService.getStats(buildingId);
     }),
   );
 }

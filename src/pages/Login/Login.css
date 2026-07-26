@@ -100,7 +100,6 @@
   opacity: 1;
 }
 
-/* ─── Card ─────────────────────────────────────────────────────────────────── */
 .login-container {
   position: relative;
   z-index: 1;
@@ -119,7 +118,6 @@
   color: var(--login-text);
 }
 
-/* ─── Logo & headings ──────────────────────────────────────────────────────── */
 .login-header {
   display: flex;
   flex-direction: column;
@@ -163,7 +161,6 @@
   color: var(--login-secondary);
 }
 
-/* ─── Form ─────────────────────────────────────────────────────────────────── */
 .login-form {
   display: flex;
   flex-direction: column;
@@ -196,7 +193,6 @@
     0 0 18px var(--login-focus-glow);
 }
 
-/* ─── Field (label + input) ────────────────────────────────────────────────── */
 .login-field {
   display: flex;
   flex-direction: column;
@@ -210,7 +206,6 @@
   color: var(--login-muted);
 }
 
-/* ─── Input icon wrapper ───────────────────────────────────────────────────── */
 .login-input-wrapper {
   position: relative;
 }
@@ -230,7 +225,6 @@ input.login-password-input {
   padding-left: 46px;
 }
 
-/* ─── Password wrapper ─────────────────────────────────────────────────────── */
 .login-password-input {
   padding-right: 52px !important;
 }
@@ -264,7 +258,6 @@ input.login-password-input {
   color: var(--login-accent);
 }
 
-/* ─── Submit button ────────────────────────────────────────────────────────── */
 .login-btn {
   position: relative;
   overflow: hidden;
@@ -357,7 +350,6 @@ input.login-password-input {
   }
 }
 
-/* ─── Forgot password link ─────────────────────────────────────────────────── */
 .login-forgot {
   align-self: center;
   background: none;
@@ -390,7 +382,6 @@ input.login-password-input {
   box-shadow: 0 0 0 3px var(--login-focus-ring);
 }
 
-/* ─── Error message ────────────────────────────────────────────────────────── */
 .login-error {
   display: flex;
   align-items: center;

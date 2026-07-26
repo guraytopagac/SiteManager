@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS apartments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  manager_id INTEGER NOT NULL,
+  building_id INTEGER NOT NULL,
   apartment_no TEXT NOT NULL CHECK(
     length(apartment_no) BETWEEN 1 AND 10 AND
     apartment_no NOT GLOB '*[^A-Za-z0-9]*'
@@ -12,9 +12,8 @@ CREATE TABLE IF NOT EXISTS apartments (
   is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0, 1)),
   created_at TEXT DEFAULT (datetime('now', '+3 hours')),
   updated_at TEXT DEFAULT (datetime('now', '+3 hours')),
-  FOREIGN KEY(manager_id) REFERENCES users(id) ON DELETE RESTRICT
+  FOREIGN KEY(building_id) REFERENCES buildings(id) ON DELETE RESTRICT
 );
 
-CREATE INDEX IF NOT EXISTS idx_apartments_manager_id ON apartments(manager_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_apartments_no_manager ON apartments(manager_id, apartment_no COLLATE NOCASE);
-
+CREATE INDEX IF NOT EXISTS idx_apartments_building_id ON apartments(building_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_apartments_no_building ON apartments(building_id, apartment_no COLLATE NOCASE);

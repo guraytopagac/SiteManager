@@ -2,9 +2,36 @@
   padding: 20px;
   width: 1200px;
   margin: 0 auto;
-  background: linear-gradient(0deg, var(--background-color-1), var(--background-color-2));
+}
+
+.dashboard-building-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.dashboard-building {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-color);
+  margin: 0;
+}
+
+.dashboard-switch-building {
+  font-size: 1rem;
+  color: var(--button-color);
+  background: transparent;
   border: 1px solid var(--border-default);
-  border-radius: 20px;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.dashboard-switch-building:hover {
+  border-color: var(--button-color);
 }
 
 .stat-grid {

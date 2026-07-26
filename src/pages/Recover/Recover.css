@@ -1,9 +1,12 @@
 :root {
   --recover-accent: #38a5f7;
+  --recover-accent-strong: #7cc4fb;
+  --recover-link-hover-bg: rgba(56, 165, 247, 0.16);
   --recover-card-bg: rgba(15, 26, 43, 0.94);
   --recover-card-border: rgba(56, 165, 247, 0.24);
   --recover-field-bg: rgba(11, 20, 34, 0.85);
   --recover-input-border: rgba(255, 255, 255, 0.09);
+  --recover-code-border: rgba(56, 165, 247, 0.34);
   --recover-text: #e6f6f2;
   --recover-heading: #ffffff;
   --recover-muted: rgba(230, 246, 242, 0.82);
@@ -22,6 +25,7 @@
   --recover-card-shadow-deep: rgba(0, 0, 0, 0.55);
   --recover-page-bg: #0a1220;
   --recover-inactive: rgba(255, 255, 255, 0.1);
+  --recover-step-line: rgba(255, 255, 255, 0.18);
   --recover-track: var(--recover-inactive);
   --recover-rule-tint: rgba(56, 165, 247, 0.14);
   --recover-rule-idle: rgba(255, 255, 255, 0.06);
@@ -36,15 +40,18 @@
 
 [data-theme="light"] {
   --recover-accent: #1d4ed8;
-  --recover-card-bg: rgba(255, 255, 255, 0.96);
-  --recover-card-border: rgba(29, 78, 216, 0.3);
+  --recover-accent-strong: #16358f;
+  --recover-link-hover-bg: rgba(29, 78, 216, 0.18);
+  --recover-card-bg: #ffffff;
+  --recover-card-border: rgba(15, 33, 69, 0.16);
   --recover-field-bg: #eaf1fd;
   --recover-input-border: rgba(29, 78, 216, 0.28);
+  --recover-code-border: rgba(29, 78, 216, 0.45);
   --recover-text: #1e3357;
   --recover-heading: #0f2145;
   --recover-muted: rgba(30, 51, 87, 0.78);
-  --recover-secondary: rgba(30, 51, 87, 0.64);
-  --recover-tertiary: rgba(30, 51, 87, 0.48);
+  --recover-secondary: rgba(30, 51, 87, 0.9);
+  --recover-tertiary: rgba(30, 51, 87, 0.68);
   --recover-btn-bg: linear-gradient(135deg, #29c1fb 0%, #1240f0 100%);
   --recover-btn-bg-hover: linear-gradient(135deg, #17b4f5 0%, #0d33d9 100%);
   --recover-btn-glow: rgba(29, 78, 216, 0.22);
@@ -52,21 +59,22 @@
   --recover-btn-shadow-active: rgba(29, 78, 216, 0.2);
   --recover-focus-ring: rgba(29, 78, 216, 0.16);
   --recover-focus-glow: rgba(29, 78, 216, 0.18);
-  --recover-card-ring: rgba(29, 78, 216, 0.1);
-  --recover-card-glow: rgba(29, 78, 216, 0.1);
+  --recover-card-ring: rgba(15, 33, 69, 0.08);
+  --recover-card-glow: rgba(15, 33, 69, 0.05);
   --recover-card-shadow-mid: rgba(15, 33, 69, 0.12);
   --recover-card-shadow-deep: rgba(15, 33, 69, 0.2);
-  --recover-page-bg: #f8fafc;
+  --recover-page-bg: #d3deee;
   --recover-inactive: rgba(12, 42, 48, 0.16);
+  --recover-step-line: rgba(12, 42, 48, 0.3);
   --recover-track: rgba(12, 42, 48, 0.24);
   --recover-rule-tint: rgba(29, 78, 216, 0.12);
   --recover-rule-idle: rgba(12, 42, 48, 0.06);
   --recover-scrim: radial-gradient(
     ellipse 60% 65% at 50% 50%,
-    rgba(248, 250, 252, 0.92) 0%,
-    rgba(248, 250, 252, 0.72) 45%,
-    rgba(248, 250, 252, 0.3) 75%,
-    rgba(248, 250, 252, 0.1) 100%
+    rgba(211, 222, 238, 0.92) 0%,
+    rgba(211, 222, 238, 0.72) 45%,
+    rgba(211, 222, 238, 0.3) 75%,
+    rgba(211, 222, 238, 0.1) 100%
   );
 }
 
@@ -78,7 +86,7 @@
   display: flex;
   align-items: safe center;
   justify-content: center;
-  padding: 24px 0 calc(var(--footer-height) + 24px);
+  padding: calc(var(--footer-height) + 24px) 0;
   background:
     var(--recover-scrim),
     var(--recover-page-bg) url("../../../assets/backgrounds/login/dark.jpg") center / cover no-repeat;
@@ -106,9 +114,10 @@
 .recover-container {
   position: relative;
   z-index: 1;
-  width: 520px;
+  width: 580px;
   max-width: calc(100vw - 48px);
-  padding: 44px 52px;
+  padding: 36px 44px;
+  transition: width 0.2s ease;
   border-radius: 22px;
   background: var(--recover-card-bg);
   border: 1px solid var(--recover-card-border);
@@ -121,33 +130,68 @@
   color: var(--recover-text);
 }
 
+.recover-container.is-code-step {
+  width: 560px;
+  padding: 40px 36px;
+}
+
+.is-code-step .recover-subtitle {
+  margin-bottom: 24px;
+}
+
+.is-code-step .recover-steps {
+  margin-bottom: 16px;
+}
+
+.is-code-step .recover-form {
+  gap: 20px;
+}
+
+.is-code-step .recover-btn {
+  margin-top: 4px;
+}
+
 /* ─── Header ───────────────────────────────────────────────────────────────── */
 .recover-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
-  margin-bottom: 14px;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 16px;
   border-radius: 16px;
-  background: var(--recover-rule-tint);
-  border: 1px solid var(--recover-input-border);
-  color: var(--recover-accent);
+  background: linear-gradient(135deg, rgba(41, 193, 251, 0.22) 0%, rgba(18, 64, 240, 0.22) 100%);
+  border: 1px solid var(--recover-card-border);
+  color: var(--recover-accent-strong);
+  box-shadow: 0 0 24px var(--recover-card-glow);
 }
 
 .recover-title {
-  font-size: 1.7rem;
-  font-weight: 800;
-  letter-spacing: -0.4px;
-  line-height: 1.2;
-  margin-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.15;
+  margin-bottom: 16px;
   color: var(--recover-heading);
 }
 
+.recover-title-role {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  color: var(--recover-muted);
+}
+
+.recover-title-action {
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
 .recover-subtitle {
-  font-size: 1rem;
-  font-weight: normal;
-  margin-bottom: 22px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 16px;
   color: var(--recover-secondary);
 }
 
@@ -155,9 +199,10 @@
 .recover-steps {
   display: flex;
   justify-content: center;
-  gap: 26px;
+  align-items: center;
+  gap: 16px;
   list-style: none;
-  margin: 0 0 24px;
+  margin: 0 0 12px;
   padding: 0;
 }
 
@@ -165,21 +210,31 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.92rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--recover-tertiary);
+}
+
+.recover-steps li:not(:last-child)::after {
+  content: "";
+  width: 36px;
+  height: 2px;
+  margin-left: 8px;
+  border-radius: 999px;
+  background: var(--recover-step-line);
+  transition: background-color 0.25s ease;
 }
 
 .recover-step-no {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--recover-inactive);
   color: var(--recover-secondary);
-  font-size: 0.82rem;
+  font-size: 1rem;
   font-weight: 700;
 }
 
@@ -201,22 +256,26 @@
   color: var(--recover-accent);
 }
 
+.recover-steps li.is-done::after {
+  background: var(--recover-accent);
+}
+
 /* ─── Form ─────────────────────────────────────────────────────────────────── */
 .recover-form {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
 }
 
 .recover-field {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 8px;
   text-align: left;
 }
 
 .recover-label {
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--recover-muted);
 }
@@ -237,7 +296,7 @@
 
 .recover-input {
   width: 100%;
-  padding: 15px 18px 15px 46px;
+  padding: 13px 18px 13px 46px;
   font-size: 1.08rem;
   text-align: left;
   background: var(--recover-field-bg);
@@ -266,6 +325,7 @@
 }
 
 .recover-code-input {
+  border-color: var(--recover-code-border);
   font-family: "Consolas", "Courier New", monospace;
   font-size: 1.22rem;
   font-weight: 700;
@@ -273,7 +333,8 @@
 }
 
 .recover-help {
-  font-size: 0.88rem;
+  min-height: 1.5rem;
+  font-size: 1rem;
   color: var(--recover-tertiary);
 }
 
@@ -307,7 +368,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-top: -3px;
+  margin-top: 0;
 }
 
 .recover-strength-segments {
@@ -350,7 +411,7 @@
   display: block;
   padding: 5px 0;
   border-radius: 7px;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 700;
   line-height: 1.2;
   text-align: center;
@@ -418,17 +479,18 @@
   border: 1px solid var(--recover-input-border);
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px 16px;
+  gap: 8px;
 }
 
 .recover-rules li {
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 5px 9px;
+  padding: 5px 8px;
   border-radius: 8px;
+  line-height: 1.3;
   white-space: nowrap;
-  font-size: 0.95rem;
+  font-size: 1rem;
   color: var(--recover-muted);
   background: var(--recover-rule-idle);
   transition:
@@ -470,7 +532,7 @@
 
 .recover-rule-failed .recover-rule-icon {
   background: #ef4444;
-  color: #2a0708;
+  color: #ffffff;
 }
 
 [data-theme="light"] .recover-rules li.recover-rule-failed {
@@ -484,14 +546,16 @@
 
 /* ─── Submit button ────────────────────────────────────────────────────────── */
 .recover-btn {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   margin-top: 8px;
-  padding: 16px 0;
-  font-size: 1.12rem;
-  font-weight: 700;
+  padding: 15px 0;
+  font-size: 1.1rem;
+  font-weight: 650;
   border-radius: 12px;
   color: #ffffff;
   background: var(--recover-btn-bg);
@@ -508,11 +572,43 @@
   flex-shrink: 0;
 }
 
+.recover-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 45%;
+  pointer-events: none;
+  transform: skewX(-20deg);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  opacity: 0;
+}
+
 .recover-btn:hover:not(:disabled) {
   background: var(--recover-btn-bg-hover);
   filter: brightness(1.08);
   box-shadow: 0 6px 22px var(--recover-btn-glow-hover);
   transform: translateY(-1px);
+}
+
+@keyframes recoverBtnShine {
+  from {
+    left: -60%;
+  }
+  to {
+    left: 115%;
+  }
+}
+
+.recover-btn:hover:not(:disabled)::before {
+  opacity: 1;
+  animation: recoverBtnShine 0.75s ease-out;
 }
 
 .recover-btn:active:not(:disabled) {
@@ -543,15 +639,11 @@
 
 /* ─── Back link ────────────────────────────────────────────────────────────── */
 .recover-back {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
   margin-top: 4px;
   align-self: center;
   background: none;
   border: none;
-  font-size: 0.95rem;
+  font-size: 1rem;
   color: var(--recover-muted);
   cursor: pointer;
   transition: color 0.2s ease;
@@ -566,6 +658,73 @@
 .recover-back:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+.recover-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--recover-field-bg);
+  border: 1px solid var(--recover-input-border);
+  text-align: left;
+}
+
+.recover-note-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--recover-accent);
+}
+
+.recover-note-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.recover-note-title {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.45;
+  text-wrap: balance;
+  color: var(--recover-muted);
+}
+
+.recover-note-body {
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--recover-tertiary);
+}
+
+.recover-back-link {
+  font-size: 1.05rem;
+  color: var(--recover-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  border-radius: 9px;
+  padding: 5px 12px;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.12s ease;
+}
+
+.recover-back-link:hover:not(:disabled) {
+  color: var(--recover-accent-strong);
+  background-color: var(--recover-link-hover-bg);
+}
+
+.recover-back-link:active {
+  transform: scale(0.96);
+}
+
+.recover-back-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--recover-focus-ring);
 }
 
 /* ─── Messages ─────────────────────────────────────────────────────────────── */
@@ -596,6 +755,15 @@
 @media (prefers-reduced-motion: reduce) {
   .recover-btn:hover:not(:disabled) {
     transform: none;
+  }
+
+  .recover-back-link:active {
+    transform: none;
+  }
+
+  .recover-btn:hover:not(:disabled)::before {
+    animation: none;
+    opacity: 0;
   }
 
   .recover-spinner {

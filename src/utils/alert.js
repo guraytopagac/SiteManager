@@ -153,8 +153,6 @@ export const showAlert = {
       },
     })),
 
-  errorToast: (title, text) => showAlert.toast(title, text, { icon: "error" }),
-
   success: (title, text) =>
     fire((t) => ({
       ...base(t),
@@ -169,16 +167,6 @@ export const showAlert = {
   error: (title, body) => dismissDialog(title, body, "error"),
 
   warning: (title, body) => dismissDialog(title, body, "warning"),
-
-  info: (title, html) =>
-    fire((t) => ({
-      ...base(t),
-      title,
-      html,
-      width: "42em",
-      confirmButtonText: "Kapat",
-      confirmButtonColor: t.confirm,
-    })),
 
   releaseNotes: (html) =>
     fire((t) => ({
@@ -208,6 +196,7 @@ export const showAlert = {
     input = "text",
     inputLabel,
     inputPlaceholder,
+    inputValue = "",
     confirmButtonText = "Tamam",
     cancelText = "Vazgeç",
     validate,
@@ -221,6 +210,7 @@ export const showAlert = {
       input,
       inputLabel,
       inputPlaceholder,
+      inputValue,
       showCancelButton: true,
       reverseButtons: true,
       confirmButtonText,
@@ -256,7 +246,7 @@ export const showAlert = {
       title,
       text,
       input: "password",
-      inputPlaceholder: "Admin şifreniz",
+      inputPlaceholder: "Şifreniz",
       confirmButtonText,
       validate: (val) => (!val ? "Şifre zorunludur." : null),
     }),
@@ -266,7 +256,7 @@ export const showAlert = {
       title: "Hesabınız Hazır",
       code,
       html: `
-        Sistem yöneticisi şifreniz belirlendi.<br /><br />
+        Hesabınız oluşturuldu ve şifreniz belirlendi.<br /><br />
         <b>Kurtarma kodunuz:</b><br />
         ${CODE_LINE}
         ${COPY_LINE}<br />
@@ -278,16 +268,34 @@ export const showAlert = {
       width: "34em",
     }),
 
-  resetCode: (code) =>
+  resetCode: ({ code, username }) =>
     codeDialog({
-      title: "Şifre Sıfırlandı",
+      title: "Şifreniz Sıfırlandı",
       code,
       html: `
-        Sistem yöneticisi şifreniz güncellendi.<br /><br />
+        Şifreniz güncellendi.<br /><br />
+        <b>Kullanıcı adınız:</b> ${username}<br /><br />
         <b>Yeni kurtarma kodunuz:</b><br />
         ${CODE_LINE}
         ${COPY_LINE}
         Bu kodu güvenli bir yerde saklayın. Eski kod artık geçersizdir.
+      `,
+      confirmButtonText: "Anladım",
+      staticBackdrop: true,
+      width: "37em",
+    }),
+
+  temporaryPassword: ({ managerName, code }) =>
+    codeDialog({
+      title: "Hesap Devredildi",
+      code,
+      html: `
+Hesap <b>${managerName}</b> adına devredildi ve geçici bir şifre üretildi.<br /><br />
+        <b>Geçici şifre:</b><br />
+        ${CODE_LINE}
+        ${COPY_LINE}<br />
+        <p class="swal-note">Bu şifreyi yeni yöneticiye iletin. Bu bilgisayardan giriş yaptıktan sonra profil sayfasından kendi şifresini belirlemelidir.</p>
+        <p class="swal-warning">Bu şifre bir daha gösterilmeyecek.</p>
       `,
       confirmButtonText: "Anladım",
       staticBackdrop: true,

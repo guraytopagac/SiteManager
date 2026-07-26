@@ -1,11 +1,3 @@
--- Switch all stored timestamps from UTC to Turkey local time (fixed UTC+3, no DST).
--- Going forward every write uses datetime('now', '+3 hours'); this migration shifts the
--- existing UTC rows by +3 hours so old and new data are consistent, and recreates every
--- time-related trigger to emit TR time. Only auto-generated timestamp columns are shifted;
--- user-entered calendar dates (date, payment_date, move_in_date, move_out_date) are left as-is.
-
--- 1) Drop triggers first: some block UPDATE (immutable / prevent-after-cancel), and the
---    updated_at / move_out triggers must be reissued with TR time anyway.
 DROP TRIGGER IF EXISTS trg_users_updated_at;
 DROP TRIGGER IF EXISTS trg_dues_updated_at;
 DROP TRIGGER IF EXISTS trg_residents_move_out;
@@ -14,8 +6,6 @@ DROP TRIGGER IF EXISTS trg_incomes_prevent_update_after_cancel;
 DROP TRIGGER IF EXISTS trg_expenses_prevent_update_after_cancel;
 DROP TRIGGER IF EXISTS trg_payment_cancellations_immutable;
 
--- 2) Shift existing timestamps +3 hours. datetime(NULL, ...) stays NULL, so nullable
---    columns (last_login, password_changed_at, cancelled_at) are safe.
 UPDATE users SET
   created_at = datetime(created_at, '+3 hours'),
   updated_at = datetime(updated_at, '+3 hours'),
@@ -50,7 +40,6 @@ UPDATE due_payments SET
 UPDATE payment_cancellations SET
   cancelled_at = datetime(cancelled_at, '+3 hours');
 
--- 3) Recreate the triggers, now emitting TR time.
 CREATE TRIGGER trg_users_updated_at
   AFTER UPDATE ON users FOR EACH ROW
   WHEN OLD.updated_at = NEW.updated_at

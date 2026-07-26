@@ -26,12 +26,8 @@
           <a href="#setup">İlk Kurulum</a>
           <a href="#login">Giriş Ekranı</a>
           <a href="#recovery">Şifre Kurtarma</a>
-          <a href="#roles">Kullanıcı Rolleri</a>
+          <a href="#buildings">Bina Seçimi</a>
           <a href="#shortcuts">Klavye Kısayolları</a>
-
-          <div class="guide-section-label">Sistem Yöneticisi</div>
-          <a href="#admin-dashboard">Sistem Yöneticisi Paneli</a>
-          <a href="#manager-management">Site Yöneticisi Yönetimi</a>
 
           <div class="guide-section-label">Günlük İşlemler</div>
           <a href="#dashboard">Kontrol Paneli</a>
@@ -42,8 +38,8 @@
           <a href="#transactions">İşlem Geçmişi</a>
           <a href="#reports">Raporlar</a>
 
-          <div class="guide-section-label">Sistem</div>
-          <a href="#profile">Profil</a>
+          <div class="guide-section-label">Hesap ve Sistem</div>
+          <a href="#profile">Hesap Yönetimi</a>
           <a href="#backup">Yedekleme</a>
           <a href="#theme">Tema</a>
           <a href="#support">Destek</a>
@@ -58,13 +54,16 @@
 
         <h2 id="setup">İlk Kurulum</h2>
         <p>
-          Uygulama <strong>ilk kez</strong> açıldığında sizi bir kurulum ekranı karşılar. Bu adımda sistem yöneticisi
-          hesabının şifresini kendiniz belirlersiniz.
+          Uygulama <strong>ilk kez</strong> açıldığında sizi bir kurulum ekranı karşılar. Bu adımda uygulamanın tek
+          hesabını oluşturursunuz: ad soyadınızı, bir kullanıcı adını ve şifrenizi kendiniz belirlersiniz.
         </p>
         <div class="guide-steps">
           <div class="guide-step">
             <div class="guide-step-num">1</div>
-            <div class="guide-step-body">Sistem yöneticisi hesabı için en az 8 karakterlik bir şifre belirleyin.</div>
+            <div class="guide-step-body">
+              Ad soyadınızı, bir kullanıcı adını (en az 3 karakter, harf/rakam/alt çizgi) ve en az 8 karakterlik bir
+              şifreyi girin.
+            </div>
           </div>
           <div class="guide-step">
             <div class="guide-step-num">2</div>
@@ -112,14 +111,17 @@
           </div>
           <div class="guide-step">
             <div class="guide-step-num">3</div>
-            <div class="guide-step-body">Rolünüze göre Sistem Yöneticisi Paneli veya Kontrol Paneli açılır.</div>
+            <div class="guide-step-body">
+              Giriş yaptıktan sonra <strong>Bina Seçimi</strong> ekranı açılır; yöneteceğiniz binayı seçin veya yeni bina
+              oluşturun.
+            </div>
           </div>
         </div>
 
         <h2 id="recovery">Şifre Kurtarma</h2>
         <p>
-          Sistem yöneticisi şifrenizi unutursanız, giriş ekranındaki <strong>şifre kurtarma</strong> bağlantısıyla ilk
-          kurulumda aldığınız kurtarma koduyla yeni bir şifre belirleyebilirsiniz.
+          Şifrenizi unutursanız, giriş ekranındaki <strong>şifre kurtarma</strong> bağlantısıyla ilk kurulumda aldığınız
+          kurtarma koduyla yeni bir şifre belirleyebilirsiniz.
         </p>
         <div class="guide-steps">
           <div class="guide-step">
@@ -148,34 +150,8 @@
           <span class="guide-note-icon">ℹ</span>
           <div>
             Bütün kurtarma kodları <strong>tek kullanımlıktır</strong>. Her kod kullanıldığında geçersizleşir ve yenisi
-            üretilir. Giriş yapmış bir sistem yöneticisi, <strong>Sistem Yöneticisi Paneli</strong>'nden mevcut
-            şifresini doğrulayarak istediği zaman yeni bir kurtarma kodu üretebilir.
-          </div>
-        </div>
-
-        <h2 id="roles">Kullanıcı Rolleri</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Rol</th>
-              <th>Erişim</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Sistem Yöneticisi</strong></td>
-              <td>Tüm işlemler + site yöneticisi hesabı oluşturma/devre dışı bırakma</td>
-            </tr>
-            <tr>
-              <td><strong>Site Yöneticisi</strong></td>
-              <td>Aidat, gelir/gider, daire/sakin yönetimi, raporlar</td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="guide-note">
-          <span class="guide-note-icon">ℹ</span>
-          <div>
-            Sistemde yalnızca bir sistem yöneticisi hesabı bulunabilir. Bu hesap kurulum aşamasında oluşturulur.
+            üretilir. Giriş yaptıktan sonra <strong>Hesap Yönetimi</strong> (Profil) sayfasından mevcut şifrenizi
+            doğrulayarak istediğiniz zaman yeni bir kurtarma kodu üretebilirsiniz.
           </div>
         </div>
 
@@ -223,45 +199,36 @@
           </tbody>
         </table>
 
-        <h2 id="admin-dashboard">Sistem Yöneticisi Paneli</h2>
+        <h2 id="buildings">Bina Seçimi</h2>
         <p>
-          Sistem yöneticisi hesabıyla giriş yapıldığında Sistem Yöneticisi Paneli açılır. Buradan mevcut yöneticilerin
-          listesi görüntülenir ve yeni site yöneticisi oluşturulabilir.
+          Giriş yaptıktan sonra <strong>Bina Seçimi</strong> ekranı açılır. Bir hesapla birden fazla bina (defter)
+          yönetebilirsiniz; her binanın daire, aidat, gelir/gider ve sakin verileri birbirinden bağımsızdır.
         </p>
-        <h3>Yeni Site Yöneticisi Oluşturma</h3>
         <div class="guide-steps">
           <div class="guide-step">
             <div class="guide-step-num">1</div>
-            <div class="guide-step-body"><strong>Yeni Site Yöneticisi Ekle</strong> butonuna tıklayın.</div>
+            <div class="guide-step-body">
+              Listeden yöneteceğiniz binayı seçin. Seçtiğiniz binanın Kontrol Paneli açılır.
+            </div>
           </div>
           <div class="guide-step">
             <div class="guide-step-num">2</div>
-            <div class="guide-step-body">Kullanıcı adı, e-posta ve şifre girin.</div>
-          </div>
-          <div class="guide-step">
-            <div class="guide-step-num">3</div>
             <div class="guide-step-body">
-              <strong>Oluştur</strong> butonuna tıklayın. Site yöneticisi listeye eklenecektir.
+              Henüz binanız yoksa bina adını girerek <strong>yeni bina oluşturun</strong>.
             </div>
           </div>
         </div>
-        <h3>Kurtarma Kodu Oluşturma</h3>
-        <p>
-          Sistem Yöneticisi Paneli'nde sol taraftaki menüden <strong>Kurtarma Kodu</strong> seçeneğini seçerek, sistem
-          yöneticisi şifrenizi doğrulayarak yeni bir kurtarma kodu üretebilirsiniz. Yeni kod üretildiğinde eski kod
-          geçersiz olur.
-        </p>
-
-        <h2 id="manager-management">Site Yöneticisi Yönetimi</h2>
-        <p>Sistem Yöneticisi Paneli'ndeki yönetici listesinde her satırda durum anahtarı (aktif/pasif) bulunur.</p>
-        <ul>
-          <li>Anahtarı kapamak site yöneticisinin hesabını <strong>devre dışı</strong> bırakır; giriş yapamaz.</li>
-          <li>Anahtarı açmak hesabı tekrar <strong>aktif</strong> eder.</li>
-          <li>Sistem yöneticisi hesabı devre dışı bırakılamaz.</li>
-        </ul>
+        <div class="guide-note">
+          <span class="guide-note-icon">ℹ</span>
+          <div>
+            Uygulamanın üst kısmında o an seçili olan binanın adı görünür. Farklı bir binaya geçmek için Bina Seçimi
+            ekranına dönebilirsiniz. Binalarınızı yeniden adlandırma, arşivleme ve geri getirme işlemleri
+            <strong>Hesap Yönetimi</strong> sayfasından yapılır.
+          </div>
+        </div>
 
         <h2 id="dashboard">Kontrol Paneli</h2>
-        <p>Site yöneticisi girişinin ardından Kontrol Paneli açılır. Üst kısımda üç özet kart görünür:</p>
+        <p>Bina seçiminin ardından Kontrol Paneli açılır. Üst kısımda üç özet kart görünür:</p>
         <table>
           <thead>
             <tr>
@@ -461,14 +428,18 @@
         <p>Raporlar sayfasında yıl ve ay seçilerek o döneme ait özet rapor oluşturulur.</p>
         <ul>
           <li>
-            <strong>PDF İndir:</strong> gelir/gider detayı ve aidat tahsilat durumunu içeren biçimlendirilmiş raporu
-            PDF olarak kaydeder.
+            <strong>PDF İndir:</strong> gelir/gider detayı ve aidat tahsilat durumunu içeren biçimlendirilmiş raporu PDF
+            olarak kaydeder.
           </li>
         </ul>
         <p>Rapor; aidat tahsilat özeti, toplam gelir/gider ve net bakiye bilgilerini içerir.</p>
 
-        <h2 id="profile">Profil</h2>
-        <p>Profil sayfasından mevcut şifrenizi değiştirebilirsiniz.</p>
+        <h2 id="profile">Hesap Yönetimi</h2>
+        <p>
+          Hesabınızla ilgili tüm işlemler <strong>Profil</strong> sayfasında toplanmıştır: şifre değiştirme, kurtarma
+          kodu üretme, hesabı devretme ve binalarınızı yönetme.
+        </p>
+        <h3>Şifre Değiştirme</h3>
         <div class="guide-steps">
           <div class="guide-step">
             <div class="guide-step-num">1</div>
@@ -483,6 +454,29 @@
             <div class="guide-step-body"><strong>Şifreyi Güncelle</strong> butonuna tıklayın.</div>
           </div>
         </div>
+        <h3>Yeni Kurtarma Kodu Üretme</h3>
+        <p>
+          Mevcut şifrenizi doğrulayarak yeni bir kurtarma kodu üretebilirsiniz. Yeni kod üretildiğinde eski kod geçersiz
+          olur ve yeni kod <strong>yalnızca bir kez</strong> gösterilir.
+        </p>
+        <h3>Hesabı Devretme</h3>
+        <p>
+          Bina yöneticisi değiştiğinde hesabı yeni kişiye devredebilirsiniz. Mevcut şifrenizi ve yeni kişinin ad
+          soyadını girdiğinizde hesap yeni kişiye aktarılır ve <strong>tek kullanımlık geçici bir şifre</strong>
+          üretilir (bir kez gösterilir). Binalarınız ve tüm verileriniz aynı hesapta kalır.
+        </p>
+        <div class="guide-note">
+          <span class="guide-note-icon">ℹ</span>
+          <div>
+            Devir sonrası eski şifreniz geçersiz olur ve oturumunuz kapanır. Yeni kişi, kendisine verilen geçici şifreyle
+            <strong>aynı bilgisayarda</strong> giriş yapar. Hesap yalnızca bu bilgisayarda geçerlidir.
+          </div>
+        </div>
+        <h3>Binalarım</h3>
+        <p>
+          Binalarınızı yeniden adlandırabilir, arşivleyebilir ve arşivden geri getirebilirsiniz. Binalar
+          <strong>silinmez</strong>; arşivlenen bina Bina Seçimi ekranında görünmez, buradan tekrar aktif edebilirsiniz.
+        </p>
 
         <h2 id="backup">Yedekleme ve Geri Yükleme</h2>
         <p>Veritabanı yedekleme işlemleri <strong>Dosya</strong> menüsünden yapılır.</p>
@@ -558,7 +552,7 @@
 
         <h2 id="faq">Sıkça Sorulan Sorular</h2>
         <details class="guide-faq-item">
-          <summary class="guide-faq-question">Sistem yöneticisi şifremi unuttum, ne yapmalıyım?</summary>
+          <summary class="guide-faq-question">Şifremi unuttum, ne yapmalıyım?</summary>
           <div class="guide-faq-answer">
             <p>
               Giriş ekranındaki <strong>şifremi unuttum</strong> bağlantısına tıklayın ve ilk kurulumda aldığınız
@@ -569,11 +563,12 @@
           </div>
         </details>
         <details class="guide-faq-item">
-          <summary class="guide-faq-question">Site yöneticisi şifresini kim sıfırlayabilir?</summary>
+          <summary class="guide-faq-question">Bir binayı silebilir miyim?</summary>
           <div class="guide-faq-answer">
             <p>
-              Site yöneticisi şifreleri kurtarma kodu kapsamında değildir. Bir site yöneticisi şifresini <strong>Profil</strong>
-              ekranından mevcut şifresini girerek kendisi değiştirebilir.
+              Binalar kalıcı olarak silinmez. <strong>Hesap Yönetimi → Binalarım</strong> bölümünden bir binayı
+              <strong>arşivleyebilirsiniz</strong>; arşivlenen bina Bina Seçimi ekranında görünmez, ancak tüm verileri
+              korunur ve dilediğinizde tekrar geri getirebilirsiniz.
             </p>
           </div>
         </details>
