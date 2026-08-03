@@ -1,5 +1,6 @@
 const registerApartmentHandlers = require("../modules/apartment/handlers");
 const registerAuthHandlers = require("../modules/auth/handlers");
+const registerBackupHandlers = require("../modules/backup/handlers");
 const registerBuildingHandlers = require("../modules/building/handlers");
 const registerDashboardHandlers = require("../modules/dashboard/handlers");
 const registerDuesHandlers = require("../modules/dues/handlers");
@@ -11,6 +12,7 @@ const registerSystemHandlers = require("../modules/system/handlers");
 function registerIpcHandlers(ipcMain) {
   registerApartmentHandlers(ipcMain);
   registerAuthHandlers(ipcMain);
+  registerBackupHandlers(ipcMain);
   registerBuildingHandlers(ipcMain);
   registerDashboardHandlers(ipcMain);
   registerDuesHandlers(ipcMain);

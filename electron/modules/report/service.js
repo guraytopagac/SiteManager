@@ -1,4 +1,5 @@
 const { db } = require("../../../database/db");
+const { ensureMonthlyDues } = require("../shared/duesAccrual");
 
 const ALLOWED_TABLES = new Set(["incomes", "expenses"]);
 
@@ -16,6 +17,8 @@ function fetchByMonth(table, buildingId, startDate, endDate) {
 
 function getReportData(buildingId, year, month) {
   try {
+    ensureMonthlyDues(buildingId);
+
     const yearStr = String(year);
     const monthStr = String(month).padStart(2, "0");
     const startDate = `${yearStr}-${monthStr}-01`;
@@ -28,14 +31,16 @@ function getReportData(buildingId, year, month) {
     const dues = db
       .prepare(
         `SELECT a.apartment_no, a.floor, a.type, r.full_name AS resident_name,
-                d.due_amount, d.paid_amount, d.status
-         FROM dues d
-         JOIN apartments a ON d.apartment_id = a.id
+                COALESCE(d.due_amount, a.due_amount) AS due_amount,
+                COALESCE(d.paid_amount, 0) AS paid_amount,
+                COALESCE(d.status, 'unpaid') AS status
+         FROM apartments a
+         LEFT JOIN dues d ON d.apartment_id = a.id AND d.year = ? AND d.month = ?
          LEFT JOIN residents r ON r.apartment_id = a.id AND r.is_active = 1
-         WHERE a.building_id = ? AND a.is_active = 1 AND d.year = ? AND d.month = ?
+         WHERE a.building_id = ? AND a.is_active = 1
          ORDER BY a.apartment_no ASC`,
       )
-      .all(buildingId, year, month);
+      .all(year, month, buildingId);
 
     const totalIncome = incomes.reduce((sum, r) => sum + Number(r.amount), 0);
     const totalExpense = expenses.reduce((sum, r) => sum + Number(r.amount), 0);

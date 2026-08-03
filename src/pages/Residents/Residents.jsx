@@ -17,7 +17,6 @@ const EMPTY_FORM = {
   national_id: "",
   resident_type: "",
   move_in_date: "",
-  move_out_date: "",
   notes: "",
 };
 
@@ -32,7 +31,6 @@ function ResidentFormModal({ apartment, building, onClose, onSaved }) {
           national_id: apartment.national_id || "",
           resident_type: apartment.resident_type || "",
           move_in_date: apartment.move_in_date || "",
-          move_out_date: apartment.move_out_date || "",
           notes: apartment.notes || "",
         }
       : EMPTY_FORM,
@@ -59,7 +57,7 @@ function ResidentFormModal({ apartment, building, onClose, onSaved }) {
     setIsSubmitting(false);
 
     if (res.success) {
-      await showAlert.success(isEdit ? "Güncellendi" : "Eklendi", res.message);
+      showAlert.toast(isEdit ? "Güncellendi" : "Eklendi", res.message);
       onSaved();
     } else {
       showAlert.error("Hata", res.message);
@@ -116,10 +114,6 @@ function ResidentFormModal({ apartment, building, onClose, onSaved }) {
             <input type="date" value={form.move_in_date} onChange={set("move_in_date")} />
           </div>
           <div className="form-row">
-            <label>Çıkış Tarihi</label>
-            <input type="date" value={form.move_out_date} onChange={set("move_out_date")} />
-          </div>
-          <div className="form-row">
             <label>Notlar</label>
             <textarea rows={2} placeholder="Sakin hakkında not" value={form.notes} onChange={set("notes")} />
           </div>
@@ -153,7 +147,7 @@ function MoveOutModal({ apartment, building, onClose, onSaved }) {
     setIsSubmitting(false);
 
     if (res.success) {
-      await showAlert.success("Kaydedildi", res.message);
+      showAlert.toast("Kaydedildi", res.message);
       onSaved();
     } else {
       showAlert.error("Hata", res.message);
@@ -200,16 +194,16 @@ function HistoryModal({ apartment, building, onClose }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let cancelled = false;
+    let isMounted = true;
     (async () => {
       setLoading(true);
       const res = await window.electronAPI.getResidentHistory(apartment.apartment_id, building.id);
-      if (cancelled) return;
+      if (!isMounted) return;
       if (res.success) setHistory(res.data);
       setLoading(false);
     })();
     return () => {
-      cancelled = true;
+      isMounted = false;
     };
   }, [apartment.apartment_id, building.id]);
 
@@ -279,7 +273,7 @@ function Residents() {
   }, [building, navigate]);
 
   useEffect(() => {
-    let cancelled = false;
+    let isMounted = true;
     (async () => {
       setLoading(true);
       setErrorMessage("");
@@ -290,7 +284,7 @@ function Residents() {
       }
 
       const res = await window.electronAPI.getResidentsOverview(building.id);
-      if (cancelled) return;
+      if (!isMounted) return;
       if (res.success) {
         setRows(res.data);
       } else {
@@ -299,7 +293,7 @@ function Residents() {
       setLoading(false);
     })();
     return () => {
-      cancelled = true;
+      isMounted = false;
     };
   }, [building, navigate]);
 
@@ -308,9 +302,6 @@ function Residents() {
     setMoveOutTarget(null);
     fetchOverview();
   }, [fetchOverview]);
-
-  const occupiedCount = rows.filter((r) => r.resident_id).length;
-  const vacantCount = rows.length - occupiedCount;
 
   if (loading) return <div className="residents-container loading">Sakin verileri yükleniyor...</div>;
   if (errorMessage)
@@ -322,6 +313,9 @@ function Residents() {
         </button>
       </div>
     );
+
+  const occupiedCount = rows.filter((r) => r.resident_id).length;
+  const vacantCount = rows.length - occupiedCount;
 
   return (
     <div className="residents-container">
@@ -365,7 +359,7 @@ function Residents() {
                 <td>{r.full_name || <span className="resident-empty">— Boş —</span>}</td>
                 <td>{r.resident_type ? RESIDENT_TYPE_LABELS[r.resident_type] : "—"}</td>
                 <td>{r.phone || "—"}</td>
-                <td>{r.move_in_date || "—"}</td>
+                <td>{formatDateShort(r.move_in_date)}</td>
                 <td className="action-cell">
                   {r.resident_id ? (
                     <>

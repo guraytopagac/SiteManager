@@ -1,11 +1,11 @@
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT UNIQUE NOT NULL COLLATE NOCASE CHECK(
-    length(username) >= 3 AND
-    username GLOB '[A-Za-z0-9_]*'
+    length(username) BETWEEN 3 AND 30 AND
+    username NOT GLOB '*[^A-Za-z0-9_]*'
   ),
   email TEXT CHECK(email IS NULL OR (email LIKE '%@%.%' AND length(email) BETWEEN 5 AND 254)),
-  manager_name TEXT CHECK(manager_name IS NULL OR length(manager_name) BETWEEN 2 AND 60),
+  manager_name TEXT NOT NULL CHECK(length(manager_name) BETWEEN 2 AND 60),
   password_hash TEXT NOT NULL,
   recovery_hash TEXT,
   is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0, 1)),

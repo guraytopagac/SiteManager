@@ -1,15 +1,25 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Recover.css";
-import { showAlert } from "@/utils/alert";
-import { MIN_PASSWORD_LENGTH, buildPasswordRules, buildStrengthMeter, scorePassword } from "@/utils/passwordStrength";
-import CapsLockIndicator from "@/components/CapsLockIndicator/CapsLockIndicator";
-import { FiAlertCircle, FiArrowRight, FiCheck, FiEye, FiEyeOff, FiInfo, FiKey, FiLock, FiMinus, FiX } from "react-icons/fi";
+import FormField from "@/components/FormField/FormField";
+import PasswordStrength from "@/components/PasswordStrength/PasswordStrength";
+import { MIN_PASSWORD_LENGTH } from "@/utils/passwordStrength";
+import {
+  FiAlertCircle,
+  FiArrowLeft,
+  FiArrowRight,
+  FiCheck,
+  FiCopy,
+  FiInfo,
+  FiLock,
+} from "react-icons/fi";
 
 const RECOVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const RECOVERY_LENGTH = 16;
 const RECOVERY_GROUP_SIZE = 4;
 const EXCLUDED_HINT = "Kurtarma kodunda I, O, 0 ve 1 karakterleri bulunmaz.";
+const CODE_PLACEHOLDER = "ABCD-EFGH-JKLP-QRST";
+const COPY_FEEDBACK_MS = 5000;
 
 function toRecoveryDigits(input) {
   return input
@@ -32,21 +42,35 @@ function hasExcludedCharacter(input) {
   return /[IO01]/.test(input.toUpperCase());
 }
 
+function StatusMessage({ variant, message }) {
+  if (!message) return null;
+
+  return (
+    <div className={`recover-status recover-status--${variant}`} role={variant === "error" ? "alert" : undefined}>
+      <span className="recover-status-icon" aria-hidden="true">
+        {variant === "error" ? <FiAlertCircle size={16} /> : <FiCheck size={16} strokeWidth={2.5} />}
+      </span>
+      {message}
+    </div>
+  );
+}
+
 function Recover() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [recoveryDigits, setRecoveryDigits] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [hint, setHint] = useState("");
   const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
+  const [isCopied, setIsCopied] = useState(false);
+  const copyResetTimer = useRef(null);
 
-  const strength = scorePassword(password);
-  const meter = buildStrengthMeter(password, strength);
-  const rules = buildPasswordRules({ password, confirmPassword, strength });
+  useEffect(() => () => clearTimeout(copyResetTimer.current), []);
+
   const isCodeComplete = recoveryDigits.length === RECOVERY_LENGTH;
 
   const handleCodeChange = (e) => {
@@ -56,19 +80,33 @@ function Recover() {
     setError("");
   };
 
-  const handleCodeSubmit = (e) => {
+  const handleCodeSubmit = async (e) => {
     e.preventDefault();
     if (!isCodeComplete) {
       setError(`Kurtarma kodu ${RECOVERY_LENGTH} karakter olmalıdır.`);
       return;
     }
+
+    setIsVerifying(true);
+    setError("");
+
+    let verifyResult;
+    try {
+      verifyResult = await window.electronAPI.verifyRecoveryCode(recoveryDigits);
+    } catch {
+      setError("Kurtarma kodu doğrulanamadı. Lütfen tekrar deneyin.");
+      return;
+    } finally {
+      setIsVerifying(false);
+    }
+
+    if (!verifyResult.success) {
+      setError(verifyResult.message || "Kurtarma kodu hatalı.");
+      return;
+    }
+
     setHint("");
     setStep(2);
-  };
-
-  const backToCodeStep = (message) => {
-    setStep(1);
-    setError(message);
   };
 
   const handlePasswordSubmit = async (e) => {
@@ -93,7 +131,7 @@ function Recover() {
         newPassword: password,
       });
     } catch {
-      setError("Şifre sıfırlanamadı. Lütfen uygulamayı yeniden başlatıp tekrar deneyin.");
+      setError("Şifre sıfırlanamadı. Lütfen tekrar deneyin.");
       return;
     } finally {
       setIsSubmitting(false);
@@ -102,220 +140,267 @@ function Recover() {
     if (!resetResult.success) {
       const failureMessage = resetResult.message || "Şifre sıfırlanamadı.";
       if (resetResult.code === "INVALID_RECOVERY_CODE") {
-        backToCodeStep(failureMessage);
+        setStep(1);
+        setError(failureMessage);
         return;
       }
       setError(failureMessage);
       return;
     }
 
-    await showAlert.resetCode({ code: resetResult.recoveryCode, username: resetResult.username });
-    showAlert.toast("Şifre sıfırlandı", "Yeni şifrenizle giriş yapabilirsiniz.");
-    navigate("/login", { replace: true });
+    setResult({ code: resetResult.recoveryCode, username: resetResult.username });
   };
+
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(result.code);
+      setIsCopied(true);
+      clearTimeout(copyResetTimer.current);
+      copyResetTimer.current = setTimeout(() => setIsCopied(false), COPY_FEEDBACK_MS);
+    } catch {
+      setError("Kod panoya kopyalanamadı. Kodu elle not alın.");
+    }
+  };
+
+  if (result) {
+    return (
+      <div className="recover-page-bg">
+        <div className="recover-container">
+          <div className="recover-band recover-band--context">
+            <span className="recover-eyebrow">Hesap Kurtarma</span>
+            <h1 className="recover-title">Kurtarma Tamamlandı</h1>
+          </div>
+
+          <ol className="recover-band recover-rail" aria-label="Sıfırlama adımları">
+            <li className="is-done">
+              <span className="recover-rail-no">
+                <FiCheck size={16} strokeWidth={2.5} title="Tamamlandı" />
+              </span>
+              Kimlik doğrulama
+            </li>
+            <li className="recover-rail-line is-filled" aria-hidden="true" />
+            <li className="is-done">
+              <span className="recover-rail-no">
+                <FiCheck size={16} strokeWidth={2.5} title="Tamamlandı" />
+              </span>
+              Yeni şifre
+            </li>
+          </ol>
+
+          <div className="recover-band recover-step">
+            <h2 className="recover-task-title recover-done-title">
+              <span className="recover-done-mark">
+                <FiCheck size={17} strokeWidth={3} />
+              </span>
+              Şifreniz yenilendi.
+            </h2>
+            <p className="recover-task-note">
+              Yeni kurtarma kodunuz yalnızca <b>1 kez</b> gösterilecektir. Lütfen güvenli bir yere kaydedin. Eski
+              kodunuz artık geçerli değildir.
+            </p>
+
+            <div className="recover-code-surface">
+              <span className="recover-code-surface-label">Yeni kurtarma kodunuz</span>
+              <span className="recover-code-surface-value">{result.code}</span>
+              <button type="button" className="recover-btn-secondary" onClick={handleCopyCode}>
+                <FiCopy size={18} />
+                <span className="recover-copy-label">{isCopied ? "Kopyalandı" : "Kodu Kopyala"}</span>
+              </button>
+            </div>
+
+            {error && <StatusMessage variant="error" message={error} />}
+          </div>
+
+          <div className="recover-band recover-step">
+            <button
+              type="button"
+              className="recover-btn recover-btn--block"
+              onClick={() => navigate("/login", { replace: true, state: { username: result.username } })}
+            >
+              Giriş Ekranına Dön
+              <FiArrowRight className="recover-btn-icon" size={18} strokeWidth={2.5} />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="recover-page-bg">
-      <div className={step === 1 ? "recover-container is-code-step" : "recover-container"}>
-        <span className="recover-badge">
-          <FiKey size={28} />
-        </span>
-        <h1 className="recover-title">
-          <span className="recover-title-role">Hesap</span>
-          <span className="recover-title-action">Şifre Sıfırlama</span>
-        </h1>
+      <div className="recover-container">
+        <div className="recover-band recover-band--context">
+          <span className="recover-eyebrow">Hesap Kurtarma</span>
+          <h1 className="recover-title">Hesabınıza yeniden erişin.</h1>
+        </div>
 
-        <ol className="recover-steps" aria-label="Sıfırlama adımları">
+        <ol className="recover-band recover-rail" aria-label="Sıfırlama adımları">
           <li className={step === 1 ? "is-active" : "is-done"} aria-current={step === 1 ? "step" : undefined}>
-            <span className="recover-step-no">{step === 1 ? "1" : <FiCheck size={14} title="Tamamlandı" />}</span>
-            Kurtarma kodu
+            <span className="recover-rail-no">
+              {step === 1 ? "01" : <FiCheck size={16} strokeWidth={2.5} title="Tamamlandı" />}
+            </span>
+            Kimlik doğrulama
           </li>
+          <li className={step === 1 ? "recover-rail-line" : "recover-rail-line is-filled"} aria-hidden="true" />
           <li className={step === 2 ? "is-active" : ""} aria-current={step === 2 ? "step" : undefined}>
-            <span className="recover-step-no">2</span>
+            <span className="recover-rail-no">02</span>
             Yeni şifre
           </li>
         </ol>
 
-        <p className="recover-subtitle">
-          {step === 1
-            ? "İlk kurulumda size verilen kurtarma kodunu girin."
-            : "Hesabınız için yeni bir şifre belirleyin."}
-        </p>
+        {step === 1 && (
+          <form key="step-1" className="recover-step" onSubmit={handleCodeSubmit}>
+            <div className="recover-band">
+              <h2 className="recover-task-title">Kurtarma kodunuzu girin.</h2>
+              <p className="recover-task-note">
+                Kurulum sırasında size verilen {RECOVERY_LENGTH} karakterlik kodu kullanın.
+              </p>
 
-        {step === 1 ? (
-          <form className="recover-form" onSubmit={handleCodeSubmit}>
-            <div className="recover-field">
-              <label className="recover-label" htmlFor="recover-code">
+              <label className="recover-code-label" htmlFor="recover-code">
                 Kurtarma Kodu
               </label>
-              <div className="recover-input-wrapper">
-                <FiKey className="recover-icon" size={18} />
+              <div className="recover-code-wrapper">
                 <input
                   id="recover-code"
-                  className="recover-input recover-code-input"
+                  className="recover-code-input"
                   type="text"
-                  placeholder="XXXX-XXXX-XXXX-XXXX"
+                  placeholder={CODE_PLACEHOLDER}
                   autoComplete="off"
                   spellCheck="false"
                   autoFocus
                   value={formatRecoveryCode(recoveryDigits)}
                   onChange={handleCodeChange}
                   aria-invalid={error ? true : undefined}
-                  aria-describedby="recover-code-help"
+                  aria-describedby="recover-code-hint"
                   required
                 />
+                <strong className="recover-code-count" aria-hidden="true">
+                  {recoveryDigits.length}/{RECOVERY_LENGTH}
+                </strong>
               </div>
-              <p className="recover-help" id="recover-code-help">
-                {hint || (recoveryDigits.length > 0 ? `${recoveryDigits.length} / ${RECOVERY_LENGTH} karakter` : "")}
-              </p>
+              {hint && (
+                <p className="recover-code-hint" id="recover-code-hint">
+                  {hint}
+                </p>
+              )}
+
+              <StatusMessage variant="error" message={error} />
             </div>
 
-            {error && (
-              <div className="recover-error" role="alert">
-                <FiAlertCircle className="recover-error-icon" size={16} />
-                {error}
-              </div>
-            )}
+            <div className="recover-band recover-actions">
+              <button
+                type="button"
+                className="recover-btn-secondary"
+                onClick={() => navigate("/login")}
+                disabled={isVerifying}
+              >
+                <FiArrowLeft size={18} strokeWidth={2.5} />
+                Girişe dön
+              </button>
+              <button type="submit" className="recover-btn" disabled={isVerifying}>
+                {isVerifying ? (
+                  <>
+                    <span className="recover-spinner" aria-hidden="true" />
+                    Doğrulanıyor...
+                  </>
+                ) : (
+                  <>
+                    Kodu Doğrula
+                    <FiArrowRight className="recover-btn-icon" size={18} strokeWidth={2.5} />
+                  </>
+                )}
+              </button>
+            </div>
 
-            <button type="submit" className="recover-btn">
-              Devam
-              <FiArrowRight className="recover-btn-icon" size={18} strokeWidth={2.5} />
-            </button>
-
-            <button type="button" className="recover-back recover-back-link" onClick={() => navigate("/login")}>
-              Giriş ekranına dön
-            </button>
-
-            <aside className="recover-note">
-              <FiInfo className="recover-note-icon" size={18} />
-              <div className="recover-note-text">
-                <p className="recover-note-title">Kodunuz elinizde değil mi?</p>
-                <p className="recover-note-body">
-                  Hâlâ giriş yapabiliyorsanız Profil sayfasından yeni bir kod üretin. Hem şifre
-                  hem kod kaybolursa hesaba erişim geri getirilemez.
-                </p>
-              </div>
-            </aside>
+            <div className="recover-band recover-band--note">
+              <aside className="recover-note">
+                <span className="recover-note-icon" aria-hidden="true">
+                  <FiInfo size={18} />
+                </span>
+                <div>
+                  <p className="recover-note-title">Kurtarma kodunuz elinizde değil mi?</p>
+                  <p className="recover-note-body">
+                    Giriş yapabiliyorsanız Profil sayfasından yeni kod üretebilirsiniz. Şifre ve kurtarma kodu birlikte
+                    kaybolursa hesap kurtarılamaz.
+                  </p>
+                </div>
+              </aside>
+            </div>
           </form>
-        ) : (
-          <form className="recover-form" onSubmit={handlePasswordSubmit}>
-            <div className="recover-field">
-              <label className="recover-label" htmlFor="recover-password">
-                Yeni Şifre
-              </label>
-              <div className="recover-input-wrapper">
-                <FiLock className="recover-icon" size={18} />
-                <input
+        )}
+
+        {step === 2 && (
+          <form key="step-2" className="recover-step" onSubmit={handlePasswordSubmit}>
+            <div className="recover-band">
+              <h2 className="recover-task-title">Yeni şifrenizi belirleyin.</h2>
+              <p className="recover-task-note">
+                Kimliğiniz doğrulandı. Yeni şifrenizi girin ve hesabınıza yeniden erişin.
+              </p>
+
+              <div className="recover-fields">
+                <FormField
                   id="recover-password"
-                  className="recover-input has-toggle"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Yeni şifre"
+                  label="Yeni Şifre"
+                  icon={FiLock}
+                  type="password"
                   autoComplete="new-password"
-                  autoFocus
+                  placeholder="Yeni şifrenizi girin"
                   value={password}
+                  autoFocus
                   onChange={(e) => {
                     setPassword(e.target.value);
                     setError("");
                   }}
-                  required
                 />
-                <CapsLockIndicator />
-                <button
-                  type="button"
-                  className="recover-toggle"
-                  onClick={() => setShowPassword((isVisible) => !isVisible)}
-                  aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
-                >
-                  {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-                </button>
-              </div>
-            </div>
-
-            <div className={`recover-strength ${meter.variant}`}>
-              <div className="recover-strength-segments">
-                {[1, 2, 3, 4, 5].map((segment) => (
-                  <span key={segment} className={segment <= strength.score ? "on" : ""} />
-                ))}
-              </div>
-              <span className="recover-strength-label">{meter.label}</span>
-            </div>
-
-            <div className="recover-field">
-              <label className="recover-label" htmlFor="recover-confirm">
-                Yeni Şifre (Tekrar)
-              </label>
-              <div className="recover-input-wrapper">
-                <FiLock className="recover-icon" size={18} />
-                <input
+                <FormField
                   id="recover-confirm"
-                  className="recover-input has-toggle"
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Şifreyi tekrar girin"
+                  label="Yeni Şifre (Tekrar)"
+                  icon={FiLock}
+                  type="password"
                   autoComplete="new-password"
+                  placeholder="Şifrenizi tekrar girin"
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value);
                     setError("");
                   }}
-                  required
                 />
-                <CapsLockIndicator />
-                <button
-                  type="button"
-                  className="recover-toggle"
-                  onClick={() => setShowConfirmPassword((isVisible) => !isVisible)}
-                  aria-label={showConfirmPassword ? "Şifreyi gizle" : "Şifreyi göster"}
-                >
-                  {showConfirmPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-                </button>
               </div>
             </div>
 
-            <ul className="recover-rules">
-              {rules.map((rule) => {
-                const state = rule.isMet ? "valid" : rule.isPending ? "pending" : "failed";
-                const RuleIcon = { valid: FiCheck, pending: FiMinus, failed: FiX }[state];
-                return (
-                  <li key={rule.id} className={`recover-rule-${state}`}>
-                    <RuleIcon className="recover-rule-icon" size={14} />
-                    {rule.label}
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="recover-band">
+              <PasswordStrength password={password} confirmPassword={confirmPassword} iconSize={14} />
 
-            {error && (
-              <div className="recover-error" role="alert">
-                <FiAlertCircle className="recover-error-icon" size={16} />
-                {error}
-              </div>
-            )}
+              <StatusMessage variant="error" message={error} />
+            </div>
 
-            <button type="submit" className="recover-btn" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <span className="recover-spinner" aria-hidden="true" />
-                  Sıfırlanıyor...
-                </>
-              ) : (
-                <>
-                  Şifreyi Sıfırla
-                  <FiArrowRight className="recover-btn-icon" size={18} strokeWidth={2.5} />
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
-              className="recover-back recover-back-link"
-              onClick={() => {
-                setStep(1);
-                setError("");
-              }}
-              disabled={isSubmitting}
-            >
-              Kurtarma koduna dön
-            </button>
+            <div className="recover-band recover-actions">
+              <button
+                type="button"
+                className="recover-btn-secondary"
+                onClick={() => {
+                  setStep(1);
+                  setError("");
+                }}
+                disabled={isSubmitting}
+              >
+                <FiArrowLeft size={18} strokeWidth={2.5} />
+                Geri
+              </button>
+              <button type="submit" className="recover-btn" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <span className="recover-spinner" aria-hidden="true" />
+                    Sıfırlanıyor...
+                  </>
+                ) : (
+                  <>
+                    Şifreyi Yenile
+                    <FiArrowRight className="recover-btn-icon" size={18} strokeWidth={2.5} />
+                  </>
+                )}
+              </button>
+            </div>
           </form>
         )}
       </div>

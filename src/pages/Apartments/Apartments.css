@@ -21,6 +21,12 @@
   margin: 0;
 }
 
+.apartments-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
 .month-selector {
   display: flex;
   gap: 10px;
@@ -147,15 +153,6 @@
   transform: translateY(-1px);
 }
 
-.status-badge-static {
-  cursor: default;
-}
-
-.status-badge-static:hover {
-  opacity: 1;
-  transform: none;
-}
-
 .status-paid {
   background: var(--color-success-bg);
   color: var(--color-success-text);
@@ -199,11 +196,49 @@
   align-items: center;
 }
 
+.collect-btn {
+  background: var(--button-color);
+  color: var(--button-text, #ffffff);
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    opacity 0.2s,
+    transform 0.15s;
+}
+
+.collect-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.collect-btn-done {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: var(--border-default);
+}
+
+.action-separator {
+  width: 1px;
+  height: 22px;
+  background: var(--border-default);
+  margin: 0 2px;
+}
+
 .action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
   background: none;
   border: 1px solid var(--border-default);
   border-radius: 6px;
-  padding: 4px 8px;
+  padding: 6px 8px;
   font-size: 0.85rem;
   cursor: pointer;
   transition:
@@ -217,9 +252,13 @@
 }
 .edit-btn:hover {
   background: var(--accent-tint);
+  color: var(--button-color);
+  border-color: var(--button-color);
 }
 .delete-btn:hover {
   background: var(--color-danger-bg);
+  color: var(--danger);
+  border-color: var(--danger);
 }
 
 .resident-cell {

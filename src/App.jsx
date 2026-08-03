@@ -1,10 +1,11 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense } from "react";
 import { HashRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary.jsx";
 import Footer from "./components/Footer/Footer.jsx";
 import PageLoader from "./components/PageLoader/PageLoader.jsx";
 import { useCurrentUser } from "./hooks/useCurrentUser.js";
 import { useCurrentBuilding } from "./hooks/useCurrentBuilding.js";
+import { useNeedsSetup } from "./hooks/useNeedsSetup.js";
 import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute.jsx";
 
 const Setup = lazy(() => import("./pages/Setup/Setup.jsx"));
@@ -13,7 +14,6 @@ const Recover = lazy(() => import("./pages/Recover/Recover.jsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard/Dashboard.jsx"));
 const AddApartment = lazy(() => import("./pages/AddApartment/AddApartment.jsx"));
 const Apartments = lazy(() => import("./pages/Apartments/Apartments.jsx"));
-const ApartmentsManage = lazy(() => import("./pages/Apartments/ApartmentsManage.jsx"));
 const Residents = lazy(() => import("./pages/Residents/Residents.jsx"));
 const AddIncome = lazy(() => import("./pages/AddIncome/AddIncome.jsx"));
 const AddExpense = lazy(() => import("./pages/AddExpense/AddExpense.jsx"));
@@ -24,30 +24,14 @@ const SelectBuilding = lazy(() => import("./pages/SelectBuilding/SelectBuilding.
 
 function StartupRedirect() {
   const currentUser = useCurrentUser();
-  const [setupTarget, setSetupTarget] = useState(null);
-
-  useEffect(() => {
-    if (currentUser) return;
-    let active = true;
-    window.electronAPI
-      .getSetupState()
-      .then((res) => {
-        if (active) setSetupTarget(res?.needsSetup ? "/setup" : "/login");
-      })
-      .catch(() => {
-        if (active) setSetupTarget("/login");
-      });
-    return () => {
-      active = false;
-    };
-  }, [currentUser]);
+  const needsSetup = useNeedsSetup();
 
   if (currentUser) {
     return <Navigate to="/select-building" replace />;
   }
 
-  if (!setupTarget) return <PageLoader message="Yükleniyor..." fullscreen />;
-  return <Navigate to={setupTarget} replace />;
+  if (needsSetup === null) return <PageLoader message="Yükleniyor..." fullscreen />;
+  return <Navigate to={needsSetup ? "/setup" : "/login"} replace />;
 }
 
 function RequireBuilding() {
@@ -103,7 +87,6 @@ function App() {
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/add-apartment" element={<AddApartment />} />
                   <Route path="/apartments" element={<Apartments />} />
-                  <Route path="/apartments/manage" element={<ApartmentsManage />} />
                   <Route path="/residents" element={<Residents />} />
                   <Route path="/add-income" element={<AddIncome />} />
                   <Route path="/add-expense" element={<AddExpense />} />

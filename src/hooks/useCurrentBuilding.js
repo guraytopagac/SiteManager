@@ -15,7 +15,7 @@ function isSameBuilding(a, b) {
   return a.id === b.id && a.name === b.name;
 }
 
-export function getCurrentBuilding() {
+function getCurrentBuilding() {
   try {
     return pickBuildingFields(JSON.parse(sessionStorage.getItem(SESSION_BUILDING_KEY)));
   } catch {

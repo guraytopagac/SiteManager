@@ -178,7 +178,7 @@ export function buildStrengthMeter(password, strength) {
     variant: STRENGTH[strength.score].variant,
     label:
       password.length > 0 && password.length < MIN_PASSWORD_LENGTH
-        ? `${MIN_PASSWORD_LENGTH - password.length} karakter daha gerekli`
+        ? `${MIN_PASSWORD_LENGTH - password.length} karakter daha`
         : STRENGTH[strength.score].label,
   };
 }

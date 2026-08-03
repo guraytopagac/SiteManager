@@ -1,3 +1,4 @@
+import { formatCurrency } from "@/utils/currency";
 
 function DuesSummary({ dues }) {
   const totalDue = dues.reduce((sum, d) => sum + d.due_amount, 0);
@@ -21,8 +22,8 @@ function DuesSummary({ dues }) {
         <span className="summary-label">Ödenmedi</span>
       </div>
       <div className="summary-item total">
-        <span className="summary-count">{totalPaid.toLocaleString("tr-TR")} ₺</span>
-        <span className="summary-label">/ {totalDue.toLocaleString("tr-TR")} ₺ Tahsilat</span>
+        <span className="summary-count">{formatCurrency(totalPaid)}</span>
+        <span className="summary-label">/ {formatCurrency(totalDue)} Tahsilat</span>
       </div>
     </div>
   );

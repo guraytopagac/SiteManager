@@ -7,23 +7,12 @@ Mevcut durum ve mimari için bkz. `CLAUDE.md`.
 >
 > - Bir görev tamamlandığında ilgili bölüm bu dosyadan **silinir**; davranış değiştiyse `CLAUDE.md` güncellenir.
 > - Zorluk skalası: 🟢 kolay (< yarım gün) · 🟡 orta (1–2 gün) · 🔴 zor (3+ gün / mimari karar)
-> - Faz sırası önem/bağımlılık sırasıdır — üstteki bitmeden alttakine geçme (aynı faz içindekiler paralel yapılabilir).
+> - Fazlar **önem ve bağımlılık sırasındadır**, takvim değildir — üstteki bitmeden alttakine geçme (aynı faz içindekiler paralel yapılabilir).
+> - Bağımlılıksız çözüm tercih edilir (CLAUDE.md ADR #30). Bu roadmap'teki teknik seçimler o karara göre işlenmiştir, görev başlarken yeniden tartışılmaz.
 
 ---
 
-## Genel Bakış — 8 Haftalık Plan
-
-| Faz | Hafta | Tema                                 | Görevler                                                             |
-| --- | ----- | ------------------------------------ | -------------------------------------------------------------------- |
-| 1   | 1     | Güvenlik ve sağlamlaştırma           | G1 yetki düzeltmesi, G2 ESLint sıkılaştırma, G3 test kapsamı         |
-| 2   | 2–3   | Kullanıcıya görünür hızlı kazanımlar | Ö1 aidat hatırlatma, Ö3 gelişmiş filtreler                           |
-| 3   | 4–5   | Raporlama ve veri çıkışı             | Ö4 PDF makbuz, Ö5 CSV/Excel dışa aktarım, Ö6 dashboard trend grafiği |
-| 4   | 6–7   | Veri güvenliği altyapısı             | A1 otomatik yedekleme, A2 yedek klasörü senkronu                     |
-| 5   | 8+    | Ölçek ve refactor                    | T2 sayfalama, (karar sonrası) çok bina desteği                       |
-
----
-
-## Faz 1 — Güvenlik ve Sağlamlaştırma (Hafta 1)
+## Faz 1 — Sağlamlaştırma
 
 ### G2. ESLint `no-unused-vars` → `error` 🟢
 
@@ -31,17 +20,9 @@ Mevcut durum ve mimari için bkz. `CLAUDE.md`.
 - **Dosyalar:** `eslint.config.js` + çıkan ihlallerin temizliği.
 - **Tamamlanma kriteri:** `npm run lint` sıfır hata.
 
-### G3. Kritik iş kurallarına birim test 🟡
-
-- **Amaç:** Vitest altyapısı mevcut ama kapsam dar; en riskli mantığı test altına almak.
-- **Neden gerekli:** Finansal hesaplar (paid_amount SUM, iptal zinciri) regresyona en açık alan; testler sonraki fazların güvenlik ağıdır.
-- **Kapsam (öncelik sırasıyla):** `dues/service.js` (recordPayment, cancelPayment, status geçişleri), `auth/service.js` (setup/kurtarma akışı), `migrate.js` (fresh install / duplicate column senaryoları) — testlerde in-memory SQLite (`new Database(":memory:")`) kullan.
-- **Bağımlılık:** Yok; Faz 2+ görevlerinden **önce** yapılmalı.
-- **Tamamlanma kriteri:** `npm run test` yeşil; recordPayment/cancelPayment akışının uçları kapsanmış.
-
 ---
 
-## Faz 2 — Hızlı Kazanımlar (Hafta 2–3)
+## Faz 2 — Hızlı Kazanımlar
 
 ### Ö1. Aidat Hatırlatma 🟢
 
@@ -50,21 +31,23 @@ Mevcut durum ve mimari için bkz. `CLAUDE.md`.
 - **Teknik etki:** Yeni IPC gerekmez — `getStats` sorgusu genişletilir (aynı endpoint, ek alan).
 - **Kapsam:** Dashboard'da "Bu ay ödenmemiş: X daire" kartı; ayın son 5 günü vurgulu gösterim; detay listesi (daire no, sakin adı, kalan tutar).
 - **Dosyalar:** `electron/modules/dashboard/service.js`, `src/pages/Dashboard/Dashboard.jsx`.
-- **Test:** ödenmemiş/kısmi/tam ödenmiş karışımı; ay sınırı (ayın 1'i ve son günü); pasif daireler sayılmamalı.
+- **Doğrulama:** ödenmemiş/kısmi/tam ödenmiş karışımı; ay sınırı (ayın 1'i ve son günü); pasif daireler sayılmamalı.
 - **Tamamlanma kriteri:** Kart doğru sayıyı gösterir, detay listesi açılır, pasif daireler hariçtir.
 
 ### Ö3. Gelişmiş Filtreler (Transactions) 🟡
 
-- **Amaç:** `Transactions.jsx`'e filtre paneli: tarih aralığı, kategori çoklu seçim, tür (gelir/gider/hepsi), durum (aktif/iptal/hepsi).
+> **Kısmen yapıldı (2026-08-02, U-14):** Dönem filtresi (yıl + ay, "Tüm Zamanlar" seçeneğiyle) eklendi ve **SQL'de** çalışıyor — `getTransactions(buildingId, period)`, `date >= ? AND date < ?` aralığıyla, mevcut `(building_id, date)` index'ini kullanacak şekilde. Tür filtresi (gelir/gider/hepsi) zaten vardı. **Kalan kapsam aşağıdadır.**
+
+- **Amaç:** `Transactions.jsx`'e filtre paneli: **serbest tarih aralığı** (tek ay değil), kategori çoklu seçim, durum (aktif/iptal/hepsi).
 - **Fayda:** Kayıt sayısı arttıkça işlem bulmak mümkün olur; T2 sayfalamanın ön hazırlığı.
-- **Teknik etki:** `getTransactions` parametreleri genişler (IPC değişikliği — kullanıcı onayı). Filtreleme **SQL'de** yapılır (CLAUDE.md §14), dinamik WHERE her zaman parametreli.
+- **Teknik etki:** `getTransactions`'ın `period` parametresi genişler (IPC imzası zaten değişti, kanal aynı). Filtreleme **SQL'de** yapılır (CLAUDE.md §14), dinamik WHERE her zaman parametreli.
 - **Dosyalar:** `financial/handlers.js`, `financial/service.js`, `preload.js`, `Transactions.jsx`.
-- **Test:** her filtrenin tekil ve kombinasyonlu çalışması; boş sonuç; geçersiz tarih formatı reddedilir; SQL injection denemesi (parametreli olduğu doğrulanır).
+- **Doğrulama:** her filtrenin tekil ve kombinasyonlu çalışması; boş sonuç; geçersiz tarih formatı reddedilir; sorgunun parametreli kaldığı gözden geçirilir.
 - **Tamamlanma kriteri:** Filtreler kombinlenebilir, sonuç SQL'den filtreli döner, mevcut varsayılan görünüm değişmez.
 
 ---
 
-## Faz 3 — Raporlama ve Veri Çıkışı (Hafta 4–5)
+## Faz 3 — Raporlama ve Veri Çıkışı
 
 ### Ö4. PDF Makbuz 🟡
 
@@ -74,86 +57,94 @@ Mevcut durum ve mimari için bkz. `CLAUDE.md`.
 - **Kapsam:** Makbuz içeriği: daire no, sakin adı, tutar, ödeme yöntemi, tarih, tahsil eden. `recordPayment` başarı modalına "Makbuz Yazdır" butonu; geçmiş ödemeler için de erişilebilir olmalı.
 - **Bağımlılık:** Yok (Reports'taki mevcut PDF deseni örnek alınır).
 - **Risk:** jspdf'te Türkçe karakter desteği — Reports'ta çözülmüş font yaklaşımını aynen kullan.
-- **Dosyalar:** `src/pages/Apartments/Apartments.jsx` (veya ödeme modal bileşeni), yeni `src/utils/receipt.js`.
-- **Test:** Türkçe karakterler, uzun sakin adı, kısmi ödeme tutarı, iptal edilmiş ödeme için makbuz üretilememesi.
+- **Dosyalar:** `src/pages/Apartments/components/PaymentModal.jsx`, yeni `src/utils/receipt.js`.
+- **Doğrulama:** Türkçe karakterler, uzun sakin adı, kısmi ödeme tutarı, iptal edilmiş ödeme için makbuz üretilememesi.
 - **Tamamlanma kriteri:** Ödeme sonrası tek tıkla doğru içerikli PDF kaydedilir.
 
-### Ö5. CSV / Excel Dışa Aktarım 🟡
+### Ö5. CSV Dışa Aktarım 🟡
 
 - **Amaç:** Transactions ve Reports verilerini dosyaya aktarma.
 - **Fayda:** Yönetici verisini muhasebeciyle/kurulla paylaşabilir.
-- **Teknik etki:** ⚠️ **Karar gerekli:** `xlsx` paketi (gerçek Excel, +1 bağımlılık) vs CSV (bağımlılıksız, Excel'in UTF-8 BOM ihtiyacı var). Öneri: **CSV + UTF-8 BOM** ile başla — bağımlılık eklemeden ihtiyacın %90'ını karşılar. Kullanıcıya sor.
+- **Teknik seçim (karara bağlandı):** **CSV + UTF-8 BOM**, `xlsx` paketi eklenmez (ADR #30). BOM olmadan Excel Türkçe karakterleri bozar, bu yüzden dosya başına BOM yazmak zorunludur.
 - **Bağımlılık:** Ö3 (filtrelenmiş sonucun aktarılması en değerli senaryo).
 - **Dosyalar:** `Transactions.jsx`, `Reports.jsx`, `saveReportFile` yolu (uzantı filtresi genişletme: `report/handlers.js`).
-- **Test:** Türkçe karakter + BOM (Excel'de doğru açılma), ₺ tutar formatı, iptal kayıtların işaretlenmesi, boş liste.
+- **Doğrulama:** Türkçe karakter + BOM (Excel'de doğru açılma), ₺ tutar formatı, iptal kayıtların işaretlenmesi, boş liste.
 - **Tamamlanma kriteri:** "Dışa Aktar" butonu filtreli veriyi Excel'de sorunsuz açılan dosyaya yazar.
 
 ### Ö6. Dashboard Trend Grafiği 🟡
 
 - **Amaç:** Son 6 aya ait gelir/gider trend grafiği.
 - **Fayda:** Finansal gidişatın tek bakışta görülmesi.
-- **Teknik etki:** ⚠️ **Karar gerekli:** `recharts` (+~100KB bağımlılık) vs saf SVG. Öneri: **saf SVG** — 6 çubuk/çizgilik basit grafik için bağımlılık maliyetine değmez; tema değişkenleriyle de doğal uyumlu. Yeni IPC endpoint gerekir (`getMonthlyTrend`) — kullanıcıya sor.
+- **Teknik seçim (karara bağlandı):** **Saf SVG**, `recharts` eklenmez (ADR #30). Tema değişkenleriyle doğal uyumlu. Yeni IPC endpoint gerekir (`getMonthlyTrend`) — endpoint eklenmesi için kullanıcı onayı alınır.
 - **Bağımlılık:** Yok.
 - **Dosyalar:** `channels.js`, `financial/handlers.js`, `financial/service.js` (`getMonthlyTrend(buildingId, monthCount)`), `preload.js`, `Dashboard.jsx`, yeni `src/components/TrendChart.jsx`.
-- **Test:** verisiz aylar (0 gösterimi), yıl geçişi (Kasım→Şubat aralığı), iptal kayıtların hariç tutulması, dark tema görünümü.
+- **Doğrulama:** verisiz aylar (0 gösterimi), yıl geçişi (Kasım→Şubat aralığı), iptal kayıtların hariç tutulması, dark tema görünümü.
 - **Tamamlanma kriteri:** Dashboard'da Türkçe ay etiketli (Oca, Şub…) 6 aylık grafik; iptal kayıtlar toplamda yok.
 
 ---
 
-## Faz 4 — Veri Güvenliği Altyapısı (Hafta 6–7)
+## Faz 4 — Veri Güvenliği Altyapısı
 
-### A1. Otomatik Yedekleme Zamanlayıcısı 🔴
+### A1. Otomatik Yedekleme Zamanlayıcısı 🟡
+
+> **Ön koşulları yapıldı (2026-08-02, U-10 / ADR #39):** Ayar saklama altyapısı (`electron/modules/shared/appSettings.js` → userData altında `settings.json`), dialog'suz yedek yolu (`runBackup(win, { silent: true })`), `backup` IPC domaini (`backup:run`, `backup:get-status`), Profile'da "Yedek Al" + son yedek tarihi ve Dashboard'da 7 günü aşınca uyarı şeridi hazır. **Geriye yalnızca zamanlayıcı + rotasyon kaldı** — bu yüzden zorluk 🔴'dan 🟡'ye indi.
 
 - **Amaç:** Uygulama açıkken her gün belirlenen saatte `%APPDATA%/.../backups/` klasörüne otomatik yedek; eski yedeklerin rotasyonu (ör. son 7).
 - **Neden gerekli:** Tek SQLite dosyası = tek arıza noktası. Manuel yedek unutulur; disk arızası tüm apartman verisini götürür.
-- **Teknik etki:** ⚠️ **Karar gerekli:** `setInterval` vs `node-cron`. Öneri: **bağımlılıksız `setInterval`** (dakikada bir "saat geldi mi + bugün alındı mı" kontrolü) — cron ifadesi gerektirecek karmaşıklık yok. Ayarların saklanması için yeni bir `settings` tablosu **veya** userData'da JSON dosyası gerekir — şema kararı olduğundan kullanıcıya sor (öneri: JSON dosyası, DB'ye ayar tablosu açmaktan hafif).
-- **Kapsam:** yedekleme saati + saklanacak yedek sayısı ayarı (Profil sayfasında UI); mevcut `db.backup()` API'si; ayrıca uygulama kapanırken "bugün yedek alınmadıysa al" güvencesi düşünülebilir.
+- **Teknik seçim (karara bağlandı):** Zamanlayıcı **bağımlılıksız `setInterval`** (dakikada bir "saat geldi mi + bugün alındı mı" kontrolü) — ADR #30. Ayarlar mevcut `appSettings.js` üzerinden okunur/yazılır, yeni bir saklama katmanı gerekmez.
+- **Kalan kapsam:** yedekleme saati + saklanacak yedek sayısı ayarı (Profile'daki mevcut "Veri Yedeği" kartına eklenir); hedef klasöre sessiz yazan varyant (bugünkü `runBackup` kullanıcıdan dosya yolu ister — zamanlayıcı için yol sormayan bir sürüm gerekir); rotasyon; uygulama kapanırken "bugün yedek alınmadıysa al" güvencesi.
 - **Bağımlılık:** Yok; A2'nin ön koşulu.
-- **Risk:** Uygulama o saatte açık değilse yedek atlanır → açılışta "son yedek > 24 saat ise hemen al" telafi mantığı ekle.
-- **Dosyalar:** yeni `electron/modules/backup/scheduler.js`, `backup/service.js` (dialog'suz sessiz yedek fonksiyonu ayrıştırılır), `main.js` (başlatma), ayar UI için `Profile.jsx` + gerekli IPC (kullanıcı onayı).
-- **Test:** rotasyon (8. yedek → en eski silinir), saat tetiklenmesi, açılış telafisi, yedek sırasında DB meşgulken davranış.
+- **Risk:** Uygulama o saatte açık değilse yedek atlanır → açılışta "son yedek > 24 saat ise hemen al" telafi mantığı ekle. `settings.json`'daki `lastBackupAt` bu kontrol için zaten yazılıyor.
+- **Dosyalar:** yeni `electron/modules/backup/scheduler.js`, `backup/service.js` (yol sormayan yedek fonksiyonu), `main.js` (başlatma), ayar UI için `Profile.jsx` + gerekli IPC (kullanıcı onayı).
+- **Doğrulama:** rotasyon (8. yedek → en eski silinir), saat tetiklenmesi, açılış telafisi, yedek sırasında DB meşgulken davranış.
 - **Tamamlanma kriteri:** Ayarlanan saatte sessiz yedek alınır, rotasyon çalışır, son yedek zamanı UI'da görünür.
 
 ### A2. Yedek Hedef Klasörü (Bulut Senkron Uyumlu) 🟡
 
 - **Amaç:** Kullanıcının seçtiği harici klasöre (Google Drive/OneDrive/Dropbox masaüstü senkron klasörü dahil) otomatik yedek kopyalama.
-- **Neden bu yaklaşım:** OAuth tabanlı doğrudan bulut entegrasyonu (token saklama, API kotaları, her sağlayıcı için ayrı kod) bu projenin boyutuna göre aşırı karmaşık. Klasör seçimi aynı faydayı ~%10 maliyetle sağlar — senkronu işletim sistemindeki Drive/OneDrive istemcisi yapar. **OAuth seçeneği bilinçli olarak rafa kaldırıldı**; talep gelirse yeniden değerlendirilir.
-- **Bağımlılık:** A1 (aynı ayar altyapısı ve sessiz yedek fonksiyonu).
+- **Teknik seçim (karara bağlandı):** Klasör seçimi, **OAuth tabanlı bulut entegrasyonu değil** (ADR #30). Senkronu işletim sistemindeki Drive/OneDrive istemcisi yapar.
+- **Bağımlılık:** A1'in zamanlayıcısı (ayar altyapısı ve sessiz yedek yolu U-10 ile hazır).
 - **Dosyalar:** A1'in scheduler/ayar dosyaları + `dialog.showOpenDialog` ile klasör seçimi.
-- **Test:** klasör silinmiş/erişilemezse sessizce loglayıp yerel yedeğe devam; ağ sürücüsü yavaşlığında UI donmaması (async copy).
+- **Doğrulama:** klasör silinmiş/erişilemezse sessizce loglayıp yerel yedeğe devam; ağ sürücüsü yavaşlığında UI donmaması (async copy).
 - **Tamamlanma kriteri:** Seçili klasöre her otomatik yedeğin bir kopyası düşer; klasör kaybolursa uygulama çalışmaya devam eder.
 
 ---
 
-## Faz 5 — Ölçek ve Refactor (Hafta 8+)
+## Faz 5 — Ölçek ve Refactor
 
 ### T2. Transactions Sayfalama 🟡
 
 - **Amaç:** `getTransactions`'a `LIMIT/OFFSET` (veya keyset) sayfalama.
 - **Neden:** 2–3 yıllık veri sonrası tüm işlemleri tek seferde çekmek hem senkron SQL'i hem render'ı yavaşlatır.
 - **Bağımlılık:** Ö3 (filtre + sayfalama aynı sorgu üretecinde birleşir).
-- **Test:** sayfa sınırları, filtre+sayfa kombinasyonu, toplam kayıt sayısı gösterimi.
+- **Doğrulama:** sayfa sınırları, filtre+sayfa kombinasyonu, toplam kayıt sayısı gösterimi.
 - **Tamamlanma kriteri:** 10.000 kayıtlık test verisinde sayfa geçişi < 100 ms.
 
-> **Not:** Çok bina desteği (eski T3 / `buildings` varlığı) **uygulandı** — bir kişi tek hesapla N bina yönetir, bina seçici + `useCurrentBuilding` + `building_id` geçişi tamam (CLAUDE.md ADR #25). Tek role geçiş de tamamlandı (ADR #26); `role`/`display_name` kalıntı kolonları 018 ile silindi.
+---
+
+## Arayüz ve Görsel İşler
+
+Özellik değil, tutarlılık borcu. Hepsi düşük öncelik, sıra bağımlılığı yok.
+
+1. **Okunabilirlik eşiği (1rem) taşıması** — CLAUDE.md §11 eşiği 1rem'dir, eski sayfalar hâlâ altındadır. `Login`, `Setup` ve `Recover` tamamlandı. Kalanlar: `Apartments.css`, `Residents.css`, `Reports.css`, `Transactions.css`, `Profile.css`, `Dashboard.css`, `AddApartment.css`, `Footer.css`, `ErrorBoundary.css`, `style.css`. **Toplu sweep yapma** — yoğun tablo sayfalarında satır yüksekliği ve sütun genişliği değişir, her sayfa iki temada gözle doğrulanmalıdır.
+2. **Setup ve splash arka planları** — `setup/light.jpg` (2026-07-19) node-network motifi korunarak maviye yeniden üretildi, ADR #17 paletiyle uyumlu. `setup/dark.jpg` hâlâ **teal** ve sayfadaki tek uyumsuz parça: aynı motifin mavi karşılığı üretilmeli (bright azure `#38a5f7` + `#29c1fb` düğümler, lacivert `#0a1220` zemin, solda yoğun / sağda boş 16:9). `splash/bg.jpg` hâlâ eski görselinde.
+3. **Motif birliği** — setup node-network, login soyut apartman çizgi işi. ADR #15 "giriş ekranlarının tamamı aynı görsel dilde" diyor, uzun vadede ikisi tek aileye çekilmeli.
+4. **Setup sol sütun metinleri** — "Başlamadan Önce" uyarı kutusu ve "Kurulumdan Sonra" özellik listesi (2026-07-20) yeniden yazıldı. Liste **uygulamanın o anki yeteneklerini** anlatır, bu yüzden yeni özellikler geldikçe gözden geçirilmeli (Ö4 makbuz, Ö5 dışa aktarım, Ö6 trend grafiği, A1 otomatik yedekleme). Kısıtlar: dört madde tek satırda kalmalı (en uzunu ~45 karakter), fiiller emir kipinde, `Kurulumdan Sonra` ve `Başlamadan Önce` başlıkları aynı stili paylaşır (`.setup-notice-title` / `.setup-adv-label`). A1 geldiğinde yedekleme maddesi "otomatik" vurgusuyla güncellenmeli.
+5. **Giriş ekranlarının paralel tema değişkenleri** — `Setup.css`, `Login.css` ve `Recover.css` kendi setlerini taşır (`--setup-*`, `--login-*`, `--recover-*`), `style.css`'teki global token'lardan bağımsız. Global accent değişince bu ekranlar eski renkte kalır (v1.4.0 ve v1.5.0 yenilemelerinde bu maliyet iki kez görüldü). Tam ekran düzenleri ve kendi arka plan görselleri olduğu için ayrılık bilinçli, ama en azından `Login`/`Recover` ikilisi tek sete indirilebilir (kardeş ekranlar, aynı değerler). Birleştirmede ADR #20 korunmalı: geometri kurala literal yazılır, değişken yalnızca renk taşır. **Not (2026-08-02):** `Setup` ve `Recover`'ın form alanı artık paylaşılan `FormField` bileşenindedir (ADR #40) ve rengi `--ff-*` sözleşmesiyle alır; yani bu iki ekranın alan görünümü zaten tek kaynaktan geliyor. Kalan ayrılık kart/arka plan/buton token'larında.
 
 ---
 
 ## Teknik Borç Analizi
 
-| #   | Borç                                                                                                                                                                                  | Risk                                                                                                                                                                                                                                                                                 | Öneri                                                                                                                                                                                                                                                                                                                    |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 3   | Test kapsamı dar                                                                                                                                                                      | Finansal mantıkta sessiz regresyon                                                                                                                                                                                                                                                   | G3; yeni service fonksiyonu = beraberinde test                                                                                                                                                                                                                                                                           |
-| 5   | `getTransactions` sınırsız satır döner                                                                                                                                                | Büyüyen veride UI/IPC yavaşlaması                                                                                                                                                                                                                                                    | T2 sayfalama                                                                                                                                                                                                                                                                                                             |
-| 6   | Para `REAL` (float)                                                                                                                                                                   | Kuruş yuvarlama sapmaları birikebilir                                                                                                                                                                                                                                                | Bilinçli karar (ADR #8); şikâyet gelirse kuruş-integer migration planla — şimdilik dokunma                                                                                                                                                                                                                               |
-| 7   | Ayar saklama altyapısı yok                                                                                                                                                            | A1/A2 ve gelecek özellikler engelleniyor                                                                                                                                                                                                                                             | A1 kapsamında JSON tabanlı settings modülü                                                                                                                                                                                                                                                                               |
-| 8   | `sandbox:false`                                                                                                                                                                       | Electron güvenlik yüzeyi                                                                                                                                                                                                                                                             | Preload'un require ihtiyacı kalkarsa (bundle edilirse) `sandbox:true`'ya geç — düşük öncelik                                                                                                                                                                                                                             |
-| 9   | Renderer'da hata loglanmıyor                                                                                                                                                          | Kullanıcı hatası teşhis edilemiyor                                                                                                                                                                                                                                                   | İleride `window.onerror` → IPC → electron-log köprüsü (yeni kanal, kullanıcıya sor)                                                                                                                                                                                                                                      |
-| 10  | Rapor sorgularında index denetimi yapılmadı                                                                                                                                           | Veri büyüyünce yavaş rapor                                                                                                                                                                                                                                                           | T2 ile birlikte `EXPLAIN QUERY PLAN` kontrolü; gerekirse `dues(year,month)`, `incomes(building_id,date)` indexleri                                                                                                                                                                                                        |
-| 11  | Dialog renkleri JS'ten inline yazılıyor (`alert.js` → `theme()`/`base()`, `confirmButtonColor` vb.)                                                                                   | Renkler dialog açıldığı anda donuyor: dialog açıkken tema değiştirilirse zemin/butonlar eski temada kalır, `swal-*` sınıflarıyla gelen renkler yeni temaya geçer → karışık görünüm (ör. lacivert zeminde açık tema uyarı kutusu okunmaz)                                             | Popup/buton renklerini `style.css`'e CSS değişkeni olarak taşı, `theme()`'i kaldır. Tüm dialogları etkiler, gözle regresyon kontrolü ister — ayrı görev. Gerçek kullanımda düşük olasılık (kullanıcı dialog açıkken tema değiştirmiyor), o yüzden düşük öncelik                                                          |
-| 13  | 1rem (16px) okunabilirlik eşiğinin altında **94 tanım / 14 dosya** (`Apartments.css` 23, `Residents.css` 13, `Reports.css` 10, `Transactions.css` 10, `Profile.css` 8, `Footer.css` 7, diğerleri) — `AdminDashboard.css` tek role geçişte silindi | 40+ hedef kitlede küçük yazı okunabilirlik sorunu; CLAUDE.md §11 eşiği 2026-07-20'de 0.9rem'den 1rem'e çıkarıldı ama mevcut sayfalar taşınmadı                                                                                                                                       | Sayfa sayfa yükselt, **toplu sweep yapma** — yoğun tablo sayfalarında satır yüksekliği ve sütun genişliği değişir, her sayfa iki temada gözle doğrulanmalı. `Login`, `Setup` ve `Recover` tamamlandı. Her sayfa bitince CLAUDE.md §11'deki sayacı güncelle                                                                          |
-| 14  | `.prettierrc` yok; kod ~100 karakter genişlikte yazılmış, Prettier varsayılanı 80                                                                                                     | `npx prettier --check` neredeyse her dosyayı uyumsuz gösteriyor → format denetimi sinyal olarak işe yaramıyor                                                                                                                                                                        | Projenin gerçek genişliğini tespit edip config dosyası ekle. **Mevcut dosyaları aynı değişiklikte reformat etme** — tek seferde tüm repo'yu biçimlendirmek gerçek değişiklikleri gömer                                                                                                                                   |
-| 12  | `Setup.css`, `Login.css` ve `Recover.css` kendi paralel tema değişken setlerini taşıyor (`--setup-*`, `--login-*`, `--recover-*`), `style.css`'teki global token'lardan bağımsız      | Tema/renk kararı dört yerde yaşıyor: global accent değişince bu ekranlar eski renkte kalır, her tema ayarında dosyaları elle eşitlemek gerekiyor (v1.4.0 ve v1.5.0 yenilemelerinde bu maliyet iki kez görüldü). `Login.css` ile `Recover.css` neredeyse birebir aynı seti tanımlıyor | Giriş ekranları kendi arka plan görselleri ve tam ekran düzeniyle bilinçli olarak ayrı — şimdilik kalsın. En azından `Login`/`Recover` ikilisi tek sete indirilebilir (kardeş ekranlar, aynı değerler). ADR 20 gereği geometri kurala literal yazılır, değişken yalnızca renk taşır — birleştirme sırasında bu korunmalı |
+| #   | Borç                                              | Risk                                                        | Öneri                                                                                                                                                     |
+| --- | ------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `getTransactions` dönem filtresizken sınırsız satır döner | Azaldı: sayfa varsayılan olarak tek ay çeker (U-14), ama "Tüm Zamanlar" seçeneği hâlâ sınırsız | T2 sayfalama (yalnızca "Tüm Zamanlar" yolu için kritik)                                                                                                   |
+| 2   | Para `REAL` (float)                               | Kuruş yuvarlama sapmaları birikebilir                       | Bilinçli karar (ADR #8); şikâyet gelirse kuruş-integer migration planla, şimdilik dokunma                                                                  |
+| 4   | `sandbox:false`                                   | Electron güvenlik yüzeyi                                    | Preload'un require ihtiyacı kalkarsa (bundle edilirse) `sandbox:true`'ya geç, düşük öncelik                                                                |
+| 5   | Renderer'da hata loglanmıyor                      | Kullanıcı hatası teşhis edilemiyor                          | İleride `window.onerror` → IPC → electron-log köprüsü (yeni kanal, kullanıcıya sor)                                                                        |
+| 6   | Rapor sorgularında index denetimi yapılmadı       | Veri büyüyünce yavaş rapor                                  | T2 ile birlikte `EXPLAIN QUERY PLAN` kontrolü; gerekirse `dues(year,month)`, `incomes(building_id,date)` indexleri                                         |
+| 7   | Dialog renkleri JS'ten inline yazılıyor           | Dialog açıkken tema değişirse zemin eski, `swal-*` sınıfları yeni temada kalır → okunamayan karışık görünüm | Popup/buton renklerini `style.css`'e CSS değişkeni olarak taşı, `alert.js`'teki `theme()`'i kaldır. Tüm dialogları etkiler, gözle regresyon ister. Gerçek kullanımda düşük olasılık, düşük öncelik |
+| 8   | `.prettierrc` yok, kod ~100 karakter genişlikte   | `npx prettier --check` neredeyse her dosyayı uyumsuz gösteriyor, format denetimi sinyal üretmiyor | Projenin gerçek genişliğini tespit edip config dosyası ekle. **Mevcut dosyaları aynı değişiklikte reformat etme** — tek seferde tüm repo'yu biçimlendirmek gerçek değişiklikleri gömer |
 
 ---
 
@@ -165,47 +156,17 @@ Mevcut durum ve mimari için bkz. `CLAUDE.md`.
 4. **Veri içe aktarım** — Excel'den toplu daire/sakin aktarımı; ilk kurulum süresini dakikalara indirir (Ö5'in tersi, aynı format).
 5. **Bakım modu / kilit ekranı** — yönetici masadan kalkınca hızlı kilit (şifre ile açma); ortak kullanılan bilgisayarlarda gizlilik.
 6. **Gider bütçesi** — kategori bazlı aylık bütçe + aşım uyarısı; Dashboard kartı olarak.
-9. **Hesap devri — kişi bazlı geçmiş koruması** — Bugünkü `transferAccount` devri satırı **yerinde overwrite** eder (`manager_name` + geçici şifre değişir, aynı `users.id` kalır); geçmiş `collected_by`/`cancelled_by` bağları böylece hep aynı hesabı gösterir, "hangi kişi tahsil etti" bilgisi kopar. Alternatif model: devirde yeni yönetici için **yeni `users` satırı** açılır, eski satır `is_active=0` ile arşivlenir. Böylece her ödemenin/iptalin gerçek sahibi (kişi) korunur, giriş her zaman aktif satırla yapılır. **`users.is_active` kolonu bu özellik için bilinçli olarak korunuyor** (bugün yazılmıyor, hep 1; login + createBuilding owner kontrolünde okunuyor — CLAUDE.md §7.2). Bu modele geçilirse: `transferAccount` yeniden yazılır, `getSetupState`/`regenerateRecoveryCode`/`completeSetup`'ın "tek satır" varsayımı (`ORDER BY id LIMIT 1`) **çok satıra** göre gözden geçirilir (aktif satır seçimi), devir sonrası eski satırın binaları (`owner_id`) yeni satıra taşınır.
-7. **Performans izleme (dev)** — yavaş IPC çağrılarını (>100 ms) electron-log'a yazan basit sarmalayıcı; teknik borç #10'un erken uyarısı.
-8. **Setup ve splash arka planlarının görsel dili** — Login (2026-07-19) soyut apartman çizgi işine geçirildi (CLAUDE.md ADR #15). Kalan işler:
-   - `setup/light.jpg` (2026-07-19) node-network motifi korunarak **maviye** yeniden üretildi; ADR #17 palet geçişiyle uyumlu. `setup/dark.jpg` hâlâ **teal** ve artık sayfadaki tek uyumsuz parça — aynı motifin mavi karşılığı üretilmeli (bright azure `#38a5f7` + `#29c1fb` düğümler, lacivert `#0a1220` zemin, solda yoğun / sağda boş 16:9).
-   - `splash/bg.jpg` hâlâ eski görselinde.
-   - Motif birliği ayrı bir borç: setup node-network, login ise soyut apartman çizgi işi. ADR #15 "giriş ekranlarının tamamı aynı görsel dilde" diyor; uzun vadede ikisi tek aileye çekilmeli.
-     Düşük öncelik; tamamen tutarlılık işi.
-9. **Setup sol sütun metinleri** — `Setup.jsx`'teki "Başlamadan Önce" uyarı kutusu ve "Kurulumdan Sonra" özellik listesi (2026-07-20) yeniden yazıldı: uyarı tek paragraftan iki maddeye bölündü, özellik listesi madde başına ayrı ikona geçti, dördüncü madde destek e-postası yerine yedeklemeye çevrildi. Liste **uygulamanın o anki yeteneklerini** anlatır, bu yüzden yeni özellikler geldikçe gözden geçirilmeli (Ö4 makbuz, Ö5 dışa aktarım, Ö6 trend grafiği, A1 otomatik yedekleme). Kısıtlar: dört madde tek satırda kalmalı (en uzunu ~45 karakter), fiiller emir kipinde, `Kurulumdan Sonra` ve `Başlamadan Önce` başlıkları aynı stili paylaşır (`.setup-notice-title` / `.setup-adv-label`). A1 geldiğinde yedekleme maddesi "otomatik" vurgusuyla güncellenmeli.
+7. **Performans izleme (dev)** — yavaş IPC çağrılarını (>100 ms) electron-log'a yazan basit sarmalayıcı; teknik borç #6'nın erken uyarısı.
+8. **Hesap devri — kişi bazlı geçmiş koruması** — Bugünkü `transferAccount` devri satırı **yerinde overwrite** eder (`manager_name` + geçici şifre değişir, aynı `users.id` kalır); geçmiş `collected_by`/`cancelled_by` bağları böylece hep aynı hesabı gösterir, "hangi kişi tahsil etti" bilgisi kopar. Alternatif model: devirde yeni yönetici için **yeni `users` satırı** açılır, eski satır `is_active=0` ile arşivlenir. Böylece her ödemenin/iptalin gerçek sahibi (kişi) korunur, giriş her zaman aktif satırla yapılır. **`users.is_active` kolonu bu özellik için bilinçli olarak korunuyor** (bugün yazılmıyor, hep 1; login + createBuilding owner kontrolünde okunuyor — CLAUDE.md §7.2). Bu modele geçilirse: `transferAccount` yeniden yazılır, `getSetupState`/`regenerateRecoveryCode`/`completeSetup`'ın "tek satır" varsayımı (`ORDER BY id LIMIT 1`) çok satıra göre gözden geçirilir (aktif satır seçimi), devir sonrası eski satırın binaları (`owner_id`) yeni satıra taşınır.
 
-Bilinçli olarak **eklenmeyecekler:** bildirim/e-posta gönderimi (offline ilkesine aykırı, SMTP yapılandırma yükü), plugin mimarisi (tek geliştirici + kapalı kapsam için aşırı mühendislik), çevrimiçi senkron/çoklu cihaz (sunucusuz mimari temel karar).
+Bilinçli olarak **eklenmeyecekler:** bildirim/e-posta gönderimi (offline ilkesine aykırı, SMTP yapılandırma yükü), plugin mimarisi (tek geliştirici + kapalı kapsam için aşırı mühendislik), çevrimiçi senkron/çoklu cihaz (sunucusuz mimari temel karar), kalıcı oturum (ADR #29), otomatik test paketi (kullanıcı tercihi: şimdilik test yazılmıyor, doğrulama elle yapılır).
 
 ---
 
 ## Optimizasyon Önerileri (kod yazmadan tespit — uygulaması ayrı görev)
 
-- **SQLite:** Sorgu planları hiç denetlenmedi; T2 sırasında kritik sorgulara `EXPLAIN QUERY PLAN` bak. `PRAGMA optimize` kapanışta zaten çalışıyor — yeterli.
-- **React:** Sayfalar lazy — iyi. Büyük listelerde (Apartments/ApartmentsManage, Transactions) satır bileşenlerini `memo`lamak T2 sırasında değerlendirilebilir; öncesinde ölçmeden optimize etme.
+- **SQLite:** Sorgu planları hiç denetlenmedi; T2 sırasında kritik sorgulara `EXPLAIN QUERY PLAN` bak. `PRAGMA optimize` kapanışta zaten çalışıyor, yeterli.
+- **React:** Sayfalar lazy, iyi durumda. Büyük listelerde (Apartments, Transactions) satır bileşenlerini `memo`lamak T2 sırasında değerlendirilebilir; öncesinde ölçmeden optimize etme.
 - **IPC:** Tek seferde büyük payload dönen çağrılar (getTransactions) T2 ile sınırlanacak; bunun dışında darboğaz yok.
-- **Electron:** `sandbox:true` geçişi (borç #8) ve CSP header'ı eklenmesi orta vadeli güvenlik iyileştirmeleri; ikisi de davranış kırma riski taşır, ayrı görev olarak ve kullanıcı onayıyla.
-- **Bundle:** Yeni bağımlılık eklerken önce mevcut stack'le çözülebilir mi diye bak (Ö5/Ö6 önerileri bu ilkeyle "bağımlılıksız" seçildi).
-
----
-
-## Kararı Verilmemiş Konular
-
-| Konu                           | Seçenekler                          | Öneri (gerekçesi yukarıdaki görevde)    |
-| ------------------------------ | ----------------------------------- | --------------------------------------- |
-| Trend grafiği (Ö6)             | `recharts` vs saf SVG               | Saf SVG                                 |
-| Dışa aktarım (Ö5)              | `xlsx` paketi vs CSV+BOM            | CSV+BOM                                 |
-| Yedek zamanlayıcı (A1)         | `setInterval` vs `node-cron`        | `setInterval`                           |
-| Ayar saklama (A1)              | `settings` tablosu vs userData JSON | userData JSON                           |
-| Bulut yedek (A2)               | OAuth vs senkron klasörü            | Senkron klasörü (OAuth rafa kalktı)     |
-| Kalıcı oturum ("Beni hatırla") | Eklenmesin vs kalıcı token          | **Eklenmesin** — aşağıdaki nota bakınız |
-
-Bu kararlar ilgili göreve başlarken kullanıcıya sorulur; onaylanan karar bu tablodan silinip görev metnine işlenir.
-
-### Not: Kalıcı oturum ("Beni hatırla")
-
-CLAUDE.md §6 uzun süre "30 günlük session token" yazıyordu; **böyle bir şey hiç var olmadı** — `auth` modülünde ve şemada token/session/remember izi yok. Yanlış satır silindi (2026-07-18).
-
-Eklenmesi hâlinde gerekenler: `users`'a kolon veya yeni tablo (migration + schema çifti), en az bir yeni IPC endpoint (channels + handlers + service + preload), `useCurrentUser`'ın `sessionStorage` dışına taşınması, token'ın diskte nasıl saklanacağına dair güvenlik kararı.
-
-**Öneri: eklenmesin.** Tek kullanıcılı, tamamen offline, kullanıcının kendi makinesinde çalışan bir uygulamada kalıcı oturum, şifre korumasını fiilen devre dışı bırakır; kazanç girişte birkaç saniyedir. Buna karşılık oturumun süreçle birlikte ölmesi (mevcut davranış) sistemin en sade ve en güvenli taraflarından biridir. Kullanıcı açıkça talep etmedikçe açılmamalı.
-
+- **Electron:** `sandbox:true` geçişi (borç #4) ve CSP header'ı eklenmesi orta vadeli güvenlik iyileştirmeleri; ikisi de davranış kırma riski taşır, ayrı görev olarak ve kullanıcı onayıyla.
+- **Bundle:** Yeni bağımlılık eklerken önce mevcut stack'le çözülebilir mi diye bak (ADR #30).

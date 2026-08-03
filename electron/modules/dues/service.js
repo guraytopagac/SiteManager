@@ -1,4 +1,5 @@
 const { db } = require("../../../database/db");
+const { ensureMonthlyDues } = require("../shared/duesAccrual");
 
 function calcDueStatus(dueAmount, paidAmount) {
   if (paidAmount >= dueAmount) return "paid";
@@ -8,6 +9,8 @@ function calcDueStatus(dueAmount, paidAmount) {
 
 function getDuesForMonth(buildingId, year, month) {
   try {
+    ensureMonthlyDues(buildingId);
+
     const monthlyDuesData = db
       .prepare(
         `
@@ -33,13 +36,16 @@ function getDuesForMonth(buildingId, year, month) {
   }
 }
 
-function recordPayment(apartmentId, year, month, paymentData) {
+function recordPayment(apartmentId, buildingId, year, month, paymentData) {
   try {
     db.transaction(() => {
       const apartment = db
-        .prepare(`SELECT id, apartment_no, due_amount, building_id FROM apartments WHERE id = ? AND is_active = 1`)
-        .get(apartmentId);
-      if (!apartment) throw new Error("Daire bulunamadı.");
+        .prepare(
+          `SELECT id, apartment_no, due_amount, building_id
+           FROM apartments WHERE id = ? AND building_id = ? AND is_active = 1`,
+        )
+        .get(apartmentId, buildingId);
+      if (!apartment) throw new Error("Daire bulunamadı veya bu işlem için yetkiniz yok.");
 
       db.prepare(`INSERT OR IGNORE INTO dues (apartment_id, year, month, due_amount) VALUES (?, ?, ?, ?)`).run(
         apartmentId,

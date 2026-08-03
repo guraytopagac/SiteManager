@@ -11,6 +11,7 @@ function AddExpense() {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("other");
+  const [date, setDate] = useState(() => getToday());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleExpenseSubmit = async (e) => {
@@ -18,15 +19,14 @@ function AddExpense() {
 
     const cleanDescription = description.trim();
     const parsedAmount = Math.round(Number(amount) * 100) / 100;
-    const today = getToday();
     const buildingId = building?.id;
 
     if (!buildingId) {
-      showAlert.error("Oturum Hatası", "Bina seçilmedi. Lütfen bir bina seçin.");
+      showAlert.error("Bina Seçilmedi", "Lütfen önce bir bina seçin.");
       return;
     }
 
-    if (isNaN(parsedAmount) || !cleanDescription) {
+    if (isNaN(parsedAmount) || !cleanDescription || !date) {
       showAlert.warning("Uyarı", "Lütfen tüm alanları doldurun!");
       return;
     }
@@ -36,13 +36,18 @@ function AddExpense() {
       return;
     }
 
+    if (date > getToday()) {
+      showAlert.warning("Geçersiz Tarih", "İleri bir tarih seçilemez.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const response = await window.electronAPI.addExpense({
         amount: parsedAmount,
         description: cleanDescription,
         category,
-        date: today,
+        date,
         buildingId: buildingId,
       });
 
@@ -50,9 +55,9 @@ function AddExpense() {
         setAmount("");
         setDescription("");
         setCategory("other");
-        showAlert
-          .success("Gider Eklendi!", response.message || "Gider kaydı başarıyla oluşturuldu.")
-          .then(() => navigate("/dashboard"));
+        setDate(getToday());
+        showAlert.toast("Gider Eklendi!", response.message || "Gider kaydı başarıyla oluşturuldu.");
+        navigate("/dashboard");
       } else {
         showAlert.error("Hata Oluştu", response.message || "Gider kaydedilemedi.");
       }
@@ -96,6 +101,18 @@ function AddExpense() {
           </div>
 
           <div className="form-group">
+            <label htmlFor="expenseDate">Tarih</label>
+            <input
+              type="date"
+              id="expenseDate"
+              value={date}
+              max={getToday()}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-group">
             <label htmlFor="expenseDescription">Açıklama</label>
             <textarea
               id="expenseDescription"
@@ -105,11 +122,13 @@ function AddExpense() {
               maxLength={300}
               required
             />
-            <span
-              className={`char-counter${description.length >= 290 ? " danger" : description.length >= 270 ? " warning" : ""}`}
-            >
-              {description.length}/300
-            </span>
+            {description.length > 0 && (
+              <span
+                className={`char-counter${description.length >= 290 ? " danger" : description.length >= 270 ? " warning" : ""}`}
+              >
+                {description.length}/300
+              </span>
+            )}
           </div>
 
           <button type="submit" className="submit-btn" disabled={isSubmitting} aria-busy={isSubmitting}>
@@ -118,7 +137,7 @@ function AddExpense() {
           <button
             type="button"
             className="back-btn"
-            aria-label="Dashboard'a geri dön"
+            aria-label="Ana sayfaya geri dön"
             onClick={() => navigate("/dashboard")}
           >
             Geri Dön

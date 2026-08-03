@@ -28,9 +28,12 @@ function validateRecordPaymentData(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return { success: false, message: "Geçersiz istek." };
   }
-  const { apartmentId, year, month, paymentData } = payload;
+  const { apartmentId, buildingId, year, month, paymentData } = payload;
   if (!Number.isInteger(apartmentId) || apartmentId <= 0) {
     return { success: false, message: "Geçersiz daire ID." };
+  }
+  if (!Number.isInteger(buildingId) || buildingId <= 0) {
+    return { success: false, message: "Geçersiz bina ID." };
   }
   if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
     return { success: false, message: "Geçersiz tarih bilgisi." };
@@ -112,7 +115,13 @@ function registerDuesHandlers(ipcMain) {
       if (error) {
         return error;
       }
-      return duesService.recordPayment(payload.apartmentId, payload.year, payload.month, payload.paymentData);
+      return duesService.recordPayment(
+        payload.apartmentId,
+        payload.buildingId,
+        payload.year,
+        payload.month,
+        payload.paymentData,
+      );
     }),
   );
 

@@ -20,18 +20,58 @@
   margin: 0;
 }
 
-.dashboard-switch-building {
-  font-size: 1rem;
-  color: var(--button-color);
-  background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  padding: 8px 14px;
-  cursor: pointer;
+.backup-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  border: 1px solid var(--danger);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--text-color);
 }
 
-.dashboard-switch-building:hover {
-  border-color: var(--button-color);
+.backup-banner-icon {
+  display: inline-flex;
+  color: var(--danger);
+  flex-shrink: 0;
+}
+
+.backup-banner-text {
+  flex: 1;
+  font-size: 1rem;
+}
+
+.backup-banner-action {
+  padding: 8px 16px;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--danger);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.backup-banner-action:hover {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+}
+
+.backup-banner-close {
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  line-height: 1;
+}
+
+.backup-banner-close:hover {
+  color: var(--text-color);
 }
 
 .stat-grid {
@@ -82,6 +122,14 @@
   font-size: 1.7rem;
   font-weight: 700;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.stat-card-period {
+  display: block;
+  margin-top: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  opacity: 0.82;
 }
 
 .stat-icon-badge {
@@ -216,15 +264,6 @@
   border-color: var(--stat-overdue);
 }
 
-.action-card-disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.action-card-disabled:hover {
-  background-color: var(--background-color-1);
-}
-
 .action-icon-badge {
   flex-shrink: 0;
   width: 34px;
@@ -264,12 +303,6 @@
   height: 100%;
 }
 
-.dashboard-container .return-link {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-}
-
 .dashboard-container .button {
   background-color: var(--button-color);
   color: var(--button-text, #ffffff);
@@ -288,21 +321,6 @@
 
 .dashboard-container .button:hover {
   background-color: var(--button-hover);
-}
-
-.dashboard-container .button-logout {
-  background-color: var(--danger);
-}
-
-.dashboard-container .button-logout:hover {
-  background-color: var(--danger-hover, #b91c1c);
-}
-
-.dashboard-container .button-logout .action-icon-badge {
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-  width: 26px;
-  height: 26px;
 }
 
 .dashboard-container .loading {

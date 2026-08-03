@@ -57,14 +57,18 @@ function validateRenameData(payload) {
   return validateName(payload.name);
 }
 
-function validateUpdateStatusData(payload) {
+function validateOwnershipData(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return { success: false, message: "Geçersiz istek." };
   }
   const idError = validateBuildingId(payload.buildingId);
   if (idError) return idError;
-  const ownerError = validateOwnerId(payload.ownerId);
-  if (ownerError) return ownerError;
+  return validateOwnerId(payload.ownerId);
+}
+
+function validateUpdateStatusData(payload) {
+  const error = validateOwnershipData(payload);
+  if (error) return error;
   if (typeof payload.isActive !== "boolean") {
     return { success: false, message: "Geçersiz durum değeri." };
   }
@@ -113,6 +117,17 @@ function registerBuildingHandlers(ipcMain) {
         return error;
       }
       return buildingService.updateBuildingStatus(payload.buildingId, payload.ownerId, payload.isActive);
+    }),
+  );
+
+  ipcMain.handle(
+    CH.BUILDING.REMOVE,
+    safeHandler(CH.BUILDING.REMOVE, (payload) => {
+      const error = validateOwnershipData(payload);
+      if (error) {
+        return error;
+      }
+      return buildingService.removeBuilding(payload.buildingId, payload.ownerId);
     }),
   );
 }

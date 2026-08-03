@@ -4,6 +4,21 @@ const RELEASE_NOTES_SEEN_KEY = "releaseNotesSeenVersion";
 
 const RELEASE_NOTES = [
   {
+    version: "1.6.0",
+    date: "2026-08-03",
+    title: "Tek hesap, çoklu bina ve aidat tahakkuku",
+    changes: [
+      "Tek hesapla birden fazla bina yönetebilirsiniz. Giriş sonrası bina seçilir, tek bina varsa doğrudan panoya geçilir.",
+      "Binalar seçim ekranından yeniden adlandırılır, arşivlenir ve gerektiğinde listeden kaldırılır.",
+      "Aidatlar artık ödeme beklemeden her ay tahakkuk ediyor. Ödenmemiş geçmiş aylar da listede ve raporlarda görünüyor.",
+      "Yönetici ve site yöneticisi ayrımı kaldırıldı. Şifre değiştirme, kurtarma kodu ve hesap devri Profil sayfasında toplandı.",
+      "Yedek alma uygulama içine taşındı. Son yedek tarihi görünüyor, uzun süre yedek alınmazsa panoda uyarı çıkıyor.",
+      "Daireler ve aidat tek sayfada birleştirildi. Tahsilat satırdaki düğmeyle tek adımda yapılıyor.",
+      "Sağ üstteki hesap menüsü ile Profil, bina değiştirme ve çıkış her sayfadan erişilebilir.",
+      "Para tutarları uygulamanın tamamında kuruşlu tek biçimde gösteriliyor.",
+    ],
+  },
+  {
     version: "1.5.0",
     date: "2026-07-20",
     title: "Şifre kurtarma ekranı ve giriş güvenliği",
@@ -24,16 +39,6 @@ const RELEASE_NOTES = [
       "Giriş yapmışken giriş ekranına geri dönülmesi engellendi.",
       "Küçük ekranlarda uygulama penceresi ekrana sığacak şekilde açılıyor.",
       "Tarih ve saat gösterimi ile uyarı pencerelerinde iyileştirmeler yapıldı.",
-    ],
-  },
-  {
-    version: "1.3.0",
-    date: "2026-07-14",
-    title: "Türkiye saat dilimi ve arayüz yenileme",
-    changes: [
-      "Tüm zaman damgaları Türkiye saatine (UTC+3) göre kaydediliyor.",
-      "Daireler sayfası görüntüleme ve yönetim olarak ikiye ayrıldı.",
-      "Genel arayüz ve okunabilirlik iyileştirmeleri.",
     ],
   },
 ];

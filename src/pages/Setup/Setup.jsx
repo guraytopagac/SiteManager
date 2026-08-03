@@ -1,38 +1,35 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import logoImgWebp from "../../../assets/logo.webp";
 import "./Setup.css";
-import CapsLockIndicator from "@/components/CapsLockIndicator/CapsLockIndicator";
+import FormField from "@/components/FormField/FormField";
 import PageLoader from "@/components/PageLoader/PageLoader";
-import { showAlert } from "@/utils/alert";
-import { MIN_PASSWORD_LENGTH, buildPasswordRules, buildStrengthMeter, scorePassword } from "@/utils/passwordStrength";
+import PasswordStrength from "@/components/PasswordStrength/PasswordStrength";
+import { useNeedsSetup } from "@/hooks/useNeedsSetup";
+import { MIN_PASSWORD_LENGTH } from "@/utils/passwordStrength";
 import {
   FiCheck,
-  FiEye,
-  FiEyeOff,
+  FiCopy,
   FiLock,
   FiUser,
   FiAlertCircle,
-  FiShield,
   FiArrowRight,
   FiArrowLeft,
   FiLogIn,
-  FiMinus,
-  FiX,
 } from "react-icons/fi";
 
 const USERNAME_RE = /^[A-Za-z0-9_]{3,}$/;
+const COPY_FEEDBACK_MS = 5000;
+const TOTAL_STEPS = 2;
 
 const SETUP_STEPS = [
   {
-    icon: FiUser,
     title: "Hesap bilgileri",
-    text: "Adınız ve soyadınız, uygulamanın size nasıl hitap edeceğini belirler. Kullanıcı adınız ise uygulamaya her girişte kullanacağınız addır.",
+    text: "Adınız ve giriş için kullanacağınız kullanıcı adı.",
   },
   {
-    icon: FiShield,
     title: "Hesap güvenliği",
-    text: "Güçlü bir şifre hesabınızı korur. Şifrenizi unutursanız, kurulum sonunda bir kez gösterilecek kurtarma koduyla yeni bir şifre oluşturursunuz. Bu kodu güvenli bir yerde saklayın.",
+    text: "Şifreniz ve bir kez gösterilecek kurtarma kodunuz.",
   },
 ];
 
@@ -43,34 +40,24 @@ function Setup() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [isSetupNeeded, setIsSetupNeeded] = useState(null);
+  const [result, setResult] = useState(null);
+  const [isCopied, setIsCopied] = useState(false);
+  const copyResetTimer = useRef(null);
+  const isSetupNeeded = useNeedsSetup();
 
-  useEffect(() => {
-    let isMounted = true;
+  useEffect(() => () => clearTimeout(copyResetTimer.current), []);
 
-    (async () => {
-      try {
-        const res = await window.electronAPI.getSetupState();
-        if (!isMounted) return;
-        setIsSetupNeeded(Boolean(res?.needsSetup));
-      } catch {
-        if (isMounted) setIsSetupNeeded(false);
-      }
-    })();
+  if (isSetupNeeded === null && !result) {
+    return <PageLoader message="Yükleniyor..." fullscreen />;
+  }
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  if (!isSetupNeeded && !result) {
+    return <Navigate to="/login" replace />;
+  }
 
-  const strength = scorePassword(password);
   const hasMinLength = password.length >= MIN_PASSWORD_LENGTH;
-  const meter = buildStrengthMeter(password, strength);
-  const rules = buildPasswordRules({ password, confirmPassword, strength });
 
   const goBack = () => {
     setError("");
@@ -83,7 +70,9 @@ function Setup() {
       return;
     }
     if (step === 1 && !USERNAME_RE.test(username.trim())) {
-      setError("Kullanıcı adı en az 3 karakter olmalı, yalnızca İngilizce harf, rakam ve _ içermelidir.");
+      setError(
+        "Kullanıcı adı en az 3 karakter olmalı, yalnızca İngilizce harf, rakam ve alt çizgi içermelidir."
+      );
       return;
     }
     setError("");
@@ -104,10 +93,11 @@ function Setup() {
     setError("");
 
     const trimmedUsername = username.trim();
+    const trimmedManagerName = managerName.trim();
     const res = await window.electronAPI.completeSetup({
       username: trimmedUsername,
       password,
-      managerName: managerName.trim(),
+      managerName: trimmedManagerName,
     });
 
     if (!res.success) {
@@ -116,27 +106,113 @@ function Setup() {
       return;
     }
 
-    await showAlert.setupCode(res.recoveryCode);
+    setIsSubmitting(false);
+    setResult({ code: res.recoveryCode, username: trimmedUsername });
+  };
 
-    showAlert.toast("Kurulum tamamlandı", "Artık giriş yapabilirsiniz.");
-    navigate("/login", { replace: true, state: { username: trimmedUsername } });
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(result.code);
+      setIsCopied(true);
+      clearTimeout(copyResetTimer.current);
+      copyResetTimer.current = setTimeout(() => setIsCopied(false), COPY_FEEDBACK_MS);
+    } catch {
+      setError("Kod panoya kopyalanamadı. Kodu elle not alın.");
+    }
   };
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    if (step < 2) {
+    if (step < TOTAL_STEPS) {
       goNext();
     } else {
       submitSetup();
     }
   };
 
-  if (isSetupNeeded === null) {
-    return <PageLoader message="Yükleniyor..." fullscreen />;
-  }
+  if (result) {
+    return (
+      <div className="setup-page-bg">
+        <div className="setup-card">
+          <aside className="setup-welcome">
+            <div className="setup-brand">
+              <img className="setup-logo" src={logoImgWebp} alt="Mavikent Site Yönetimi" />
+              <div className="setup-brand-text">
+                <h1 className="setup-welcome-title">Kurulum Tamamlandı</h1>
+                <span className="setup-brand-sub">Mavikent Site Yönetimi</span>
+              </div>
+            </div>
 
-  if (!isSetupNeeded) {
-    return <Navigate to="/login" replace />;
+            <div className="setup-progress">
+              <span className="setup-progress-text">
+                Adım {TOTAL_STEPS} / {TOTAL_STEPS}
+              </span>
+              <span className="setup-progress-track">
+                <span className="setup-progress-fill" style={{ width: "100%" }} />
+              </span>
+            </div>
+
+            <ol className="setup-overview">
+              {SETUP_STEPS.map((item) => (
+                <li key={item.title} className="is-done">
+                  <span className="setup-overview-marker">
+                    <FiCheck size={17} />
+                  </span>
+                  <div className="setup-overview-body">
+                    <span className="setup-overview-title">{item.title}</span>
+                    <span className="setup-overview-text">{item.text}</span>
+                  </div>
+                </li>
+              ))}
+            </ol>
+
+            <p className="setup-welcome-note">Bu hesap yalnızca bu bilgisayarda geçerlidir.</p>
+          </aside>
+
+          <section key="setup-done" className="setup-form-panel setup-done-panel">
+            <h2 className="setup-form-title setup-done-title">
+              <span className="setup-done-mark">
+                <FiCheck size={17} strokeWidth={3} />
+              </span>
+              Hesabınız oluşturuldu.
+            </h2>
+            <p className="setup-form-sub setup-done-sub">
+              Kurtarma kodunuz yalnızca <b>1 kez</b> gösterilecektir. Lütfen güvenli bir yere kaydedin. Bu kodu
+              kaybederseniz hesabınıza erişim geri getirilemez.
+            </p>
+
+            <div className="setup-done-body">
+              <div className="setup-code-surface">
+                <span className="setup-code-surface-label">Kurtarma kodunuz</span>
+                <span className="setup-code-surface-value">{result.code}</span>
+                <button type="button" className="setup-btn-back setup-copy-btn" onClick={handleCopyCode}>
+                  <FiCopy size={18} />
+                  <span className="setup-copy-label">{isCopied ? "Kopyalandı" : "Kodu Kopyala"}</span>
+                </button>
+              </div>
+
+              {error && (
+                <div className="setup-error" role="alert">
+                  <FiAlertCircle className="setup-error-icon" size={15} />
+                  {error}
+                </div>
+              )}
+            </div>
+
+            <div className="setup-actions">
+              <button
+                type="button"
+                className="setup-btn"
+                onClick={() => navigate("/login", { replace: true, state: { username: result.username } })}
+              >
+                Giriş Ekranına Git
+                <FiArrowRight className="setup-btn-arrow" size={18} strokeWidth={2.5} />
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -145,20 +221,29 @@ function Setup() {
         <aside className="setup-welcome">
           <div className="setup-brand">
             <img className="setup-logo" src={logoImgWebp} alt="Mavikent Site Yönetimi" />
-            <h1 className="setup-welcome-title">İlk Kurulum</h1>
+            <div className="setup-brand-text">
+              <h1 className="setup-welcome-title">İlk Kurulum</h1>
+              <span className="setup-brand-sub">Mavikent Site Yönetimi</span>
+            </div>
           </div>
-          <p className="setup-welcome-lead">
-            <strong>Hoş geldiniz.</strong> Hesabınızı iki adımda oluşturun.
-          </p>
+
+          <div className="setup-progress">
+            <span className="setup-progress-text">
+              Adım {step} / {TOTAL_STEPS}
+            </span>
+            <span className="setup-progress-track">
+              <span className="setup-progress-fill" style={{ width: `${(step / TOTAL_STEPS) * 100}%` }} />
+            </span>
+          </div>
+
           <ol className="setup-overview">
             {SETUP_STEPS.map((item, i) => {
-              const n = i + 1;
-              const state = step === n ? "is-active" : step > n ? "is-done" : "is-upcoming";
-              const ItemIcon = item.icon;
+              const stepNumber = i + 1;
+              const state = step === stepNumber ? "is-active" : step > stepNumber ? "is-done" : "is-upcoming";
               return (
                 <li key={item.title} className={state}>
                   <span className="setup-overview-marker">
-                    {step > n ? <FiCheck size={18} /> : <ItemIcon size={18} />}
+                    {step > stepNumber ? <FiCheck size={17} /> : stepNumber}
                   </span>
                   <div className="setup-overview-body">
                     <span className="setup-overview-title">{item.title}</span>
@@ -168,149 +253,83 @@ function Setup() {
               );
             })}
           </ol>
+
+          <p className="setup-welcome-note">Bu hesap yalnızca bu bilgisayarda geçerlidir.</p>
         </aside>
 
         <section className="setup-form-panel">
           <h2 className="setup-form-title">{step === 1 ? "Hesap Bilgileri" : "Şifre Oluşturma"}</h2>
+          <p className="setup-form-sub">
+            {step === 1 ? "Adınızı ve kullanıcı adınızı belirleyin." : "Hesabınız için güçlü bir şifre belirleyin."}
+          </p>
 
           <form key={step} className="setup-form" onSubmit={handleFormSubmit}>
             {step === 1 && (
               <>
-                <p className="setup-form-sub">Devam etmek için ad soyad ve kullanıcı adınızı girin.</p>
-                <div className="setup-field">
-                  <div className="setup-input-wrapper">
-                    <FiUser className="setup-icon" size={18} />
-                    <input
-                      id="setup-name"
-                      className="setup-input"
-                      type="text"
-                      placeholder="Örn. Ahmet Yılmaz"
-                      autoComplete="name"
-                      autoFocus
-                      value={managerName}
-                      onChange={(e) => {
-                        setManagerName(e.target.value);
-                        setError("");
-                      }}
-                      required
-                    />
-                    <label className="setup-float-label" htmlFor="setup-name">
-                      Ad Soyad
-                    </label>
-                  </div>
-                </div>
-                <div className="setup-field">
-                  <div className="setup-input-wrapper">
-                    <FiLogIn className="setup-icon" size={18} />
-                    <input
-                      id="setup-username"
-                      className="setup-input"
-                      type="text"
-                      placeholder="Örn. ahmetyilmaz"
-                      autoComplete="username"
-                      spellCheck={false}
-                      value={username}
-                      onChange={(e) => {
-                        setUsername(e.target.value);
-                        setError("");
-                      }}
-                      required
-                    />
-                    <label className="setup-float-label" htmlFor="setup-username">
-                      Kullanıcı Adı
-                    </label>
-                  </div>
-                </div>
+                <FormField
+                  id="setup-name"
+                  label="Ad Soyad"
+                  icon={FiUser}
+                  placeholder="Örn. Ahmet Yılmaz"
+                  autoComplete="name"
+                  autoFocus
+                  value={managerName}
+                  onChange={(e) => {
+                    setManagerName(e.target.value);
+                    setError("");
+                  }}
+                  hint="Uygulama size bu adla hitap eder."
+                />
+
+                <FormField
+                  id="setup-username"
+                  label="Kullanıcı Adı"
+                  icon={FiLogIn}
+                  placeholder="Örn. ahmetyilmaz"
+                  autoComplete="username"
+                  spellCheck={false}
+                  value={username}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    setError("");
+                  }}
+                  hint="Hesabınızın giriş adıdır, giriş ekranında otomatik dolar. En az 3 karakter olmalıdır, Türkçe karakter ve boşluk içeremez."
+                />
               </>
             )}
 
             {step === 2 && (
               <>
-                <p className="setup-form-sub">Hesabınız için güçlü bir şifre belirleyin.</p>
-                <div className="setup-field">
-                  <div className="setup-input-wrapper">
-                    <FiLock className="setup-icon" size={18} />
-                    <input
-                      id="setup-password"
-                      className="setup-input has-toggle"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Şifrenizi girin"
-                      autoComplete="new-password"
-                      autoFocus
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value);
-                        setError("");
-                      }}
-                      required
-                    />
-                    <label className="setup-float-label" htmlFor="setup-password">
-                      Şifre
-                    </label>
-                    <CapsLockIndicator />
-                    <button
-                      type="button"
-                      className="setup-toggle"
-                      onClick={() => setShowPassword((isVisible) => !isVisible)}
-                      aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
-                    >
-                      {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-                    </button>
-                  </div>
-                </div>
+                <FormField
+                  id="setup-password"
+                  label="Şifre"
+                  icon={FiLock}
+                  type="password"
+                  placeholder="Şifrenizi girin"
+                  autoComplete="new-password"
+                  autoFocus
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError("");
+                  }}
+                />
 
-                <div className="setup-field">
-                  <div className="setup-input-wrapper">
-                    <FiLock className="setup-icon" size={18} />
-                    <input
-                      id="setup-password-confirm"
-                      className="setup-input has-toggle"
-                      type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Şifrenizi tekrar girin"
-                      autoComplete="new-password"
-                      value={confirmPassword}
-                      onChange={(e) => {
-                        setConfirmPassword(e.target.value);
-                        setError("");
-                      }}
-                      required
-                    />
-                    <label className="setup-float-label" htmlFor="setup-password-confirm">
-                      Şifre Tekrar
-                    </label>
-                    <CapsLockIndicator />
-                    <button
-                      type="button"
-                      className="setup-toggle"
-                      onClick={() => setShowConfirmPassword((isVisible) => !isVisible)}
-                      aria-label={showConfirmPassword ? "Şifreyi gizle" : "Şifreyi göster"}
-                    >
-                      {showConfirmPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-                    </button>
-                  </div>
-                </div>
+                <FormField
+                  id="setup-password-confirm"
+                  label="Şifre Tekrar"
+                  icon={FiLock}
+                  type="password"
+                  placeholder="Şifrenizi tekrar girin"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setError("");
+                  }}
+                />
 
-                <div className={`setup-strength ${meter.variant}`}>
-                  <div className="setup-strength-segments">
-                    {[1, 2, 3, 4, 5].map((segment) => (
-                      <span key={segment} className={segment <= strength.score ? "on" : ""} />
-                    ))}
-                  </div>
-                  <span className="setup-strength-label">{meter.label}</span>
-                </div>
-
-                <ul className="setup-rules">
-                  {rules.map((rule) => {
-                    const ruleState = rule.isMet ? "valid" : rule.isPending ? "pending" : "failed";
-                    const RuleIcon = { valid: FiCheck, pending: FiMinus, failed: FiX }[ruleState];
-                    return (
-                      <li key={rule.id} className={`setup-rule-${ruleState}`}>
-                        <RuleIcon className="setup-rule-icon" size={13} />
-                        {rule.label}
-                      </li>
-                    );
-                  })}
-                </ul>
+                <PasswordStrength password={password} confirmPassword={confirmPassword} iconSize={13} />
               </>
             )}
 
@@ -329,7 +348,7 @@ function Setup() {
                 </button>
               )}
               <button type="submit" className="setup-btn" disabled={isSubmitting}>
-                {step < 2 ? (
+                {step < TOTAL_STEPS ? (
                   <>
                     İleri
                     <FiArrowRight className="setup-btn-arrow" size={18} strokeWidth={2.5} />

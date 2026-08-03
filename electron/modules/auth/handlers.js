@@ -7,7 +7,7 @@ const safeHandler = createSafeHandler("auth");
 const MIN_PASSWORD_LENGTH = 8;
 const MIN_NAME_LENGTH = 2;
 const MAX_NAME_LENGTH = 60;
-const USERNAME_RE = /^[A-Za-z0-9_]{3,}$/;
+const USERNAME_RE = /^[A-Za-z0-9_]{3,30}$/;
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const MIN_EMAIL_LENGTH = 5;
 const MAX_EMAIL_LENGTH = 254;
@@ -110,6 +110,16 @@ function validateResetAccountPasswordData(data) {
   return null;
 }
 
+function validateVerifyRecoveryCodeData(data) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return { success: false, message: "Geçersiz istek." };
+  }
+  if (typeof data.recoveryCode !== "string" || !data.recoveryCode) {
+    return { success: false, message: "Kurtarma kodu zorunludur." };
+  }
+  return null;
+}
+
 function validateRegenerateRecoveryCodeData(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     return { success: false, message: "Geçersiz istek." };
@@ -135,7 +145,7 @@ function validateCompleteSetupData(data) {
   if (typeof username !== "string" || !USERNAME_RE.test(username)) {
     return {
       success: false,
-      message: "Kullanıcı adı en az 3 karakter olmalı, yalnızca İngilizce harf, rakam ve _ içermelidir.",
+      message: "Kullanıcı adı 3-30 karakter olmalı, yalnızca İngilizce harf, rakam ve _ içermelidir.",
     };
   }
   if (typeof password !== "string" || !password) {
@@ -144,14 +154,12 @@ function validateCompleteSetupData(data) {
   if (password.length < MIN_PASSWORD_LENGTH) {
     return { success: false, message: "Şifre en az 8 karakter olmalıdır." };
   }
-  if (managerName != null && managerName !== "") {
-    if (
-      typeof managerName !== "string" ||
-      managerName.length < MIN_NAME_LENGTH ||
-      managerName.length > MAX_NAME_LENGTH
-    ) {
-      return { success: false, message: "Ad soyad 2 ile 60 karakter arasında olmalıdır." };
-    }
+  if (
+    typeof managerName !== "string" ||
+    managerName.length < MIN_NAME_LENGTH ||
+    managerName.length > MAX_NAME_LENGTH
+  ) {
+    return { success: false, message: "Ad soyad 2 ile 60 karakter arasında olmalıdır." };
   }
   return null;
 }
@@ -209,6 +217,17 @@ function registerAuthHandlers(ipcMain) {
         return error;
       }
       return authService.resetAccountPassword(data.recoveryCode, data.newPassword);
+    }),
+  );
+
+  ipcMain.handle(
+    CH.AUTH.VERIFY_RECOVERY_CODE,
+    safeHandler(CH.AUTH.VERIFY_RECOVERY_CODE, (data) => {
+      const error = validateVerifyRecoveryCodeData(data);
+      if (error) {
+        return error;
+      }
+      return authService.verifyRecoveryCode(data.recoveryCode);
     }),
   );
 

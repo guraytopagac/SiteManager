@@ -104,6 +104,13 @@
   transform: translateY(-1px);
 }
 
+.report-period-label {
+  margin: 0 0 10px 0;
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
 .report-summary {
   display: flex;
   gap: 12px;

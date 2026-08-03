@@ -1,43 +1,61 @@
 const fs = require("fs");
 const Database = require("better-sqlite3");
 const { dialog, app } = require("electron");
+const { trNow, trToday } = require("../shared/trTime");
+const { readSettings, writeSetting } = require("../shared/appSettings");
 
-async function runBackup(mainWindow) {
+const LAST_BACKUP_KEY = "lastBackupAt";
+
+function getLastBackupAt() {
+  const value = readSettings()[LAST_BACKUP_KEY];
+  return typeof value === "string" ? value : null;
+}
+
+async function runBackup(mainWindow, { silent = false } = {}) {
   const { db } = require("../../../database/db");
   const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
-    title: "Veritabanının Yedeğini Kaydet",
-    defaultPath: `mavikent-yedek-${new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10)}.db`,
-    filters: [{ name: "SQLite Veritabanı", extensions: ["db"] }],
+    title: "Yedek Dosyasını Kaydet",
+    defaultPath: `mavikent-yedek-${trToday()}.db`,
+    filters: [{ name: "Yedek Dosyası", extensions: ["db"] }],
   });
 
-  if (!filePath || canceled) return;
+  if (!filePath || canceled) return { success: false, cancelled: true, message: "İptal edildi." };
 
   try {
     await db.backup(filePath);
     await fs.promises.unlink(filePath + "-shm").catch(() => {});
     await fs.promises.unlink(filePath + "-wal").catch(() => {});
-    await dialog.showMessageBox(mainWindow, {
-      type: "info",
-      title: "Yedekleme",
-      message: "Yedek başarıyla alındı.",
-      buttons: ["Tamam"],
-    });
-  } catch (err) {
-    await dialog.showMessageBox(mainWindow, {
-      type: "error",
-      title: "Yedekleme Hatası",
-      message: "Yedek alınamadı.",
-      detail: err.message,
-      buttons: ["Tamam"],
-    });
+
+    const lastBackupAt = trNow().toISOString().slice(0, 19).replace("T", " ");
+    writeSetting(LAST_BACKUP_KEY, lastBackupAt);
+
+    if (!silent) {
+      await dialog.showMessageBox(mainWindow, {
+        type: "info",
+        title: "Yedekleme",
+        message: "Yedek başarıyla alındı.",
+        buttons: ["Tamam"],
+      });
+    }
+    return { success: true, message: "Yedek başarıyla alındı.", lastBackupAt };
+  } catch {
+    if (!silent) {
+      await dialog.showMessageBox(mainWindow, {
+        type: "error",
+        title: "Yedekleme Hatası",
+        message: "Yedek alınamadı.",
+        buttons: ["Tamam"],
+      });
+    }
+    return { success: false, message: "Yedek alınamadı." };
   }
 }
 
 async function runRestore(mainWindow) {
   const { db, closeDb } = require("../../../database/db");
   const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow, {
-    title: "Veritabanı Dosyasını Seç",
-    filters: [{ name: "SQLite Veritabanı", extensions: ["db"] }],
+    title: "Yedek Dosyasını Seç",
+    filters: [{ name: "Yedek Dosyası", extensions: ["db"] }],
     properties: ["openFile"],
   });
 
@@ -57,7 +75,7 @@ async function runRestore(mainWindow) {
     await dialog.showMessageBox(mainWindow, {
       type: "error",
       title: "Geçersiz Dosya",
-      message: "Seçilen dosya bozuk veya geçerli bir veritabanı değil.",
+      message: "Seçilen dosya bozuk veya geçerli bir yedek değil.",
       buttons: ["Tamam"],
     });
     return;
@@ -65,8 +83,8 @@ async function runRestore(mainWindow) {
 
   const { response } = await dialog.showMessageBox(mainWindow, {
     type: "warning",
-    message: "Mevcut veritabanının üzerine yazılacak. Emin misiniz?",
-    buttons: ["Veritabanını Yükle", "İptal"],
+    message: "Mevcut tüm verileriniz bu yedekle değiştirilecek. Emin misiniz?",
+    buttons: ["Yedeği Geri Yükle", "İptal"],
     defaultId: 0,
   });
 
@@ -77,12 +95,11 @@ async function runRestore(mainWindow) {
 
   try {
     await fs.promises.copyFile(dbPath, tempBackup);
-  } catch (err) {
+  } catch {
     await dialog.showMessageBox(mainWindow, {
       type: "error",
-      title: "Yükleme Hatası",
-      message: "Mevcut veritabanı korunamadı.",
-      detail: err.message,
+      title: "Geri Yükleme Hatası",
+      message: "Mevcut verileriniz yedeklenemediği için işlem durduruldu.",
       buttons: ["Tamam"],
     });
     return;
@@ -97,20 +114,19 @@ async function runRestore(mainWindow) {
     await fs.promises.unlink(tempBackup).catch(() => {});
     await dialog.showMessageBox(mainWindow, {
       type: "info",
-      title: "Yükleme",
-      message: "Veritabanı başarıyla geri yüklendi. Uygulama yeniden başlatılıyor...",
+      title: "Geri Yükleme",
+      message: "Verileriniz geri yüklendi. Uygulama yeniden başlatılıyor...",
       buttons: ["Tamam"],
     });
     app.relaunch();
     app.exit();
-  } catch (err) {
+  } catch {
     await fs.promises.copyFile(tempBackup, dbPath).catch(() => {});
     await fs.promises.unlink(tempBackup).catch(() => {});
     await dialog.showMessageBox(mainWindow, {
       type: "error",
-      title: "Yükleme Hatası",
-      message: "Yükleme başarısız. Önceki veritabanı korundu. Uygulama yeniden başlatılıyor...",
-      detail: err.message,
+      title: "Geri Yükleme Hatası",
+      message: "Geri yükleme başarısız oldu. Önceki verileriniz korundu. Uygulama yeniden başlatılıyor...",
       buttons: ["Tamam"],
     });
     app.relaunch();
@@ -118,4 +134,4 @@ async function runRestore(mainWindow) {
   }
 }
 
-module.exports = { runBackup, runRestore };
+module.exports = { runBackup, runRestore, getLastBackupAt };

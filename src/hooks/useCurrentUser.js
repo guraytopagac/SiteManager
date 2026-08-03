@@ -21,7 +21,7 @@ function isSameSessionUser(a, b) {
   );
 }
 
-export function getCurrentUser() {
+function getCurrentUser() {
   try {
     return pickSessionFields(JSON.parse(sessionStorage.getItem(SESSION_USER_KEY)));
   } catch {

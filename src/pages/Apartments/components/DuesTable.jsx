@@ -1,13 +1,12 @@
 import { STATUS_LABELS } from "../constants";
+import { formatCurrency } from "@/utils/currency";
 
 /**
- * Renders the dues table. Behaves as read-only by default; pass `onStatusClick`
- * to make the status badge clickable (payment), and `renderRowActions` to add an
- * actions column (edit/delete). Neither prop → pure read-only view.
+ * Renders the dues table. `onStatusClick` makes the status badge open the payment
+ * modal; `renderRowActions` fills the actions column (collect/edit/delete).
  */
 function DuesTable({ dues, onStatusClick, renderRowActions }) {
-  const hasActions = typeof renderRowActions === "function";
-  const columnCount = hasActions ? 9 : 8;
+  const COLUMN_COUNT = 9;
 
   return (
     <table className="apartment-table">
@@ -21,13 +20,13 @@ function DuesTable({ dues, onStatusClick, renderRowActions }) {
           <th>Aidat</th>
           <th>Ödenen</th>
           <th>Durum</th>
-          {hasActions && <th>İşlem</th>}
+          <th>İşlem</th>
         </tr>
       </thead>
       <tbody>
         {dues.length === 0 ? (
           <tr>
-            <td colSpan={columnCount} className="table-empty-cell">
+            <td colSpan={COLUMN_COUNT} className="table-empty-cell">
               Kayıtlı daire bulunamadı.
             </td>
           </tr>
@@ -41,20 +40,14 @@ function DuesTable({ dues, onStatusClick, renderRowActions }) {
               <td className="resident-cell">
                 {due.resident_name || <span className="resident-empty">—</span>}
               </td>
-              <td>{due.due_amount.toLocaleString("tr-TR")} ₺</td>
-              <td>{due.paid_amount.toLocaleString("tr-TR")} ₺</td>
+              <td>{formatCurrency(due.due_amount)}</td>
+              <td>{formatCurrency(due.paid_amount)}</td>
               <td>
-                {onStatusClick ? (
-                  <button className={`status-badge status-${due.status}`} onClick={() => onStatusClick(due)}>
-                    {STATUS_LABELS[due.status]}
-                  </button>
-                ) : (
-                  <span className={`status-badge status-${due.status} status-badge-static`}>
-                    {STATUS_LABELS[due.status]}
-                  </span>
-                )}
+                <button className={`status-badge status-${due.status}`} onClick={() => onStatusClick(due)}>
+                  {STATUS_LABELS[due.status]}
+                </button>
               </td>
-              {hasActions && <td className="action-cell">{renderRowActions(due)}</td>}
+              <td className="action-cell">{renderRowActions(due)}</td>
             </tr>
           ))
         )}

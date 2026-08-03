@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Login.css";
 import logoImgWebp from "../../../assets/logo.webp";
-import { showAlert } from "@/utils/alert";
 import { setCurrentUser } from "@/hooks/useCurrentUser";
 import CapsLockIndicator from "@/components/CapsLockIndicator/CapsLockIndicator";
 import { FiUser, FiLock, FiEye, FiEyeOff, FiAlertCircle, FiArrowRight } from "react-icons/fi";
@@ -17,25 +16,31 @@ function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const usernameRef = useRef(null);
   const passwordRef = useRef(null);
 
   useEffect(() => {
     if (location.state?.username) {
+      passwordRef.current?.focus();
       return;
     }
-    let isActive = true;
+    let isMounted = true;
     window.electronAPI
       .getSetupState()
       .then((state) => {
-        if (!isActive || !state?.success || !state.username) {
-          return;
+        if (!isMounted) return;
+        if (state?.success && state.username) {
+          setUsername(state.username);
+          passwordRef.current?.focus();
+        } else {
+          usernameRef.current?.focus();
         }
-        setUsername(state.username);
-        passwordRef.current?.focus();
       })
-      .catch(() => {});
+      .catch(() => {
+        if (isMounted) usernameRef.current?.focus();
+      });
     return () => {
-      isActive = false;
+      isMounted = false;
     };
   }, [location.state?.username]);
 
@@ -57,14 +62,13 @@ function Login() {
 
       if (success) {
         setCurrentUser(user);
-        showAlert.toast("Hoş Geldiniz, " + (user.managerName || user.username), message);
         navigate("/select-building", { replace: true });
         return;
       }
 
       setError(message);
     } catch {
-      setError("Giriş yapılamadı. Lütfen uygulamayı yeniden başlatıp tekrar deneyin.");
+      setError("Giriş yapılamadı. Lütfen tekrar deneyin.");
     }
 
     setIsSubmitting(false);
@@ -94,18 +98,15 @@ function Login() {
 
         <form className="login-form" onSubmit={handleLoginSubmit}>
           <div className="login-field">
-            <label className="login-label" htmlFor="login-username">
-              Kullanıcı Adı
-            </label>
             <div className="login-input-wrapper">
               <FiUser className="login-icon" size={20} />
               <input
                 id="login-username"
+                ref={usernameRef}
                 className="login-input"
                 type="text"
                 placeholder="Kullanıcı adınızı girin"
                 autoComplete="username"
-                autoFocus={!location.state?.username}
                 spellCheck={false}
                 value={username}
                 onChange={(e) => {
@@ -116,13 +117,13 @@ function Login() {
                 aria-describedby={error ? ERROR_ID : undefined}
                 required
               />
+              <label className="login-float-label" htmlFor="login-username">
+                Kullanıcı Adı
+              </label>
             </div>
           </div>
 
           <div className="login-field">
-            <label className="login-label" htmlFor="login-password">
-              Şifre
-            </label>
             <div className="login-input-wrapper">
               <FiLock className="login-icon" size={20} />
               <input
@@ -132,7 +133,6 @@ function Login() {
                 type={showPassword ? "text" : "password"}
                 placeholder="Şifrenizi girin"
                 autoComplete="current-password"
-                autoFocus={!!location.state?.username}
                 spellCheck={false}
                 value={password}
                 onChange={(e) => {
@@ -143,6 +143,9 @@ function Login() {
                 aria-describedby={error ? ERROR_ID : undefined}
                 required
               />
+              <label className="login-float-label" htmlFor="login-password">
+                Şifre
+              </label>
               <CapsLockIndicator />
               <button
                 type="button"
@@ -180,9 +183,12 @@ function Login() {
             )}
           </button>
 
-          <button type="button" className="login-forgot" onClick={() => navigate("/recover")}>
-            Şifremi unuttum?
-          </button>
+          <div className="login-foot">
+            <p className="login-foot-text">Şifrenizi mi unuttunuz?</p>
+            <button type="button" className="login-forgot" onClick={() => navigate("/recover")}>
+              Kurtarma kodu ile sıfırlayın
+            </button>
+          </div>
         </form>
       </div>
     </div>

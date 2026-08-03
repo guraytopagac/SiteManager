@@ -23,14 +23,14 @@ export function useDues(buildingId, year, month) {
   }, [buildingId, year, month]);
 
   useEffect(() => {
-    let cancelled = false;
+    let isMounted = true;
 
     (async () => {
       if (!buildingId) return;
       setLoading(true);
       setErrorMessage("");
       const response = await window.electronAPI.getDuesForMonth(buildingId, year, month);
-      if (cancelled) return;
+      if (!isMounted) return;
       if (response.success) {
         setDues(response.data);
       } else {
@@ -40,7 +40,7 @@ export function useDues(buildingId, year, month) {
     })();
 
     return () => {
-      cancelled = true;
+      isMounted = false;
     };
   }, [buildingId, year, month]);
 

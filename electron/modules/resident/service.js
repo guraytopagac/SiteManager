@@ -76,7 +76,6 @@ function getResidentHistory(apartmentId, buildingId) {
 function addResident(payload) {
   const { apartmentId, buildingId } = payload;
   try {
-    let inserted = false;
     db.transaction(() => {
       if (!findOwnedActiveApartment(apartmentId, buildingId)) throw new Error("not_found");
 
@@ -99,11 +98,9 @@ function addResident(payload) {
         payload.move_out_date || null,
         payload.notes || null,
       );
-      inserted = true;
     })();
 
-    if (inserted) return { success: true, message: "Sakin eklendi." };
-    return { success: false, message: "Sakin eklenemedi." };
+    return { success: true, message: "Sakin eklendi." };
   } catch (err) {
     if (err.message === "not_found")
       return { success: false, message: "Daire bulunamadı veya bu işlem için yetkiniz yok." };
@@ -122,7 +119,8 @@ function updateResident(payload) {
 
     db.prepare(
       `UPDATE residents SET full_name = ?, phone = ?, email = ?, national_id = ?, resident_type = ?,
-       move_in_date = ?, move_out_date = ?, notes = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`,
+       move_in_date = ?, move_out_date = COALESCE(?, move_out_date), notes = ?,
+       updated_at = datetime('now', '+3 hours') WHERE id = ?`,
     ).run(
       payload.full_name || null,
       payload.phone || null,

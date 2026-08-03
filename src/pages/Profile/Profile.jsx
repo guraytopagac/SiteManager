@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Profile.css";
 import { useCurrentUser, setCurrentUser, clearCurrentUser } from "@/hooks/useCurrentUser";
@@ -13,15 +13,9 @@ function validatePasswordForm(oldPassword, newPassword, confirmPassword) {
   return null;
 }
 
-function validateBuildingName(value) {
-  if (!value) return "Bina adı zorunludur.";
-  if (value.length < 2 || value.length > 60) return "Bina adı 2 ile 60 karakter arasında olmalıdır.";
-  return null;
-}
-
 function validateEmail(value) {
   if (!value) return null;
-  if (value.length < 5 || value.length > 254) return "E-posta adresi 5 ile 254 karakter arasında olmalıdır.";
+  if (value.length < 5 || value.length > 254) return "Geçerli bir e-posta adresi girin.";
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) return "Geçerli bir e-posta adresi girin.";
   return null;
 }
@@ -36,33 +30,38 @@ function Profile() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [buildings, setBuildings] = useState([]);
-  const [buildingsLoading, setBuildingsLoading] = useState(true);
-
   const oldPasswordRef = useRef(null);
 
-  const fetchBuildings = useCallback(async () => {
-    if (!currentUser?.id) return;
-    const res = await window.electronAPI.listBuildings(currentUser.id);
-    if (res.success) setBuildings(res.data);
-    setBuildingsLoading(false);
-  }, [currentUser]);
+  const [lastBackupAt, setLastBackupAt] = useState(null);
+  const [backupRunning, setBackupRunning] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
+    let isMounted = true;
 
     (async () => {
-      if (!currentUser?.id) return;
-      const res = await window.electronAPI.listBuildings(currentUser.id);
-      if (cancelled) return;
-      if (res.success) setBuildings(res.data);
-      setBuildingsLoading(false);
+      const res = await window.electronAPI.getBackupStatus();
+      if (!isMounted) return;
+      if (res.success) setLastBackupAt(res.data.lastBackupAt);
     })();
 
     return () => {
-      cancelled = true;
+      isMounted = false;
     };
-  }, [currentUser?.id]);
+  }, []);
+
+  const handleBackup = async () => {
+    setBackupRunning(true);
+    const res = await window.electronAPI.runBackup();
+    setBackupRunning(false);
+
+    if (res.cancelled) return;
+    if (res.success) {
+      setLastBackupAt(res.lastBackupAt);
+      showAlert.toast("Yedek Alındı", res.message);
+    } else {
+      showAlert.error("Hata", res.message);
+    }
+  };
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -78,7 +77,7 @@ function Profile() {
     try {
       const response = await window.electronAPI.changePassword({ userId: currentUser.id, oldPassword, newPassword });
       if (response.success) {
-        await showAlert.success("Başarılı!", response.message);
+        showAlert.toast("Başarılı!", response.message);
         setOldPassword("");
         setNewPassword("");
         setConfirmPassword("");
@@ -108,7 +107,7 @@ function Profile() {
     const res = await window.electronAPI.updateEmail({ userId: currentUser.id, email });
     if (res.success) {
       setCurrentUser({ ...currentUser, email: res.email });
-      showAlert.success("Güncellendi", res.message);
+      showAlert.toast("Güncellendi", res.message);
     } else {
       showAlert.error("Hata", res.message);
     }
@@ -159,49 +158,6 @@ function Profile() {
     navigate("/", { replace: true });
   };
 
-  const handleRenameBuilding = async (b) => {
-    const name = await showAlert.prompt({
-      title: "Binayı Yeniden Adlandır",
-      inputLabel: "Bina Adı",
-      inputPlaceholder: "Örn. A Blok",
-      confirmButtonText: "Kaydet",
-      validate: validateBuildingName,
-    });
-    if (!name) return;
-
-    const res = await window.electronAPI.renameBuilding({ buildingId: b.id, ownerId: currentUser.id, name });
-    if (res.success) {
-      showAlert.success("Güncellendi", res.message);
-      fetchBuildings();
-    } else {
-      showAlert.error("Hata", res.message);
-    }
-  };
-
-  const handleToggleBuilding = async (b) => {
-    const willActivate = b.is_active === 0;
-    const confirmed = willActivate
-      ? await showAlert.confirm("Binayı Geri Getir", `"${b.name}" arşivden çıkarılacak.`, "Geri Getir")
-      : await showAlert.confirmDanger(
-          "Binayı Arşivle",
-          `"${b.name}" arşivlenecek ve bina seçiminde görünmeyecek. Kayıtları korunur; istediğiniz zaman geri getirebilirsiniz.`,
-          "Arşivle",
-        );
-    if (!confirmed) return;
-
-    const res = await window.electronAPI.updateBuildingStatus({
-      buildingId: b.id,
-      ownerId: currentUser.id,
-      isActive: willActivate,
-    });
-    if (res.success) {
-      showAlert.success(res.message, "");
-      fetchBuildings();
-    } else {
-      showAlert.error("Hata", res.message);
-    }
-  };
-
   return (
     <div className="profile-container">
       <h2 className="page-title">Profilim</h2>
@@ -237,36 +193,6 @@ function Profile() {
             <span className="info-value">{formatDateTime(currentUser?.last_login)}</span>
           </div>
         </div>
-      </div>
-
-      <div className="profile-card">
-        <h3 className="profile-section-title">Binalarım</h3>
-        {buildingsLoading ? (
-          <p className="profile-muted">Yükleniyor...</p>
-        ) : buildings.length === 0 ? (
-          <p className="profile-muted">Henüz bir binanız yok. Bina seçim ekranından oluşturabilirsiniz.</p>
-        ) : (
-          <ul className="building-manage-list">
-            {buildings.map((b) => (
-              <li key={b.id} className={`building-manage-item ${b.is_active ? "" : "is-archived"}`}>
-                <span className="building-manage-name">
-                  {b.name}
-                  {b.is_active ? null : <span className="building-manage-tag">Arşivde</span>}
-                </span>
-                <span className="building-manage-actions">
-                  {b.is_active && (
-                    <button className="btn-secondary btn-xs" onClick={() => handleRenameBuilding(b)}>
-                      Yeniden Adlandır
-                    </button>
-                  )}
-                  <button className="btn-secondary btn-xs" onClick={() => handleToggleBuilding(b)}>
-                    {b.is_active ? "Arşivle" : "Geri Getir"}
-                  </button>
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
 
       <div className="profile-card">
@@ -320,23 +246,49 @@ function Profile() {
       </div>
 
       <div className="profile-card">
-        <h3 className="profile-section-title">Güvenlik ve Devir</h3>
+        <h3 className="profile-section-title">Veri Yedeği</h3>
         <p className="profile-muted">
-          Kurtarma kodu, şifrenizi unutursanız yeni şifre belirlemenin tek yoludur. Devir, hesabı yeni bir yöneticiye
-          geçici şifreyle aktarır.
+          Tüm kayıtlarınız yalnızca bu bilgisayarda saklanır. Yedek dosyasını harici bir diske ya da bulut klasörünüze
+          kaydedin; bilgisayar değişirse verinizi geri yüklemenin tek yolu budur.
+        </p>
+        <div className="profile-backup-row">
+          <span className="profile-backup-status">
+            Son yedek: <strong>{lastBackupAt ? formatDateTime(lastBackupAt) : "Hiç alınmadı"}</strong>
+          </span>
+          <button className="btn-primary" onClick={handleBackup} disabled={backupRunning}>
+            {backupRunning ? "Yedekleniyor..." : "Yedek Al"}
+          </button>
+        </div>
+      </div>
+
+      <div className="profile-card">
+        <h3 className="profile-section-title">Güvenlik</h3>
+        <p className="profile-muted">
+          Kurtarma kodu, şifrenizi unutursanız yeni şifre belirlemenin tek yoludur. Yeni kod ürettiğinizde eski kod
+          geçersiz olur.
         </p>
         <div className="profile-action-row">
           <button className="btn-secondary" onClick={handleRegenerateRecovery}>
             Yeni Kurtarma Kodu Üret
           </button>
-          <button className="btn-secondary" onClick={handleTransfer}>
+        </div>
+      </div>
+
+      <div className="profile-card profile-card-danger">
+        <h3 className="profile-section-title">Yönetici Değişikliği</h3>
+        <p className="profile-muted">
+          Hesabı yeni bir yöneticiye devreder. Binalar ve geçmiş kayıtlar korunur; <strong>şifreniz geçersiz olur</strong>,
+          oturumunuz kapanır ve yeni yöneticiye bir kez gösterilen geçici şifre üretilir. Bu işlem geri alınamaz.
+        </p>
+        <div className="profile-action-row">
+          <button className="btn-danger" onClick={handleTransfer}>
             Hesabı Devret
           </button>
         </div>
       </div>
 
       <div className="return-link">
-        <button className="btn-secondary" onClick={() => navigate(-1)}>
+        <button className="btn-secondary" onClick={() => navigate("/dashboard")}>
           Geri Dön
         </button>
       </div>

@@ -30,7 +30,9 @@ function validateApartmentData(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     return { success: false, message: "Geçersiz istek." };
   }
+
   normalizeApartmentData(data);
+
   if (typeof data.apartment_no !== "string" || !APARTMENT_NO_RE.test(data.apartment_no)) {
     return { success: false, message: "Daire numarası 1-10 karakter olmalı ve yalnızca harf/rakam içermelidir." };
   }

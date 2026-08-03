@@ -3,12 +3,16 @@ CREATE TABLE IF NOT EXISTS buildings (
   owner_id INTEGER NOT NULL,
   name TEXT NOT NULL CHECK(length(name) BETWEEN 2 AND 60),
   is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0, 1)),
+  is_removed INTEGER NOT NULL DEFAULT 0 CHECK(is_removed IN (0, 1)),
   created_at TEXT DEFAULT (datetime('now', '+3 hours')),
   updated_at TEXT DEFAULT (datetime('now', '+3 hours')),
   FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE RESTRICT
 );
 
 CREATE INDEX IF NOT EXISTS idx_buildings_owner_id ON buildings(owner_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_buildings_name_owner
+  ON buildings(owner_id, name COLLATE NOCASE) WHERE is_removed = 0;
 
 CREATE TRIGGER IF NOT EXISTS trg_buildings_updated_at
   AFTER UPDATE ON buildings FOR EACH ROW

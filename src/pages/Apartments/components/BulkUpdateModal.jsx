@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { showAlert } from "@/utils/alert";
+import { formatCurrency } from "@/utils/currency";
 
 function BulkUpdateModal({ building, onClose, onSaved }) {
   const [amount, setAmount] = useState("");
@@ -15,7 +16,11 @@ function BulkUpdateModal({ building, onClose, onSaved }) {
 
     const confirmed = await showAlert.confirm(
       "Toplu Aidat Güncelleme",
-      `Tüm dairelerin aidat tutarı ${parsed.toLocaleString("tr-TR")} ₺ olarak güncellenecek. Onaylıyor musunuz?`,
+      {
+        html: `Tüm dairelerin aidat tutarı <b>${formatCurrency(parsed)}</b> olarak güncellenecek.<br><br>
+               Yeni tutar <b>gelecek ayın</b> aidatlarında geçerli olur; <b>bu ay dahil</b> tahakkuk etmiş aylar eski
+               tutarda kalır.`,
+      },
       "Evet, Güncelle",
     );
     if (!confirmed) return;
@@ -25,7 +30,7 @@ function BulkUpdateModal({ building, onClose, onSaved }) {
     setIsSubmitting(false);
 
     if (res.success) {
-      await showAlert.success("Güncellendi", res.message);
+      showAlert.toast("Güncellendi", res.message);
       onSaved();
     } else {
       showAlert.error("Hata", res.message);
@@ -42,8 +47,9 @@ function BulkUpdateModal({ building, onClose, onSaved }) {
           </button>
         </div>
         <p className="modal-description">
-          Tüm dairelerinizin aidat tutarını tek seferde güncelleyin. Bu işlem mevcut daire aidat tutarlarını değiştirir;
-          önceki ödeme kayıtları etkilenmez.
+          Tüm dairelerinizin aidat tutarını tek seferde güncelleyin. Yeni tutar <strong>gelecek ayın</strong>{" "}
+          aidatlarında geçerli olur. <strong>Bu ay dahil</strong>, hâlihazırda tahakkuk etmiş aylar eski tutarda kalır ve
+          ödeme kayıtları etkilenmez.
         </p>
         <form onSubmit={handleSubmit}>
           <div className="form-row">

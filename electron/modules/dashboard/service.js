@@ -1,4 +1,6 @@
 const { db } = require("../../../database/db");
+const { ensureMonthlyDues } = require("../shared/duesAccrual");
+const { trYearMonth } = require("../shared/trTime");
 
 function fetchStats(buildingId, year, month) {
   const { totalIncome } = db
@@ -23,7 +25,7 @@ function fetchStats(buildingId, year, month) {
       `SELECT COALESCE(SUM(d.due_amount - d.paid_amount), 0) AS totalOverdue
        FROM dues d
        JOIN apartments a ON d.apartment_id = a.id
-       WHERE a.building_id = ? AND a.is_active = 1 AND (d.year < ? OR (d.year = ? AND d.month < ?)) AND d.status != 'paid'`,
+       WHERE a.building_id = ? AND a.is_active = 1 AND (d.year < ? OR (d.year = ? AND d.month < ?))`,
     )
     .get(buildingId, year, year, month);
 
@@ -32,15 +34,11 @@ function fetchStats(buildingId, year, month) {
 
 function getStats(buildingId) {
   try {
-    const now = new Date(Date.now() + 3 * 3600 * 1000);
-    const currentYear = now.getUTCFullYear();
-    const currentMonth = now.getUTCMonth() + 1;
+    const { year, month } = trYearMonth();
 
-    const { totalIncome, totalExpense, currentMonthDue, totalOverdue } = fetchStats(
-      buildingId,
-      currentYear,
-      currentMonth,
-    );
+    ensureMonthlyDues(buildingId);
+
+    const { totalIncome, totalExpense, currentMonthDue, totalOverdue } = fetchStats(buildingId, year, month);
 
     const cash = Number(totalIncome) - Number(totalExpense);
     const currentDue = Number(currentMonthDue.totalDue);
@@ -48,7 +46,7 @@ function getStats(buildingId) {
     const collections = currentDue > 0 ? Math.min(Math.round((currentPaid / currentDue) * 100), 100) : 0;
     const delays = Math.round(Number(totalOverdue));
 
-    return { success: true, payload: { cash, collections, delays } };
+    return { success: true, data: { cash, collections, delays } };
   } catch (err) {
     console.error("[dashboard.service] getStats:", err);
     return { success: false, message: "Dashboard verileri alınamadı." };

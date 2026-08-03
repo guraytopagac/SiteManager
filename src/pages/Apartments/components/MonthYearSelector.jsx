@@ -1,12 +1,14 @@
-import { MONTHS } from "@/utils/date";
+import { getMonthOptions } from "@/utils/date";
 
 function MonthYearSelector({ selectedMonth, selectedYear, onMonthChange, onYearChange, yearOptions }) {
+  const monthOptions = getMonthOptions(selectedYear);
+
   return (
     <div className="month-selector">
       <select value={selectedMonth} onChange={(e) => onMonthChange(Number(e.target.value))}>
-        {MONTHS.map((name, i) => (
-          <option key={i + 1} value={i + 1}>
-            {name}
+        {monthOptions.map((m) => (
+          <option key={m.value} value={m.value}>
+            {m.label}
           </option>
         ))}
       </select>

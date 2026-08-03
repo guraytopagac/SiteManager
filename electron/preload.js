@@ -32,10 +32,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
   updateEmail: ({ userId, email }) => safeInvoke(CH.AUTH.UPDATE_EMAIL, { userId, email }),
   resetAccountPassword: ({ recoveryCode, newPassword }) =>
     safeInvoke(CH.AUTH.RESET_ACCOUNT_PASSWORD, { recoveryCode, newPassword }),
+  verifyRecoveryCode: (recoveryCode) => safeInvoke(CH.AUTH.VERIFY_RECOVERY_CODE, { recoveryCode }),
   regenerateRecoveryCode: (password) => safeInvoke(CH.AUTH.REGENERATE_RECOVERY_CODE, { password }),
   getSetupState: () => safeInvoke(CH.AUTH.GET_SETUP_STATE),
   completeSetup: ({ username, password, managerName }) =>
     safeInvoke(CH.AUTH.COMPLETE_SETUP, { username, password, managerName }),
+
+  // Backup
+  runBackup: () => safeInvoke(CH.BACKUP.RUN),
+  getBackupStatus: () => safeInvoke(CH.BACKUP.GET_STATUS),
 
   // Building
   listBuildings: (ownerId) => safeInvoke(CH.BUILDING.LIST, ownerId),
@@ -43,14 +48,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
   renameBuilding: ({ buildingId, ownerId, name }) => safeInvoke(CH.BUILDING.RENAME, { buildingId, ownerId, name }),
   updateBuildingStatus: ({ buildingId, ownerId, isActive }) =>
     safeInvoke(CH.BUILDING.UPDATE_STATUS, { buildingId, ownerId, isActive }),
+  removeBuilding: ({ buildingId, ownerId }) => safeInvoke(CH.BUILDING.REMOVE, { buildingId, ownerId }),
 
   // Dashboard
   getStats: (buildingId) => safeInvoke(CH.DASHBOARD.GET_STATS, buildingId),
 
   // Dues
   getDuesForMonth: (buildingId, year, month) => safeInvoke(CH.DUES.GET_FOR_MONTH, { buildingId, year, month }),
-  recordPayment: ({ apartmentId, year, month, paymentData }) =>
-    safeInvoke(CH.DUES.RECORD_PAYMENT, { apartmentId, year, month, paymentData }),
+  recordPayment: ({ apartmentId, buildingId, year, month, paymentData }) =>
+    safeInvoke(CH.DUES.RECORD_PAYMENT, { apartmentId, buildingId, year, month, paymentData }),
   cancelPayment: ({ paymentId, buildingId, userId, reason }) =>
     safeInvoke(CH.DUES.CANCEL_PAYMENT, { paymentId, buildingId, userId, reason }),
   getPaymentHistory: (dueId, buildingId) => safeInvoke(CH.DUES.GET_PAYMENT_HISTORY, { dueId, buildingId }),
@@ -58,7 +64,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Financial
   addIncome: (data) => safeInvoke(CH.FINANCIAL.ADD_INCOME, data),
   addExpense: (data) => safeInvoke(CH.FINANCIAL.ADD_EXPENSE, data),
-  getTransactions: (buildingId) => safeInvoke(CH.FINANCIAL.GET_TRANSACTIONS, buildingId),
+  getTransactions: (buildingId, period) => safeInvoke(CH.FINANCIAL.GET_TRANSACTIONS, buildingId, period),
   cancelIncome: ({ id, buildingId, userId, reason }) =>
     safeInvoke(CH.FINANCIAL.CANCEL_INCOME, { id, buildingId, userId, reason }),
   cancelExpense: ({ id, buildingId, userId, reason }) =>

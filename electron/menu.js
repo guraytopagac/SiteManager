@@ -14,7 +14,7 @@ function buildMenu(mainWindow, isDev) {
       label: "Dosya",
       submenu: [
         {
-          label: "Veritabanı Yedekle",
+          label: "Yedek Al",
           accelerator: "CmdOrCtrl+Shift+B",
           async click() {
             try {
@@ -25,7 +25,7 @@ function buildMenu(mainWindow, isDev) {
           },
         },
         {
-          label: "Veritabanı Dosyası Yükle",
+          label: "Yedekten Geri Yükle",
           accelerator: "CmdOrCtrl+Shift+R",
           async click() {
             try {
@@ -109,7 +109,7 @@ function buildMenu(mainWindow, isDev) {
             const body = encodeURIComponent(`Sürüm: ${app.getVersion()}\n\nHata açıklaması:\n`);
             try {
               await shell.openExternal(
-                `mailto:${SUPPORT_EMAIL}?subject=Mavikent%20Site%20Y%C3%B6netim%20Sistemi%20-%20Hata%20Bildirimi&body=${body}`,
+                `mailto:${SUPPORT_EMAIL}?subject=Mavikent%20Site%20Y%C3%B6netimi%20-%20Hata%20Bildirimi&body=${body}`,
               );
             } catch (err) {
               console.error("[Main] Report bug mailto failed:", err.message);
@@ -123,7 +123,7 @@ function buildMenu(mainWindow, isDev) {
             dialog.showMessageBox(mainWindow, {
               type: "info",
               title: "Hakkında",
-              message: "Mavikent Site Yönetim Sistemi",
+              message: "Mavikent Site Yönetimi",
               detail: `Sürüm: ${app.getVersion()}\n\nDestek ve sorularınız için:\n${SUPPORT_EMAIL}`,
               buttons: ["Tamam"],
               icon: ICON_PATH,

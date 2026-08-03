@@ -12,9 +12,15 @@ const CHANNELS = Object.freeze({
     UPDATE_EMAIL: "auth:update-email",
     TRANSFER_ACCOUNT: "auth:transfer-account",
     RESET_ACCOUNT_PASSWORD: "auth:reset-account-password",
+    VERIFY_RECOVERY_CODE: "auth:verify-recovery-code",
     REGENERATE_RECOVERY_CODE: "auth:regenerate-recovery-code",
     GET_SETUP_STATE: "auth:get-setup-state",
     COMPLETE_SETUP: "auth:complete-setup",
+  }),
+
+  BACKUP: Object.freeze({
+    RUN: "backup:run",
+    GET_STATUS: "backup:get-status",
   }),
 
   BUILDING: Object.freeze({
@@ -22,6 +28,7 @@ const CHANNELS = Object.freeze({
     CREATE: "building:create",
     RENAME: "building:rename",
     UPDATE_STATUS: "building:update-status",
+    REMOVE: "building:remove",
   }),
 
   DASHBOARD: Object.freeze({

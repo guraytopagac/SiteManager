@@ -10,6 +10,8 @@ function AddIncome() {
   const building = useCurrentBuilding();
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("other");
+  const [date, setDate] = useState(() => getToday());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleIncomeSubmit = async (e) => {
@@ -17,15 +19,14 @@ function AddIncome() {
 
     const cleanDescription = description.trim();
     const parsedAmount = Math.round(Number(amount) * 100) / 100;
-    const today = getToday();
     const buildingId = building?.id;
 
     if (!buildingId) {
-      showAlert.error("Oturum Hatası", "Bina seçilmedi. Lütfen bir bina seçin.");
+      showAlert.error("Bina Seçilmedi", "Lütfen önce bir bina seçin.");
       return;
     }
 
-    if (isNaN(parsedAmount) || !cleanDescription) {
+    if (isNaN(parsedAmount) || !cleanDescription || !date) {
       showAlert.warning("Uyarı", "Lütfen tüm alanları doldurun!");
       return;
     }
@@ -35,20 +36,28 @@ function AddIncome() {
       return;
     }
 
+    if (date > getToday()) {
+      showAlert.warning("Geçersiz Tarih", "İleri bir tarih seçilemez.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const response = await window.electronAPI.addIncome({
         amount: parsedAmount,
         description: cleanDescription,
-        category: "other",
-        date: today,
+        category,
+        date,
         buildingId: buildingId,
       });
 
       if (response.success) {
         setAmount("");
         setDescription("");
-        showAlert.success("Gelir Eklendi!", response.message).then(() => navigate("/dashboard"));
+        setCategory("other");
+        setDate(getToday());
+        showAlert.toast("Gelir Eklendi!", response.message);
+        navigate("/dashboard");
       } else {
         showAlert.error("Hata Oluştu", response.message || "Gelir kaydedilemedi.");
       }
@@ -81,20 +90,47 @@ function AddIncome() {
           </div>
 
           <div className="form-group">
+            <label htmlFor="incomeCategory">Kategori</label>
+            <select id="incomeCategory" value={category} onChange={(e) => setCategory(e.target.value)}>
+              <option value="rent">Kira</option>
+              <option value="parking">Otopark</option>
+              <option value="donation">Bağış</option>
+              <option value="other">Diğer</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="incomeDate">Tarih</label>
+            <input
+              type="date"
+              id="incomeDate"
+              value={date}
+              max={getToday()}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-group">
             <label htmlFor="incomeDescription">Açıklama</label>
+            <p className="form-hint">
+              Aidat tahsilatları buradan girilmez; daire üzerinden kaydedilir ve gelire otomatik işlenir.
+            </p>
             <textarea
               id="incomeDescription"
-              placeholder="Gelirin kaynağını yazın (Örn: A Blok Daire 5 Aidat Ödemesi)"
+              placeholder="Gelirin kaynağını yazın (Örn: Çatı katı deposu, Temmuz)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={300}
               required
             />
-            <span
-              className={`char-counter${description.length >= 290 ? " danger" : description.length >= 270 ? " warning" : ""}`}
-            >
-              {description.length}/300
-            </span>
+            {description.length > 0 && (
+              <span
+                className={`char-counter${description.length >= 290 ? " danger" : description.length >= 270 ? " warning" : ""}`}
+              >
+                {description.length}/300
+              </span>
+            )}
           </div>
 
           <button type="submit" className="submit-btn" disabled={isSubmitting} aria-busy={isSubmitting}>
@@ -103,7 +139,7 @@ function AddIncome() {
           <button
             type="button"
             className="back-btn"
-            aria-label="Dashboard'a geri dön"
+            aria-label="Ana sayfaya geri dön"
             onClick={() => navigate("/dashboard")}
           >
             Geri Dön

@@ -8,7 +8,7 @@ const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_AMOUNT = 1000000;
 const MAX_DESCRIPTION_LENGTH = 500;
 const MAX_REASON_LENGTH = 300;
-const INCOME_CATEGORIES = ["dues", "other"];
+const MANUAL_INCOME_CATEGORIES = ["rent", "parking", "donation", "other"];
 const EXPENSE_CATEGORIES = ["maintenance", "cleaning", "utility", "staff", "other"];
 
 const TRIMMED_FIELDS = ["description", "category"];
@@ -57,7 +57,10 @@ function validateIncomeData(data) {
     return { success: false, message: "Geçersiz istek." };
   }
   normalizeFinancialData(data);
-  return validateAmountDescriptionCategory(data, INCOME_CATEGORIES);
+  if (data.category === "dues") {
+    return { success: false, message: "Aidat gelirleri elle eklenemez; daire üzerinden tahsil edilir." };
+  }
+  return validateAmountDescriptionCategory(data, MANUAL_INCOME_CATEGORIES);
 }
 
 function validateExpenseData(data) {
@@ -68,9 +71,21 @@ function validateExpenseData(data) {
   return validateAmountDescriptionCategory(data, EXPENSE_CATEGORIES);
 }
 
-function validateGetTransactionsData(buildingId) {
+function validateGetTransactionsData(buildingId, period) {
   if (!Number.isInteger(buildingId) || buildingId <= 0) {
     return { success: false, message: "Geçersiz bina ID." };
+  }
+  if (period == null) {
+    return null;
+  }
+  if (typeof period !== "object" || Array.isArray(period)) {
+    return { success: false, message: "Geçersiz dönem." };
+  }
+  if (!Number.isInteger(period.year) || period.year < 2000 || period.year > 2100) {
+    return { success: false, message: "Geçersiz yıl." };
+  }
+  if (!Number.isInteger(period.month) || period.month < 1 || period.month > 12) {
+    return { success: false, message: "Geçersiz ay." };
   }
   return null;
 }
@@ -123,12 +138,12 @@ function registerFinancialHandlers(ipcMain) {
 
   ipcMain.handle(
     CH.FINANCIAL.GET_TRANSACTIONS,
-    safeHandler(CH.FINANCIAL.GET_TRANSACTIONS, (buildingId) => {
-      const error = validateGetTransactionsData(buildingId);
+    safeHandler(CH.FINANCIAL.GET_TRANSACTIONS, (buildingId, period) => {
+      const error = validateGetTransactionsData(buildingId, period);
       if (error) {
         return error;
       }
-      return financialService.getTransactions(buildingId);
+      return financialService.getTransactions(buildingId, period);
     }),
   );
 

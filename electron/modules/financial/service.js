@@ -2,7 +2,6 @@ const { db } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
 
 const ALLOWED_TABLES = new Set(["incomes", "expenses"]);
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 const COLUMN_LABELS = {
   amount: "Tutar",
@@ -17,27 +16,14 @@ function insertRecord(table, recordData, label) {
   if (!ALLOWED_TABLES.has(table)) {
     return { success: false, message: "Geçersiz işlem türü." };
   }
-  if (!recordData.buildingId) {
-    return { success: false, message: "Yetkisiz işlem." };
-  }
-  const amount = recordData.amount;
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return { success: false, message: "Geçersiz tutar." };
-  }
-  if (recordData.date && !ISO_DATE.test(recordData.date)) {
-    return { success: false, message: "Geçersiz tarih formatı." };
-  }
 
-  const recordDate = recordData.date || new Date(Date.now() + 3 * 3600 * 1000).toISOString().split("T")[0];
-  const description = recordData.description || "";
-  if (!description) return { success: false, message: "Açıklama alanı zorunludur." };
   const category = recordData.category || "other";
   const result = db
     .prepare(
       `INSERT INTO ${table} (amount, date, description, category, building_id, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
     )
-    .run(amount, recordDate, description, category, recordData.buildingId);
+    .run(recordData.amount, recordData.date, recordData.description, category, recordData.buildingId);
   return { success: true, id: result.lastInsertRowid, message: `${label} başarıyla eklendi.` };
 }
 
@@ -59,18 +45,35 @@ function addExpense(expenseData) {
   }
 }
 
-function getTransactions(buildingId) {
+function monthBounds(year, month) {
+  const start = `${year}-${String(month).padStart(2, "0")}-01`;
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const end = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+  return { start, end };
+}
+
+function getTransactions(buildingId, period) {
   try {
+    const hasPeriod = period && Number.isInteger(period.year) && Number.isInteger(period.month);
+    const dateFilter = hasPeriod ? "AND date >= ? AND date < ?" : "";
+
+    const params = [buildingId];
+    if (hasPeriod) {
+      const { start, end } = monthBounds(period.year, period.month);
+      params.push(start, end);
+    }
+
     const transactions = db
       .prepare(
         `SELECT id, amount, date, description, category, 'income' AS type,
-                is_cancelled, cancelled_at, cancel_reason FROM incomes WHERE building_id = ?
+                is_cancelled, cancelled_at, cancel_reason FROM incomes WHERE building_id = ? ${dateFilter}
          UNION ALL
          SELECT id, amount, date, description, category, 'expense' AS type,
-                is_cancelled, cancelled_at, cancel_reason FROM expenses WHERE building_id = ?
+                is_cancelled, cancelled_at, cancel_reason FROM expenses WHERE building_id = ? ${dateFilter}
          ORDER BY date DESC, id DESC`,
       )
-      .all(buildingId, buildingId);
+      .all(...params, ...params);
     return { success: true, data: transactions };
   } catch (err) {
     console.error("[financial.service] getTransactions:", err);

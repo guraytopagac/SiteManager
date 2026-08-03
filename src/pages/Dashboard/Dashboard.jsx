@@ -1,24 +1,24 @@
 import { useState, useEffect, cloneElement } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
-import { clearCurrentUser } from "@/hooks/useCurrentUser";
+import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { showAlert } from "@/utils/alert";
+import { formatCurrency } from "@/utils/currency";
+import { formatMonthYear, getCurrentYear, getCurrentMonth } from "@/utils/date";
 import {
   FiDollarSign,
   FiTrendingUp,
   FiClock,
   FiHome,
   FiEye,
-  FiSettings,
   FiUsers,
   FiArrowUpCircle,
   FiArrowDownCircle,
   FiList,
-  FiVolume2,
   FiFileText,
   FiUser,
-  FiPower,
+  FiAlertTriangle,
 } from "react-icons/fi";
 
 const ICONS = {
@@ -27,16 +27,22 @@ const ICONS = {
   clock: <FiClock />,
   buildingAdd: <FiHome />,
   eye: <FiEye />,
-  settings: <FiSettings />,
   users: <FiUsers />,
   incomeArrow: <FiArrowUpCircle />,
   expenseArrow: <FiArrowDownCircle />,
   list: <FiList />,
-  megaphone: <FiVolume2 />,
   document: <FiFileText />,
   user: <FiUser />,
-  power: <FiPower />,
 };
+
+const BACKUP_WARNING_DAYS = 7;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function daysSince(isoDateTime) {
+  const parsed = new Date(String(isoDateTime).replace(" ", "T"));
+  if (Number.isNaN(parsed.getTime())) return null;
+  return Math.floor((Date.now() - parsed.getTime()) / MS_PER_DAY);
+}
 
 function Icon({ name }) {
   return <span className="icon">{cloneElement(ICONS[name], { className: "icon-svg" })}</span>;
@@ -49,36 +55,54 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
+  const [backupWarning, setBackupWarning] = useState(null);
 
   useEffect(() => {
     if (!building?.id) return;
-    let cancelled = false;
+    let isMounted = true;
 
     (async () => {
       setLoading(true);
       setError(false);
-      const data = await window.electronAPI.getStats(building.id);
-      if (cancelled) return;
-      if (data.success) {
-        setStats(data.payload);
+      const res = await window.electronAPI.getStats(building.id);
+      if (!isMounted) return;
+      if (res.success) {
+        setStats(res.data);
       } else {
         setError(true);
-        showAlert.error("Veriler Yüklenemedi", data.message || "İstatistikler alınırken bir hata oluştu.");
+        showAlert.error("Veriler Yüklenemedi", res.message || "İstatistikler alınırken bir hata oluştu.");
       }
       setLoading(false);
     })();
 
     return () => {
-      cancelled = true;
+      isMounted = false;
     };
   }, [building?.id, reloadToken]);
 
-  const handleLogout = async () => {
-    const confirmed = await showAlert.confirm("Çıkış Yap", "Oturumu kapatmak istiyor musunuz?", "Evet, Çık");
-    if (!confirmed) return;
-    clearCurrentUser();
-    navigate("/", { replace: true });
-  };
+  useEffect(() => {
+    let isMounted = true;
+
+    (async () => {
+      const res = await window.electronAPI.getBackupStatus();
+      if (!isMounted || !res.success) return;
+
+      const { lastBackupAt } = res.data;
+      if (!lastBackupAt) {
+        setBackupWarning("Verilerinizin henüz hiç yedeği alınmadı.");
+        return;
+      }
+
+      const days = daysSince(lastBackupAt);
+      if (days !== null && days >= BACKUP_WARNING_DAYS) {
+        setBackupWarning(`Son yedek ${days} gün önce alındı.`);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -103,19 +127,38 @@ function Dashboard() {
 
   return (
     <div className="dashboard-container">
-      {building?.name && (
-        <div className="dashboard-building-row">
-          <h1 className="dashboard-building">{building.name}</h1>
-          <button className="dashboard-switch-building" onClick={() => navigate("/select-building")}>
-            Bina Değiştir
+      <div className="dashboard-building-row">
+        <h1 className="dashboard-building">{building?.name}</h1>
+        <AccountMenu />
+      </div>
+      {backupWarning && (
+        <div className="backup-banner" role="status">
+          <span className="backup-banner-icon">
+            <FiAlertTriangle size={18} />
+          </span>
+          <span className="backup-banner-text">
+            {backupWarning} Verileriniz yalnızca bu bilgisayarda saklanıyor.
+          </span>
+          <button className="backup-banner-action" onClick={() => navigate("/profile")}>
+            Yedek Al
+          </button>
+          <button
+            className="backup-banner-close"
+            onClick={() => setBackupWarning(null)}
+            title="Kapat"
+            aria-label="Yedek uyarısını kapat"
+          >
+            ✕
           </button>
         </div>
       )}
+
       <div className="stat-grid">
         <div className="stat-card stat-card-kasa">
           <div className="stat-card-text">
             <h3>Kasa</h3>
-            <p>{stats.cash.toLocaleString("tr-TR")} ₺</p>
+            <p>{formatCurrency(stats.cash)}</p>
+            <span className="stat-card-period">Tüm zamanlar</span>
           </div>
           <div className="stat-icon-badge">
             <Icon name="cash" />
@@ -125,6 +168,7 @@ function Dashboard() {
           <div className="stat-card-text">
             <h3>Tahsilat</h3>
             <p>{stats.collections}%</p>
+            <span className="stat-card-period">{formatMonthYear(getCurrentYear(), getCurrentMonth())}</span>
           </div>
           <div className="stat-icon-badge">
             <Icon name="trend" />
@@ -133,7 +177,8 @@ function Dashboard() {
         <div className="stat-card stat-card-gecikme">
           <div className="stat-card-text">
             <h3>Gecikme</h3>
-            <p>{stats.delays.toLocaleString("tr-TR")} ₺</p>
+            <p>{formatCurrency(stats.delays)}</p>
+            <span className="stat-card-period">Geçmiş aylar</span>
           </div>
           <div className="stat-icon-badge">
             <Icon name="clock" />
@@ -154,13 +199,7 @@ function Dashboard() {
             <span className="action-icon-badge action-icon-badge-blue">
               <Icon name="eye" />
             </span>
-            <span>Mevcut Daireleri Görüntüle</span>
-          </button>
-          <button className="action-card action-card-blue" onClick={() => navigate("/apartments/manage")}>
-            <span className="action-icon-badge action-icon-badge-blue">
-              <Icon name="settings" />
-            </span>
-            <span>Daire İşlemleri</span>
+            <span>Daireler ve Aidat</span>
           </button>
           <button className="action-card action-card-blue" onClick={() => navigate("/residents")}>
             <span className="action-icon-badge action-icon-badge-blue">
@@ -198,34 +237,13 @@ function Dashboard() {
       <div className="category-group">
         <h2 className="section-header">Çeşitli</h2>
         <div className="action-grid">
-          <button className="action-card action-card-green action-card-disabled" disabled title="Yakında">
-            <span className="action-icon-badge action-icon-badge-green">
-              <Icon name="megaphone" />
-            </span>
-            <span>Duyuru Gönder</span>
-          </button>
           <button className="action-card action-card-blue" onClick={() => navigate("/reports")}>
             <span className="action-icon-badge action-icon-badge-blue">
               <Icon name="document" />
             </span>
             <span>Raporlar</span>
           </button>
-          <button className="action-card action-card-blue" onClick={() => navigate("/profile")}>
-            <span className="action-icon-badge action-icon-badge-blue">
-              <Icon name="user" />
-            </span>
-            <span>Profilim</span>
-          </button>
         </div>
-      </div>
-
-      <div className="return-link">
-        <button onClick={handleLogout} className="button button-logout">
-          <span className="action-icon-badge action-icon-badge-red">
-            <Icon name="power" />
-          </span>
-          <span>Çıkış Yap</span>
-        </button>
       </div>
     </div>
   );

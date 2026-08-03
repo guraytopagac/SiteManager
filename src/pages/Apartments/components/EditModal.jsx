@@ -26,7 +26,7 @@ function EditModal({ apartment, building, onClose, onSaved }) {
     setIsSubmitting(false);
 
     if (res.success) {
-      await showAlert.success("Güncellendi", res.message);
+      showAlert.toast("Güncellendi", res.message);
       onSaved();
     } else {
       showAlert.error("Hata", res.message);

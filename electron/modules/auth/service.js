@@ -1,12 +1,32 @@
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const { db } = require("../../../database/db");
-const { generateRecoveryCode, normalizeRecoveryCode } = require("../../../database/seed");
 
 const BCRYPT_ROUNDS = 12;
-const TEMP_PASSWORD_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const TEMP_PASSWORD_LENGTH = 12;
+const RECOVERY_LENGTH = 16;
 const DUMMY_HASH = "$2b$12$3X/2XNSPPTIIRZLnRyDSAOjqjj3mreEYkyjbWyz7RkwJbe0MBr8l.";
+
+function generateRecoveryCode() {
+  const rawCode = Array.from(
+    { length: RECOVERY_LENGTH },
+    () => CODE_ALPHABET[crypto.randomInt(CODE_ALPHABET.length)],
+  ).join("");
+
+  const groups = [];
+  for (let i = 0; i < rawCode.length; i += 4) {
+    groups.push(rawCode.slice(i, i + 4));
+  }
+
+  return { rawCode, displayCode: groups.join("-") };
+}
+
+function normalizeRecoveryCode(input) {
+  return String(input || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+}
 
 function toSafeUser(user) {
   return {
@@ -44,14 +64,14 @@ function login(credentials) {
     return { success: false, message: "Kullanıcı Adı / Şifre Hatalı!" };
   } catch (err) {
     console.error("[auth.service] login:", err);
-    return { success: false, message: "Veritabanı hatası. Lütfen hakkında kısmından bilgi alınız." };
+    return { success: false, message: "Giriş yapılamadı. Lütfen tekrar deneyin." };
   }
 }
 
 function generateTemporaryPassword() {
   return Array.from(
     { length: TEMP_PASSWORD_LENGTH },
-    () => TEMP_PASSWORD_ALPHABET[crypto.randomInt(TEMP_PASSWORD_ALPHABET.length)],
+    () => CODE_ALPHABET[crypto.randomInt(CODE_ALPHABET.length)],
   ).join("");
 }
 
@@ -152,6 +172,27 @@ function resetAccountPassword(recoveryCode, newPassword) {
   }
 }
 
+function verifyRecoveryCode(recoveryCode) {
+  try {
+    const account = db
+      .prepare(`SELECT recovery_hash FROM users WHERE recovery_hash IS NOT NULL LIMIT 1`)
+      .get();
+    if (!account || !account.recovery_hash) {
+      bcrypt.compareSync("dummy", DUMMY_HASH);
+      return { success: false, message: "Kurtarma kodu tanımlı değil. Lütfen destek ile iletişime geçin." };
+    }
+
+    const normalizedRecoveryCode = normalizeRecoveryCode(recoveryCode);
+    if (!bcrypt.compareSync(normalizedRecoveryCode || "", account.recovery_hash))
+      return { success: false, code: "INVALID_RECOVERY_CODE", message: "Kurtarma kodu hatalı." };
+
+    return { success: true };
+  } catch (err) {
+    console.error("[auth.service] verifyRecoveryCode:", err);
+    return { success: false, message: "Kurtarma kodu doğrulanamadı." };
+  }
+}
+
 function regenerateRecoveryCode(password) {
   try {
     const account = db.prepare(`SELECT id, password_hash FROM users ORDER BY id LIMIT 1`).get();
@@ -175,7 +216,7 @@ function regenerateRecoveryCode(password) {
 function getSetupState() {
   try {
     const account = db.prepare(`SELECT username, password_changed_at FROM users ORDER BY id LIMIT 1`).get();
-    const needsSetup = !!account && account.password_changed_at == null;
+    const needsSetup = !account || account.password_changed_at == null;
     return { success: true, needsSetup, username: needsSetup ? null : (account?.username ?? null) };
   } catch (err) {
     console.error("[auth.service] getSetupState:", err);
@@ -188,15 +229,22 @@ function completeSetup(username, password, managerName) {
     if (!password || password.length < 8) return { success: false, message: "Şifre en az 8 karakter olmalıdır." };
 
     const account = db.prepare(`SELECT id, password_changed_at FROM users ORDER BY id LIMIT 1`).get();
-    if (!account) return { success: false, message: "Hesap bulunamadı." };
-    if (account.password_changed_at != null) return { success: false, message: "Kurulum zaten tamamlanmış." };
+    if (account && account.password_changed_at != null) return { success: false, message: "Kurulum zaten tamamlanmış." };
 
     const newPasswordHash = bcrypt.hashSync(password, BCRYPT_ROUNDS);
     const newRecoveryCode = generateRecoveryCode();
     const newRecoveryHash = bcrypt.hashSync(newRecoveryCode.rawCode, BCRYPT_ROUNDS);
-    db.prepare(
-      `UPDATE users SET username = ?, password_hash = ?, manager_name = ?, password_changed_at = datetime('now', '+3 hours'), recovery_hash = ? WHERE id = ?`,
-    ).run(username, newPasswordHash, managerName || null, newRecoveryHash, account.id);
+
+    if (account) {
+      db.prepare(
+        `UPDATE users SET username = ?, password_hash = ?, manager_name = ?, password_changed_at = datetime('now', '+3 hours'), recovery_hash = ? WHERE id = ?`,
+      ).run(username, newPasswordHash, managerName, newRecoveryHash, account.id);
+    } else {
+      db.prepare(
+        `INSERT INTO users (username, password_hash, manager_name, recovery_hash, is_active, password_changed_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 1, datetime('now', '+3 hours'), datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
+      ).run(username, newPasswordHash, managerName, newRecoveryHash);
+    }
 
     return { success: true, message: "Hesabınız kuruldu.", recoveryCode: newRecoveryCode.displayCode };
   } catch (err) {
@@ -212,6 +260,7 @@ module.exports = {
   changePassword,
   updateEmail,
   resetAccountPassword,
+  verifyRecoveryCode,
   regenerateRecoveryCode,
   getSetupState,
   completeSetup,

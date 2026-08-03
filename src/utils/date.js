@@ -56,3 +56,17 @@ export const formatMonthYear = (year, month) => {
   const name = MONTHS[Number(month) - 1];
   return name ? `${name} ${year}` : EMPTY;
 };
+
+export const YEAR_OPTION_COUNT = 5;
+
+export const getYearOptions = (count = YEAR_OPTION_COUNT) => {
+  const current = getCurrentYear();
+  return Array.from({ length: count }, (_, i) => current - i);
+};
+
+export const getMonthOptions = (year) => {
+  const limit = Number(year) === getCurrentYear() ? getCurrentMonth() : MONTHS.length;
+  return MONTHS.slice(0, limit).map((name, index) => ({ value: index + 1, label: name }));
+};
+
+export const clampMonth = (year, month) => Math.min(month, getMonthOptions(year).length);

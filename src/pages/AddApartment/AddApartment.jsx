@@ -45,7 +45,7 @@ function AddApartment() {
 
     if (response.success) {
       const addAnother = await showAlert.confirm("Başarılı!", response.message, "Başka Daire Ekle", {
-        cancelText: "Dashboard'a Dön",
+        cancelText: "Ana Sayfaya Dön",
       });
       if (addAnother) {
         setApartmentData(INITIAL_DATA);

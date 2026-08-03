@@ -1,0 +1,106 @@
+.ff-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.ff-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ff-icon {
+  position: absolute;
+  left: 18px;
+  color: var(--ff-icon);
+  pointer-events: none;
+}
+
+.ff-input {
+  width: 100%;
+  padding: 26px 18px 8px 50px;
+  font-size: 1.12rem;
+  background: var(--ff-bg);
+  border: 1px solid var(--ff-border);
+  border-radius: 12px;
+  color: var(--ff-text);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.ff-input-with-toggle {
+  padding-right: 52px;
+}
+
+.ff-input::placeholder {
+  color: transparent;
+  transition: color 0.16s ease;
+}
+
+.ff-input:focus::placeholder {
+  color: var(--ff-placeholder);
+}
+
+.ff-input:focus {
+  outline: none;
+  border-color: var(--ff-focus-border);
+  box-shadow:
+    0 0 0 3px var(--ff-focus-ring),
+    0 0 18px var(--ff-focus-glow);
+}
+
+.ff-float-label {
+  position: absolute;
+  left: 50px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.12rem;
+  font-weight: 500;
+  color: var(--ff-label);
+  pointer-events: none;
+  transform-origin: left center;
+  transition:
+    top 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    font-size 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ff-input:focus ~ .ff-float-label,
+.ff-input:not(:placeholder-shown) ~ .ff-float-label {
+  top: 9px;
+  transform: translateY(0);
+  font-size: 0.96rem;
+  font-weight: 600;
+  color: var(--ff-label-active);
+}
+
+.ff-toggle {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  bottom: 1px;
+  width: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--ff-icon);
+  border: none;
+  border-left: 1px solid var(--ff-border);
+  border-radius: 0 11px 11px 0;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.ff-toggle:hover {
+  background: transparent;
+  color: var(--ff-label-active);
+}
+
+.ff-hint {
+  margin-top: 10px;
+  font-size: 1.02rem;
+  color: var(--ff-hint);
+}

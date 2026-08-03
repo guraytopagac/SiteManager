@@ -1,20 +1,24 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import "./Reports.css";
 import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { showAlert } from "@/utils/alert";
-import { MONTHS, formatMonthYear, getCurrentYear, getCurrentMonth } from "@/utils/date";
+import {
+  formatMonthYear,
+  formatDate,
+  getCurrentYear,
+  getCurrentMonth,
+  getYearOptions,
+  getMonthOptions,
+  clampMonth,
+} from "@/utils/date";
+import { formatCurrency } from "@/utils/currency";
 
 const DUE_STATUS_LABELS = { paid: "Ödendi", partial: "Kısmi", unpaid: "Ödenmedi" };
 
-const currentYear = getCurrentYear();
-const YEARS = Array.from({ length: 5 }, (_, i) => currentYear - i);
-
-function fmt(amount) {
-  return Number(amount).toLocaleString("tr-TR", { minimumFractionDigits: 2 }) + " ₺";
-}
+const fmt = formatCurrency;
 
 function buildFinanceRows(data) {
   return [
@@ -30,16 +34,21 @@ function Reports() {
   const [year, setYear] = useState(() => getCurrentYear());
   const [month, setMonth] = useState(() => getCurrentMonth());
   const [reportData, setReportData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loadedPeriod, setLoadedPeriod] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("finance");
 
-  const fetchReport = async () => {
-    if (!building?.id) return;
+  const fetchReport = async (selectedYear, selectedMonth) => {
+    if (!building?.id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const response = await window.electronAPI.getReportData(building.id, year, month);
+      const response = await window.electronAPI.getReportData(building.id, selectedYear, selectedMonth);
       if (response.success) {
         setReportData(response.data);
+        setLoadedPeriod({ year: selectedYear, month: selectedMonth });
         setActiveTab("finance");
       } else {
         showAlert.error("Hata", response.message || "Rapor verileri alınamadı.");
@@ -49,6 +58,42 @@ function Reports() {
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    (async () => {
+      if (!building?.id) {
+        setLoading(false);
+        return;
+      }
+      const initialYear = getCurrentYear();
+      const initialMonth = getCurrentMonth();
+      try {
+        const response = await window.electronAPI.getReportData(building.id, initialYear, initialMonth);
+        if (!isMounted) return;
+        if (response.success) {
+          setReportData(response.data);
+          setLoadedPeriod({ year: initialYear, month: initialMonth });
+        } else {
+          showAlert.error("Hata", response.message || "Rapor verileri alınamadı.");
+        }
+      } catch {
+        if (isMounted) showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [building?.id]);
+
+  const handleYearChange = (selectedYear) => {
+    setYear(selectedYear);
+    setMonth((prev) => clampMonth(selectedYear, prev));
   };
 
   const collectionRate =
@@ -143,7 +188,7 @@ function Reports() {
       const filename = `rapor_${year}_${String(month).padStart(2, "0")}.pdf`;
       const response = await window.electronAPI.saveReportFile(filename, Array.from(new Uint8Array(buffer)));
       if (response.success) {
-        showAlert.success("Kaydedildi", response.message);
+        showAlert.toast("Kaydedildi", response.message);
       } else if (response.message !== "İptal edildi.") {
         showAlert.error("Hata", response.message);
       }
@@ -163,8 +208,8 @@ function Reports() {
         <div className="period-controls">
           <div className="select-group">
             <label>Yıl</label>
-            <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
-              {YEARS.map((y) => (
+            <select value={year} onChange={(e) => handleYearChange(Number(e.target.value))}>
+              {getYearOptions().map((y) => (
                 <option key={y} value={y}>
                   {y}
                 </option>
@@ -174,14 +219,19 @@ function Reports() {
           <div className="select-group">
             <label>Ay</label>
             <select value={month} onChange={(e) => setMonth(Number(e.target.value))}>
-              {MONTHS.map((m, i) => (
-                <option key={i + 1} value={i + 1}>
-                  {m}
+              {getMonthOptions(year).map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
                 </option>
               ))}
             </select>
           </div>
-          <button className="button button-primary" onClick={fetchReport} disabled={loading} aria-busy={loading}>
+          <button
+            className="button button-primary"
+            onClick={() => fetchReport(year, month)}
+            disabled={loading}
+            aria-busy={loading}
+          >
             {loading ? "Yükleniyor..." : "Raporu Göster"}
           </button>
         </div>
@@ -197,6 +247,9 @@ function Reports() {
 
       {reportData && (
         <>
+          {loadedPeriod && (
+            <p className="report-period-label">{formatMonthYear(loadedPeriod.year, loadedPeriod.month)} raporu</p>
+          )}
           <div className="report-summary">
             <div className="summary-card income">
               <span className="summary-label">Toplam Gelir</span>
@@ -253,7 +306,7 @@ function Reports() {
                 ) : (
                   financeRows.map((r) => (
                     <tr key={`${r.rowType}-${r.id}`}>
-                      <td className="date-cell">{r.date}</td>
+                      <td className="date-cell">{formatDate(r.date)}</td>
                       <td>
                         <span className={`type-badge type-${r.rowType}`}>
                           {r.rowType === "income" ? "Gelir" : "Gider"}
@@ -316,7 +369,7 @@ function Reports() {
 
       {!reportData && !loading && (
         <div className="reports-empty">
-          <p>Bir dönem seçip "Raporu Göster" butonuna tıklayın.</p>
+          <p>Rapor verisi yüklenemedi. Bir dönem seçip "Raporu Göster" butonuna tıklayın.</p>
         </div>
       )}
 

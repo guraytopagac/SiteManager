@@ -251,40 +251,6 @@ export const showAlert = {
       validate: (val) => (!val ? "Şifre zorunludur." : null),
     }),
 
-  setupCode: (code) =>
-    codeDialog({
-      title: "Hesabınız Hazır",
-      code,
-      html: `
-        Hesabınız oluşturuldu ve şifreniz belirlendi.<br /><br />
-        <b>Kurtarma kodunuz:</b><br />
-        ${CODE_LINE}
-        ${COPY_LINE}<br />
-        <p class="swal-note">Şifrenizi unutursanız giriş ekranından bu kodla yeni şifre belirlersiniz.</p>
-        <p class="swal-warning">Bu kod bir daha gösterilmeyecek. Güvenli bir yerde saklayın.</p>
-      `,
-      confirmButtonText: "Kaydettim, Devam Et",
-      staticBackdrop: true,
-      width: "34em",
-    }),
-
-  resetCode: ({ code, username }) =>
-    codeDialog({
-      title: "Şifreniz Sıfırlandı",
-      code,
-      html: `
-        Şifreniz güncellendi.<br /><br />
-        <b>Kullanıcı adınız:</b> ${username}<br /><br />
-        <b>Yeni kurtarma kodunuz:</b><br />
-        ${CODE_LINE}
-        ${COPY_LINE}
-        Bu kodu güvenli bir yerde saklayın. Eski kod artık geçersizdir.
-      `,
-      confirmButtonText: "Anladım",
-      staticBackdrop: true,
-      width: "37em",
-    }),
-
   temporaryPassword: ({ managerName, code }) =>
     codeDialog({
       title: "Hesap Devredildi",

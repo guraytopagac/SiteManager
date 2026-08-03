@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { showAlert } from "@/utils/alert";
-import { getToday, formatMonthYear } from "@/utils/date";
+import { getToday, formatMonthYear, formatDate } from "@/utils/date";
+import { formatCurrency } from "@/utils/currency";
 import { PAYMENT_METHOD_LABELS, OVERPAY_TOLERANCE } from "../constants";
 
 function PaymentModal({ due, year, month, currentUser, building, onClose, onPaymentSaved }) {
@@ -21,18 +22,18 @@ function PaymentModal({ due, year, month, currentUser, building, onClose, onPaym
   }, [due.id, building.id]);
 
   useEffect(() => {
-    let cancelled = false;
+    let isMounted = true;
 
     (async () => {
       setHistoryLoading(true);
       const res = await window.electronAPI.getPaymentHistory(due.id, building.id);
-      if (cancelled) return;
+      if (!isMounted) return;
       if (res.success) setHistory(res.data);
       setHistoryLoading(false);
     })();
 
     return () => {
-      cancelled = true;
+      isMounted = false;
     };
   }, [due.id, building.id]);
 
@@ -47,13 +48,14 @@ function PaymentModal({ due, year, month, currentUser, building, onClose, onPaym
 
     const remaining = due.due_amount - due.paid_amount;
     if (parsedAmount > remaining + OVERPAY_TOLERANCE) {
-      showAlert.warning("Fazla Ödeme", `Kalan borç ${remaining.toLocaleString("tr-TR")} ₺. Daha fazlası girilemez.`);
+      showAlert.warning("Fazla Ödeme", `Kalan borç ${formatCurrency(remaining)}. Daha fazlası girilemez.`);
       return;
     }
 
     setIsSubmitting(true);
     const res = await window.electronAPI.recordPayment({
       apartmentId: due.apartment_id,
+      buildingId: building.id,
       year,
       month,
       paymentData: {
@@ -67,7 +69,7 @@ function PaymentModal({ due, year, month, currentUser, building, onClose, onPaym
     setIsSubmitting(false);
 
     if (res.success) {
-      showAlert.success("Kaydedildi", res.message);
+      showAlert.toast("Kaydedildi", res.message);
       setAmount("");
       setNote("");
       setPaymentMethod("cash");
@@ -86,7 +88,7 @@ function PaymentModal({ due, year, month, currentUser, building, onClose, onPaym
 
     const res = await window.electronAPI.cancelPayment({ paymentId, buildingId: building.id, userId: currentUser.id, reason });
     if (res.success) {
-      showAlert.success("İptal Edildi", res.message);
+      showAlert.toast("İptal Edildi", res.message);
       onPaymentSaved();
       fetchHistory();
     } else {
@@ -115,17 +117,15 @@ function PaymentModal({ due, year, month, currentUser, building, onClose, onPaym
         <div className="modal-due-summary">
           <div className="due-summary-item">
             <span>Aidat</span>
-            <strong>{due.due_amount.toLocaleString("tr-TR")} ₺</strong>
+            <strong>{formatCurrency(due.due_amount)}</strong>
           </div>
           <div className="due-summary-item">
             <span>Ödenen</span>
-            <strong className="color-paid">{due.paid_amount.toLocaleString("tr-TR")} ₺</strong>
+            <strong className="color-paid">{formatCurrency(due.paid_amount)}</strong>
           </div>
           <div className="due-summary-item">
             <span>Kalan</span>
-            <strong className={remaining > 0 ? "color-unpaid" : "color-paid"}>
-              {remaining.toLocaleString("tr-TR")} ₺
-            </strong>
+            <strong className={remaining > 0 ? "color-unpaid" : "color-paid"}>{formatCurrency(remaining)}</strong>
           </div>
         </div>
 
@@ -149,7 +149,7 @@ function PaymentModal({ due, year, month, currentUser, building, onClose, onPaym
                 min="0.01"
                 step="0.01"
                 max={remaining}
-                placeholder={`Maks. ${remaining.toLocaleString("tr-TR")} ₺`}
+                placeholder={`Maks. ${formatCurrency(remaining)}`}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 required
@@ -187,9 +187,9 @@ function PaymentModal({ due, year, month, currentUser, building, onClose, onPaym
               {history.map((p) => (
                 <li key={p.id} className={`history-item ${p.cancel_reason ? "cancelled" : ""}`}>
                   <div className="history-main">
-                    <span className="history-amount">{p.amount.toLocaleString("tr-TR")} ₺</span>
+                    <span className="history-amount">{formatCurrency(p.amount)}</span>
                     <span className="history-method">{PAYMENT_METHOD_LABELS[p.payment_method]}</span>
-                    <span className="history-date">{p.payment_date}</span>
+                    <span className="history-date">{formatDate(p.payment_date)}</span>
                   </div>
                   <div className="history-meta">
                     <span>Tahsil eden: {p.collected_by_username}</span>

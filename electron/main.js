@@ -2,7 +2,6 @@ const { app, ipcMain, dialog } = require("electron");
 const log = require("electron-log");
 const { autoUpdater } = require("electron-updater");
 const { runMigrations } = require("../database/migrate");
-const { seedAccount } = require("../database/seed");
 const registerIpcHandlers = require("./ipc/index.js");
 const { checkForUpdatesBeforeStartup } = require("./autoUpdater");
 const { createMainWindow, getMainWindow } = require("./windows/main");
@@ -36,7 +35,10 @@ app.whenReady().then(async () => {
     ({ db } = require("../database/db"));
   } catch (err) {
     log.error("Veritabanı açılamadı", err);
-    dialog.showErrorBox("Veritabanı Hatası", `Veritabanı açılamadı:\n${err.message}`);
+    dialog.showErrorBox(
+      "Verilere Ulaşılamadı",
+      "Uygulama verilerinize ulaşamadı. Lütfen bilgisayarınızı yeniden başlatıp tekrar deneyin."
+    );
     app.quit();
     return;
   }
@@ -53,19 +55,10 @@ app.whenReady().then(async () => {
       await checkForUpdatesBeforeStartup();
     }
 
-    sendToSplash("splash:status", { text: "Veritabanı hazırlanıyor" });
+    sendToSplash("splash:status", { text: "Veriler hazırlanıyor" });
 
     runMigrations(db);
     registerIpcHandlers(ipcMain);
-
-    try {
-      seedAccount(db);
-    } catch (err) {
-      log.error("Hesap oluşturulamadı", err);
-      dialog.showErrorBox("Başlatma Hatası", `Hesap oluşturulamadı:\n${err.message}`);
-      app.quit();
-      return;
-    }
 
     sendToSplash("splash:status", { text: "Uygulama yükleniyor" });
 
@@ -80,7 +73,10 @@ app.whenReady().then(async () => {
     });
   } catch (err) {
     log.error("Uygulama başlatılamadı", err);
-    dialog.showErrorBox("Başlatma Hatası", `Uygulama başlatılamadı:\n${err.message}`);
+    dialog.showErrorBox(
+      "Başlatma Hatası",
+      "Uygulama başlatılamadı. Lütfen bilgisayarınızı yeniden başlatıp tekrar deneyin."
+    );
     app.quit();
   }
 });

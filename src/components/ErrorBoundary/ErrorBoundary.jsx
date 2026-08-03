@@ -75,13 +75,12 @@ class ErrorBoundary extends Component {
           </button>
         </div>
         {details && (
-          <details className="error-boundary-details">
-            <summary>Teknik detay</summary>
-            <pre className="error-boundary-stack">{details}</pre>
-            <button className="error-boundary-secondary" onClick={this.handleCopyDetails}>
-              {this.state.copied ? "Kopyalandı" : "Kopyala"}
-            </button>
-          </details>
+          <button
+            className="error-boundary-secondary error-boundary-copy"
+            onClick={this.handleCopyDetails}
+          >
+            {this.state.copied ? "Hata Bilgisi Kopyalandı" : "Hata Bilgisini Kopyala"}
+          </button>
         )}
       </div>
     );
