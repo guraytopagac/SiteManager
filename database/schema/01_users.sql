@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username TEXT UNIQUE NOT NULL COLLATE NOCASE CHECK(
+  username TEXT NOT NULL COLLATE NOCASE CHECK(
     length(username) BETWEEN 3 AND 30 AND
     username NOT GLOB '*[^A-Za-z0-9_]*'
   ),
@@ -14,14 +14,8 @@ CREATE TABLE IF NOT EXISTS users (
     password_changed_at IS NULL OR
     datetime(password_changed_at) IS NOT NULL
   ),
-  created_at TEXT DEFAULT (datetime('now', '+3 hours')),
-  updated_at TEXT DEFAULT (datetime('now', '+3 hours'))
+  created_at TEXT NOT NULL DEFAULT (datetime('now', '+3 hours')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now', '+3 hours'))
 );
 
-CREATE TRIGGER IF NOT EXISTS trg_users_updated_at
-  AFTER UPDATE ON users FOR EACH ROW
-  WHEN OLD.updated_at = NEW.updated_at
-BEGIN
-  UPDATE users SET updated_at = datetime('now', '+3 hours') WHERE id = NEW.id;
-END;
-
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username COLLATE NOCASE);

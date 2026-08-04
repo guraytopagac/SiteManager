@@ -5,7 +5,7 @@ import { useCurrentUser, clearCurrentUser } from "@/hooks/useCurrentUser";
 import { showAlert } from "@/utils/alert";
 import "./AccountMenu.css";
 
-function AccountMenu({ showBuildingActions = true }) {
+function AccountMenu() {
   const navigate = useNavigate();
   const user = useCurrentUser();
   const [isOpen, setIsOpen] = useState(false);
@@ -31,13 +31,13 @@ function AccountMenu({ showBuildingActions = true }) {
 
   const handleLogout = async () => {
     setIsOpen(false);
-    const confirmed = await showAlert.confirm("Çıkış Yap", "Oturumu kapatmak istiyor musunuz?", "Evet, Çık");
+    const confirmed = await showAlert.confirm("Çıkış Yap", "Oturumu kapatmak istiyor musunuz?", "Vazgeç", "Evet, Çık");
     if (!confirmed) return;
     clearCurrentUser();
     navigate("/", { replace: true });
   };
 
-  const go = (path, state) => {
+  const closeMenuAndNavigate = (path, state) => {
     setIsOpen(false);
     navigate(path, state);
   };
@@ -62,24 +62,25 @@ function AccountMenu({ showBuildingActions = true }) {
 
       {isOpen && (
         <div className="account-menu-panel" role="menu">
-          {showBuildingActions && (
-            <>
-              <button type="button" className="account-menu-item" role="menuitem" onClick={() => go("/profile")}>
-                <FiUser size={17} />
-                <span>Profilim</span>
-              </button>
-              <button
-                type="button"
-                className="account-menu-item"
-                role="menuitem"
-                onClick={() => go("/select-building", { state: { manual: true } })}
-              >
-                <FiRepeat size={17} />
-                <span>Bina Değiştir</span>
-              </button>
-              <div className="account-menu-divider" />
-            </>
-          )}
+          <button
+            type="button"
+            className="account-menu-item"
+            role="menuitem"
+            onClick={() => closeMenuAndNavigate("/profile")}
+          >
+            <FiUser size={17} />
+            <span>Profilim</span>
+          </button>
+          <button
+            type="button"
+            className="account-menu-item"
+            role="menuitem"
+            onClick={() => closeMenuAndNavigate("/select-building", { state: { manual: true } })}
+          >
+            <FiRepeat size={17} />
+            <span>Bina Değiştir</span>
+          </button>
+          <div className="account-menu-divider" />
           <button
             type="button"
             className="account-menu-item account-menu-item--danger"

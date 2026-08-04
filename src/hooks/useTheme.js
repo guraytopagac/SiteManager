@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 
 const THEME_KEY = "theme";
 const VALID_THEMES = ["light", "dark"];
@@ -11,23 +11,29 @@ function getInitialTheme() {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+let currentTheme = getInitialTheme();
+const listeners = new Set();
+
+export function toggleTheme() {
+  currentTheme = currentTheme === "light" ? "dark" : "light";
+  localStorage.setItem(THEME_KEY, currentTheme);
+  listeners.forEach((listener) => listener(currentTheme));
+}
+
+window.electronAPI?.onToggleTheme(toggleTheme);
+
 export function useTheme() {
-  const [theme, setTheme] = useState(getInitialTheme);
+  const [theme, setTheme] = useState(currentTheme);
+
   useLayoutEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
-  const toggleTheme = () => {
-    setTheme((currentTheme) => {
-      const nextTheme = currentTheme === "light" ? "dark" : "light";
-      localStorage.setItem(THEME_KEY, nextTheme);
-      return nextTheme;
-    });
-  };
-
   useEffect(() => {
-    const removeListener = window.electronAPI?.onToggleTheme(toggleTheme);
-    return () => removeListener?.();
+    listeners.add(setTheme);
+    return () => {
+      listeners.delete(setTheme);
+    };
   }, []);
 
   return { theme, toggleTheme };

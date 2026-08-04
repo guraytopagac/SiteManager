@@ -4,8 +4,9 @@ import "./PasswordStrength.css";
 
 const RULE_ICONS = { valid: FiCheck, pending: FiMinus, failed: FiX };
 const SEGMENTS = [1, 2, 3, 4, 5];
+const RULE_ICON_SIZE = 14;
 
-function PasswordStrength({ password, confirmPassword, iconSize = 14 }) {
+function PasswordStrength({ password, confirmPassword }) {
   const strength = scorePassword(password);
   const meter = buildStrengthMeter(password, strength);
   const rules = buildPasswordRules({ password, confirmPassword, strength });
@@ -27,7 +28,7 @@ function PasswordStrength({ password, confirmPassword, iconSize = 14 }) {
           const RuleIcon = RULE_ICONS[state];
           return (
             <li key={rule.id} className={`pw-rule-${state}`}>
-              <RuleIcon className="pw-rule-icon" size={iconSize} />
+              <RuleIcon className="pw-rule-icon" size={RULE_ICON_SIZE} />
               {rule.label}
             </li>
           );

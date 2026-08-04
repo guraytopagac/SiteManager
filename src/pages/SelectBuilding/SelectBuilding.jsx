@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import "./SelectBuilding.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { setCurrentBuilding } from "@/hooks/useCurrentBuilding";
+import { setCurrentBuilding, clearCurrentBuilding, useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { showAlert } from "@/utils/alert";
 import { FiHome, FiPlus, FiAlertCircle } from "react-icons/fi";
 
@@ -22,6 +22,7 @@ function SelectBuilding() {
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = useCurrentUser();
+  const selectedBuilding = useCurrentBuilding();
   const [stayOnPage, setStayOnPage] = useState(Boolean(location.state?.manual));
   const skipAutoEnter = stayOnPage;
   const [buildings, setBuildings] = useState([]);
@@ -56,7 +57,7 @@ function SelectBuilding() {
     (async () => {
       setLoading(true);
       setError(false);
-      const res = await window.electronAPI.listBuildings(currentUser.id);
+      const res = await window.electronAPI.listBuildings({ ownerId: currentUser.id });
       if (!isMounted) return;
       if (res.success) {
         const activeBuildings = res.data.filter((b) => b.is_active === 1);
@@ -165,6 +166,9 @@ function SelectBuilding() {
     });
     setIsRenaming(false);
     if (res.success) {
+      if (selectedBuilding?.id === building.id) {
+        setCurrentBuilding({ id: building.id, name });
+      }
       showAlert.toast("Güncellendi", res.message);
       cancelRename();
       setReloadToken((t) => t + 1);
@@ -177,6 +181,7 @@ function SelectBuilding() {
     const confirmed = await showAlert.confirmDanger(
       "Binayı Kalıcı Olarak Sil",
       `"${building.name}" listeden tamamen kaldırılacak ve bir daha geri getirilemeyecek.`,
+      "Vazgeç",
       "Evet, Sil",
     );
     if (!confirmed) return;
@@ -186,6 +191,9 @@ function SelectBuilding() {
       ownerId: currentUser.id,
     });
     if (res.success) {
+      if (selectedBuilding?.id === building.id) {
+        clearCurrentBuilding();
+      }
       showAlert.toast("Bina kalıcı olarak silindi.");
       setReloadToken((t) => t + 1);
     } else {
@@ -199,11 +207,13 @@ function SelectBuilding() {
       ? await showAlert.confirm(
           "Binayı Geri Getir",
           `"${building.name}" yeniden bina listesine eklenecek.`,
+          "Vazgeç",
           "Geri Getir",
         )
       : await showAlert.confirmDanger(
           "Binayı Sil",
           `"${building.name}" bina listesinden kaldırılacak. Kayıtları silinmez, silinen binalar bölümünden geri getirebilirsiniz.`,
+          "Vazgeç",
           "Evet, Sil",
         );
     if (!confirmed) return;
@@ -214,6 +224,9 @@ function SelectBuilding() {
       isActive: willActivate,
     });
     if (res.success) {
+      if (!willActivate && selectedBuilding?.id === building.id) {
+        clearCurrentBuilding();
+      }
       showAlert.toast(willActivate ? "Bina geri getirildi." : "Bina silindi.");
       setReloadToken((t) => t + 1);
     } else {
@@ -284,7 +297,7 @@ function SelectBuilding() {
               </p>
             </div>
             <div className="sb-identity">
-              <AccountMenu showBuildingActions={false} />
+              <AccountMenu />
             </div>
           </div>
         </section>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Transactions.css";
+import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { showAlert } from "@/utils/alert";
@@ -57,7 +58,10 @@ function Transactions() {
       return;
     }
     try {
-      const response = await window.electronAPI.getTransactions(building.id, showAllTime ? null : { year, month });
+      const response = await window.electronAPI.getTransactions({
+        buildingId: building.id,
+        period: showAllTime ? null : { year, month },
+      });
       if (response.success) {
         setTransactions(response.data);
       } else {
@@ -80,7 +84,10 @@ function Transactions() {
       }
       setLoading(true);
       try {
-        const response = await window.electronAPI.getTransactions(building.id, showAllTime ? null : { year, month });
+        const response = await window.electronAPI.getTransactions({
+          buildingId: building.id,
+          period: showAllTime ? null : { year, month },
+        });
         if (!isMounted) return;
         if (response.success) {
           setTransactions(response.data);
@@ -131,6 +138,10 @@ function Transactions() {
 
   return (
     <div className="transactions-container">
+      <div className="account-menu-row">
+        <AccountMenu />
+      </div>
+
       <div className="transactions-header">
         <div className="transactions-title-group">
           <h2>İşlem Geçmişi</h2>

@@ -1,10 +1,12 @@
-const CH = require("../../ipc/channels");
+const { CHANNELS: CH } = require("../../ipc/channels");
 const { createSafeHandler } = require("../shared/safeHandler");
 const financialService = require("./service");
 
 const safeHandler = createSafeHandler("financial");
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const MIN_DATE = "2000-01-01";
+const MAX_DATE = "2100-12-31";
 const MAX_AMOUNT = 1000000;
 const MAX_DESCRIPTION_LENGTH = 500;
 const MAX_REASON_LENGTH = 300;
@@ -34,7 +36,12 @@ function validateAmountDescriptionCategory(data, allowedCategories) {
   if (!data.date) {
     return { success: false, message: "Eksik alan: tarih bilgisi." };
   }
-  if (typeof data.date !== "string" || !ISO_DATE_RE.test(data.date) || data.date < "2000-01-01") {
+  if (
+    typeof data.date !== "string" ||
+    !ISO_DATE_RE.test(data.date) ||
+    data.date < MIN_DATE ||
+    data.date > MAX_DATE
+  ) {
     return { success: false, message: "Geçersiz tarih." };
   }
   const description = typeof data.description === "string" ? data.description : "";
@@ -71,7 +78,11 @@ function validateExpenseData(data) {
   return validateAmountDescriptionCategory(data, EXPENSE_CATEGORIES);
 }
 
-function validateGetTransactionsData(buildingId, period) {
+function validateGetTransactionsData(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return { success: false, message: "Geçersiz istek." };
+  }
+  const { buildingId, period } = payload;
   if (!Number.isInteger(buildingId) || buildingId <= 0) {
     return { success: false, message: "Geçersiz bina ID." };
   }
@@ -138,12 +149,12 @@ function registerFinancialHandlers(ipcMain) {
 
   ipcMain.handle(
     CH.FINANCIAL.GET_TRANSACTIONS,
-    safeHandler(CH.FINANCIAL.GET_TRANSACTIONS, (buildingId, period) => {
-      const error = validateGetTransactionsData(buildingId, period);
+    safeHandler(CH.FINANCIAL.GET_TRANSACTIONS, (payload) => {
+      const error = validateGetTransactionsData(payload);
       if (error) {
         return error;
       }
-      return financialService.getTransactions(buildingId, period);
+      return financialService.getTransactions(payload.buildingId, payload.period);
     }),
   );
 

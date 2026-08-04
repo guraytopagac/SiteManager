@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
 import "./Apartments.css";
+import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { showAlert } from "@/utils/alert";
@@ -45,12 +46,13 @@ function Apartments() {
     const confirmed = await showAlert.confirmDanger(
       "Daireyi Sil",
       { html: `<b>Daire ${due.apartment_no}</b> pasife alınacak ve listeden kaldırılacak.` },
+      "Vazgeç",
       "Evet, Sil",
     );
 
     if (!confirmed) return;
 
-    const res = await window.electronAPI.deleteApartment(due.apartment_id, building.id);
+    const res = await window.electronAPI.deleteApartment({ id: due.apartment_id, buildingId: building.id });
     if (res.success) {
       showAlert.toast("Silindi", res.message);
       refetch();
@@ -84,6 +86,7 @@ function Apartments() {
             onYearChange={handleYearChange}
             yearOptions={yearOptions}
           />
+          <AccountMenu />
         </div>
       </div>
 

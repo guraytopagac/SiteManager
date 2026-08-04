@@ -1,4 +1,4 @@
-const CH = require("../../ipc/channels");
+const { CHANNELS: CH } = require("../../ipc/channels");
 const { createSafeHandler } = require("../shared/safeHandler");
 const apartmentService = require("./service");
 
@@ -69,7 +69,7 @@ function validateUpdatePayload(payload) {
   if (!Number.isInteger(payload.id) || payload.id <= 0) {
     return { success: false, message: "Geçersiz daire ID." };
   }
-  return validateApartmentData(payload.data);
+  return validateApartmentData(payload);
 }
 
 function validateDeletePayload(payload) {
@@ -119,7 +119,7 @@ function registerApartmentHandlers(ipcMain) {
       if (error) {
         return error;
       }
-      return apartmentService.updateApartment(payload.id, payload.data);
+      return apartmentService.updateApartment(payload.id, payload);
     }),
   );
 

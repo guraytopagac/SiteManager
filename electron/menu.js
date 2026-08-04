@@ -1,12 +1,13 @@
 const path = require("path");
 const { Menu, dialog, app, shell } = require("electron");
-const { autoUpdater } = require("electron-updater");
-const CH = require("./ipc/channels");
+const { checkForUpdatesOnDemand } = require("./autoUpdater");
+const { CHANNELS: CH } = require("./ipc/channels");
 const { runBackup, runRestore } = require("./modules/backup/service");
 const { openGuide } = require("./windows/guide");
-const ICON_PATH = path.join(__dirname, "../assets/icon.ico");
 
+const ICON_PATH = path.join(__dirname, "../assets/icon.ico");
 const SUPPORT_EMAIL = "guray.topagac.dev@gmail.com";
+const BUG_REPORT_SUBJECT = "Mavikent Site Yönetimi - Hata Bildirimi";
 
 function buildMenu(mainWindow, isDev) {
   const template = [
@@ -15,23 +16,25 @@ function buildMenu(mainWindow, isDev) {
       submenu: [
         {
           label: "Yedek Al",
-          accelerator: "CmdOrCtrl+Shift+B",
+          accelerator: "Ctrl+Shift+B",
           async click() {
             try {
               await runBackup(mainWindow);
             } catch (err) {
-              console.error("[Main] Backup failed:", err.message);
+              console.error("[Main] Backup failed:", err);
+              dialog.showErrorBox("Yedekleme Hatası", "Yedek alınamadı. Lütfen daha sonra tekrar deneyin.");
             }
           },
         },
         {
           label: "Yedekten Geri Yükle",
-          accelerator: "CmdOrCtrl+Shift+R",
+          accelerator: "Ctrl+Shift+R",
           async click() {
             try {
               await runRestore(mainWindow);
             } catch (err) {
-              console.error("[Main] Restore failed:", err.message);
+              console.error("[Main] Restore failed:", err);
+              dialog.showErrorBox("Geri Yükleme Hatası", "Geri yükleme yapılamadı. Lütfen daha sonra tekrar deneyin.");
             }
           },
         },
@@ -44,7 +47,7 @@ function buildMenu(mainWindow, isDev) {
       submenu: [
         {
           label: "Tema Değiştir",
-          accelerator: "CmdOrCtrl+Shift+T",
+          accelerator: "Ctrl+Shift+T",
           click() {
             mainWindow.webContents.send(CH.EVENTS.TOGGLE_THEME);
           },
@@ -53,9 +56,15 @@ function buildMenu(mainWindow, isDev) {
         { label: "Yakınlaştır", role: "zoomIn" },
         { label: "Uzaklaştır", role: "zoomOut" },
         { label: "Varsayılan Boyut", role: "resetZoom" },
-        ...(isDev ? [{ type: "separator" }, { label: "Yenile", role: "reload" }] : []),
         { type: "separator" },
         { label: "Tam Ekran", role: "togglefullscreen" },
+        ...(isDev
+          ? [
+              { type: "separator" },
+              { label: "Yenile", role: "reload" },
+              { label: "Geliştirici Araçları", accelerator: "F12", role: "toggleDevTools" },
+            ]
+          : []),
       ],
     },
     {
@@ -68,51 +77,31 @@ function buildMenu(mainWindow, isDev) {
             openGuide();
           },
         },
-        { type: "separator" },
-        {
-          label: "Güncellemeleri Kontrol Et",
-          async click() {
-            try {
-              const result = await autoUpdater.checkForUpdates();
-              if (!result?.downloadPromise) {
-                dialog.showMessageBox(mainWindow, {
-                  type: "info",
-                  title: "Güncelleme",
-                  message: "Uygulamanız güncel.",
-                  detail: `Kullandığınız sürüm (${app.getVersion()}) şu an mevcut olan en son sürüm.`,
-                  buttons: ["Tamam"],
-                });
-              } else {
-                dialog.showMessageBox(mainWindow, {
-                  type: "info",
-                  title: "Güncelleme Bulundu",
-                  message: "Yeni sürüm indiriliyor.",
-                  detail: "İndirme tamamlandığında yeniden başlatma seçeneği sunulacak.",
-                  buttons: ["Tamam"],
-                });
-              }
-            } catch (err) {
-              console.error("[Main] Update check failed:", err.message);
-              dialog.showMessageBox(mainWindow, {
-                type: "warning",
-                title: "Güncelleme",
-                message: "Güncelleme kontrolü şu an kullanılamıyor.",
-                buttons: ["Tamam"],
-              });
-            }
-          },
-        },
+        ...(isDev
+          ? []
+          : [
+              { type: "separator" },
+              {
+                label: "Güncellemeleri Kontrol Et",
+                async click() {
+                  await checkForUpdatesOnDemand(mainWindow);
+                },
+              },
+            ]),
         { type: "separator" },
         {
           label: "Hata Bildir",
           async click() {
+            const subject = encodeURIComponent(BUG_REPORT_SUBJECT);
             const body = encodeURIComponent(`Sürüm: ${app.getVersion()}\n\nHata açıklaması:\n`);
             try {
-              await shell.openExternal(
-                `mailto:${SUPPORT_EMAIL}?subject=Mavikent%20Site%20Y%C3%B6netimi%20-%20Hata%20Bildirimi&body=${body}`,
-              );
+              await shell.openExternal(`mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`);
             } catch (err) {
-              console.error("[Main] Report bug mailto failed:", err.message);
+              console.error("[Main] Report bug mailto failed:", err);
+              dialog.showErrorBox(
+                "E-posta Uygulaması Açılamadı",
+                `Hata bildirimlerinizi doğrudan ${SUPPORT_EMAIL} adresine gönderebilirsiniz.`,
+              );
             }
           },
         },
@@ -133,14 +122,6 @@ function buildMenu(mainWindow, isDev) {
       ],
     },
   ];
-
-  if (isDev) {
-    template.push({
-      label: "Geliştirici Araçları",
-      accelerator: "F12",
-      role: "toggleDevTools",
-    });
-  }
 
   return Menu.buildFromTemplate(template);
 }

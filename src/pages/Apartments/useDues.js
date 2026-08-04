@@ -13,7 +13,7 @@ export function useDues(buildingId, year, month) {
     if (!buildingId) return;
     setLoading(true);
     setErrorMessage("");
-    const response = await window.electronAPI.getDuesForMonth(buildingId, year, month);
+    const response = await window.electronAPI.getDuesForMonth({ buildingId, year, month });
     if (response.success) {
       setDues(response.data);
     } else {
@@ -29,7 +29,7 @@ export function useDues(buildingId, year, month) {
       if (!buildingId) return;
       setLoading(true);
       setErrorMessage("");
-      const response = await window.electronAPI.getDuesForMonth(buildingId, year, month);
+      const response = await window.electronAPI.getDuesForMonth({ buildingId, year, month });
       if (!isMounted) return;
       if (response.success) {
         setDues(response.data);

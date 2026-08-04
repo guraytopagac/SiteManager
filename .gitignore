@@ -27,12 +27,12 @@ releases/
 *.db-*
 *.db.bak
 *.sqlite
-
 # Electron cache
 .cache/
 
 # Local env files
 *.local
+preview
 
 # MCP config
 .mcp.json

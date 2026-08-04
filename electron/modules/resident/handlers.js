@@ -1,4 +1,4 @@
-const CH = require("../../ipc/channels");
+const { CHANNELS: CH } = require("../../ipc/channels");
 const { createSafeHandler } = require("../shared/safeHandler");
 const residentService = require("./service");
 
@@ -10,6 +10,12 @@ const EMAIL_RE = /^.+@.+\..+$/;
 const NON_ASCII_RE = /[^\x20-\x7E]/;
 const NATIONAL_ID_RE = /^[0-9]{11}$/;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_FULL_NAME_LENGTH = 60;
+const MIN_PHONE_LENGTH = 10;
+const MAX_PHONE_LENGTH = 20;
+const MIN_EMAIL_LENGTH = 5;
+const MAX_EMAIL_LENGTH = 254;
+const MAX_NOTES_LENGTH = 500;
 
 const TRIMMED_FIELDS = [
   "full_name",
@@ -66,14 +72,25 @@ function validateResidentFields(data) {
       return { success: false, message: "Geçersiz sakin türü." };
     }
   }
+  if (data.full_name !== null && data.full_name !== undefined) {
+    if (typeof data.full_name !== "string") {
+      return { success: false, message: "Geçersiz ad soyad." };
+    }
+    if (data.full_name.length > MAX_FULL_NAME_LENGTH) {
+      return { success: false, message: "Ad soyad en fazla 60 karakter olabilir." };
+    }
+  }
   if (data.phone !== null && data.phone !== undefined) {
     if (typeof data.phone !== "string") {
       return { success: false, message: "Geçersiz telefon numarası." };
     }
-    if (data.phone !== "" && (data.phone.length < 10 || !PHONE_RE.test(data.phone))) {
+    if (
+      data.phone !== "" &&
+      (data.phone.length < MIN_PHONE_LENGTH || data.phone.length > MAX_PHONE_LENGTH || !PHONE_RE.test(data.phone))
+    ) {
       return {
         success: false,
-        message: "Telefon numarası en az 10 karakter olmalı ve yalnızca rakam ve +()- içerebilir.",
+        message: "Telefon numarası 10 ile 20 karakter arasında olmalı ve yalnızca rakam ve +()- içerebilir.",
       };
     }
   }
@@ -85,7 +102,7 @@ function validateResidentFields(data) {
       if (NON_ASCII_RE.test(data.email)) {
         return { success: false, message: "E-posta adresinde Türkçe veya özel karakter kullanılamaz." };
       }
-      if (data.email.length < 5 || !EMAIL_RE.test(data.email)) {
+      if (data.email.length < MIN_EMAIL_LENGTH || data.email.length > MAX_EMAIL_LENGTH || !EMAIL_RE.test(data.email)) {
         return { success: false, message: "Geçerli bir e-posta adresi girin (örn. ornek@site.com)." };
       }
     }
@@ -96,6 +113,14 @@ function validateResidentFields(data) {
     }
     if (data.national_id !== "" && !NATIONAL_ID_RE.test(data.national_id)) {
       return { success: false, message: "TC Kimlik No 11 haneli rakamdan oluşmalıdır." };
+    }
+  }
+  if (data.notes !== null && data.notes !== undefined) {
+    if (typeof data.notes !== "string") {
+      return { success: false, message: "Geçersiz not." };
+    }
+    if (data.notes.length > MAX_NOTES_LENGTH) {
+      return { success: false, message: "Not en fazla 500 karakter olabilir." };
     }
   }
 
@@ -114,6 +139,13 @@ function validateId(id, label) {
     return { success: false, message: `Geçersiz ${label}.` };
   }
   return null;
+}
+
+function validateGetOverviewData(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return { success: false, message: "Geçersiz istek." };
+  }
+  return validateBuildingId(payload.buildingId);
 }
 
 function validateGetHistoryData(payload) {
@@ -167,12 +199,12 @@ function validateMoveOutData(payload) {
 function registerResidentHandlers(ipcMain) {
   ipcMain.handle(
     CH.RESIDENT.GET_OVERVIEW,
-    safeHandler(CH.RESIDENT.GET_OVERVIEW, (buildingId) => {
-      const error = validateBuildingId(buildingId);
+    safeHandler(CH.RESIDENT.GET_OVERVIEW, (payload) => {
+      const error = validateGetOverviewData(payload);
       if (error) {
         return error;
       }
-      return residentService.getResidentsOverview(buildingId);
+      return residentService.getResidentsOverview(payload.buildingId);
     }),
   );
 

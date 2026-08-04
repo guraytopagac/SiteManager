@@ -1,4 +1,4 @@
-const CH = require("../../ipc/channels");
+const { CHANNELS: CH } = require("../../ipc/channels");
 const { createSafeHandler } = require("../shared/safeHandler");
 const authService = require("./service");
 

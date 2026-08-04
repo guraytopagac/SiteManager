@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AddIncome.css";
+import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { showAlert } from "@/utils/alert";
 import { getToday } from "@/utils/date";
@@ -71,6 +72,10 @@ function AddIncome() {
   return (
     <div className="income-wrapper">
       <div className="income-container">
+        <div className="account-menu-row">
+          <AccountMenu />
+        </div>
+
         <h2 className="title">Yeni Gelir Ekle</h2>
 
         <form className="income-form" onSubmit={handleIncomeSubmit}>

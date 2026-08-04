@@ -3,6 +3,12 @@
   flex-shrink: 0;
 }
 
+.account-menu-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
 .account-menu-trigger {
   display: inline-flex;
   align-items: center;

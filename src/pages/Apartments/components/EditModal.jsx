@@ -16,7 +16,8 @@ function EditModal({ apartment, building, onClose, onSaved }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    const res = await window.electronAPI.updateApartment(apartment.apartment_id, {
+    const res = await window.electronAPI.updateApartment({
+      id: apartment.apartment_id,
       ...form,
       floor: Number(form.floor),
       square_meters: form.square_meters ? Number(form.square_meters) : null,

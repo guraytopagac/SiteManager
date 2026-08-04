@@ -30,6 +30,11 @@ export function setCurrentBuilding(building) {
   window.dispatchEvent(new Event(SESSION_CHANGED_EVENT));
 }
 
+export function clearCurrentBuilding() {
+  sessionStorage.removeItem(SESSION_BUILDING_KEY);
+  window.dispatchEvent(new Event(SESSION_CHANGED_EVENT));
+}
+
 export function useCurrentBuilding() {
   const [building, setBuilding] = useState(getCurrentBuilding);
 

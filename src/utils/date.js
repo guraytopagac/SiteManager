@@ -57,11 +57,11 @@ export const formatMonthYear = (year, month) => {
   return name ? `${name} ${year}` : EMPTY;
 };
 
-export const YEAR_OPTION_COUNT = 5;
+const YEAR_OPTION_COUNT = 5;
 
-export const getYearOptions = (count = YEAR_OPTION_COUNT) => {
+export const getYearOptions = () => {
   const current = getCurrentYear();
-  return Array.from({ length: count }, (_, i) => current - i);
+  return Array.from({ length: YEAR_OPTION_COUNT }, (_, i) => current - i);
 };
 
 export const getMonthOptions = (year) => {

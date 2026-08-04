@@ -16,7 +16,7 @@ function PaymentModal({ due, year, month, currentUser, building, onClose, onPaym
 
   const fetchHistory = useCallback(async () => {
     setHistoryLoading(true);
-    const res = await window.electronAPI.getPaymentHistory(due.id, building.id);
+    const res = await window.electronAPI.getPaymentHistory({ dueId: due.id, buildingId: building.id });
     if (res.success) setHistory(res.data);
     setHistoryLoading(false);
   }, [due.id, building.id]);
@@ -26,7 +26,7 @@ function PaymentModal({ due, year, month, currentUser, building, onClose, onPaym
 
     (async () => {
       setHistoryLoading(true);
-      const res = await window.electronAPI.getPaymentHistory(due.id, building.id);
+      const res = await window.electronAPI.getPaymentHistory({ dueId: due.id, buildingId: building.id });
       if (!isMounted) return;
       if (res.success) setHistory(res.data);
       setHistoryLoading(false);

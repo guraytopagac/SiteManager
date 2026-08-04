@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import "./Reports.css";
+import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { showAlert } from "@/utils/alert";
 import {
@@ -45,7 +46,11 @@ function Reports() {
     }
     setLoading(true);
     try {
-      const response = await window.electronAPI.getReportData(building.id, selectedYear, selectedMonth);
+      const response = await window.electronAPI.getReportData({
+        buildingId: building.id,
+        year: selectedYear,
+        month: selectedMonth,
+      });
       if (response.success) {
         setReportData(response.data);
         setLoadedPeriod({ year: selectedYear, month: selectedMonth });
@@ -71,7 +76,11 @@ function Reports() {
       const initialYear = getCurrentYear();
       const initialMonth = getCurrentMonth();
       try {
-        const response = await window.electronAPI.getReportData(building.id, initialYear, initialMonth);
+        const response = await window.electronAPI.getReportData({
+          buildingId: building.id,
+          year: initialYear,
+          month: initialMonth,
+        });
         if (!isMounted) return;
         if (response.success) {
           setReportData(response.data);
@@ -186,7 +195,7 @@ function Reports() {
     try {
       const buffer = buildPdf();
       const filename = `rapor_${year}_${String(month).padStart(2, "0")}.pdf`;
-      const response = await window.electronAPI.saveReportFile(filename, Array.from(new Uint8Array(buffer)));
+      const response = await window.electronAPI.saveReportFile({ filename, buffer: new Uint8Array(buffer) });
       if (response.success) {
         showAlert.toast("Kaydedildi", response.message);
       } else if (response.message !== "İptal edildi.") {
@@ -200,6 +209,10 @@ function Reports() {
 
   return (
     <div className="reports-container">
+      <div className="account-menu-row">
+        <AccountMenu />
+      </div>
+
       <div className="reports-header">
         <h2>Raporlar</h2>
       </div>

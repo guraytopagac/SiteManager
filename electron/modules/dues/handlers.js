@@ -1,4 +1,4 @@
-const CH = require("../../ipc/channels");
+const { CHANNELS: CH } = require("../../ipc/channels");
 const { createSafeHandler } = require("../shared/safeHandler");
 const duesService = require("./service");
 
@@ -6,9 +6,23 @@ const safeHandler = createSafeHandler("dues");
 
 const VALID_PAYMENT_METHODS = ["cash", "bank_transfer", "card", "other"];
 const PAYMENT_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const MIN_PAYMENT_DATE = "2000-01-01";
+const MAX_PAYMENT_DATE = "2100-12-31";
+const MIN_YEAR = 2000;
+const MAX_YEAR = 2100;
 const MAX_PAYMENT_AMOUNT = 1000000;
 const MAX_NOTE_LENGTH = 500;
 const MAX_REASON_LENGTH = 300;
+
+function validatePeriod(year, month) {
+  if (!Number.isInteger(year) || year < MIN_YEAR || year > MAX_YEAR) {
+    return { success: false, message: "Geçersiz tarih bilgisi." };
+  }
+  if (!Number.isInteger(month) || month < 1 || month > 12) {
+    return { success: false, message: "Geçersiz tarih bilgisi." };
+  }
+  return null;
+}
 
 function validateGetForMonthData(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
@@ -18,10 +32,7 @@ function validateGetForMonthData(payload) {
   if (!Number.isInteger(buildingId) || buildingId <= 0) {
     return { success: false, message: "Geçersiz bina ID." };
   }
-  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
-    return { success: false, message: "Geçersiz tarih bilgisi." };
-  }
-  return null;
+  return validatePeriod(year, month);
 }
 
 function validateRecordPaymentData(payload) {
@@ -35,8 +46,9 @@ function validateRecordPaymentData(payload) {
   if (!Number.isInteger(buildingId) || buildingId <= 0) {
     return { success: false, message: "Geçersiz bina ID." };
   }
-  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
-    return { success: false, message: "Geçersiz tarih bilgisi." };
+  const periodError = validatePeriod(year, month);
+  if (periodError) {
+    return periodError;
   }
   if (typeof paymentData?.amount !== "number" || !Number.isFinite(paymentData.amount) || paymentData.amount <= 0) {
     return { success: false, message: "Geçersiz ödeme tutarı." };
@@ -44,8 +56,14 @@ function validateRecordPaymentData(payload) {
   if (paymentData.amount > MAX_PAYMENT_AMOUNT) {
     return { success: false, message: "Ödeme tutarı 1.000.000₺'yi aşamaz." };
   }
-  if (paymentData.note != null && (typeof paymentData.note !== "string" || paymentData.note.length > MAX_NOTE_LENGTH)) {
-    return { success: false, message: "Not en fazla 500 karakter olabilir." };
+  if (paymentData.note != null) {
+    if (typeof paymentData.note !== "string") {
+      return { success: false, message: "Not en fazla 500 karakter olabilir." };
+    }
+    paymentData.note = paymentData.note.trim();
+    if (paymentData.note.length > MAX_NOTE_LENGTH) {
+      return { success: false, message: "Not en fazla 500 karakter olabilir." };
+    }
   }
   if (!VALID_PAYMENT_METHODS.includes(paymentData.payment_method)) {
     return { success: false, message: "Geçersiz ödeme yöntemi." };
@@ -53,7 +71,8 @@ function validateRecordPaymentData(payload) {
   if (
     !paymentData.payment_date ||
     !PAYMENT_DATE_RE.test(paymentData.payment_date) ||
-    paymentData.payment_date < "2000-01-01"
+    paymentData.payment_date < MIN_PAYMENT_DATE ||
+    paymentData.payment_date > MAX_PAYMENT_DATE
   ) {
     return { success: false, message: "Geçersiz ödeme tarihi." };
   }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AddApartment.css";
+import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { showAlert } from "@/utils/alert";
 
@@ -44,9 +45,7 @@ function AddApartment() {
     setSubmitting(false);
 
     if (response.success) {
-      const addAnother = await showAlert.confirm("Başarılı!", response.message, "Başka Daire Ekle", {
-        cancelText: "Ana Sayfaya Dön",
-      });
+      const addAnother = await showAlert.confirm("Başarılı!", response.message, "Ana Sayfaya Dön", "Başka Daire Ekle");
       if (addAnother) {
         setApartmentData(INITIAL_DATA);
       } else {
@@ -60,13 +59,17 @@ function AddApartment() {
   const handleCancel = () => {
     const hasData = Object.values(apartmentData).some((v) => v !== "");
     if (!hasData) return navigate("/dashboard");
-    showAlert.confirm("İptal", "Girilen bilgiler kaybolacak. Emin misiniz?", "Evet, Çık").then((confirmed) => {
+    showAlert.confirm("İptal", "Girilen bilgiler kaybolacak. Emin misiniz?", "Vazgeç", "Evet, Çık").then((confirmed) => {
       if (confirmed) navigate("/dashboard");
     });
   };
 
   return (
     <div className="add-apartment-container">
+      <div className="account-menu-row">
+        <AccountMenu />
+      </div>
+
       <form onSubmit={handleAddApartment}>
         <section className="form-card">
             <h3 className="form-section-title">Daire Bilgileri</h3>

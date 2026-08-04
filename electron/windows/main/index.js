@@ -4,7 +4,7 @@ const serve = require("electron-serve").default;
 const { buildMenu } = require("../../menu");
 
 const loadURL = serve({ directory: path.join(__dirname, "../../../dist") });
-const iconPath = path.join(__dirname, "../../../assets/icon.ico");
+const ICON_PATH = path.join(__dirname, "../../../assets/icon.ico");
 
 let mainWindow = null;
 
@@ -21,7 +21,7 @@ function createMainWindow(isDev) {
     minWidth,
     minHeight,
     title: "Mavikent Site Yönetimi Uygulaması",
-    icon: iconPath,
+    icon: ICON_PATH,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, "../../preload.js"),

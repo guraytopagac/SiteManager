@@ -1,4 +1,4 @@
-const CH = require("../../ipc/channels");
+const { CHANNELS: CH } = require("../../ipc/channels");
 const { createSafeHandler } = require("../shared/safeHandler");
 const buildingService = require("./service");
 
@@ -29,6 +29,13 @@ function validateBuildingId(buildingId) {
     return { success: false, message: "Geçersiz bina ID." };
   }
   return null;
+}
+
+function validateListData(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return { success: false, message: "Geçersiz istek." };
+  }
+  return validateOwnerId(payload.ownerId);
 }
 
 function validateCreateData(payload) {
@@ -78,12 +85,12 @@ function validateUpdateStatusData(payload) {
 function registerBuildingHandlers(ipcMain) {
   ipcMain.handle(
     CH.BUILDING.LIST,
-    safeHandler(CH.BUILDING.LIST, (ownerId) => {
-      const error = validateOwnerId(ownerId);
+    safeHandler(CH.BUILDING.LIST, (payload) => {
+      const error = validateListData(payload);
       if (error) {
         return error;
       }
-      return buildingService.listBuildings(ownerId);
+      return buildingService.listBuildings(payload.ownerId);
     }),
   );
 

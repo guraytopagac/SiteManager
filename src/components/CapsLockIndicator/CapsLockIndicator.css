@@ -13,10 +13,6 @@
   cursor: help;
 }
 
-.caps-indicator--edge {
-  right: 16px;
-}
-
 [data-theme="light"] .caps-indicator {
   color: #b45309;
 }

@@ -83,6 +83,7 @@ function App() {
                 }
               >
                 <Route path="/select-building" element={<SelectBuilding />} />
+                <Route path="/profile" element={<Profile />} />
                 <Route element={<RequireBuilding />}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/add-apartment" element={<AddApartment />} />
@@ -91,7 +92,6 @@ function App() {
                   <Route path="/add-income" element={<AddIncome />} />
                   <Route path="/add-expense" element={<AddExpense />} />
                   <Route path="/transactions" element={<Transactions />} />
-                  <Route path="/profile" element={<Profile />} />
                   <Route path="/reports" element={<Reports />} />
                 </Route>
               </Route>

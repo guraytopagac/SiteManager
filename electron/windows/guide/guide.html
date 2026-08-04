@@ -74,8 +74,16 @@
           <div class="guide-step">
             <div class="guide-step-num">3</div>
             <div class="guide-step-body">
-              Kurtarma kodu <strong>yalnızca bir kez</strong> gösterilir. Şifrenizi unutursanız hesabınızı yalnızca bu
-              kod ile kurtarabilirsiniz. Lütfen güvenli bir yere kaydedin.
+              Açılan <strong>Kurulum Tamamlandı</strong> ekranında kurtarma kodunuz ve kullanıcı adınız gösterilir.
+              <strong>Kodu Kopyala</strong> butonuyla kodu panoya alabilirsiniz. Kod
+              <strong>yalnızca bir kez</strong> gösterilir. Lütfen güvenli bir yere kaydedin.
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">4</div>
+            <div class="guide-step-body">
+              Kodu kaydettikten sonra <strong>Giriş Ekranına Git</strong> butonuna tıklayın. Sayfa kendiliğinden
+              yönlenmez, bu adımı siz tamamlarsınız.
             </div>
           </div>
         </div>
@@ -112,8 +120,8 @@
           <div class="guide-step">
             <div class="guide-step-num">3</div>
             <div class="guide-step-body">
-              Giriş yaptıktan sonra <strong>Bina Seçimi</strong> ekranı açılır; yöneteceğiniz binayı seçin veya yeni bina
-              oluşturun.
+              Giriş yaptıktan sonra <strong>Bina Seçimi</strong> ekranı açılır ve yöneteceğiniz binayı seçersiniz.
+              Yalnızca tek bir aktif binanız varsa bu ekran atlanır ve doğrudan Kontrol Paneli açılır.
             </div>
           </div>
         </div>
@@ -130,20 +138,31 @@
           </div>
           <div class="guide-step">
             <div class="guide-step-num">2</div>
-            <div class="guide-step-body">Kurtarma kodunu ve en az 8 karakterden oluşan yeni şifrenizi girin.</div>
+            <div class="guide-step-body">
+              <strong>Adım 1:</strong> kurtarma kodunuzu girin. Kod hemen doğrulanır, hatalıysa şifre yazmadan
+              uyarılırsınız.
+            </div>
           </div>
           <div class="guide-step">
             <div class="guide-step-num">3</div>
             <div class="guide-step-body">
-              Kısa bir doğrulama sonrasında şifre sıfırlanır ve size <strong>yeni bir kurtarma kodu</strong> verilir.
+              <strong>Adım 2:</strong> en az 8 karakterden oluşan yeni şifrenizi iki kez girin.
             </div>
           </div>
           <div class="guide-step">
             <div class="guide-step-num">4</div>
             <div class="guide-step-body">
-              Sonrasındaki şifre sıfırlama işlemlerinde bu yeni kurtarma kodunu kullanabilirsiniz. Eski kod artık
-              geçersizdir.
+              Şifre sıfırlanır. Açılan sonuç ekranında <strong>yeni kurtarma kodunuz</strong> ve
+              <strong>kullanıcı adınız</strong> gösterilir. Kodu <strong>Kodu Kopyala</strong> ile alın, ardından
+              <strong>Giriş Ekranına Dön</strong> butonuna tıklayın. Eski kod artık geçersizdir.
             </div>
+          </div>
+        </div>
+        <div class="guide-note">
+          <span class="guide-note-icon">ℹ</span>
+          <div>
+            Kullanıcı adınızı unuttuysanız da bu ekran işinize yarar: kurtarma kodunu doğruladığınızda kullanıcı adınız
+            size gösterilir. Ayrıca giriş ekranındaki kullanıcı adı alanı normalde otomatik doldurulur.
           </div>
         </div>
         <div class="guide-note">
@@ -214,16 +233,50 @@
           <div class="guide-step">
             <div class="guide-step-num">2</div>
             <div class="guide-step-body">
-              Henüz binanız yoksa bina adını girerek <strong>yeni bina oluşturun</strong>.
+              Henüz binanız yoksa bina adını girerek <strong>yeni bina oluşturun</strong>. Aynı hesapta aynı isimde
+              ikinci bir bina oluşturulamaz.
             </div>
           </div>
         </div>
+        <h3>Bina Yönetimi</h3>
+        <p>
+          Binalarınızı yeniden adlandırma, arşivleme ve geri getirme işlemleri <strong>bu ekranda</strong> yapılır. Her
+          bina kartının yanındaki simgelerle bina adını değiştirebilir veya binayı arşivleyebilirsiniz.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>İşlem</th>
+              <th>Açıklama</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Yeniden Adlandır</strong></td>
+              <td>Binanın adını değiştirir. Verilerine dokunulmaz.</td>
+            </tr>
+            <tr>
+              <td><strong>Arşivle</strong></td>
+              <td>
+                Bina seçim listesinden çıkar, sayfanın altındaki <strong>Silinen Binalar</strong> bölümüne düşer.
+                Buradan istediğiniz zaman geri getirebilirsiniz.
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Listeden Kaldır</strong></td>
+              <td>
+                Silinen Binalar bölümündeki ikinci kademedir. Bina hiçbir listede görünmez ve
+                <strong>geri getirilemez</strong>, ancak kayıtları veritabanında korunur.
+              </td>
+            </tr>
+          </tbody>
+        </table>
         <div class="guide-note">
           <span class="guide-note-icon">ℹ</span>
           <div>
-            Uygulamanın üst kısmında o an seçili olan binanın adı görünür. Farklı bir binaya geçmek için Bina Seçimi
-            ekranına dönebilirsiniz. Binalarınızı yeniden adlandırma, arşivleme ve geri getirme işlemleri
-            <strong>Hesap Yönetimi</strong> sayfasından yapılır.
+            Binalar hiçbir zaman kalıcı olarak silinmez; daire, aidat, gelir ve gider kayıtları her durumda saklanır.
+            Kontrol Panelinin üst kısmında o an seçili olan binanın adı görünür; farklı bir binaya geçmek için sağ
+            üstteki hesap menüsünden <strong>Bina Değiştir</strong> seçeneğini kullanın.
           </div>
         </div>
 
@@ -251,13 +304,28 @@
             </tr>
           </tbody>
         </table>
-        <p>Alt bölümde hızlı erişim kartları ile tüm işlemlere tek tıkla ulaşabilirsiniz.</p>
+        <p>
+          Alt bölümde hızlı erişim kartları <strong>Daire İşlemleri</strong>, <strong>Finansal İşlemler</strong> ve
+          <strong>Çeşitli</strong> başlıkları altında gruplanmıştır; tüm sayfalara tek tıkla ulaşabilirsiniz.
+        </p>
+        <h3>Hesap Menüsü</h3>
+        <p>
+          Sağ üst köşede adınızla açılan hesap menüsü her sayfada aynı yerdedir. Menüden
+          <strong>Profilim</strong>, <strong>Bina Değiştir</strong> ve <strong>Çıkış Yap</strong> seçeneklerine
+          ulaşabilirsiniz.
+        </p>
+        <h3>Yedek Uyarısı</h3>
+        <p>
+          Son yedeğinizin üzerinden 7 günden fazla geçtiyse Kontrol Panelinin üstünde bir uyarı şeridi belirir.
+          Şeritteki <strong>Yedek Al</strong> butonu sizi Profil sayfasına götürür. Şeridi kapatabilirsiniz.
+        </p>
 
         <h2 id="apartments">Daireler</h2>
         <h3>Daire Listeleme</h3>
         <p>
-          <strong>Mevcut Daireleri Görüntüle</strong> ile daire listesine gidin. Her daire kartında daire numarası, kat,
-          tip, metrekare ve aylık aidat tutarı görünür.
+          Kontrol Panelindeki <strong>Daireler ve Aidat</strong> kartı ile daire listesine gidin. Bu tek sayfada hem
+          dairelerin aidat durumunu görür hem de tüm daire işlemlerini (tahsilat, düzenleme, silme, toplu aidat)
+          yaparsınız. Sayfanın üstündeki ay ve yıl seçicisiyle görüntülediğiniz dönemi değiştirebilirsiniz.
         </p>
         <h3>Yeni Daire Ekleme</h3>
         <div class="guide-steps">
@@ -276,18 +344,10 @@
             <div class="guide-step-body"><strong>Kaydet</strong> butonuna tıklayın.</div>
           </div>
         </div>
-        <div class="guide-note">
-          <span class="guide-note-icon">ℹ</span>
-          <div>
-            <strong>Daireler</strong> sayfasında sadece okuma işlemi yapılabilir; yalnızca daireleri ve aidat durumunu
-            görüntülersiniz. Düzenleme, silme, ödeme alma ve toplu aidat işlemleri ayrı
-            <strong>Daire Yönetimi</strong> sayfasında yapılır.
-          </div>
-        </div>
         <h3>Daire Düzenleme / Silme</h3>
         <p>
-          <strong>Daire Yönetimi</strong> sayfasında her daire için <strong>Düzenle</strong> bilgileri güncellemenizi,
-          <strong>Sil</strong> daireyi <strong>pasife almanızı</strong> sağlar.
+          Daire listesinde her satırın sağındaki kalem simgesi daire bilgilerini <strong>düzenlemenizi</strong>, çöp
+          kutusu simgesi daireyi <strong>pasife almanızı</strong> sağlar.
         </p>
         <div class="guide-note">
           <span class="guide-note-icon">ℹ</span>
@@ -299,7 +359,7 @@
         </div>
         <h3>Toplu Aidat Güncelleme</h3>
         <p>
-          Daire Yönetimi sayfasındaki <strong>toplu aidat</strong> işlemiyle tüm daireler için tek seferde yeni bir
+          Daire listesinin altındaki <strong>Toplu Aidat Güncelle</strong> butonuyla tüm daireler için tek seferde yeni bir
           aidat tutarı belirlenebilir. Bu işlem yalnızca dairelerin varsayılan aidatını değiştirir; yeni tutar
           <strong>sonraki ay</strong> oluşturulan aidatlarda etkili olur, mevcut aydaki kayıtlara dokunulmaz.
         </p>
@@ -354,14 +414,26 @@
 
         <h2 id="dues">Aidat Yönetimi</h2>
         <p>
-          Ana menüden Aidat ekranına gidip yıl ve ay seçildiğinde, o aya ait tüm aktif dairelerin aidat durumu
-          listelenir.
+          Aidat işlemleri <strong>Daireler ve Aidat</strong> sayfasında yapılır. Yıl ve ay seçildiğinde o aya ait tüm
+          aktif dairelerin aidat durumu listelenir. Listenin üstünde dönemin tahsilat özeti görünür.
         </p>
+        <div class="guide-note">
+          <span class="guide-note-icon">ℹ</span>
+          <div>
+            Aidat kayıtları <strong>her ay otomatik olarak oluşturulur</strong>; ödeme yapılmasını beklemez. Bir dairenin
+            aidatı, eklendiği aydan içinde bulunulan aya kadar her ay için tahakkuk eder ve tutar
+            <strong>o ayki değeriyle sabitlenir</strong>. Bu yüzden aidat tutarını sonradan değiştirmeniz geçmiş ayların
+            borcunu değiştirmez.
+          </div>
+        </div>
         <h3>Ödeme Alma</h3>
         <div class="guide-steps">
           <div class="guide-step">
             <div class="guide-step-num">1</div>
-            <div class="guide-step-body">Listede ilgili daireye tıklayın.</div>
+            <div class="guide-step-body">
+              İlgili dairenin satırındaki <strong>Tahsil Et</strong> butonuna tıklayın. Aidatı tamamen ödenmiş dairelerde
+              bu buton <strong>Detay</strong> olarak görünür.
+            </div>
           </div>
           <div class="guide-step">
             <div class="guide-step-num">2</div>
@@ -385,13 +457,19 @@
         <h2 id="financial">Gelir / Gider</h2>
         <h3>Gelir Ekleme</h3>
         <p>
-          <strong>Gelir Ekle</strong> sayfasında tutar ve açıklama girerek kaydedin; tarih otomatik olarak bugünün
-          tarihi alınır.
+          <strong>Gelir Ekle</strong> sayfasında tutar, açıklama, kategori (kira, otopark, bağış, diğer) ve tarih
+          girerek kaydedin. Tarih alanı bugünle dolu gelir, isterseniz değiştirebilirsiniz; ileri bir tarih seçilemez.
         </p>
+        <div class="guide-note">
+          <span class="guide-note-icon">ℹ</span>
+          <div>
+            Aidat geliri elle girilmez. Aidat tahsilatı kaydettiğinizde gelir kaydı <strong>otomatik</strong> oluşur.
+          </div>
+        </div>
         <h3>Gider Ekleme</h3>
         <p>
-          <strong>Gider Ekle</strong> sayfasında tutar, açıklama ve kategori girerek kaydedin; tarih otomatik olarak
-          bugünün tarihi alınır.
+          <strong>Gider Ekle</strong> sayfasında tutar, açıklama, kategori (bakım, temizlik, fatura, personel, diğer) ve
+          tarih girerek kaydedin. Tarih alanı yine bugünle dolu gelir.
         </p>
         <div class="guide-warning">
           <span class="guide-warning-icon">⚠</span>
@@ -403,8 +481,8 @@
 
         <h2 id="transactions">İşlem Geçmişi</h2>
         <p>
-          Tüm gelir ve gider kayıtlarını tarih aralığına göre filtreleyin. İptal edilmiş kayıtlar üzeri çizili olarak
-          görünür.
+          Tüm gelir ve gider kayıtlarını yıl ve ay seçerek filtreleyin. <strong>Tüm Zamanlar</strong> butonuyla dönem
+          filtresini kaldırıp bütün kayıtları görebilirsiniz. İptal edilmiş kayıtlar üzeri çizili olarak görünür.
         </p>
         <h3>Kayıt İptali</h3>
         <div class="guide-steps">
@@ -436,8 +514,15 @@
 
         <h2 id="profile">Hesap Yönetimi</h2>
         <p>
-          Hesabınızla ilgili tüm işlemler <strong>Profil</strong> sayfasında toplanmıştır: şifre değiştirme, kurtarma
-          kodu üretme, hesabı devretme ve binalarınızı yönetme.
+          Hesabınızla ilgili tüm işlemler <strong>Profilim</strong> sayfasında toplanmıştır: hesap bilgileri, şifre
+          değiştirme, veri yedeği, kurtarma kodu üretme ve hesabı devretme. Sayfaya sağ üstteki hesap menüsünden
+          ulaşırsınız.
+        </p>
+        <h3>Hesap Bilgileri</h3>
+        <p>
+          Ad soyadınız ve kullanıcı adınız burada görünür. İsterseniz bir <strong>e-posta adresi</strong>
+          ekleyebilir veya kaldırabilirsiniz. E-posta yalnızca bilgi amaçlıdır: giriş kullanıcı adıyla, şifre kurtarma
+          ise kurtarma koduyla yapılır.
         </p>
         <h3>Şifre Değiştirme</h3>
         <div class="guide-steps">
@@ -454,6 +539,12 @@
             <div class="guide-step-body"><strong>Şifreyi Güncelle</strong> butonuna tıklayın.</div>
           </div>
         </div>
+        <h3>Veri Yedeği</h3>
+        <p>
+          Profil sayfasındaki <strong>Yedek Al</strong> butonuyla verilerinizin yedeğini alabilirsiniz. Butonun üstünde
+          <strong>son yedek tarihi</strong> görünür. Yedek dosyasını harici bir diske veya bulut klasörünüze
+          kopyalamanız önerilir.
+        </p>
         <h3>Yeni Kurtarma Kodu Üretme</h3>
         <p>
           Mevcut şifrenizi doğrulayarak yeni bir kurtarma kodu üretebilirsiniz. Yeni kod üretildiğinde eski kod geçersiz
@@ -472,20 +563,26 @@
             <strong>aynı bilgisayarda</strong> giriş yapar. Hesap yalnızca bu bilgisayarda geçerlidir.
           </div>
         </div>
-        <h3>Binalarım</h3>
-        <p>
-          Binalarınızı yeniden adlandırabilir, arşivleyebilir ve arşivden geri getirebilirsiniz. Binalar
-          <strong>silinmez</strong>; arşivlenen bina Bina Seçimi ekranında görünmez, buradan tekrar aktif edebilirsiniz.
-        </p>
+        <div class="guide-note">
+          <span class="guide-note-icon">ℹ</span>
+          <div>
+            Bina işlemleri (yeniden adlandırma, arşivleme, geri getirme) bu sayfada değil,
+            <strong>Bina Seçimi</strong> ekranındadır.
+          </div>
+        </div>
 
         <h2 id="backup">Yedekleme ve Geri Yükleme</h2>
-        <p>Yedekleme işlemleri <strong>Dosya</strong> menüsünden yapılır.</p>
+        <p>
+          Yedek almanın iki yolu vardır: <strong>Profilim → Yedek Al</strong> butonu veya <strong>Dosya</strong> menüsü.
+          Geri yükleme yalnızca <strong>Dosya</strong> menüsünden yapılır.
+        </p>
         <h3>Yedek Alma</h3>
         <div class="guide-steps">
           <div class="guide-step">
             <div class="guide-step-num">1</div>
             <div class="guide-step-body">
-              <strong>Dosya → Yedek Al</strong> seçin (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>).
+              <strong>Dosya → Yedek Al</strong> seçin (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>) ya da
+              <strong>Profilim</strong> sayfasındaki <strong>Yedek Al</strong> butonuna tıklayın.
             </div>
           </div>
           <div class="guide-step">
@@ -518,7 +615,10 @@
         </div>
         <div class="guide-tip">
           <span class="guide-tip-icon">✓</span>
-          <div>Düzenli yedek almanız önerilir. Özellikle her büyük veri girişinden önce yedek alın.</div>
+          <div>
+            Düzenli yedek almanız önerilir. Özellikle her büyük veri girişinden önce yedek alın. Son yedeğinizin
+            üzerinden 7 günden fazla geçtiyse Kontrol Panelinde bir uyarı şeridi görünür.
+          </div>
         </div>
         <div class="guide-warning">
           <span class="guide-warning-icon">⚠</span>
@@ -566,9 +666,11 @@
           <summary class="guide-faq-question">Bir binayı silebilir miyim?</summary>
           <div class="guide-faq-answer">
             <p>
-              Binalar kalıcı olarak silinmez. <strong>Hesap Yönetimi → Binalarım</strong> bölümünden bir binayı
-              <strong>arşivleyebilirsiniz</strong>; arşivlenen bina Bina Seçimi ekranında görünmez, ancak tüm verileri
-              korunur ve dilediğinizde tekrar geri getirebilirsiniz.
+              Binalar kalıcı olarak silinmez. <strong>Bina Seçimi</strong> ekranından bir binayı
+              <strong>arşivleyebilirsiniz</strong>. Arşivlenen bina seçim listesinde görünmez, sayfanın altındaki
+              <strong>Silinen Binalar</strong> bölümüne düşer ve dilediğinizde geri getirilebilir. Arşivi de
+              temizlemek isterseniz <strong>Listeden Kaldır</strong> seçeneğini kullanın: bina hiçbir listede görünmez
+              ve geri getirilemez, ancak kayıtları veritabanında korunur.
             </p>
           </div>
         </details>
@@ -585,9 +687,28 @@
           <summary class="guide-faq-question">Bir ödemeyi yanlışlıkla kaydettim, nasıl düzeltirim?</summary>
           <div class="guide-faq-answer">
             <p>
-              Aidat ekranında ilgili dairenin ödeme geçmişini açın ve yanlış kaydın yanındaki
+              Daireler ve Aidat sayfasında ilgili dairenin ödeme geçmişini açın ve yanlış kaydın yanındaki
               <strong>İptal Et</strong> butonuna tıklayın. İptal sebebini girdikten sonra ödeme ve buna bağlı gelir
               kaydı otomatik olarak iptal edilir.
+            </p>
+          </div>
+        </details>
+        <details class="guide-faq-item">
+          <summary class="guide-faq-question">Başka bir binaya nasıl geçerim? Çıkışı nereden yaparım?</summary>
+          <div class="guide-faq-answer">
+            <p>
+              İkisi de sağ üst köşedeki <strong>hesap menüsündedir</strong>. Adınıza tıkladığınızda açılan menüde
+              <strong>Profilim</strong>, <strong>Bina Değiştir</strong> ve <strong>Çıkış Yap</strong> seçenekleri yer
+              alır.
+            </p>
+          </div>
+        </details>
+        <details class="guide-faq-item">
+          <summary class="guide-faq-question">Aidat tutarını artırdım, geçmiş aylar da değişir mi?</summary>
+          <div class="guide-faq-answer">
+            <p>
+              Hayır. Tahakkuk etmiş aylar (içinde bulunulan ay dahil) eski tutarında kalır; yeni tutar bir sonraki ayın
+              aidatlarında geçerli olur.
             </p>
           </div>
         </details>

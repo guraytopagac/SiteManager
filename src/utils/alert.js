@@ -45,7 +45,7 @@ const dismissDialog = (title, body, icon) =>
     confirmButtonColor: t.confirm,
   }));
 
-const confirmDialog = async (title, body, confirmText, { cancelText = "Vazgeç", pickConfirmColor }) => {
+const confirmDialog = async (title, body, cancelText, confirmText, pickConfirmColor) => {
   const { isConfirmed } = await fire((t) => ({
     ...base(t),
     ...bodyOf(body),
@@ -153,17 +153,6 @@ export const showAlert = {
       },
     })),
 
-  success: (title, text) =>
-    fire((t) => ({
-      ...base(t),
-      icon: "success",
-      title,
-      text,
-      timer: 1500,
-      timerProgressBar: true,
-      showConfirmButton: false,
-    })),
-
   error: (title, body) => dismissDialog(title, body, "error"),
 
   warning: (title, body) => dismissDialog(title, body, "warning"),
@@ -178,17 +167,11 @@ export const showAlert = {
       confirmButtonColor: t.confirm,
     })),
 
-  confirm: (title, body, confirmText, { cancelText } = {}) =>
-    confirmDialog(title, body, confirmText, {
-      cancelText,
-      pickConfirmColor: (t) => t.confirm,
-    }),
+  confirm: (title, body, cancelText, confirmText) =>
+    confirmDialog(title, body, cancelText, confirmText, (t) => t.confirm),
 
-  confirmDanger: (title, body, confirmText, { cancelText } = {}) =>
-    confirmDialog(title, body, confirmText, {
-      cancelText,
-      pickConfirmColor: (t) => t.danger,
-    }),
+  confirmDanger: (title, body, cancelText, confirmText) =>
+    confirmDialog(title, body, cancelText, confirmText, (t) => t.danger),
 
   prompt: async ({
     title,

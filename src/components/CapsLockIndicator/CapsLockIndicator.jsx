@@ -4,14 +4,14 @@ import "./CapsLockIndicator.css";
 
 const CAPS_LOCK_MESSAGE = "Caps Lock tuşu açık, şifreniz büyük harfle yazılıyor.";
 
-function CapsLockIndicator({ withToggle = true }) {
+function CapsLockIndicator() {
   const capsLockState = useCapsLockOn();
 
   if (!capsLockState) return null;
 
   return (
     <span
-      className={withToggle ? "caps-indicator" : "caps-indicator caps-indicator--edge"}
+      className="caps-indicator"
       role="img"
       aria-label={CAPS_LOCK_MESSAGE}
       title={CAPS_LOCK_MESSAGE}

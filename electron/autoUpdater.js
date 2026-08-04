@@ -1,4 +1,4 @@
-const { ipcMain } = require("electron");
+const { app, dialog, ipcMain } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const { sendToSplash, getSplashWindow } = require("./windows/splash");
 
@@ -50,7 +50,7 @@ function checkForUpdatesBeforeStartup() {
       [
         "error",
         (err) => {
-          console.error("[Main] Update error:", err.message);
+          console.error("[Main] Update error:", err);
           sendToSplash("splash:status", { text: "Güncelleme kontrol edilemedi, atlanıyor", isError: true });
           setTaskbarProgress(1, { mode: "error" });
           continueStartup();
@@ -126,4 +126,73 @@ function askToRestart() {
   });
 }
 
-module.exports = { checkForUpdatesBeforeStartup };
+let isUpdateFlowActive = false;
+
+async function checkForUpdatesOnDemand(mainWindow) {
+  if (isUpdateFlowActive) {
+    await dialog.showMessageBox(mainWindow, {
+      type: "info",
+      title: "Güncelleme",
+      message: "Güncelleme işlemi sürüyor.",
+      detail: "Mevcut kontrol veya indirme tamamlanana kadar bekleyin.",
+      buttons: ["Tamam"],
+    });
+    return;
+  }
+
+  isUpdateFlowActive = true;
+  let isDownloading = false;
+
+  try {
+    const result = await autoUpdater.checkForUpdates();
+
+    if (!result?.downloadPromise) {
+      await dialog.showMessageBox(mainWindow, {
+        type: "info",
+        title: "Güncelleme",
+        message: "Uygulamanız güncel.",
+        detail: `Kullandığınız sürüm (${app.getVersion()}) şu an mevcut olan en son sürüm.`,
+        buttons: ["Tamam"],
+      });
+      return;
+    }
+
+    isDownloading = true;
+    await dialog.showMessageBox(mainWindow, {
+      type: "info",
+      title: "Güncelleme Bulundu",
+      message: "Yeni sürüm indiriliyor.",
+      detail: "İndirme tamamlandığında yeniden başlatma seçeneği sunulacak.",
+      buttons: ["Tamam"],
+    });
+
+    await result.downloadPromise;
+
+    const { response } = await dialog.showMessageBox(mainWindow, {
+      type: "info",
+      title: "Güncelleme Hazır",
+      message: "Yeni sürüm indirildi.",
+      detail: "Güncellemenin uygulanması için uygulamanın yeniden başlatılması gerekiyor.",
+      buttons: ["Şimdi Yeniden Başlat", "Daha Sonra"],
+      defaultId: 0,
+      cancelId: 1,
+    });
+
+    if (response === 0) {
+      autoUpdater.quitAndInstall(true, true);
+    }
+  } catch (err) {
+    console.error("[Main] On-demand update check failed:", err);
+    await dialog.showMessageBox(mainWindow, {
+      type: "warning",
+      title: "Güncelleme",
+      message: isDownloading ? "Güncelleme indirilemedi." : "Güncelleme kontrolü şu an kullanılamıyor.",
+      detail: "İnternet bağlantınızı kontrol edip daha sonra tekrar deneyin.",
+      buttons: ["Tamam"],
+    });
+  } finally {
+    isUpdateFlowActive = false;
+  }
+}
+
+module.exports = { checkForUpdatesBeforeStartup, checkForUpdatesOnDemand };

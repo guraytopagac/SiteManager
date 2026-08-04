@@ -1,11 +1,14 @@
-const CH = require("../../ipc/channels");
+const { CHANNELS: CH } = require("../../ipc/channels");
 const { createSafeHandler } = require("../shared/safeHandler");
 const dashboardService = require("./service");
 
 const safeHandler = createSafeHandler("dashboard");
 
-function validateGetStatsData(buildingId) {
-  if (!Number.isInteger(buildingId) || buildingId <= 0) {
+function validateGetStatsData(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return { success: false, message: "Geçersiz istek." };
+  }
+  if (!Number.isInteger(payload.buildingId) || payload.buildingId <= 0) {
     return { success: false, message: "Geçersiz bina ID." };
   }
   return null;
@@ -14,12 +17,12 @@ function validateGetStatsData(buildingId) {
 function registerDashboardHandlers(ipcMain) {
   ipcMain.handle(
     CH.DASHBOARD.GET_STATS,
-    safeHandler(CH.DASHBOARD.GET_STATS, (buildingId) => {
-      const error = validateGetStatsData(buildingId);
+    safeHandler(CH.DASHBOARD.GET_STATS, (payload) => {
+      const error = validateGetStatsData(payload);
       if (error) {
         return error;
       }
-      return dashboardService.getStats(buildingId);
+      return dashboardService.getStats(payload.buildingId);
     }),
   );
 }

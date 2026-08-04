@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Profile.css";
+import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useCurrentUser, setCurrentUser, clearCurrentUser } from "@/hooks/useCurrentUser";
 import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { showAlert } from "@/utils/alert";
@@ -121,7 +122,7 @@ function Profile() {
     });
     if (!password) return;
 
-    const res = await window.electronAPI.regenerateRecoveryCode(password);
+    const res = await window.electronAPI.regenerateRecoveryCode({ password });
     if (res.success) {
       await showAlert.regeneratedCode(res.recoveryCode);
     } else {
@@ -160,6 +161,10 @@ function Profile() {
 
   return (
     <div className="profile-container">
+      <div className="account-menu-row">
+        <AccountMenu />
+      </div>
+
       <h2 className="page-title">Profilim</h2>
 
       <div className="profile-card">
@@ -288,7 +293,7 @@ function Profile() {
       </div>
 
       <div className="return-link">
-        <button className="btn-secondary" onClick={() => navigate("/dashboard")}>
+        <button className="btn-secondary" onClick={() => navigate(building ? "/dashboard" : "/select-building")}>
           Geri Dön
         </button>
       </div>

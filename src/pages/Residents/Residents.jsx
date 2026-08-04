@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Residents.css";
+import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { showAlert } from "@/utils/alert";
 import { formatDateShort, getToday } from "@/utils/date";
@@ -80,15 +81,27 @@ function ResidentFormModal({ apartment, building, onClose, onSaved }) {
         <form onSubmit={handleSubmit}>
           <div className="form-row">
             <label>Ad Soyad</label>
-            <input type="text" placeholder="İsteğe bağlı" value={form.full_name} onChange={set("full_name")} />
+            <input
+              type="text"
+              maxLength={60}
+              placeholder="İsteğe bağlı"
+              value={form.full_name}
+              onChange={set("full_name")}
+            />
           </div>
           <div className="form-row">
             <label>Telefon</label>
-            <input type="tel" placeholder="İsteğe bağlı" value={form.phone} onChange={set("phone")} />
+            <input type="tel" maxLength={20} placeholder="İsteğe bağlı" value={form.phone} onChange={set("phone")} />
           </div>
           <div className="form-row">
             <label>E-posta</label>
-            <input type="email" placeholder="İsteğe bağlı" value={form.email} onChange={set("email")} />
+            <input
+              type="email"
+              maxLength={254}
+              placeholder="İsteğe bağlı"
+              value={form.email}
+              onChange={set("email")}
+            />
           </div>
           <div className="form-row">
             <label>TC Kimlik No</label>
@@ -115,7 +128,13 @@ function ResidentFormModal({ apartment, building, onClose, onSaved }) {
           </div>
           <div className="form-row">
             <label>Notlar</label>
-            <textarea rows={2} placeholder="Sakin hakkında not" value={form.notes} onChange={set("notes")} />
+            <textarea
+              rows={2}
+              maxLength={500}
+              placeholder="Sakin hakkında not"
+              value={form.notes}
+              onChange={set("notes")}
+            />
           </div>
 
           <div className="modal-actions">
@@ -197,7 +216,10 @@ function HistoryModal({ apartment, building, onClose }) {
     let isMounted = true;
     (async () => {
       setLoading(true);
-      const res = await window.electronAPI.getResidentHistory(apartment.apartment_id, building.id);
+      const res = await window.electronAPI.getResidentHistory({
+        apartmentId: apartment.apartment_id,
+        buildingId: building.id,
+      });
       if (!isMounted) return;
       if (res.success) setHistory(res.data);
       setLoading(false);
@@ -263,7 +285,7 @@ function Residents() {
       return;
     }
 
-    const res = await window.electronAPI.getResidentsOverview(building.id);
+    const res = await window.electronAPI.getResidentsOverview({ buildingId: building.id });
     if (res.success) {
       setRows(res.data);
     } else {
@@ -283,7 +305,7 @@ function Residents() {
         return;
       }
 
-      const res = await window.electronAPI.getResidentsOverview(building.id);
+      const res = await window.electronAPI.getResidentsOverview({ buildingId: building.id });
       if (!isMounted) return;
       if (res.success) {
         setRows(res.data);
@@ -321,6 +343,7 @@ function Residents() {
     <div className="residents-container">
       <div className="residents-header">
         <h2>Sakin Yönetimi</h2>
+        <AccountMenu />
       </div>
 
       <div className="residents-summary">

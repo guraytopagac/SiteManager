@@ -1,16 +1,14 @@
 const { contextBridge, ipcRenderer } = require("electron");
-const CH = require("./ipc/channels");
+const { CHANNELS: CH, EVENT_CHANNELS, INVOKE_CHANNELS } = require("./ipc/channels");
 
-const ALLOWED_CHANNELS = new Set(Object.values(CH).flatMap(Object.values));
-
-function safeInvoke(channel, ...args) {
-  if (!ALLOWED_CHANNELS.has(channel)) throw new Error(`Blocked IPC channel: ${channel}`);
-  return ipcRenderer.invoke(channel, ...args);
+function safeInvoke(channel, payload) {
+  if (!INVOKE_CHANNELS.has(channel)) throw new Error(`Blocked IPC channel: ${channel}`);
+  return ipcRenderer.invoke(channel, payload);
 }
 
 function safeOn(channel, callback) {
-  if (!ALLOWED_CHANNELS.has(channel)) throw new Error(`Blocked IPC channel: ${channel}`);
-  if (typeof callback !== "function") throw new TypeError(`safeOn: callback must be a function`);
+  if (!EVENT_CHANNELS.has(channel)) throw new Error(`Blocked IPC channel: ${channel}`);
+  if (typeof callback !== "function") throw new TypeError("safeOn: callback must be a function");
   const wrapper = (event, ...args) => callback(...args);
   ipcRenderer.on(channel, wrapper);
   return () => ipcRenderer.removeListener(channel, wrapper);
@@ -18,73 +16,63 @@ function safeOn(channel, callback) {
 
 contextBridge.exposeInMainWorld("electronAPI", {
   // Apartment
-  addApartment: (apartmentData) => safeInvoke(CH.APARTMENT.ADD, apartmentData),
-  updateApartment: (id, data) => safeInvoke(CH.APARTMENT.UPDATE, { id, data }),
-  deleteApartment: (id, buildingId) => safeInvoke(CH.APARTMENT.DELETE, { id, buildingId }),
-  bulkUpdateDueAmount: (buildingId, amount) => safeInvoke(CH.APARTMENT.BULK_UPDATE_DUE_AMOUNT, { buildingId, amount }),
+  addApartment: (payload) => safeInvoke(CH.APARTMENT.ADD, payload),
+  updateApartment: (payload) => safeInvoke(CH.APARTMENT.UPDATE, payload),
+  deleteApartment: (payload) => safeInvoke(CH.APARTMENT.DELETE, payload),
+  bulkUpdateDueAmount: (payload) => safeInvoke(CH.APARTMENT.BULK_UPDATE_DUE_AMOUNT, payload),
 
   // Auth
-  login: (credentials) => safeInvoke(CH.AUTH.LOGIN, credentials),
-  transferAccount: ({ userId, password, newPerson }) =>
-    safeInvoke(CH.AUTH.TRANSFER_ACCOUNT, { userId, password, newPerson }),
-  changePassword: ({ userId, oldPassword, newPassword }) =>
-    safeInvoke(CH.AUTH.CHANGE_PASSWORD, { userId, oldPassword, newPassword }),
-  updateEmail: ({ userId, email }) => safeInvoke(CH.AUTH.UPDATE_EMAIL, { userId, email }),
-  resetAccountPassword: ({ recoveryCode, newPassword }) =>
-    safeInvoke(CH.AUTH.RESET_ACCOUNT_PASSWORD, { recoveryCode, newPassword }),
-  verifyRecoveryCode: (recoveryCode) => safeInvoke(CH.AUTH.VERIFY_RECOVERY_CODE, { recoveryCode }),
-  regenerateRecoveryCode: (password) => safeInvoke(CH.AUTH.REGENERATE_RECOVERY_CODE, { password }),
+  login: (payload) => safeInvoke(CH.AUTH.LOGIN, payload),
+  changePassword: (payload) => safeInvoke(CH.AUTH.CHANGE_PASSWORD, payload),
+  updateEmail: (payload) => safeInvoke(CH.AUTH.UPDATE_EMAIL, payload),
+  transferAccount: (payload) => safeInvoke(CH.AUTH.TRANSFER_ACCOUNT, payload),
+  resetAccountPassword: (payload) => safeInvoke(CH.AUTH.RESET_ACCOUNT_PASSWORD, payload),
+  verifyRecoveryCode: (payload) => safeInvoke(CH.AUTH.VERIFY_RECOVERY_CODE, payload),
+  regenerateRecoveryCode: (payload) => safeInvoke(CH.AUTH.REGENERATE_RECOVERY_CODE, payload),
   getSetupState: () => safeInvoke(CH.AUTH.GET_SETUP_STATE),
-  completeSetup: ({ username, password, managerName }) =>
-    safeInvoke(CH.AUTH.COMPLETE_SETUP, { username, password, managerName }),
+  completeSetup: (payload) => safeInvoke(CH.AUTH.COMPLETE_SETUP, payload),
 
   // Backup
   runBackup: () => safeInvoke(CH.BACKUP.RUN),
   getBackupStatus: () => safeInvoke(CH.BACKUP.GET_STATUS),
 
   // Building
-  listBuildings: (ownerId) => safeInvoke(CH.BUILDING.LIST, ownerId),
-  createBuilding: ({ ownerId, name }) => safeInvoke(CH.BUILDING.CREATE, { ownerId, name }),
-  renameBuilding: ({ buildingId, ownerId, name }) => safeInvoke(CH.BUILDING.RENAME, { buildingId, ownerId, name }),
-  updateBuildingStatus: ({ buildingId, ownerId, isActive }) =>
-    safeInvoke(CH.BUILDING.UPDATE_STATUS, { buildingId, ownerId, isActive }),
-  removeBuilding: ({ buildingId, ownerId }) => safeInvoke(CH.BUILDING.REMOVE, { buildingId, ownerId }),
+  listBuildings: (payload) => safeInvoke(CH.BUILDING.LIST, payload),
+  createBuilding: (payload) => safeInvoke(CH.BUILDING.CREATE, payload),
+  renameBuilding: (payload) => safeInvoke(CH.BUILDING.RENAME, payload),
+  updateBuildingStatus: (payload) => safeInvoke(CH.BUILDING.UPDATE_STATUS, payload),
+  removeBuilding: (payload) => safeInvoke(CH.BUILDING.REMOVE, payload),
 
   // Dashboard
-  getStats: (buildingId) => safeInvoke(CH.DASHBOARD.GET_STATS, buildingId),
+  getStats: (payload) => safeInvoke(CH.DASHBOARD.GET_STATS, payload),
 
   // Dues
-  getDuesForMonth: (buildingId, year, month) => safeInvoke(CH.DUES.GET_FOR_MONTH, { buildingId, year, month }),
-  recordPayment: ({ apartmentId, buildingId, year, month, paymentData }) =>
-    safeInvoke(CH.DUES.RECORD_PAYMENT, { apartmentId, buildingId, year, month, paymentData }),
-  cancelPayment: ({ paymentId, buildingId, userId, reason }) =>
-    safeInvoke(CH.DUES.CANCEL_PAYMENT, { paymentId, buildingId, userId, reason }),
-  getPaymentHistory: (dueId, buildingId) => safeInvoke(CH.DUES.GET_PAYMENT_HISTORY, { dueId, buildingId }),
-
-  // Financial
-  addIncome: (data) => safeInvoke(CH.FINANCIAL.ADD_INCOME, data),
-  addExpense: (data) => safeInvoke(CH.FINANCIAL.ADD_EXPENSE, data),
-  getTransactions: (buildingId, period) => safeInvoke(CH.FINANCIAL.GET_TRANSACTIONS, buildingId, period),
-  cancelIncome: ({ id, buildingId, userId, reason }) =>
-    safeInvoke(CH.FINANCIAL.CANCEL_INCOME, { id, buildingId, userId, reason }),
-  cancelExpense: ({ id, buildingId, userId, reason }) =>
-    safeInvoke(CH.FINANCIAL.CANCEL_EXPENSE, { id, buildingId, userId, reason }),
-
-  // Resident
-  getResidentsOverview: (buildingId) => safeInvoke(CH.RESIDENT.GET_OVERVIEW, buildingId),
-  getResidentHistory: (apartmentId, buildingId) => safeInvoke(CH.RESIDENT.GET_HISTORY, { apartmentId, buildingId }),
-  addResident: (data) => safeInvoke(CH.RESIDENT.ADD, data),
-  updateResident: (data) => safeInvoke(CH.RESIDENT.UPDATE, data),
-  moveOutResident: ({ residentId, buildingId, moveOutDate }) =>
-    safeInvoke(CH.RESIDENT.MOVE_OUT, { residentId, buildingId, moveOutDate }),
-
-  // System
-  getAppVersion: () => safeInvoke(CH.SYSTEM.GET_APP_VERSION),
-
-  // Reports
-  getReportData: (buildingId, year, month) => safeInvoke(CH.REPORTS.GET_DATA, { buildingId, year, month }),
-  saveReportFile: (filename, buffer) => safeInvoke(CH.REPORTS.SAVE_FILE, { filename, buffer }),
+  getDuesForMonth: (payload) => safeInvoke(CH.DUES.GET_FOR_MONTH, payload),
+  recordPayment: (payload) => safeInvoke(CH.DUES.RECORD_PAYMENT, payload),
+  cancelPayment: (payload) => safeInvoke(CH.DUES.CANCEL_PAYMENT, payload),
+  getPaymentHistory: (payload) => safeInvoke(CH.DUES.GET_PAYMENT_HISTORY, payload),
 
   // Events
   onToggleTheme: (callback) => safeOn(CH.EVENTS.TOGGLE_THEME, callback),
+
+  // Financial
+  addIncome: (payload) => safeInvoke(CH.FINANCIAL.ADD_INCOME, payload),
+  addExpense: (payload) => safeInvoke(CH.FINANCIAL.ADD_EXPENSE, payload),
+  getTransactions: (payload) => safeInvoke(CH.FINANCIAL.GET_TRANSACTIONS, payload),
+  cancelIncome: (payload) => safeInvoke(CH.FINANCIAL.CANCEL_INCOME, payload),
+  cancelExpense: (payload) => safeInvoke(CH.FINANCIAL.CANCEL_EXPENSE, payload),
+
+  // Reports
+  getReportData: (payload) => safeInvoke(CH.REPORTS.GET_DATA, payload),
+  saveReportFile: (payload) => safeInvoke(CH.REPORTS.SAVE_FILE, payload),
+
+  // Resident
+  getResidentsOverview: (payload) => safeInvoke(CH.RESIDENT.GET_OVERVIEW, payload),
+  getResidentHistory: (payload) => safeInvoke(CH.RESIDENT.GET_HISTORY, payload),
+  addResident: (payload) => safeInvoke(CH.RESIDENT.ADD, payload),
+  updateResident: (payload) => safeInvoke(CH.RESIDENT.UPDATE, payload),
+  moveOutResident: (payload) => safeInvoke(CH.RESIDENT.MOVE_OUT, payload),
+
+  // System
+  getAppVersion: () => safeInvoke(CH.SYSTEM.GET_APP_VERSION),
 });

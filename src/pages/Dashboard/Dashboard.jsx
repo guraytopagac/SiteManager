@@ -64,7 +64,7 @@ function Dashboard() {
     (async () => {
       setLoading(true);
       setError(false);
-      const res = await window.electronAPI.getStats(building.id);
+      const res = await window.electronAPI.getStats({ buildingId: building.id });
       if (!isMounted) return;
       if (res.success) {
         setStats(res.data);

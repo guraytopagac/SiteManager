@@ -56,7 +56,10 @@ function login(credentials) {
     }
 
     if (bcrypt.compareSync(credentials.password, user.password_hash)) {
-      db.prepare(`UPDATE users SET last_login = datetime('now', '+3 hours') WHERE id = ?`).run(user.id);
+      db.prepare(
+        `UPDATE users SET last_login = datetime('now', '+3 hours'), updated_at = datetime('now', '+3 hours')
+         WHERE id = ?`,
+      ).run(user.id);
 
       return { success: true, user: toSafeUser(user) };
     }
@@ -85,8 +88,8 @@ function transferAccount(userId, password, newPerson) {
     const temporaryPassword = generateTemporaryPassword();
     const temporaryPasswordHash = bcrypt.hashSync(temporaryPassword, BCRYPT_ROUNDS);
     db.prepare(
-      `UPDATE users SET password_hash = ?, manager_name = ?, password_changed_at = datetime('now', '+3 hours')
-       WHERE id = ?`,
+      `UPDATE users SET password_hash = ?, manager_name = ?, password_changed_at = datetime('now', '+3 hours'),
+       updated_at = datetime('now', '+3 hours') WHERE id = ?`,
     ).run(temporaryPasswordHash, newPerson, userId);
 
     return { success: true, message: "Hesap devri tamamlandı.", temporaryPassword };
@@ -108,7 +111,8 @@ function changePassword(userId, oldPassword, newPassword) {
 
     const newPasswordHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
     db.prepare(
-      `UPDATE users SET password_hash = ?, password_changed_at = datetime('now', '+3 hours') WHERE id = ?`,
+      `UPDATE users SET password_hash = ?, password_changed_at = datetime('now', '+3 hours'),
+       updated_at = datetime('now', '+3 hours') WHERE id = ?`,
     ).run(newPasswordHash, userId);
     return { success: true, message: "Şifre başarıyla değiştirildi." };
   } catch (err) {
@@ -157,7 +161,8 @@ function resetAccountPassword(recoveryCode, newPassword) {
     const newRecoveryCode = generateRecoveryCode();
     const newRecoveryHash = bcrypt.hashSync(newRecoveryCode.rawCode, BCRYPT_ROUNDS);
     db.prepare(
-      `UPDATE users SET password_hash = ?, password_changed_at = datetime('now', '+3 hours'), recovery_hash = ? WHERE id = ?`,
+      `UPDATE users SET password_hash = ?, password_changed_at = datetime('now', '+3 hours'), recovery_hash = ?,
+       updated_at = datetime('now', '+3 hours') WHERE id = ?`,
     ).run(newPasswordHash, newRecoveryHash, account.id);
 
     return {
@@ -204,7 +209,9 @@ function regenerateRecoveryCode(password) {
 
     const newRecoveryCode = generateRecoveryCode();
     const newRecoveryHash = bcrypt.hashSync(newRecoveryCode.rawCode, BCRYPT_ROUNDS);
-    db.prepare(`UPDATE users SET recovery_hash = ? WHERE id = ?`).run(newRecoveryHash, account.id);
+    db.prepare(
+      `UPDATE users SET recovery_hash = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`,
+    ).run(newRecoveryHash, account.id);
 
     return { success: true, message: "Yeni kurtarma kodu oluşturuldu.", recoveryCode: newRecoveryCode.displayCode };
   } catch (err) {
@@ -237,7 +244,9 @@ function completeSetup(username, password, managerName) {
 
     if (account) {
       db.prepare(
-        `UPDATE users SET username = ?, password_hash = ?, manager_name = ?, password_changed_at = datetime('now', '+3 hours'), recovery_hash = ? WHERE id = ?`,
+        `UPDATE users SET username = ?, password_hash = ?, manager_name = ?,
+         password_changed_at = datetime('now', '+3 hours'), recovery_hash = ?,
+         updated_at = datetime('now', '+3 hours') WHERE id = ?`,
       ).run(username, newPasswordHash, managerName, newRecoveryHash, account.id);
     } else {
       db.prepare(

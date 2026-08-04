@@ -10,6 +10,7 @@ const { createSplashWindow, sendToSplash, closeSplashAndShowMain, waitForSplashR
 log.initialize();
 log.errorHandler.startCatching();
 log.transports.file.maxSize = 5 * 1024 * 1024;
+Object.assign(console, log.functions);
 autoUpdater.logger = log;
 
 app.disableHardwareAcceleration();

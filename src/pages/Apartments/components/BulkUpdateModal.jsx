@@ -21,12 +21,13 @@ function BulkUpdateModal({ building, onClose, onSaved }) {
                Yeni tutar <b>gelecek ayın</b> aidatlarında geçerli olur; <b>bu ay dahil</b> tahakkuk etmiş aylar eski
                tutarda kalır.`,
       },
+      "Vazgeç",
       "Evet, Güncelle",
     );
     if (!confirmed) return;
 
     setIsSubmitting(true);
-    const res = await window.electronAPI.bulkUpdateDueAmount(building.id, parsed);
+    const res = await window.electronAPI.bulkUpdateDueAmount({ buildingId: building.id, amount: parsed });
     setIsSubmitting(false);
 
     if (res.success) {

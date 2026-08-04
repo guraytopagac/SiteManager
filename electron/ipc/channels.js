@@ -1,4 +1,4 @@
-const CHANNELS = Object.freeze({
+const CHANNELS = {
   APARTMENT: Object.freeze({
     ADD: "apartment:add",
     UPDATE: "apartment:update",
@@ -54,6 +54,11 @@ const CHANNELS = Object.freeze({
     CANCEL_EXPENSE: "financial:cancel-expense",
   }),
 
+  REPORTS: Object.freeze({
+    GET_DATA: "reports:get-data",
+    SAVE_FILE: "reports:save-file",
+  }),
+
   RESIDENT: Object.freeze({
     GET_OVERVIEW: "resident:get-overview",
     GET_HISTORY: "resident:get-history",
@@ -62,19 +67,19 @@ const CHANNELS = Object.freeze({
     MOVE_OUT: "resident:move-out",
   }),
 
-  REPORTS: Object.freeze({
-    GET_DATA: "reports:get-data",
-    SAVE_FILE: "reports:save-file",
-  }),
-
   SYSTEM: Object.freeze({
     GET_APP_VERSION: "system:get-app-version",
   }),
-});
+};
 
 const allChannelValues = Object.values(CHANNELS).flatMap(Object.values);
 const uniqueChannelValues = new Set(allChannelValues);
 if (uniqueChannelValues.size !== allChannelValues.length)
   throw new Error("channels.js: duplicate channel value detected");
 
-module.exports = CHANNELS;
+const EVENT_CHANNELS = new Set(Object.values(CHANNELS.EVENTS));
+const INVOKE_CHANNELS = new Set(allChannelValues.filter((channel) => !EVENT_CHANNELS.has(channel)));
+
+Object.freeze(CHANNELS);
+
+module.exports = { CHANNELS, EVENT_CHANNELS, INVOKE_CHANNELS };

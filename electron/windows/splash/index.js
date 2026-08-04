@@ -1,6 +1,8 @@
 const path = require("path");
 const { BrowserWindow, ipcMain } = require("electron");
 
+const ICON_PATH = path.join(__dirname, "../../../assets/icon.ico");
+
 let splashWindow = null;
 
 function createSplashWindow() {
@@ -13,7 +15,7 @@ function createSplashWindow() {
     alwaysOnTop: false,
     skipTaskbar: false,
     show: false,
-    icon: path.join(__dirname, "../../../assets/icon.ico"),
+    icon: ICON_PATH,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,

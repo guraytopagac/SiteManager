@@ -329,7 +329,7 @@ function Setup() {
                   }}
                 />
 
-                <PasswordStrength password={password} confirmPassword={confirmPassword} iconSize={13} />
+                <PasswordStrength password={password} confirmPassword={confirmPassword} />
               </>
             )}
 

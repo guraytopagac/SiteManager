@@ -92,7 +92,7 @@ function Recover() {
 
     let verifyResult;
     try {
-      verifyResult = await window.electronAPI.verifyRecoveryCode(recoveryDigits);
+      verifyResult = await window.electronAPI.verifyRecoveryCode({ recoveryCode: recoveryDigits });
     } catch {
       setError("Kurtarma kodu doğrulanamadı. Lütfen tekrar deneyin.");
       return;
@@ -369,7 +369,7 @@ function Recover() {
             </div>
 
             <div className="recover-band">
-              <PasswordStrength password={password} confirmPassword={confirmPassword} iconSize={14} />
+              <PasswordStrength password={password} confirmPassword={confirmPassword} />
 
               <StatusMessage variant="error" message={error} />
             </div>
