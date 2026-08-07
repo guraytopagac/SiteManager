@@ -1,6 +1,15 @@
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
-const { db } = require("../../../database/db");
+const { getDb } = require("../../../database/db");
+const { createDbErrorResolver } = require("../shared/dbError");
+
+const COLUMN_LABELS = {
+  username: "Kullanıcı adı",
+  email: "E-posta adresi",
+  manager_name: "Ad Soyad",
+};
+
+const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
 
 const BCRYPT_ROUNDS = 12;
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -43,7 +52,7 @@ function login(credentials) {
     if (!credentials?.username || !credentials?.password)
       return { success: false, message: "Kullanıcı adı ve şifre zorunludur." };
 
-    const user = db
+    const user = getDb()
       .prepare(
         `SELECT id, username, email, manager_name, password_hash, last_login
          FROM users WHERE username = ? AND is_active = 1`,
@@ -56,7 +65,7 @@ function login(credentials) {
     }
 
     if (bcrypt.compareSync(credentials.password, user.password_hash)) {
-      db.prepare(
+      getDb().prepare(
         `UPDATE users SET last_login = datetime('now', '+3 hours'), updated_at = datetime('now', '+3 hours')
          WHERE id = ?`,
       ).run(user.id);
@@ -80,14 +89,14 @@ function generateTemporaryPassword() {
 
 function transferAccount(userId, password, newPerson) {
   try {
-    const user = db.prepare(`SELECT id, password_hash FROM users WHERE id = ?`).get(userId);
+    const user = getDb().prepare(`SELECT id, password_hash FROM users WHERE id = ?`).get(userId);
     if (!user) return { success: false, message: "Hesap bulunamadı." };
     if (!bcrypt.compareSync(password || "", user.password_hash))
       return { success: false, message: "Mevcut şifre hatalı." };
 
     const temporaryPassword = generateTemporaryPassword();
     const temporaryPasswordHash = bcrypt.hashSync(temporaryPassword, BCRYPT_ROUNDS);
-    db.prepare(
+    getDb().prepare(
       `UPDATE users SET password_hash = ?, manager_name = ?, password_changed_at = datetime('now', '+3 hours'),
        updated_at = datetime('now', '+3 hours') WHERE id = ?`,
     ).run(temporaryPasswordHash, newPerson, userId);
@@ -102,7 +111,7 @@ function transferAccount(userId, password, newPerson) {
 function changePassword(userId, oldPassword, newPassword) {
   try {
     if (!newPassword || newPassword.length < 8) return { success: false, message: "Şifre en az 8 karakter olmalıdır." };
-    const user = db.prepare(`SELECT password_hash FROM users WHERE id = ?`).get(userId);
+    const user = getDb().prepare(`SELECT password_hash FROM users WHERE id = ?`).get(userId);
     if (!user) return { success: false, message: "Kullanıcı bulunamadı." };
     if (!oldPassword || !bcrypt.compareSync(oldPassword, user.password_hash))
       return { success: false, message: "Mevcut şifre hatalı." };
@@ -110,7 +119,7 @@ function changePassword(userId, oldPassword, newPassword) {
       return { success: false, message: "Yeni şifre eski şifreyle aynı olamaz." };
 
     const newPasswordHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
-    db.prepare(
+    getDb().prepare(
       `UPDATE users SET password_hash = ?, password_changed_at = datetime('now', '+3 hours'),
        updated_at = datetime('now', '+3 hours') WHERE id = ?`,
     ).run(newPasswordHash, userId);
@@ -123,10 +132,10 @@ function changePassword(userId, oldPassword, newPassword) {
 
 function updateEmail(userId, email) {
   try {
-    const account = db.prepare(`SELECT id FROM users WHERE id = ?`).get(userId);
+    const account = getDb().prepare(`SELECT id FROM users WHERE id = ?`).get(userId);
     if (!account) return { success: false, message: "Hesap bulunamadı." };
 
-    db.prepare(`UPDATE users SET email = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`).run(email, userId);
+    getDb().prepare(`UPDATE users SET email = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`).run(email, userId);
 
     return {
       success: true,
@@ -135,8 +144,7 @@ function updateEmail(userId, email) {
     };
   } catch (err) {
     console.error("[auth.service] updateEmail:", err);
-    if (err.message?.includes("CHECK")) return { success: false, message: "Geçersiz e-posta adresi." };
-    return { success: false, message: "E-posta güncellenemedi." };
+    return { success: false, message: resolveDbError(err, "E-posta güncelleme") };
   }
 }
 
@@ -145,7 +153,7 @@ function resetAccountPassword(recoveryCode, newPassword) {
     if (!newPassword || newPassword.length < 8)
       return { success: false, message: "Yeni şifre en az 8 karakter olmalıdır." };
 
-    const account = db
+    const account = getDb()
       .prepare(`SELECT id, username, recovery_hash FROM users WHERE recovery_hash IS NOT NULL LIMIT 1`)
       .get();
     if (!account || !account.recovery_hash) {
@@ -160,7 +168,7 @@ function resetAccountPassword(recoveryCode, newPassword) {
     const newPasswordHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
     const newRecoveryCode = generateRecoveryCode();
     const newRecoveryHash = bcrypt.hashSync(newRecoveryCode.rawCode, BCRYPT_ROUNDS);
-    db.prepare(
+    getDb().prepare(
       `UPDATE users SET password_hash = ?, password_changed_at = datetime('now', '+3 hours'), recovery_hash = ?,
        updated_at = datetime('now', '+3 hours') WHERE id = ?`,
     ).run(newPasswordHash, newRecoveryHash, account.id);
@@ -179,7 +187,7 @@ function resetAccountPassword(recoveryCode, newPassword) {
 
 function verifyRecoveryCode(recoveryCode) {
   try {
-    const account = db
+    const account = getDb()
       .prepare(`SELECT recovery_hash FROM users WHERE recovery_hash IS NOT NULL LIMIT 1`)
       .get();
     if (!account || !account.recovery_hash) {
@@ -200,7 +208,7 @@ function verifyRecoveryCode(recoveryCode) {
 
 function regenerateRecoveryCode(password) {
   try {
-    const account = db.prepare(`SELECT id, password_hash FROM users ORDER BY id LIMIT 1`).get();
+    const account = getDb().prepare(`SELECT id, password_hash FROM users ORDER BY id LIMIT 1`).get();
     if (!account) {
       bcrypt.compareSync("dummy", DUMMY_HASH);
       return { success: false, message: "Hesap bulunamadı." };
@@ -209,7 +217,7 @@ function regenerateRecoveryCode(password) {
 
     const newRecoveryCode = generateRecoveryCode();
     const newRecoveryHash = bcrypt.hashSync(newRecoveryCode.rawCode, BCRYPT_ROUNDS);
-    db.prepare(
+    getDb().prepare(
       `UPDATE users SET recovery_hash = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`,
     ).run(newRecoveryHash, account.id);
 
@@ -222,7 +230,7 @@ function regenerateRecoveryCode(password) {
 
 function getSetupState() {
   try {
-    const account = db.prepare(`SELECT username, password_changed_at FROM users ORDER BY id LIMIT 1`).get();
+    const account = getDb().prepare(`SELECT username, password_changed_at FROM users ORDER BY id LIMIT 1`).get();
     const needsSetup = !account || account.password_changed_at == null;
     return { success: true, needsSetup, username: needsSetup ? null : (account?.username ?? null) };
   } catch (err) {
@@ -235,7 +243,7 @@ function completeSetup(username, password, managerName) {
   try {
     if (!password || password.length < 8) return { success: false, message: "Şifre en az 8 karakter olmalıdır." };
 
-    const account = db.prepare(`SELECT id, password_changed_at FROM users ORDER BY id LIMIT 1`).get();
+    const account = getDb().prepare(`SELECT id, password_changed_at FROM users ORDER BY id LIMIT 1`).get();
     if (account && account.password_changed_at != null) return { success: false, message: "Kurulum zaten tamamlanmış." };
 
     const newPasswordHash = bcrypt.hashSync(password, BCRYPT_ROUNDS);
@@ -243,13 +251,13 @@ function completeSetup(username, password, managerName) {
     const newRecoveryHash = bcrypt.hashSync(newRecoveryCode.rawCode, BCRYPT_ROUNDS);
 
     if (account) {
-      db.prepare(
+      getDb().prepare(
         `UPDATE users SET username = ?, password_hash = ?, manager_name = ?,
          password_changed_at = datetime('now', '+3 hours'), recovery_hash = ?,
          updated_at = datetime('now', '+3 hours') WHERE id = ?`,
       ).run(username, newPasswordHash, managerName, newRecoveryHash, account.id);
     } else {
-      db.prepare(
+      getDb().prepare(
         `INSERT INTO users (username, password_hash, manager_name, recovery_hash, is_active, password_changed_at, created_at, updated_at)
          VALUES (?, ?, ?, ?, 1, datetime('now', '+3 hours'), datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
       ).run(username, newPasswordHash, managerName, newRecoveryHash);
@@ -258,8 +266,7 @@ function completeSetup(username, password, managerName) {
     return { success: true, message: "Hesabınız kuruldu.", recoveryCode: newRecoveryCode.displayCode };
   } catch (err) {
     console.error("[auth.service] completeSetup:", err);
-    if (err.message?.includes("CHECK")) return { success: false, message: "Geçersiz kullanıcı adı formatı." };
-    return { success: false, message: "Kurulum tamamlanamadı." };
+    return { success: false, message: resolveDbError(err, "Kurulum") };
   }
 }
 

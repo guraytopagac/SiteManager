@@ -1,9 +1,7 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 function safeOn(channel, listener) {
-  const wrapper = (event, data) => listener(data);
-  ipcRenderer.on(channel, wrapper);
-  return () => ipcRenderer.removeListener(channel, wrapper);
+  ipcRenderer.on(channel, (event, data) => listener(data));
 }
 
 contextBridge.exposeInMainWorld("splashAPI", {

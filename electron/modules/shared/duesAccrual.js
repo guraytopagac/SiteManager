@@ -1,4 +1,4 @@
-const { db } = require("../../../database/db");
+const { getDb } = require("../../../database/db");
 const { trYearMonth } = require("./trTime");
 
 function currentPeriod() {
@@ -7,7 +7,7 @@ function currentPeriod() {
 }
 
 function ensureMonthlyDues(buildingId) {
-  const { startPeriod } = db
+  const { startPeriod } = getDb()
     .prepare(
       `SELECT MIN(CAST(strftime('%Y', created_at) AS INTEGER) * 12 + CAST(strftime('%m', created_at) AS INTEGER))
               AS startPeriod
@@ -20,8 +20,9 @@ function ensureMonthlyDues(buildingId) {
   const endPeriod = currentPeriod();
   if (startPeriod > endPeriod) return;
 
-  db.prepare(
-    `INSERT OR IGNORE INTO dues (apartment_id, year, month, due_amount)
+  getDb()
+    .prepare(
+      `INSERT OR IGNORE INTO dues (apartment_id, year, month, due_amount)
      WITH RECURSIVE periods(period) AS (
        SELECT ?
        UNION ALL
@@ -33,7 +34,8 @@ function ensureMonthlyDues(buildingId) {
        ON p.period >= CAST(strftime('%Y', a.created_at) AS INTEGER) * 12
                     + CAST(strftime('%m', a.created_at) AS INTEGER)
      WHERE a.building_id = ? AND a.is_active = 1`,
-  ).run(startPeriod, endPeriod, buildingId);
+    )
+    .run(startPeriod, endPeriod, buildingId);
 }
 
 module.exports = { ensureMonthlyDues, currentPeriod };

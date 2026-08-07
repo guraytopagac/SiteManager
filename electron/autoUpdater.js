@@ -1,11 +1,18 @@
 const { app, dialog, ipcMain } = require("electron");
+const log = require("electron-log");
 const { autoUpdater } = require("electron-updater");
 const { sendToSplash, getSplashWindow } = require("./windows/splash");
+
+autoUpdater.logger = log;
+autoUpdater.autoInstallOnAppQuit = false;
 
 const CHECK_TIMEOUT_MS = 20000;
 const DOWNLOAD_STALL_TIMEOUT_MS = 60000;
 
+const CHECK_TIMED_OUT_MESSAGE = `No response from the update server within ${CHECK_TIMEOUT_MS / 1000}s (offline or slow connection); skipping the update check and booting the app.`;
 const DOWNLOAD_STALLED_MESSAGE = `Update download made no progress for ${DOWNLOAD_STALL_TIMEOUT_MS / 1000}s (connection likely dropped); skipping the update and booting the app.`;
+
+let isUpdateFlowActive = false;
 
 function setTaskbarProgress(value, options) {
   const splash = getSplashWindow();
@@ -19,16 +26,6 @@ function checkForUpdatesBeforeStartup() {
     let finished = false;
     let idleTimeout = null;
 
-    const waitForProgress = (ms, giveUpReason) => {
-      clearTimeout(idleTimeout);
-      idleTimeout = setTimeout(() => {
-        console.warn(`[Main] ${giveUpReason}`);
-        sendToSplash("splash:status", { text: "Güncelleme kontrol edilemedi, atlanıyor", isError: true });
-        setTaskbarProgress(1, { mode: "error" });
-        continueStartup();
-      }, ms);
-    };
-
     const continueStartup = () => {
       if (finished) return;
       finished = true;
@@ -39,21 +36,27 @@ function checkForUpdatesBeforeStartup() {
       resolve();
     };
 
+    const skipUpdate = () => {
+      sendToSplash("splash:status", { text: "Güncelleme kontrol edilemedi, atlanıyor", isError: true });
+      setTaskbarProgress(1, { mode: "error" });
+      continueStartup();
+    };
+
+    const waitForProgress = (ms, giveUpReason) => {
+      clearTimeout(idleTimeout);
+      idleTimeout = setTimeout(() => {
+        console.warn(`[Updater] ${giveUpReason}`);
+        skipUpdate();
+      }, ms);
+    };
+
     const eventHandlers = [
-      [
-        "update-not-available",
-        () => {
-          setTaskbarProgress(-1);
-          continueStartup();
-        },
-      ],
+      ["update-not-available", continueStartup],
       [
         "error",
         (err) => {
-          console.error("[Main] Update error:", err);
-          sendToSplash("splash:status", { text: "Güncelleme kontrol edilemedi, atlanıyor", isError: true });
-          setTaskbarProgress(1, { mode: "error" });
-          continueStartup();
+          console.error("[Updater] Update error:", err);
+          skipUpdate();
         },
       ],
       [
@@ -85,8 +88,12 @@ function checkForUpdatesBeforeStartup() {
 
           const userWantsRestart = await askToRestart();
           if (userWantsRestart) {
-            autoUpdater.quitAndInstall(true, true);
-            return;
+            try {
+              autoUpdater.quitAndInstall(true, true);
+              return;
+            } catch (err) {
+              console.error("[Updater] Restart to install failed:", err);
+            }
           }
           continueStartup();
         },
@@ -97,11 +104,8 @@ function checkForUpdatesBeforeStartup() {
       autoUpdater.on(event, handler);
     }
 
-    waitForProgress(
-      CHECK_TIMEOUT_MS,
-      `No response from the update server within ${CHECK_TIMEOUT_MS / 1000}s (offline or slow connection); skipping the update check and booting the app.`,
-    );
-    autoUpdater.checkForUpdates();
+    waitForProgress(CHECK_TIMEOUT_MS, CHECK_TIMED_OUT_MESSAGE);
+    autoUpdater.checkForUpdates().catch(() => {});
   });
 }
 
@@ -126,8 +130,6 @@ function askToRestart() {
   });
 }
 
-let isUpdateFlowActive = false;
-
 async function checkForUpdatesOnDemand(mainWindow) {
   if (isUpdateFlowActive) {
     await dialog.showMessageBox(mainWindow, {
@@ -144,7 +146,11 @@ async function checkForUpdatesOnDemand(mainWindow) {
   let isDownloading = false;
 
   try {
-    const result = await autoUpdater.checkForUpdates();
+    const timedOut = new Promise((_resolve, reject) => {
+      setTimeout(() => reject(new Error(CHECK_TIMED_OUT_MESSAGE)), CHECK_TIMEOUT_MS);
+    });
+
+    const result = await Promise.race([autoUpdater.checkForUpdates(), timedOut]);
 
     if (!result?.downloadPromise) {
       await dialog.showMessageBox(mainWindow, {
@@ -158,6 +164,11 @@ async function checkForUpdatesOnDemand(mainWindow) {
     }
 
     isDownloading = true;
+    const download = result.downloadPromise.then(
+      () => null,
+      (err) => err,
+    );
+
     await dialog.showMessageBox(mainWindow, {
       type: "info",
       title: "Güncelleme Bulundu",
@@ -166,7 +177,8 @@ async function checkForUpdatesOnDemand(mainWindow) {
       buttons: ["Tamam"],
     });
 
-    await result.downloadPromise;
+    const downloadError = await download;
+    if (downloadError) throw downloadError;
 
     const { response } = await dialog.showMessageBox(mainWindow, {
       type: "info",
@@ -182,7 +194,7 @@ async function checkForUpdatesOnDemand(mainWindow) {
       autoUpdater.quitAndInstall(true, true);
     }
   } catch (err) {
-    console.error("[Main] On-demand update check failed:", err);
+    console.error("[Updater] On-demand update check failed:", err);
     await dialog.showMessageBox(mainWindow, {
       type: "warning",
       title: "Güncelleme",

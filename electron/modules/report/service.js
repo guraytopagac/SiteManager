@@ -1,11 +1,11 @@
-const { db } = require("../../../database/db");
+const { getDb } = require("../../../database/db");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
 
 const ALLOWED_TABLES = new Set(["incomes", "expenses"]);
 
 function fetchByMonth(table, buildingId, startDate, endDate) {
-  if (!ALLOWED_TABLES.has(table)) throw new Error(`İzinsiz tablo: ${table}`);
-  return db
+  if (!ALLOWED_TABLES.has(table)) throw new Error(`fetchByMonth: table not allowed: ${table}`);
+  return getDb()
     .prepare(
       `SELECT id, amount, date, description
        FROM ${table}
@@ -28,7 +28,7 @@ function getReportData(buildingId, year, month) {
     const incomes = fetchByMonth("incomes", buildingId, startDate, endDate);
     const expenses = fetchByMonth("expenses", buildingId, startDate, endDate);
 
-    const dues = db
+    const dues = getDb()
       .prepare(
         `SELECT a.apartment_no, a.floor, a.type, r.full_name AS resident_name,
                 COALESCE(d.due_amount, a.due_amount) AS due_amount,

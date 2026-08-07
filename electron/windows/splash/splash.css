@@ -89,7 +89,8 @@ body.splash-closing {
   gap: 2px;
 }
 
-.splash-status.splash-hidden {
+.splash-status.splash-hidden,
+.splash-dots.splash-hidden {
   display: none;
 }
 
@@ -98,12 +99,16 @@ body.splash-closing {
   font-weight: 600;
 }
 
+.splash-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
 .splash-dot {
   display: inline-block;
   animation: blink 1.2s ease-in-out infinite;
   font-size: 1rem;
   line-height: 1;
-  margin-left: 1px;
 }
 .splash-dot:nth-child(2) {
   animation-delay: 0.2s;
@@ -161,12 +166,12 @@ body.splash-closing {
   color: #7a9bb5;
 }
 
-.splash-progress-info #progress-percent {
+.splash-progress-percent {
   justify-self: start;
   white-space: nowrap;
 }
 
-.splash-progress-info #progress-size {
+.splash-progress-size {
   justify-self: end;
   white-space: nowrap;
 }
@@ -190,7 +195,7 @@ body.splash-closing {
 }
 
 .splash-restart-text {
-  font-size: 0.85rem;
+  font-size: 1rem;
   color: #c3d6e6;
 }
 
@@ -203,7 +208,7 @@ body.splash-closing {
   -webkit-app-region: no-drag;
   cursor: pointer;
   font-family: inherit;
-  font-size: 0.8rem;
+  font-size: 1rem;
   font-weight: 600;
   padding: 8px 18px;
   border-radius: 8px;

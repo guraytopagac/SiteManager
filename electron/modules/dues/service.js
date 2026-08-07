@@ -1,5 +1,18 @@
-const { db } = require("../../../database/db");
+const { getDb } = require("../../../database/db");
+const { createDbErrorResolver } = require("../shared/dbError");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
+
+const COLUMN_LABELS = {
+  amount: "Ödeme tutarı",
+  payment_method: "Ödeme yöntemi",
+  payment_date: "Ödeme tarihi",
+  note: "Not",
+  cancel_reason: "İptal nedeni",
+  due_amount: "Aidat tutarı",
+  paid_amount: "Ödenen tutar",
+};
+
+const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
 
 function calcDueStatus(dueAmount, paidAmount) {
   if (paidAmount >= dueAmount) return "paid";
@@ -11,7 +24,7 @@ function getDuesForMonth(buildingId, year, month) {
   try {
     ensureMonthlyDues(buildingId);
 
-    const monthlyDuesData = db
+    const monthlyDuesData = getDb()
       .prepare(
         `
       SELECT a.id AS apartment_id, a.apartment_no, a.floor, a.type, a.square_meters,
@@ -38,32 +51,33 @@ function getDuesForMonth(buildingId, year, month) {
 
 function recordPayment(apartmentId, buildingId, year, month, paymentData) {
   try {
-    db.transaction(() => {
-      const apartment = db
-        .prepare(
-          `SELECT id, apartment_no, due_amount, building_id
-           FROM apartments WHERE id = ? AND building_id = ? AND is_active = 1`,
-        )
-        .get(apartmentId, buildingId);
-      if (!apartment) throw new Error("Daire bulunamadı veya bu işlem için yetkiniz yok.");
+    const apartment = getDb()
+      .prepare(
+        `SELECT id, apartment_no, due_amount, building_id
+         FROM apartments WHERE id = ? AND building_id = ? AND is_active = 1`,
+      )
+      .get(apartmentId, buildingId);
+    if (!apartment) return { success: false, message: "Daire bulunamadı veya bu işlem için yetkiniz yok." };
 
-      db.prepare(`INSERT OR IGNORE INTO dues (apartment_id, year, month, due_amount) VALUES (?, ?, ?, ?)`).run(
-        apartmentId,
-        year,
-        month,
-        apartment.due_amount,
-      );
+    getDb().prepare(`INSERT OR IGNORE INTO dues (apartment_id, year, month, due_amount) VALUES (?, ?, ?, ?)`).run(
+      apartmentId,
+      year,
+      month,
+      apartment.due_amount,
+    );
 
-      const due = db
-        .prepare(`SELECT id, due_amount, paid_amount FROM dues WHERE apartment_id = ? AND year = ? AND month = ?`)
-        .get(apartmentId, year, month);
+    const due = getDb()
+      .prepare(`SELECT id, due_amount, paid_amount FROM dues WHERE apartment_id = ? AND year = ? AND month = ?`)
+      .get(apartmentId, year, month);
 
-      const remaining = parseFloat((due.due_amount - due.paid_amount).toFixed(2));
-      if (paymentData.amount > remaining) throw new Error(`Fazla ödeme yapılamaz. Kalan borç: ${remaining}₺`);
+    const remaining = parseFloat((due.due_amount - due.paid_amount).toFixed(2));
+    if (paymentData.amount > remaining)
+      return { success: false, message: `Fazla ödeme yapılamaz. Kalan borç: ${remaining}₺` };
 
-      const { amount, payment_method, payment_date, note, collected_by } = paymentData;
+    const { amount, payment_method, payment_date, note, collected_by } = paymentData;
 
-      const { lastInsertRowid: paymentId } = db
+    getDb().transaction(() => {
+      const { lastInsertRowid: paymentId } = getDb()
         .prepare(
           `
         INSERT INTO due_payments (due_id, amount, payment_method, payment_date, note, collected_by, created_at)
@@ -72,7 +86,7 @@ function recordPayment(apartmentId, buildingId, year, month, paymentData) {
         )
         .run(due.id, amount, payment_method, payment_date, note || null, collected_by);
 
-      db.prepare(
+      getDb().prepare(
         `
         INSERT INTO incomes (amount, date, description, category, building_id, due_payment_id, created_at, updated_at)
         VALUES (?, ?, ?, 'dues', ?, ?, datetime('now', '+3 hours'), datetime('now', '+3 hours'))
@@ -80,7 +94,7 @@ function recordPayment(apartmentId, buildingId, year, month, paymentData) {
       ).run(amount, payment_date, `Aidat Ödemesi - Daire ${apartment.apartment_no}`, apartment.building_id, paymentId);
 
       const newPaidAmount = parseFloat((due.paid_amount + amount).toFixed(2));
-      db.prepare(
+      getDb().prepare(
         `UPDATE dues SET paid_amount = ?, status = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`,
       ).run(newPaidAmount, calcDueStatus(due.due_amount, newPaidAmount), due.id);
     })();
@@ -88,42 +102,42 @@ function recordPayment(apartmentId, buildingId, year, month, paymentData) {
     return { success: true, message: "Ödeme başarıyla kaydedildi." };
   } catch (err) {
     console.error("[dues.service] recordPayment:", err);
-    return { success: false, message: err.message || "Ödeme kaydedilemedi." };
+    return { success: false, message: resolveDbError(err, "Ödeme kaydetme") };
   }
 }
 
 function cancelPayment(paymentId, buildingId, userId, reason) {
   try {
-    db.transaction(() => {
-      const payment = db
-        .prepare(
-          `
+    const payment = getDb()
+      .prepare(
+        `
         SELECT dp.id, dp.due_id, dp.amount
         FROM due_payments dp
         JOIN dues d ON dp.due_id = d.id
         JOIN apartments a ON d.apartment_id = a.id
         WHERE dp.id = ? AND a.building_id = ?
       `,
-        )
-        .get(paymentId, buildingId);
-      if (!payment) throw new Error("Ödeme kaydı bulunamadı.");
+      )
+      .get(paymentId, buildingId);
+    if (!payment) return { success: false, message: "Ödeme kaydı bulunamadı." };
 
-      const alreadyCancelled = db.prepare(`SELECT id FROM payment_cancellations WHERE payment_id = ?`).get(paymentId);
-      if (alreadyCancelled) throw new Error("Bu ödeme zaten iptal edilmiş.");
+    const alreadyCancelled = getDb().prepare(`SELECT id FROM payment_cancellations WHERE payment_id = ?`).get(paymentId);
+    if (alreadyCancelled) return { success: false, message: "Bu ödeme zaten iptal edilmiş." };
 
-      db.prepare(
+    getDb().transaction(() => {
+      getDb().prepare(
         `INSERT INTO payment_cancellations (payment_id, cancel_reason, cancelled_by, cancelled_at)
          VALUES (?, ?, ?, datetime('now', '+3 hours'))`,
       ).run(paymentId, reason, userId);
 
-      db.prepare(
+      getDb().prepare(
         `
         UPDATE incomes SET is_cancelled = 1, cancelled_at = datetime('now', '+3 hours'), cancel_reason = ?, cancelled_by = ?,
         updated_at = datetime('now', '+3 hours') WHERE due_payment_id = ? AND is_cancelled = 0
       `,
       ).run(reason, userId, paymentId);
 
-      const { total: activePaidTotal } = db
+      const { total: activePaidTotal } = getDb()
         .prepare(
           `
         SELECT COALESCE(SUM(dp.amount), 0) AS total
@@ -135,9 +149,9 @@ function cancelPayment(paymentId, buildingId, userId, reason) {
         )
         .get(payment.due_id);
 
-      const { due_amount } = db.prepare(`SELECT due_amount FROM dues WHERE id = ?`).get(payment.due_id);
+      const { due_amount } = getDb().prepare(`SELECT due_amount FROM dues WHERE id = ?`).get(payment.due_id);
       const newPaidAmount = parseFloat(Number(activePaidTotal).toFixed(2));
-      db.prepare(
+      getDb().prepare(
         `UPDATE dues SET paid_amount = ?, status = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`,
       ).run(newPaidAmount, calcDueStatus(due_amount, newPaidAmount), payment.due_id);
     })();
@@ -145,13 +159,13 @@ function cancelPayment(paymentId, buildingId, userId, reason) {
     return { success: true, message: "Ödeme başarıyla iptal edildi." };
   } catch (err) {
     console.error("[dues.service] cancelPayment:", err);
-    return { success: false, message: err.message || "Ödeme iptal edilemedi." };
+    return { success: false, message: resolveDbError(err, "Ödeme iptali") };
   }
 }
 
 function getPaymentHistory(dueId, buildingId) {
   try {
-    const data = db
+    const data = getDb()
       .prepare(
         `
       SELECT dp.id, dp.amount, dp.payment_method, dp.payment_date, dp.note, dp.created_at,

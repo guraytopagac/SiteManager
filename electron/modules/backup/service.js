@@ -1,18 +1,10 @@
 const fs = require("fs");
 const Database = require("better-sqlite3");
 const { dialog, app } = require("electron");
-const { trNow, trToday } = require("../shared/trTime");
-const { readSettings, writeSetting } = require("../shared/appSettings");
-
-const LAST_BACKUP_KEY = "lastBackupAt";
-
-function getLastBackupAt() {
-  const value = readSettings()[LAST_BACKUP_KEY];
-  return typeof value === "string" ? value : null;
-}
+const { closeDb, getDb } = require("../../../database/db");
+const { trToday } = require("../shared/trTime");
 
 async function runBackup(mainWindow, { silent = false } = {}) {
-  const { db } = require("../../../database/db");
   const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
     title: "Yedek Dosyasını Kaydet",
     defaultPath: `mavikent-yedek-${trToday()}.db`,
@@ -22,12 +14,9 @@ async function runBackup(mainWindow, { silent = false } = {}) {
   if (!filePath || canceled) return { success: false, cancelled: true, message: "İptal edildi." };
 
   try {
-    await db.backup(filePath);
+    await getDb().backup(filePath);
     await fs.promises.unlink(filePath + "-shm").catch(() => {});
     await fs.promises.unlink(filePath + "-wal").catch(() => {});
-
-    const lastBackupAt = trNow().toISOString().slice(0, 19).replace("T", " ");
-    writeSetting(LAST_BACKUP_KEY, lastBackupAt);
 
     if (!silent) {
       await dialog.showMessageBox(mainWindow, {
@@ -37,8 +26,9 @@ async function runBackup(mainWindow, { silent = false } = {}) {
         buttons: ["Tamam"],
       });
     }
-    return { success: true, message: "Yedek başarıyla alındı.", lastBackupAt };
-  } catch {
+    return { success: true, message: "Yedek başarıyla alındı." };
+  } catch (err) {
+    console.error("[backup.service] runBackup:", err);
     if (!silent) {
       await dialog.showMessageBox(mainWindow, {
         type: "error",
@@ -52,7 +42,6 @@ async function runBackup(mainWindow, { silent = false } = {}) {
 }
 
 async function runRestore(mainWindow) {
-  const { db, closeDb } = require("../../../database/db");
   const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow, {
     title: "Yedek Dosyasını Seç",
     filters: [{ name: "Yedek Dosyası", extensions: ["db"] }],
@@ -67,7 +56,8 @@ async function runRestore(mainWindow) {
     const result = testDb.pragma("integrity_check", { simple: true });
     testDb.close();
     integrityOk = result === "ok";
-  } catch {
+  } catch (err) {
+    console.warn("[backup.service] runRestore integrity check failed:", err);
     integrityOk = false;
   }
 
@@ -90,12 +80,13 @@ async function runRestore(mainWindow) {
 
   if (response !== 0) return;
 
-  const dbPath = db.name;
+  const dbPath = getDb().name;
   const tempBackup = dbPath + ".bak";
 
   try {
     await fs.promises.copyFile(dbPath, tempBackup);
-  } catch {
+  } catch (err) {
+    console.error("[backup.service] runRestore safety copy failed:", err);
     await dialog.showMessageBox(mainWindow, {
       type: "error",
       title: "Geri Yükleme Hatası",
@@ -120,7 +111,8 @@ async function runRestore(mainWindow) {
     });
     app.relaunch();
     app.exit();
-  } catch {
+  } catch (err) {
+    console.error("[backup.service] runRestore failed, rolling back:", err);
     await fs.promises.copyFile(tempBackup, dbPath).catch(() => {});
     await fs.promises.unlink(tempBackup).catch(() => {});
     await dialog.showMessageBox(mainWindow, {
@@ -134,4 +126,4 @@ async function runRestore(mainWindow) {
   }
 }
 
-module.exports = { runBackup, runRestore, getLastBackupAt };
+module.exports = { runBackup, runRestore };

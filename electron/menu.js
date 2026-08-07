@@ -1,12 +1,12 @@
 const path = require("path");
 const { Menu, dialog, app, shell } = require("electron");
 const { checkForUpdatesOnDemand } = require("./autoUpdater");
+const { SUPPORT_EMAIL } = require("./errorReporting");
 const { CHANNELS: CH } = require("./ipc/channels");
 const { runBackup, runRestore } = require("./modules/backup/service");
-const { openGuide } = require("./windows/guide");
+const { openGuide, toggleGuideTheme } = require("./windows/guide");
 
 const ICON_PATH = path.join(__dirname, "../assets/icon.ico");
-const SUPPORT_EMAIL = "guray.topagac.dev@gmail.com";
 const BUG_REPORT_SUBJECT = "Mavikent Site Yönetimi - Hata Bildirimi";
 
 function buildMenu(mainWindow, isDev) {
@@ -50,6 +50,7 @@ function buildMenu(mainWindow, isDev) {
           accelerator: "Ctrl+Shift+T",
           click() {
             mainWindow.webContents.send(CH.EVENTS.TOGGLE_THEME);
+            toggleGuideTheme();
           },
         },
         { type: "separator" },
@@ -73,8 +74,8 @@ function buildMenu(mainWindow, isDev) {
         {
           label: "Kullanım Kılavuzu",
           accelerator: "F1",
-          click() {
-            openGuide();
+          async click() {
+            await openGuide(mainWindow);
           },
         },
         ...(isDev

@@ -1,4 +1,4 @@
-const { db } = require("../../../database/db");
+const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
 
 const COLUMN_LABELS = {
@@ -10,7 +10,7 @@ const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
 
 function listBuildings(ownerId) {
   try {
-    const data = db
+    const data = getDb()
       .prepare(
         `SELECT id, name, is_active, created_at
          FROM buildings WHERE owner_id = ? AND is_removed = 0
@@ -25,7 +25,7 @@ function listBuildings(ownerId) {
 }
 
 function findDuplicateName(ownerId, name, excludeId = null) {
-  return db
+  return getDb()
     .prepare(
       `SELECT id, is_active FROM buildings
        WHERE owner_id = ? AND is_removed = 0 AND name = ? COLLATE NOCASE AND (? IS NULL OR id != ?)
@@ -42,13 +42,13 @@ function duplicateNameMessage(duplicate) {
 
 function createBuilding(ownerId, name) {
   try {
-    const owner = db.prepare(`SELECT id FROM users WHERE id = ? AND is_active = 1`).get(ownerId);
+    const owner = getDb().prepare(`SELECT id FROM users WHERE id = ? AND is_active = 1`).get(ownerId);
     if (!owner) return { success: false, message: "Hesap bulunamadı." };
 
     const duplicate = findDuplicateName(ownerId, name);
     if (duplicate) return { success: false, message: duplicateNameMessage(duplicate) };
 
-    const result = db
+    const result = getDb()
       .prepare(
         `INSERT INTO buildings (owner_id, name, created_at, updated_at)
          VALUES (?, ?, datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
@@ -66,7 +66,7 @@ function renameBuilding(buildingId, ownerId, name) {
     const duplicate = findDuplicateName(ownerId, name, buildingId);
     if (duplicate) return { success: false, message: duplicateNameMessage(duplicate) };
 
-    const result = db
+    const result = getDb()
       .prepare(
         `UPDATE buildings SET name = ?, updated_at = datetime('now', '+3 hours')
          WHERE id = ? AND owner_id = ?`,
@@ -82,7 +82,7 @@ function renameBuilding(buildingId, ownerId, name) {
 
 function updateBuildingStatus(buildingId, ownerId, isActive) {
   try {
-    const result = db
+    const result = getDb()
       .prepare(
         `UPDATE buildings SET is_active = ?, updated_at = datetime('now', '+3 hours')
          WHERE id = ? AND owner_id = ?`,
@@ -99,7 +99,7 @@ function updateBuildingStatus(buildingId, ownerId, isActive) {
 
 function removeBuilding(buildingId, ownerId) {
   try {
-    const result = db
+    const result = getDb()
       .prepare(
         `UPDATE buildings SET is_removed = 1, updated_at = datetime('now', '+3 hours')
          WHERE id = ? AND owner_id = ? AND is_active = 0 AND is_removed = 0`,

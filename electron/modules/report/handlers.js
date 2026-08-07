@@ -42,8 +42,8 @@ function validateSaveFileData(payload) {
 
 function registerReportHandlers(ipcMain) {
   ipcMain.handle(
-    CH.REPORTS.GET_DATA,
-    safeHandler(CH.REPORTS.GET_DATA, (payload) => {
+    CH.REPORT.GET_DATA,
+    safeHandler(CH.REPORT.GET_DATA, (payload) => {
       const error = validateGetReportData(payload);
       if (error) {
         return error;
@@ -53,9 +53,9 @@ function registerReportHandlers(ipcMain) {
   );
 
   ipcMain.handle(
-    CH.REPORTS.SAVE_FILE,
+    CH.REPORT.SAVE_FILE,
     safeHandler(
-      CH.REPORTS.SAVE_FILE,
+      CH.REPORT.SAVE_FILE,
       async (payload) => {
         const error = validateSaveFileData(payload);
         if (error) {

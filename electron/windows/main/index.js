@@ -3,8 +3,9 @@ const { BrowserWindow, Menu, screen } = require("electron");
 const serve = require("electron-serve").default;
 const { buildMenu } = require("../../menu");
 
-const loadURL = serve({ directory: path.join(__dirname, "../../../dist") });
+const loadAppFiles = serve({ directory: path.join(__dirname, "../../../dist") });
 const ICON_PATH = path.join(__dirname, "../../../assets/icon.ico");
+const DEV_SERVER_URL = "http://localhost:5173/";
 
 let mainWindow = null;
 
@@ -20,7 +21,6 @@ function createMainWindow(isDev) {
     height,
     minWidth,
     minHeight,
-    title: "Mavikent Site Yönetimi Uygulaması",
     icon: ICON_PATH,
     show: false,
     webPreferences: {
@@ -34,10 +34,14 @@ function createMainWindow(isDev) {
 
   Menu.setApplicationMenu(buildMenu(mainWindow, isDev));
 
+  mainWindow.webContents.on("did-fail-load", (event, errorCode, errorDescription) => {
+    console.error(`[MainWindow] Failed to load: ${errorCode} ${errorDescription}`);
+  });
+
   if (isDev) {
-    mainWindow.loadURL("http://localhost:5173/");
+    mainWindow.loadURL(DEV_SERVER_URL).catch(() => {});
   } else {
-    loadURL(mainWindow);
+    loadAppFiles(mainWindow).catch(() => {});
   }
 
   mainWindow.on("closed", () => (mainWindow = null));

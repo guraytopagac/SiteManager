@@ -177,17 +177,6 @@ function registerAuthHandlers(ipcMain) {
   );
 
   ipcMain.handle(
-    CH.AUTH.TRANSFER_ACCOUNT,
-    safeHandler(CH.AUTH.TRANSFER_ACCOUNT, (payload) => {
-      const error = validateTransferAccountData(payload);
-      if (error) {
-        return error;
-      }
-      return authService.transferAccount(payload.userId, payload.password, payload.newPerson);
-    }),
-  );
-
-  ipcMain.handle(
     CH.AUTH.CHANGE_PASSWORD,
     safeHandler(CH.AUTH.CHANGE_PASSWORD, (payload) => {
       const error = validateChangePasswordData(payload);
@@ -206,6 +195,17 @@ function registerAuthHandlers(ipcMain) {
         return error;
       }
       return authService.updateEmail(payload.userId, payload.email);
+    }),
+  );
+
+  ipcMain.handle(
+    CH.AUTH.TRANSFER_ACCOUNT,
+    safeHandler(CH.AUTH.TRANSFER_ACCOUNT, (payload) => {
+      const error = validateTransferAccountData(payload);
+      if (error) {
+        return error;
+      }
+      return authService.transferAccount(payload.userId, payload.password, payload.newPerson);
     }),
   );
 

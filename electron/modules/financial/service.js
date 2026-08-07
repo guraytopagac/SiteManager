@@ -1,4 +1,4 @@
-const { db } = require("../../../database/db");
+const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
 
 const ALLOWED_TABLES = new Set(["incomes", "expenses"]);
@@ -13,12 +13,10 @@ const COLUMN_LABELS = {
 const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
 
 function insertRecord(table, recordData, label) {
-  if (!ALLOWED_TABLES.has(table)) {
-    return { success: false, message: "Geçersiz işlem türü." };
-  }
+  if (!ALLOWED_TABLES.has(table)) throw new Error(`insertRecord: table not allowed: ${table}`);
 
   const category = recordData.category || "other";
-  const result = db
+  const result = getDb()
     .prepare(
       `INSERT INTO ${table} (amount, date, description, category, building_id, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
@@ -64,7 +62,7 @@ function getTransactions(buildingId, period) {
       params.push(start, end);
     }
 
-    const transactions = db
+    const transactions = getDb()
       .prepare(
         `SELECT id, amount, date, description, category, 'income' AS type,
                 is_cancelled, cancelled_at, cancel_reason FROM incomes WHERE building_id = ? ${dateFilter}
@@ -82,9 +80,9 @@ function getTransactions(buildingId, period) {
 }
 
 function cancelRecord(table, id, buildingId, userId, reason) {
-  if (!ALLOWED_TABLES.has(table)) return { success: false, message: "Geçersiz işlem türü." };
+  if (!ALLOWED_TABLES.has(table)) throw new Error(`cancelRecord: table not allowed: ${table}`);
 
-  const record = db
+  const record = getDb()
     .prepare(
       `SELECT id, is_cancelled${table === "incomes" ? ", due_payment_id" : ""} FROM ${table} WHERE id = ? AND building_id = ?`,
     )
@@ -98,7 +96,7 @@ function cancelRecord(table, id, buildingId, userId, reason) {
     };
   }
 
-  db.prepare(
+  getDb().prepare(
     `UPDATE ${table} SET is_cancelled = 1, cancelled_at = datetime('now', '+3 hours'), cancel_reason = ?, cancelled_by = ?,
      updated_at = datetime('now', '+3 hours') WHERE id = ?`,
   ).run(reason, userId, id);

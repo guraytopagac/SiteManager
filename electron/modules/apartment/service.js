@@ -1,4 +1,4 @@
-const { db } = require("../../../database/db");
+const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
 
 const COLUMN_LABELS = {
@@ -13,7 +13,7 @@ const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
 
 function addApartment(apartmentData) {
   try {
-    db.prepare(
+    getDb().prepare(
       `INSERT INTO apartments (apartment_no, floor, type, square_meters, due_amount, building_id, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
     ).run(
@@ -33,7 +33,7 @@ function addApartment(apartmentData) {
 
 function updateApartment(id, apartmentData) {
   try {
-    const result = db
+    const result = getDb()
       .prepare(
         `UPDATE apartments
          SET apartment_no = ?, floor = ?, type = ?, square_meters = ?, due_amount = ?, updated_at = datetime('now', '+3 hours')
@@ -62,7 +62,7 @@ function updateApartment(id, apartmentData) {
 
 function deleteApartment(id, buildingId) {
   try {
-    const result = db
+    const result = getDb()
       .prepare(
         `UPDATE apartments SET is_active = 0, updated_at = datetime('now', '+3 hours') WHERE id = ? AND building_id = ?`,
       )
@@ -77,7 +77,7 @@ function deleteApartment(id, buildingId) {
 
 function bulkUpdateDueAmount(buildingId, amount) {
   try {
-    const result = db
+    const result = getDb()
       .prepare(
         `UPDATE apartments SET due_amount = ?, updated_at = datetime('now', '+3 hours') WHERE building_id = ? AND is_active = 1`,
       )

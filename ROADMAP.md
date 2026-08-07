@@ -85,16 +85,16 @@ Mevcut durum ve mimari için bkz. `CLAUDE.md`.
 
 ## Faz 4 — Veri Güvenliği Altyapısı
 
-### A1. Otomatik Yedekleme Zamanlayıcısı 🟡
+### A1. Otomatik Yedekleme Zamanlayıcısı 🔴
 
-> **Ön koşulları yapıldı (2026-08-02, U-10 / ADR #39):** Ayar saklama altyapısı (`electron/modules/shared/appSettings.js` → userData altında `settings.json`), dialog'suz yedek yolu (`runBackup(win, { silent: true })`), `backup` IPC domaini (`backup:run`, `backup:get-status`), Profile'da "Yedek Al" + son yedek tarihi ve Dashboard'da 7 günü aşınca uyarı şeridi hazır. **Geriye yalnızca zamanlayıcı + rotasyon kaldı** — bu yüzden zorluk 🔴'dan 🟡'ye indi.
+> **Ön koşulların bir kısmı 2026-08-05'te geri alındı (ADR #39).** Duran kısım: dialog'suz yedek yolu (`runBackup(win, { silent: true })`), `backup` IPC domaini (`backup:run`) ve Profile'daki "Yedek Al" butonu. **Silinen kısım:** ayar saklama altyapısı (`shared/appSettings.js` → `settings.json`), `backup:get-status` kanalı, son yedek tarihi göstergesi ve Dashboard uyarı şeridi. Bu madde yapılacaksa **ayar saklama katmanı sıfırdan kurulmalıdır**, bu yüzden zorluk 🟡'den 🔴'ya geri döndü.
 
 - **Amaç:** Uygulama açıkken her gün belirlenen saatte `%APPDATA%/.../backups/` klasörüne otomatik yedek; eski yedeklerin rotasyonu (ör. son 7).
 - **Neden gerekli:** Tek SQLite dosyası = tek arıza noktası. Manuel yedek unutulur; disk arızası tüm apartman verisini götürür.
-- **Teknik seçim (karara bağlandı):** Zamanlayıcı **bağımlılıksız `setInterval`** (dakikada bir "saat geldi mi + bugün alındı mı" kontrolü) — ADR #30. Ayarlar mevcut `appSettings.js` üzerinden okunur/yazılır, yeni bir saklama katmanı gerekmez.
+- **Teknik seçim (karara bağlandı):** Zamanlayıcı **bağımlılıksız `setInterval`** (dakikada bir "saat geldi mi + bugün alındı mı" kontrolü) — ADR #30. Ayar saklama için ADR #30'un tercihi hâlâ geçerlidir (userData altında JSON dosyası, `settings` tablosu değil), ama dosya artık yok, yeniden yazılması gerekir.
 - **Kalan kapsam:** yedekleme saati + saklanacak yedek sayısı ayarı (Profile'daki mevcut "Veri Yedeği" kartına eklenir); hedef klasöre sessiz yazan varyant (bugünkü `runBackup` kullanıcıdan dosya yolu ister — zamanlayıcı için yol sormayan bir sürüm gerekir); rotasyon; uygulama kapanırken "bugün yedek alınmadıysa al" güvencesi.
 - **Bağımlılık:** Yok; A2'nin ön koşulu.
-- **Risk:** Uygulama o saatte açık değilse yedek atlanır → açılışta "son yedek > 24 saat ise hemen al" telafi mantığı ekle. `settings.json`'daki `lastBackupAt` bu kontrol için zaten yazılıyor.
+- **Risk:** Uygulama o saatte açık değilse yedek atlanır → açılışta "son yedek > 24 saat ise hemen al" telafi mantığı ekle. Bu kontrol için gereken `lastBackupAt` kaydı artık tutulmuyor, ayar katmanıyla birlikte geri getirilmesi gerekir.
 - **Dosyalar:** yeni `electron/modules/backup/scheduler.js`, `backup/service.js` (yol sormayan yedek fonksiyonu), `main.js` (başlatma), ayar UI için `Profile.jsx` + gerekli IPC (kullanıcı onayı).
 - **Doğrulama:** rotasyon (8. yedek → en eski silinir), saat tetiklenmesi, açılış telafisi, yedek sırasında DB meşgulken davranış.
 - **Tamamlanma kriteri:** Ayarlanan saatte sessiz yedek alınır, rotasyon çalışır, son yedek zamanı UI'da görünür.
@@ -141,10 +141,11 @@ Mevcut durum ve mimari için bkz. `CLAUDE.md`.
 | 1   | `getTransactions` dönem filtresizken sınırsız satır döner | Azaldı: sayfa varsayılan olarak tek ay çeker (U-14), ama "Tüm Zamanlar" seçeneği hâlâ sınırsız | T2 sayfalama (yalnızca "Tüm Zamanlar" yolu için kritik)                                                                                                   |
 | 2   | Para `REAL` (float)                               | Kuruş yuvarlama sapmaları birikebilir                       | Bilinçli karar (ADR #8); şikâyet gelirse kuruş-integer migration planla, şimdilik dokunma                                                                  |
 | 4   | `sandbox:false`                                   | Electron güvenlik yüzeyi                                    | Preload'un require ihtiyacı kalkarsa (bundle edilirse) `sandbox:true`'ya geç, düşük öncelik                                                                |
-| 5   | Renderer'da hata loglanmıyor                      | Kullanıcı hatası teşhis edilemiyor                          | İleride `window.onerror` → IPC → electron-log köprüsü (yeni kanal, kullanıcıya sor)                                                                        |
+| 5   | Renderer hatalarında stack trace yok              | Azaldı (2026-08-05): renderer konsolunun `error`/`warning` satırları artık main.log'a düşüyor (ADR #53). Kalan eksik, yapısal stack trace | Şimdilik dokunma. Konsol metni bir arızayı yerinde göstermeye yetmezse `electronAPI` üzerinden kendi kanalımız açılır (`window.onerror` + `unhandledrejection` → yeni kanal, 4 dosyalık standart tur, kullanıcıya sor) ve `catchRendererConsole` silinir. **electron-log'un renderer köprüsü bu iş için kullanılmayacak** (whitelist dışı ikinci köprü, ADR #53) ve hazır `spyRendererConsole` seçeneği Electron 41 ile uyumsuz (paket olayı eski konumsal imzayla dinliyor, main.log'a `undefined` yazar) |
 | 6   | Rapor sorgularında index denetimi yapılmadı       | Veri büyüyünce yavaş rapor                                  | T2 ile birlikte `EXPLAIN QUERY PLAN` kontrolü; gerekirse `dues(year,month)`, `incomes(building_id,date)` indexleri                                         |
 | 7   | Dialog renkleri JS'ten inline yazılıyor           | Dialog açıkken tema değişirse zemin eski, `swal-*` sınıfları yeni temada kalır → okunamayan karışık görünüm | Popup/buton renklerini `style.css`'e CSS değişkeni olarak taşı, `alert.js`'teki `theme()`'i kaldır. Tüm dialogları etkiler, gözle regresyon ister. Gerçek kullanımda düşük olasılık, düşük öncelik |
 | 8   | `.prettierrc` yok, kod ~100 karakter genişlikte   | `npx prettier --check` neredeyse her dosyayı uyumsuz gösteriyor, format denetimi sinyal üretmiyor | Projenin gerçek genişliğini tespit edip config dosyası ekle. **Mevcut dosyaları aynı değişiklikte reformat etme** — tek seferde tüm repo'yu biçimlendirmek gerçek değişiklikleri gömer |
+| 9   | Yakalanmamış hatadan sonra süreç ayakta kalıyor   | Kutu "kapatıp yeniden açın" diyor ama uygulama çalışmaya devam ediyor, kullanıcı bozuk state'te kayıt girmeyi sürdürebilir | **Bilinçli karar (2026-08-05): dokunma.** `onError` içinde `app.quit()` çağırmak, zararsız bir hatada (ör. bir stream'den gelen EPIPE) kullanıcının yarım kalan form girişini keser ve veri kaybı riski, teşhis edilmemiş bir hata riskinden büyüktür. Kutu tek seferlik olduğu için (`fatalErrorShown`) ekran da kilitlenmez. Sahadan "hata sonrası uygulama garip davranıyor" bildirimi gelirse yeniden değerlendirilir |
 
 ---
 

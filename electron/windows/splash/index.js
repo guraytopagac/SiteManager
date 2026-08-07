@@ -2,6 +2,10 @@ const path = require("path");
 const { BrowserWindow, ipcMain } = require("electron");
 
 const ICON_PATH = path.join(__dirname, "../../../assets/icon.ico");
+const DEV_LINGER_MS = 800;
+const MAIN_WINDOW_READY_TIMEOUT_MS = 15000;
+const SPLASH_READY_TIMEOUT_MS = 1000;
+const CLOSE_FADE_MS = 180;
 
 let splashWindow = null;
 
@@ -12,8 +16,6 @@ function createSplashWindow() {
     resizable: false,
     frame: false,
     center: true,
-    alwaysOnTop: false,
-    skipTaskbar: false,
     show: false,
     icon: ICON_PATH,
     webPreferences: {
@@ -28,7 +30,11 @@ function createSplashWindow() {
     if (!splashWindow.isDestroyed()) splashWindow.show();
   });
 
-  splashWindow.loadFile(path.join(__dirname, "splash.html"));
+  splashWindow.webContents.on("did-fail-load", (event, errorCode, errorDescription) => {
+    console.error(`[Splash] Failed to load: ${errorCode} ${errorDescription}`);
+  });
+
+  splashWindow.loadFile(path.join(__dirname, "splash.html")).catch(() => {});
   splashWindow.on("closed", () => (splashWindow = null));
 }
 
@@ -49,15 +55,36 @@ function closeSplashAndShowMain(mainWindow) {
   };
 
   if (splash && !splash.isDestroyed()) {
-    splash.webContents.send("splash:closing");
+    sendToSplash("splash:closing");
     splashWindow = null;
     setTimeout(() => {
       if (!splash.isDestroyed()) splash.close();
       showMain();
-    }, 180);
+    }, CLOSE_FADE_MS);
   } else {
     showMain();
   }
+}
+
+function closeSplashWhenMainReady(mainWindow, isDev) {
+  let isRevealed = false;
+  let fallbackTimer = null;
+
+  const reveal = (delayMs) => {
+    if (isRevealed) return;
+    isRevealed = true;
+    clearTimeout(fallbackTimer);
+    setTimeout(() => closeSplashAndShowMain(mainWindow), delayMs);
+  };
+
+  fallbackTimer = setTimeout(() => {
+    console.warn(
+      `[Splash] ready-to-show not received within ${MAIN_WINDOW_READY_TIMEOUT_MS / 1000}s, revealing the main window anyway.`
+    );
+    reveal(0);
+  }, MAIN_WINDOW_READY_TIMEOUT_MS);
+
+  mainWindow.once("ready-to-show", () => reveal(isDev ? DEV_LINGER_MS : 0));
 }
 
 function getSplashWindow() {
@@ -66,16 +93,23 @@ function getSplashWindow() {
 
 function waitForSplashReady() {
   return new Promise((resolve) => {
-    const timeoutId = setTimeout(() => {
-      console.warn("[Splash] splash:ready not received, continuing via fallback after 1s.");
-      resolve();
-    }, 1000);
+    let timeoutId = null;
 
-    ipcMain.once("splash:ready", () => {
+    const onReady = () => {
       clearTimeout(timeoutId);
       resolve();
-    });
+    };
+
+    timeoutId = setTimeout(() => {
+      ipcMain.removeListener("splash:ready", onReady);
+      console.warn(
+        `[Splash] splash:ready not received, continuing via fallback after ${SPLASH_READY_TIMEOUT_MS / 1000}s.`
+      );
+      resolve();
+    }, SPLASH_READY_TIMEOUT_MS);
+
+    ipcMain.once("splash:ready", onReady);
   });
 }
 
-module.exports = { createSplashWindow, sendToSplash, closeSplashAndShowMain, getSplashWindow, waitForSplashReady };
+module.exports = { createSplashWindow, sendToSplash, closeSplashWhenMainReady, getSplashWindow, waitForSplashReady };

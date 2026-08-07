@@ -1,17 +1,17 @@
-const { db } = require("../../../database/db");
+const { getDb } = require("../../../database/db");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
 const { trYearMonth } = require("../shared/trTime");
 
 function fetchStats(buildingId, year, month) {
-  const { totalIncome } = db
+  const { totalIncome } = getDb()
     .prepare(`SELECT COALESCE(SUM(amount), 0) AS totalIncome FROM incomes WHERE building_id = ? AND is_cancelled = 0`)
     .get(buildingId);
 
-  const { totalExpense } = db
+  const { totalExpense } = getDb()
     .prepare(`SELECT COALESCE(SUM(amount), 0) AS totalExpense FROM expenses WHERE building_id = ? AND is_cancelled = 0`)
     .get(buildingId);
 
-  const currentMonthDue = db
+  const currentMonthDue = getDb()
     .prepare(
       `SELECT COALESCE(SUM(d.due_amount), 0) AS totalDue, COALESCE(SUM(d.paid_amount), 0) AS totalPaid
        FROM dues d
@@ -20,7 +20,7 @@ function fetchStats(buildingId, year, month) {
     )
     .get(buildingId, year, month);
 
-  const { totalOverdue } = db
+  const { totalOverdue } = getDb()
     .prepare(
       `SELECT COALESCE(SUM(d.due_amount - d.paid_amount), 0) AS totalOverdue
        FROM dues d

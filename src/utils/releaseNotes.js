@@ -9,10 +9,10 @@ const RELEASE_NOTES = [
     title: "Tek hesap, çoklu bina ve aidat tahakkuku",
     changes: [
       "Tek hesapla birden fazla bina yönetebilirsiniz. Giriş sonrası bina seçilir, tek bina varsa doğrudan panoya geçilir.",
-      "Binalar seçim ekranından yeniden adlandırılır, arşivlenir ve gerektiğinde listeden kaldırılır.",
+      "Binalar seçim ekranından yeniden adlandırılır, arşivlenir ve gerektiğinde kalıcı olarak silinir.",
       "Aidatlar artık ödeme beklemeden her ay tahakkuk ediyor. Ödenmemiş geçmiş aylar da listede ve raporlarda görünüyor.",
       "Yönetici ve site yöneticisi ayrımı kaldırıldı. Şifre değiştirme, kurtarma kodu ve hesap devri Profil sayfasında toplandı.",
-      "Yedek alma uygulama içine taşındı. Son yedek tarihi görünüyor, uzun süre yedek alınmazsa panoda uyarı çıkıyor.",
+      "Yedek alma uygulama içine taşındı. Profil sayfasındaki düğmeyle menüye gitmeden yedek alabilirsiniz.",
       "Daireler ve aidat tek sayfada birleştirildi. Tahsilat satırdaki düğmeyle tek adımda yapılıyor.",
       "Sağ üstteki hesap menüsü ile Profil, bina değiştirme ve çıkış her sayfadan erişilebilir.",
       "Para tutarları uygulamanın tamamında kuruşlu tek biçimde gösteriliyor.",

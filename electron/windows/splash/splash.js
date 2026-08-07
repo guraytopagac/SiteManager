@@ -1,5 +1,7 @@
 const versionEl = document.getElementById("version");
 const statusEl = document.getElementById("status");
+const statusTextEl = document.getElementById("status-text");
+const statusDotsEl = document.getElementById("status-dots");
 const updateBadge = document.getElementById("update-badge");
 const updateBadgeText = document.getElementById("update-badge-text");
 const progressWrap = document.getElementById("progress-wrap");
@@ -11,13 +13,15 @@ const restartPrompt = document.getElementById("restart-prompt");
 const restartNowBtn = document.getElementById("restart-now");
 const restartLaterBtn = document.getElementById("restart-later");
 
+const DEFAULT_PROGRESS_STATUS = progressStatus.textContent;
+
 function formatMB(bytes) {
   if (!bytes) return "0 MB";
   return (bytes / 1024 / 1024).toFixed(1) + " MB";
 }
 
 function formatEta(seconds) {
-  if (!isFinite(seconds) || seconds < 0) return "";
+  if (!Number.isFinite(seconds) || seconds < 0) return "";
   if (seconds < 60) return Math.ceil(seconds) + " sn kaldı";
   return Math.ceil(seconds / 60) + " dk kaldı";
 }
@@ -32,9 +36,8 @@ if (window.splashAPI) {
 
   window.splashAPI.onStatus(({ text, isError }) => {
     statusEl.classList.toggle("splash-status-error", Boolean(isError));
-    statusEl.innerHTML = isError
-      ? text
-      : text + '<span class="splash-dot">.</span><span class="splash-dot">.</span><span class="splash-dot">.</span>';
+    statusDotsEl.classList.toggle("splash-hidden", Boolean(isError));
+    statusTextEl.textContent = text;
   });
 
   window.splashAPI.onUpdateAvailable(({ version }) => {
@@ -51,7 +54,7 @@ if (window.splashAPI) {
 
     const remainingBytes = total - transferred;
     const eta = bytesPerSecond > 0 ? formatEta(remainingBytes / bytesPerSecond) : "";
-    progressStatus.textContent = eta ? "( İndiriliyor " + eta + " )" : "( Güncelleme indiriliyor ... )";
+    progressStatus.textContent = eta ? "( İndiriliyor " + eta + " )" : DEFAULT_PROGRESS_STATUS;
   });
 
   window.splashAPI.onUpdateDownloaded(() => {

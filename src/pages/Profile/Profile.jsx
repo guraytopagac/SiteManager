@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Profile.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
@@ -33,22 +33,7 @@ function Profile() {
 
   const oldPasswordRef = useRef(null);
 
-  const [lastBackupAt, setLastBackupAt] = useState(null);
   const [backupRunning, setBackupRunning] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    (async () => {
-      const res = await window.electronAPI.getBackupStatus();
-      if (!isMounted) return;
-      if (res.success) setLastBackupAt(res.data.lastBackupAt);
-    })();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   const handleBackup = async () => {
     setBackupRunning(true);
@@ -57,7 +42,6 @@ function Profile() {
 
     if (res.cancelled) return;
     if (res.success) {
-      setLastBackupAt(res.lastBackupAt);
       showAlert.toast("Yedek Alındı", res.message);
     } else {
       showAlert.error("Hata", res.message);
@@ -256,10 +240,7 @@ function Profile() {
           Tüm kayıtlarınız yalnızca bu bilgisayarda saklanır. Yedek dosyasını harici bir diske ya da bulut klasörünüze
           kaydedin; bilgisayar değişirse verinizi geri yüklemenin tek yolu budur.
         </p>
-        <div className="profile-backup-row">
-          <span className="profile-backup-status">
-            Son yedek: <strong>{lastBackupAt ? formatDateTime(lastBackupAt) : "Hiç alınmadı"}</strong>
-          </span>
+        <div className="profile-action-row">
           <button className="btn-primary" onClick={handleBackup} disabled={backupRunning}>
             {backupRunning ? "Yedekleniyor..." : "Yedek Al"}
           </button>

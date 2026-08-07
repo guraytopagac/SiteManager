@@ -1,12 +1,12 @@
 const CHANNELS = {
-  APARTMENT: Object.freeze({
+  APARTMENT: {
     ADD: "apartment:add",
     UPDATE: "apartment:update",
     DELETE: "apartment:delete",
     BULK_UPDATE_DUE_AMOUNT: "apartment:bulk-update-due-amount",
-  }),
+  },
 
-  AUTH: Object.freeze({
+  AUTH: {
     LOGIN: "auth:login",
     CHANGE_PASSWORD: "auth:change-password",
     UPDATE_EMAIL: "auth:update-email",
@@ -16,70 +16,69 @@ const CHANNELS = {
     REGENERATE_RECOVERY_CODE: "auth:regenerate-recovery-code",
     GET_SETUP_STATE: "auth:get-setup-state",
     COMPLETE_SETUP: "auth:complete-setup",
-  }),
+  },
 
-  BACKUP: Object.freeze({
+  BACKUP: {
     RUN: "backup:run",
-    GET_STATUS: "backup:get-status",
-  }),
+  },
 
-  BUILDING: Object.freeze({
+  BUILDING: {
     LIST: "building:list",
     CREATE: "building:create",
     RENAME: "building:rename",
     UPDATE_STATUS: "building:update-status",
     REMOVE: "building:remove",
-  }),
+  },
 
-  DASHBOARD: Object.freeze({
+  DASHBOARD: {
     GET_STATS: "dashboard:get-stats",
-  }),
+  },
 
-  DUES: Object.freeze({
+  DUES: {
     GET_FOR_MONTH: "dues:get-for-month",
     RECORD_PAYMENT: "dues:record-payment",
     CANCEL_PAYMENT: "dues:cancel-payment",
     GET_PAYMENT_HISTORY: "dues:get-payment-history",
-  }),
+  },
 
-  EVENTS: Object.freeze({
+  EVENTS: {
     TOGGLE_THEME: "events:toggle-theme",
-  }),
+  },
 
-  FINANCIAL: Object.freeze({
+  FINANCIAL: {
     ADD_INCOME: "financial:add-income",
     ADD_EXPENSE: "financial:add-expense",
     GET_TRANSACTIONS: "financial:get-transactions",
     CANCEL_INCOME: "financial:cancel-income",
     CANCEL_EXPENSE: "financial:cancel-expense",
-  }),
+  },
 
-  REPORTS: Object.freeze({
-    GET_DATA: "reports:get-data",
-    SAVE_FILE: "reports:save-file",
-  }),
+  REPORT: {
+    GET_DATA: "report:get-data",
+    SAVE_FILE: "report:save-file",
+  },
 
-  RESIDENT: Object.freeze({
+  RESIDENT: {
     GET_OVERVIEW: "resident:get-overview",
     GET_HISTORY: "resident:get-history",
     ADD: "resident:add",
     UPDATE: "resident:update",
     MOVE_OUT: "resident:move-out",
-  }),
+  },
 
-  SYSTEM: Object.freeze({
+  SYSTEM: {
     GET_APP_VERSION: "system:get-app-version",
-  }),
+  },
 };
 
 const allChannelValues = Object.values(CHANNELS).flatMap(Object.values);
-const uniqueChannelValues = new Set(allChannelValues);
-if (uniqueChannelValues.size !== allChannelValues.length)
+if (new Set(allChannelValues).size !== allChannelValues.length)
   throw new Error("channels.js: duplicate channel value detected");
 
 const EVENT_CHANNELS = new Set(Object.values(CHANNELS.EVENTS));
 const INVOKE_CHANNELS = new Set(allChannelValues.filter((channel) => !EVENT_CHANNELS.has(channel)));
 
+for (const group of Object.values(CHANNELS)) Object.freeze(group);
 Object.freeze(CHANNELS);
 
 module.exports = { CHANNELS, EVENT_CHANNELS, INVOKE_CHANNELS };

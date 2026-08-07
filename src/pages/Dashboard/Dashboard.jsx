@@ -18,7 +18,6 @@ import {
   FiList,
   FiFileText,
   FiUser,
-  FiAlertTriangle,
 } from "react-icons/fi";
 
 const ICONS = {
@@ -35,15 +34,6 @@ const ICONS = {
   user: <FiUser />,
 };
 
-const BACKUP_WARNING_DAYS = 7;
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-function daysSince(isoDateTime) {
-  const parsed = new Date(String(isoDateTime).replace(" ", "T"));
-  if (Number.isNaN(parsed.getTime())) return null;
-  return Math.floor((Date.now() - parsed.getTime()) / MS_PER_DAY);
-}
-
 function Icon({ name }) {
   return <span className="icon">{cloneElement(ICONS[name], { className: "icon-svg" })}</span>;
 }
@@ -55,7 +45,6 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
-  const [backupWarning, setBackupWarning] = useState(null);
 
   useEffect(() => {
     if (!building?.id) return;
@@ -79,30 +68,6 @@ function Dashboard() {
       isMounted = false;
     };
   }, [building?.id, reloadToken]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    (async () => {
-      const res = await window.electronAPI.getBackupStatus();
-      if (!isMounted || !res.success) return;
-
-      const { lastBackupAt } = res.data;
-      if (!lastBackupAt) {
-        setBackupWarning("Verilerinizin henüz hiç yedeği alınmadı.");
-        return;
-      }
-
-      const days = daysSince(lastBackupAt);
-      if (days !== null && days >= BACKUP_WARNING_DAYS) {
-        setBackupWarning(`Son yedek ${days} gün önce alındı.`);
-      }
-    })();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   if (loading) {
     return (
@@ -131,27 +96,6 @@ function Dashboard() {
         <h1 className="dashboard-building">{building?.name}</h1>
         <AccountMenu />
       </div>
-      {backupWarning && (
-        <div className="backup-banner" role="status">
-          <span className="backup-banner-icon">
-            <FiAlertTriangle size={18} />
-          </span>
-          <span className="backup-banner-text">
-            {backupWarning} Verileriniz yalnızca bu bilgisayarda saklanıyor.
-          </span>
-          <button className="backup-banner-action" onClick={() => navigate("/profile")}>
-            Yedek Al
-          </button>
-          <button
-            className="backup-banner-close"
-            onClick={() => setBackupWarning(null)}
-            title="Kapat"
-            aria-label="Yedek uyarısını kapat"
-          >
-            ✕
-          </button>
-        </div>
-      )}
 
       <div className="stat-grid">
         <div className="stat-card stat-card-kasa">

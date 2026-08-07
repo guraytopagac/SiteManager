@@ -1,4 +1,4 @@
-const { db } = require("../../../database/db");
+const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
 
 const COLUMN_LABELS = {
@@ -14,13 +14,13 @@ const COLUMN_LABELS = {
 const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
 
 function findOwnedActiveApartment(apartmentId, buildingId) {
-  return db
+  return getDb()
     .prepare(`SELECT id FROM apartments WHERE id = ? AND building_id = ? AND is_active = 1`)
     .get(apartmentId, buildingId);
 }
 
 function findOwnedResident(residentId, buildingId) {
-  return db
+  return getDb()
     .prepare(
       `SELECT r.id, r.apartment_id FROM residents r
        JOIN apartments a ON a.id = r.apartment_id
@@ -31,7 +31,7 @@ function findOwnedResident(residentId, buildingId) {
 
 function getResidentsOverview(buildingId) {
   try {
-    const data = db
+    const data = getDb()
       .prepare(
         `SELECT a.id AS apartment_id, a.apartment_no, a.floor, a.type,
                 r.id AS resident_id, r.full_name, r.phone, r.email, r.national_id,
@@ -56,7 +56,7 @@ function getResidentHistory(apartmentId, buildingId) {
       return { success: false, message: "Daire bulunamadı veya bu işlem için yetkiniz yok." };
     }
 
-    const data = db
+    const data = getDb()
       .prepare(
         `SELECT id, full_name, phone, email, national_id, resident_type,
                 move_in_date, move_out_date, is_active, notes, created_at
@@ -76,36 +76,32 @@ function getResidentHistory(apartmentId, buildingId) {
 function addResident(payload) {
   const { apartmentId, buildingId } = payload;
   try {
-    db.transaction(() => {
-      if (!findOwnedActiveApartment(apartmentId, buildingId)) throw new Error("not_found");
+    if (!findOwnedActiveApartment(apartmentId, buildingId))
+      return { success: false, message: "Daire bulunamadı veya bu işlem için yetkiniz yok." };
 
-      const existingActiveResident = db
-        .prepare(`SELECT id FROM residents WHERE apartment_id = ? AND is_active = 1`)
-        .get(apartmentId);
-      if (existingActiveResident) throw new Error("active_exists");
+    const existingActiveResident = getDb()
+      .prepare(`SELECT id FROM residents WHERE apartment_id = ? AND is_active = 1`)
+      .get(apartmentId);
+    if (existingActiveResident)
+      return { success: false, message: "Bu dairede aktif bir sakin var. Önce çıkış yaptırın." };
 
-      db.prepare(
-        `INSERT INTO residents (apartment_id, full_name, phone, email, national_id, resident_type, move_in_date, move_out_date, notes, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
-      ).run(
-        apartmentId,
-        payload.full_name || null,
-        payload.phone || null,
-        payload.email || null,
-        payload.national_id || null,
-        payload.resident_type || null,
-        payload.move_in_date || null,
-        payload.move_out_date || null,
-        payload.notes || null,
-      );
-    })();
+    getDb().prepare(
+      `INSERT INTO residents (apartment_id, full_name, phone, email, national_id, resident_type, move_in_date, move_out_date, notes, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
+    ).run(
+      apartmentId,
+      payload.full_name || null,
+      payload.phone || null,
+      payload.email || null,
+      payload.national_id || null,
+      payload.resident_type || null,
+      payload.move_in_date || null,
+      payload.move_out_date || null,
+      payload.notes || null,
+    );
 
     return { success: true, message: "Sakin eklendi." };
   } catch (err) {
-    if (err.message === "not_found")
-      return { success: false, message: "Daire bulunamadı veya bu işlem için yetkiniz yok." };
-    if (err.message === "active_exists")
-      return { success: false, message: "Bu dairede aktif bir sakin var. Önce çıkış yaptırın." };
     console.error("[resident.service] addResident:", err);
     return { success: false, message: resolveDbError(err, "Sakin ekleme") };
   }
@@ -117,7 +113,7 @@ function updateResident(payload) {
     const owned = findOwnedResident(residentId, buildingId);
     if (!owned) return { success: false, message: "Sakin bulunamadı veya bu işlem için yetkiniz yok." };
 
-    db.prepare(
+    getDb().prepare(
       `UPDATE residents SET full_name = ?, phone = ?, email = ?, national_id = ?, resident_type = ?,
        move_in_date = ?, move_out_date = COALESCE(?, move_out_date), notes = ?,
        updated_at = datetime('now', '+3 hours') WHERE id = ?`,
@@ -146,7 +142,7 @@ function moveOutResident(payload) {
     const owned = findOwnedResident(residentId, buildingId);
     if (!owned) return { success: false, message: "Sakin bulunamadı veya bu işlem için yetkiniz yok." };
 
-    db.prepare(`UPDATE residents SET move_out_date = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`).run(
+    getDb().prepare(`UPDATE residents SET move_out_date = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`).run(
       moveOutDate,
       residentId,
     );

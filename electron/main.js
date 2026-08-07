@@ -1,45 +1,42 @@
-const { app, ipcMain, dialog } = require("electron");
-const log = require("electron-log");
-const { autoUpdater } = require("electron-updater");
+const { app, ipcMain } = require("electron");
+const { openDatabase } = require("../database/db");
 const { runMigrations } = require("../database/migrate");
-const registerIpcHandlers = require("./ipc/index.js");
 const { checkForUpdatesBeforeStartup } = require("./autoUpdater");
+const { initLogging, showFatalError } = require("./errorReporting");
+const registerIpcHandlers = require("./ipc");
 const { createMainWindow, getMainWindow } = require("./windows/main");
-const { createSplashWindow, sendToSplash, closeSplashAndShowMain, waitForSplashReady } = require("./windows/splash");
-
-log.initialize();
-log.errorHandler.startCatching();
-log.transports.file.maxSize = 5 * 1024 * 1024;
-Object.assign(console, log.functions);
-autoUpdater.logger = log;
-
-app.disableHardwareAcceleration();
+const {
+  createSplashWindow,
+  sendToSplash,
+  closeSplashWhenMainReady,
+  getSplashWindow,
+  waitForSplashReady,
+} = require("./windows/splash");
 
 const isDev = !app.isPackaged;
 
-const isFirstInstance = app.requestSingleInstanceLock();
-if (!isFirstInstance) {
-  app.quit();
-} else {
-  app.on("second-instance", () => {
-    const mainWindow = getMainWindow();
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-    }
-  });
+initLogging(getMainWindow);
+
+app.disableHardwareAcceleration();
+
+function connectDatabase() {
+  try {
+    return openDatabase();
+  } catch (err) {
+    console.error("[Main] Database open failed:", err);
+    showFatalError(
+      "Verilere Ulaşılamadı",
+      "Uygulama veri dosyasını açamadı.",
+      "Uygulamanın açık başka bir penceresi varsa kapatın ve tekrar deneyin. Sonuç alamazsanız bilgisayarınızı yeniden başlatın.",
+    );
+    return null;
+  }
 }
 
-app.whenReady().then(async () => {
-  let db;
-  try {
-    ({ db } = require("../database/db"));
-  } catch (err) {
-    log.error("Veritabanı açılamadı", err);
-    dialog.showErrorBox(
-      "Verilere Ulaşılamadı",
-      "Uygulama verilerinize ulaşamadı. Lütfen bilgisayarınızı yeniden başlatıp tekrar deneyin."
-    );
+async function startApp() {
+  const db = connectDatabase();
+
+  if (!db) {
     app.quit();
     return;
   }
@@ -59,27 +56,35 @@ app.whenReady().then(async () => {
     sendToSplash("splash:status", { text: "Veriler hazırlanıyor" });
 
     runMigrations(db);
+
     registerIpcHandlers(ipcMain);
 
     sendToSplash("splash:status", { text: "Uygulama yükleniyor" });
 
     const mainWindow = createMainWindow(isDev);
 
-    mainWindow.once("ready-to-show", () => {
-      if (isDev) {
-        setTimeout(() => closeSplashAndShowMain(mainWindow), 800);
-      } else {
-        closeSplashAndShowMain(mainWindow);
-      }
-    });
+    closeSplashWhenMainReady(mainWindow, isDev);
   } catch (err) {
-    log.error("Uygulama başlatılamadı", err);
-    dialog.showErrorBox(
+    console.error("[Main] Startup failed:", err);
+    showFatalError(
       "Başlatma Hatası",
-      "Uygulama başlatılamadı. Lütfen bilgisayarınızı yeniden başlatıp tekrar deneyin."
+      "Uygulama başlatılamadı.",
+      "Uygulamayı kapatıp yeniden açın. Sonuç alamazsanız bilgisayarınızı yeniden başlatın.",
+      getMainWindow(),
     );
     app.quit();
   }
-});
+}
 
-app.on("window-all-closed", () => app.quit());
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    const targetWindow = getMainWindow() || getSplashWindow();
+    if (!targetWindow || targetWindow.isDestroyed()) return;
+    if (targetWindow.isMinimized()) targetWindow.restore();
+    targetWindow.focus();
+  });
+
+  app.whenReady().then(startApp);
+}

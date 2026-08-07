@@ -14,14 +14,6 @@ function registerBackupHandlers(ipcMain) {
       "Yedek alınamadı.",
     ),
   );
-
-  ipcMain.handle(
-    CH.BACKUP.GET_STATUS,
-    safeHandler(CH.BACKUP.GET_STATUS, () => ({
-      success: true,
-      data: { lastBackupAt: backupService.getLastBackupAt() },
-    })),
-  );
 }
 
 module.exports = registerBackupHandlers;
