@@ -1,129 +1,177 @@
-# Mavikent Site Yönetimi Uygulaması — Teknik Referans Dokümanı
+# Mavikent Site Yönetimi Uygulaması: Teknik Referans
 
-> Bu dosya projenin **ana bilgi kaynağıdır**. Kod üzerinde çalışan her model/geliştirici önce bu dosyayı okumalıdır.
-> Gelecek hedefler, roadmap ve teknik borç analizi için bkz. `ROADMAP.md`.
-> **Yaşayan doküman kuralı:** Mimari, şema, IPC veya iş kuralı değişikliği yapan her değişiklik bu dosyayı da güncellemelidir.
+> **Ne olduğu:** Bu dosya projenin haritasıdır. Mimari, sözleşmeler ve kurallar burada durur.
+> **Otorite koddadır.** Bir davranış dokümanla çelişirse doğru olan koddur, düzeltilecek olan dokümandır.
+> **Nereden başlanır:** Yeni görevde önce §17 (Hızlı Rehber) okunur, oradan ilgili bölüme geçilir. Baştan sona okumak gerekmez.
+> **Gelecek hedefler ve teknik borç burada değil, `ROADMAP.md`'dedir.** Tamamlanan madde oradan silinir.
+>
+> **Yaşayan doküman kuralı.** Mimari, şema, IPC ya da iş kuralı değiştiren her değişiklik aynı commit'te bu dosyayı da günceller.
+>
+> **Bayatlayan değer yazma.** Sürüm numarası, dosya sayısı, ihlal sayısı, tarih gibi kendiliğinden eskiyen veriler buraya yazılmaz. Yerine tek doğruluk kaynağı (`package.json` → `version`) ya da onu üreten komut yazılır.
+
+---
 
 ## 0. Okunmayacak Dosya ve Klasörler
 
-```
-node_modules/
-dist/
-dist_electron/
-database.db
-database.db-wal
-database.db-shm
-package-lock.json
-.cache/
-```
+`.gitignore`'daki her şey okunmaz. Liste orada tutulur, buraya kopyalanmaz. `Grep` ripgrep tabanlıdır ve `.gitignore`'a zaten uyar, yani bu kural asıl olarak dosya **okuma** ve dizin listeleme için geçerlidir.
+
+Ayrıca okunmaz (`.gitignore`'da değildirler, ayrı gerekçeleri vardır):
+
+| Yol                  | Neden                                                                  |
+| -------------------- | ---------------------------------------------------------------------- |
+| `package-lock.json`  | Çözülmüş bağımlılık ağacı. Sürüm sorusunun cevabı `package.json`'dadır |
+| `assets/`, `public/` | İkili varlıklar. Dosya adı bilgi verir, içeriği vermez                 |
+
+**İstisna:** `%APPDATA%/mavikent-site-yonetimi/logs/main.log` okunur ve arıza teşhisinde okunmalıdır (§13). `.gitignore`'daki `*.log` deseni repo içindeki logları kapsar, çalışma zamanı log dosyasını değil.
 
 ---
 
 ## 1. Proje Genel Bakış
 
-**Tür:** Electron + React masaüstü uygulaması (yalnızca Windows hedeflenir, NSIS installer)
-**Amaç:** Apartman yöneticilerinin aidat, gelir/gider, daire/sakin ve raporlama işlemlerini tek uygulamadan, **tamamen offline** yönetmesi. Sunucu yoktur; tüm veri lokal SQLite dosyasındadır.
+**Tür:** Electron + React masaüstü uygulaması. Yalnızca Windows hedeflenir, NSIS installer ile dağıtılır.
+**Amaç:** Apartman yöneticilerinin aidat, gelir/gider, daire/sakin ve raporlama işlerini tek uygulamadan, **tamamen offline** yönetmesi. Sunucu yoktur, tüm veri lokal SQLite dosyasındadır.
 
-**Teknik Stack:**
+**Temel varsayımlar.** Tasarım kararlarının çoğu bunlardan türer, bir çözüm önermeden önce bunlara uyduğunu doğrula:
 
-| Katman                     | Teknoloji                                                                     |
-| -------------------------- | ----------------------------------------------------------------------------- |
-| Masaüstü kabuk             | Electron v41 (CommonJS)                                                       |
-| UI                         | React v19 + react-router-dom v7 (HashRouter), Vite v8                         |
-| Veritabanı                 | SQLite via `better-sqlite3` (senkron, main process'te)                        |
-| Şifreleme                  | `bcryptjs` (şifre + kurtarma kodu hash'leri)                                  |
-| Bildirim/Dialog (renderer) | SweetAlert2 (`src/utils/alert.js` sarmalayıcısı)                              |
-| PDF                        | `jspdf` + `jspdf-autotable` (renderer tarafında üretilir, main'de kaydedilir) |
-| Güncelleme                 | `electron-updater` → GitHub Releases (`guraytopagac/SiteManager`)             |
-| Loglama                    | `electron-log` (main process)                                                 |
-| Prod statik sunum          | `electron-serve` (`dist/` klasörünü app:// üzerinden yükler)                  |
-| Test                       | Yok (bkz. §17 ADR #31)                                                        |
+| Varsayım                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------ |
+| **Tek bilgisayar.** Senkronizasyon yoktur, veri `%APPDATA%` altındadır, makineler arası tek taşıma yolu yedek dosyasıdır |
+| **Tek hesap, rol yok.** Bir makinede bir kullanıcı vardır, admin/manager ayrımı yoktur                                   |
+| **Bir hesap N bina (defter).** Veri izolasyonu `building_id` ile sağlanır, binalar arası ortak rapor yoktur              |
+| **Hedef kitle 40+ apartman yöneticisi.** Okunabilirlik alt sınırı ve Türkçe kullanıcı metni bundan gelir                 |
 
-**Güncel Sürüm:** `package.json` → `version` alanı tek doğruluk kaynağıdır (bu dokümana sürüm yazma).
+**Teknik yığın.** Sürüm numarası yazılmaz, tek doğruluk kaynağı `package.json`'dır:
+
+| Katman            | Teknoloji                                                             |
+| ----------------- | --------------------------------------------------------------------- |
+| Masaüstü kabuk    | Electron (CommonJS)                                                   |
+| UI                | React + react-router-dom (HashRouter), Vite                           |
+| İkon              | `react-icons`, **yalnızca `fi` (Feather) seti**. İkinci set açma      |
+| Veritabanı        | SQLite via `better-sqlite3` (senkron, main process'te)                |
+| Şifreleme         | `bcryptjs` (şifre + kurtarma kodu hash'leri, 12 tur)                  |
+| Dialog (renderer) | SweetAlert2, yalnızca `src/utils/alert.js` sarmalayıcısı üzerinden    |
+| PDF               | `jspdf` + `jspdf-autotable`, renderer'da üretilir, main'de kaydedilir |
+| Güncelleme        | `electron-updater` → GitHub Releases (`guraytopagac/SiteManager`)     |
+| Loglama           | `electron-log` (main process)                                         |
+| Prod statik sunum | `electron-serve`, `dist/` klasörünü `app://` üzerinden yükler         |
+| Paketleme         | `electron-builder` (NSIS installer → `dist_electron/`, §15)           |
+| Biçim + lint      | Prettier (caret'siz pinli) + ESLint (§3)                              |
+| Test              | Yok. Doğrulama elle yapılır (`npm run dev` + `npm run lint`)          |
 
 ---
 
-## 2. Mimari Genel Bakış
+## 2. Mimari
 
 ### 2.1 Process Modeli
 
 ```
-┌─────────────────────────  Main Process (Node.js)  ─────────────────────────┐
-│ electron/main.js  →  app lifecycle, splash, update, migration, seed        │
-│ electron/modules/*/handlers.js  →  IPC giriş noktası + validasyon          │
-│ electron/modules/*/service.js   →  iş mantığı + SQL (better-sqlite3)       │
-│ database/db.js  →  tek DB bağlantısı (WAL) — openDatabase/getDb/closeDb    │
-└──────────────────────────────┬──────────────────────────────────────────────┘
-                               │ ipcMain.handle / ipcRenderer.invoke
-┌──────────────────────────────┴──────────────────────────────────────────────┐
-│ electron/preload.js  →  contextBridge, kanal whitelist (`electronAPI`)      │
+┌──────────────────────────  Main Process (Node.js)  ──────────────────────────┐
+│ electron/main.js                →  app lifecycle + açılış sırası (§2.2)      │
+│ electron/modules/*/handlers.js  →  IPC giriş noktası + validasyon            │
+│ electron/modules/*/service.js   →  iş mantığı + SQL (better-sqlite3)         │
+│ electron/windows/*/index.js     →  pencere ömrü: main · splash · guide       │
+│ database/db.js                  →  tek DB bağlantısı, WAL (open/get/closeDb) │
+└──────────────────────────────┬───────────────────────────────────────────────┘
+                               │  invoke / handle   renderer → main, istek-cevap
+                               │  webContents.send  main → renderer (EVENTS, splash:*)
+                               │  ipcRenderer.send  renderer → main, cevapsız
+┌──────────────────────────────┴───────────────────────────────────────────────┐
+│ electron/preload.js             →  `electronAPI` + kanal whitelist (§9)      │
+│ windows/splash/preload.js       →  `splashAPI`, yalnızca `splash:*`          │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ Renderer (React)  →  src/pages/* yalnızca `window.electronAPI.*` çağırır    │
-│ Node erişimi YOK (nodeIntegration:false, contextIsolation:true)             │
+│ Renderer'lar (üçü de nodeIntegration:false, contextIsolation:true):          │
+│   Ana pencere   →  React (`src/`), yalnızca `window.electronAPI.*`           │
+│   Splash        →  saf HTML/JS, kendi preload'u (`splashAPI`)                │
+│   Kılavuz       →  saf HTML/JS, preload YOK                                  │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Neden bu model:** better-sqlite3 senkron ve native olduğu için yalnızca main process'te çalışır. Renderer hiçbir zaman doğrudan DB'ye, dosya sistemine veya Node API'lerine erişmez — tüm erişim preload üzerinden whitelisted IPC ile yapılır.
+**Neden DB main'de:** better-sqlite3 senkron ve native olduğu için yalnızca main process'te çalışır.
+**Neden köprü bu kadar dar:** Renderer'ın Node'a, dosya sistemine ve DB'ye hiçbir erişimi yoktur. Tek yol preload'un whitelist'lediği kanallardır, yani yeni bir yetenek ancak `channels.js` + `preload.js` çiftine yazılarak açılır (§12).
 
-### 2.2 Açılış (Startup) Sırası — `electron/main.js`
+### 2.2 Açılış Sırası (`electron/main.js`)
 
-Sıra **kritiktir**, değiştirme:
+Sıra **kritiktir**, değiştirme.
 
-1. `initLogging(getMainWindow)` → `electron-log` init + error catching + `console` bağlama + açılış kaydı (§13, `errorReporting.js`), ardından `app.disableHardwareAcceleration()`
-2. Tek instance kilidi (`requestSingleInstanceLock`). **Tüm açılış bu kilidin `else` dalındadır** — `app.whenReady` aboneliği de dahil. Kilidi alamayan ikinci süreç yalnızca `app.quit()` çağırır ve hiçbir açılış adımına girmez: aksi hâlde quit tamamlanmadan `ready` gerçekleşirse aynı DB dosyasına ikinci bir bağlantı açılır ve `runMigrations` ikinci kez çalışıp SQLITE_BUSY üretebilirdi. `second-instance` olayında mevcut pencere öne getirilir; ana pencere henüz yoksa (açılış/güncelleme aşaması) splash öne getirilir
-3. `app.whenReady` → `startApp()` → DB bağlantısı: `connectDatabase()` yardımcısı `database/db.js`'in `openDatabase()`'ini çağırır, hata durumunda kutuyu gösterip `null` döner ve `startApp` çıkar (dialog + quit). **Bağlantı yalnızca burada açılır** (ADR #52)
-4. Splash penceresi açılır, `waitForSplashReady()` beklenir
-5. **Yalnızca paketli sürümde:** `checkForUpdatesBeforeStartup()` — güncelleme kontrolü **migration'lardan ÖNCE** çalışır (v1.1.9 kararı: bozuk migration çıkan bir sürüm, güncelleme ile kurtarılabilsin diye)
-6. `runMigrations(db)` → migrations + schema yükleme
-7. `registerIpcHandlers(ipcMain)` → tüm handler'lar kaydedilir. `require("./ipc")` diğer tüm require'lar gibi **dosya başındadır**: service'ler `database/db.js`'ten yalnızca `getDb` fonksiyonunu alır, modülü require etmek hiçbir bağlantı açmaz (ADR #52). Bu require v1.6.0'a kadar bilinçli olarak `startApp` içindeydi, çünkü o zaman require zinciri bağlantıyı açıyor ve adım 3'teki try/catch'i atlıyordu — o kısıt artık yok
-8. Ana pencere oluşturulur ve `closeSplashWhenMainReady(mainWindow, isDev)` çağrılır. **Splash'in kapanış koreografisinin tamamı `windows/splash/index.js`'tedir**, main.js yalnızca tetikler: `ready-to-show` beklenir, dev'de `DEV_LINGER_MS` kadar bekletilir ve **güvenlik ağı** olarak `ready-to-show` `MAIN_WINDOW_READY_TIMEOUT_MS` (15 sn) içinde gelmezse splash yine kapatılıp pencere gösterilir, durum `main.log`'a yazılır. Aksi hâlde renderer yüklenemediğinde kullanıcı sonsuza kadar donmuş bir splash görüyordu. Ana pencerenin `did-fail-load` loglaması da main.js'te değil `windows/main/index.js`'tedir
+| #   | Adım                                                                       | Nerede                       | Splash mesajı                    |
+| --- | -------------------------------------------------------------------------- | ---------------------------- | -------------------------------- |
+| 1   | `initLogging(getMainWindow)`, ardından `app.disableHardwareAcceleration()` | Modül gövdesi, kilitten önce | (pencere yok)                    |
+| 2   | `app.requestSingleInstanceLock()`, kilit alınamazsa yalnızca `app.quit()`  | Modül gövdesi                | (pencere yok)                    |
+| 3   | `app.whenReady` → `startApp()` → `connectDatabase()`                       | `else` dalı                  | (pencere yok)                    |
+| 4   | `createSplashWindow()` + `await waitForSplashReady()`                      | `startApp` try/catch         | (ilk boyama)                     |
+| 5   | **Yalnızca paketli sürümde** `runStartupUpdateFlow()`                      | `startApp` try/catch         | "Güncellemeler kontrol ediliyor" |
+| 6   | `runMigrations(db)`                                                        | `startApp` try/catch         | "Veriler hazırlanıyor"           |
+| 7   | `registerIpcHandlers(ipcMain)`                                             | `startApp` try/catch         | (6 ile aynı faz)                 |
+| 8   | `createMainWindow(isDev)` + `closeSplashWhenMainReady(...)`                | `startApp` try/catch         | "Uygulama yükleniyor"            |
 
-**`require("./windows/main")` ise tam tersine dosya başında kalmak zorundadır.** Modül gövdesinde `electron-serve`'ün `serve()` fonksiyonu çağrılır ve paket, şemayı bir microtask içinde `protocol.registerSchemesAsPrivileged` ile kaydeder — ready sonrası çağrılırsa `"A new scheme cannot be registered after app is ready"` fırlatır. Bu require `startApp` içine (yani `app.whenReady` sonrasına) alınırsa hata **yalnızca paketli sürümde** çıkar, dev'de `loadURL` hiç kullanılmadığı için fark edilmez.
+4-8 arasındaki her hata "Başlatma Hatası" kutusu ve `app.quit()` ile biter.
 
-**`window-all-closed` dinleyicisi yoktur (bilinçli).** Electron, olaya abone olunmadığında macOS dışındaki platformlarda uygulamayı zaten kapatır ve proje yalnızca Windows'u hedefler — `app.on("window-all-closed", () => app.quit())` satırı varsayılanı tekrar etmekten başka bir şey yapmıyordu. Yeniden ekleme. DB kapatma bu olaya değil `will-quit`'e bağlıdır (§7.1).
+#### Değiştirilemez kısıtlar
 
-**Not:** Açılışta hesap satırı **seed edilmez** (eski `seedAccount` adımı kaldırıldı). Hiç hesap yokken uygulama açılır; renderer `getSetupState` ile `needsSetup:true` alır ve `/setup`'a yönlenir. Gerçek `users` satırı yalnızca kurulum tamamlanınca `completeSetup` içinde `INSERT` ile oluşur — username tamamen kullanıcıdan gelir, yer tutucu hesap yoktur.
+- **Tek instance kilidi tüm açılışı kapsar.** `initLogging` kilitten öncedir (ikinci instance da loglar), ama kilidi alamayan süreç yalnızca `app.quit()` çağırır ve hiçbir açılış adımına girmez. Aksi hâlde quit tamamlanmadan `ready` gerçekleşirse aynı DB dosyasına ikinci bağlantı açılır ve migration ikinci kez çalışıp SQLITE_BUSY üretebilir. `second-instance` olayında mevcut pencere öne getirilir, ana pencere yoksa splash.
+- **DB bağlantısı yalnızca adım 3'te açılır.** `connectDatabase()` `openDatabase()`'i çağırır, hata durumunda kutuyu gösterip `null` döner ve `startApp` çıkar.
+- **Güncelleme kontrolü migration'lardan ÖNCE çalışır**, bozuk migration içeren bir sürüm güncellemeyle kurtarılabilsin diye.
+- **`require("./windows/main")` dosya başında kalmak zorundadır.** Modül gövdesinde `electron-serve`'ün `serve()` fonksiyonu çağrılır ve paket şemayı bir microtask içinde `protocol.registerSchemesAsPrivileged` ile kaydeder. Ready sonrası çağrılırsa `"A new scheme cannot be registered after app is ready"` fırlatır ve hata **yalnızca paketli sürümde** görünür. Diğer tüm require'lar serbesttir ve dosya başındadır, çünkü service'ler `getDb` fonksiyonunu alır ve modülü require etmek bağlantı açmaz.
+- **Splash'in kapanış koreografisinin tamamı `windows/splash/index.js`'tedir**, main.js yalnızca tetikler. `ready-to-show` beklenir, dev'de `DEV_LINGER_MS` kadar bekletilir, güvenlik ağı olarak `MAIN_WINDOW_READY_TIMEOUT_MS` içinde olay gelmezse splash yine kapatılır ve durum `main.log`'a yazılır. Aksi hâlde renderer yüklenemediğinde kullanıcı donmuş bir splash görür.
+- **`window-all-closed` dinleyicisi yoktur (bilinçli).** Electron, olaya abone olunmadığında macOS dışındaki platformlarda uygulamayı zaten kapatır. DB kapatma bu olaya değil `will-quit`'e bağlıdır (§7.1).
+- **Açılışta hesap satırı seed edilmez.** Hiç hesap yokken uygulama açılır, renderer `getSetupState` ile `needsSetup:true` alır ve `/setup`'a yönlenir. Gerçek `users` satırı yalnızca `completeSetup` içinde oluşur.
 
-### 2.3 Pencereler — `electron/windows/`
+### 2.3 Pencereler (`electron/windows/`)
 
-| Klasör          | İçerik                                                                                                                                                                                                                                   |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `main/index.js` | Ana BrowserWindow. Dev'de `http://localhost:5173`, prod'da `electron-serve` ile `dist/`. `webPreferences`: `nodeIntegration:false`, `contextIsolation:true`, `sandbox:false` (preload'un `require` yapabilmesi için), `webSecurity:true`. **Uygulama menüsünü kuran tek yer burasıdır** (`Menu.setApplicationMenu(buildMenu(...))`). Pencereye `title` seçeneği verilmez: Electron, yüklenen sayfada `<title>` varsa onu yok sayar ve başlık `index.html`'de tanımlıdır. Yükleme çağrısının promise'i `.catch(() => {})` ile kapatılır (autoUpdater ile aynı gerekçe): hata zaten `did-fail-load` dinleyicisinde loglanır, yakalanmazsa aynı hata bir de sahipsiz reddedilme olarak `main.log`'a düşer. Dinleyici yükleme başlatılmadan önce kurulur |
-| `splash/`       | Açılış ekranı; kendi minimal `preload.js`'i vardır (`splash:*` kanalları). Sürüm, güncelleme durumu ve indirme yüzdesini gösterir; güncelleme indikten sonra **"Şimdi Yeniden Başlat / Daha Sonra" kararını da bu pencere sorar** (`autoUpdater.askToRestart` splash'e bağlıdır ve pencere kapatılırsa `false` döner). **Splash'in tüm ömrü bu modüldedir:** açma, `waitForSplashReady`, durum mesajları ve `closeSplashWhenMainReady` (ana pencere hazır olunca kapanış + dev gecikmesi + 15 sn güvenlik ağı). `closeSplashAndShowMain` artık dışa açılmaz, modül içidir. Kapanış gecikmesi `CLOSE_FADE_MS` sabitindedir ve `splash.css`'teki `body { transition: opacity 0.18s }` süresiyle **elle eşlenir**, biri değişirse diğeri de değişmelidir |
-| `guide/`        | Kullanım kılavuzu penceresi (saf HTML+CSS+JS, React değil), menüden açılır. Preload'u **yoktur**, bu yüzden `sandbox` varsayılan (`true`) kalır. Ana pencereyle aynı ölçü kalıbını izler (`workAreaSize` ile kısıtlanır, `show:false` + `ready-to-show`). Sürüm, destek adresi ve tema query string ile geçirilir (ADR #55). Sayfa içi olmayan bağlantılar `will-navigate` yakalanıp `shell.openExternal`'a devredilir, aksi hâlde `mailto:` bağlantısı hiçbir şey yapmaz |
+| Pencere | Modül                   | Preload                     | `sandbox`  | Ne zaman açılır    |
+| ------- | ----------------------- | --------------------------- | ---------- | ------------------ |
+| Ana     | `windows/main/index.js` | `electron/preload.js`       | `false`    | Açılış adım 8      |
+| Splash  | `windows/splash/`       | `windows/splash/preload.js` | `true`     | Açılış adım 4      |
+| Kılavuz | `windows/guide/`        | yok                         | varsayılan | Yardım menüsü (F1) |
+
+**Ana pencere.** Dev'de `http://localhost:5173/`, prod'da `electron-serve` ile `dist/`. `webPreferences`: `nodeIntegration:false`, `contextIsolation:true`, `sandbox:false` (preload'un `require` yapabilmesi için), `webSecurity:true`. Ölçüler `1200x800`, minimum `1140x720`, ikisi de `screen.getPrimaryDisplay().workAreaSize` ile kısıtlanır. Pencere her açılışta `maximize()` edilir, yani bu ölçüler fiilen "restore" boyutudur. `maximize` + `show` ikilisi bu modülde değil splash modülünün `closeSplashAndShowMain`'indedir, çünkü gösterme anının sahibi splash'tir. Uygulama menüsünü kuran tek yer burasıdır. Pencereye `title` verilmez, başlık `index.html`'de tanımlıdır. Yükleme çağrısının promise'i `.catch(() => {})` ile kapatılır, çünkü hata zaten `did-fail-load` dinleyicisinde loglanır ve yakalanmazsa aynı hata bir de sahipsiz reddedilme olarak düşer.
+
+**Splash.** Açılış ekranı, kendi minimal preload'u vardır (`splash:*` kanalları). Sürüm, güncelleme durumu ve indirme yüzdesini gösterir. Güncelleme indikten sonra "Şimdi Yeniden Başlat / Daha Sonra" kararını da bu pencere sorar (`askToRestart` splash'e bağlıdır ve pencere kapatılırsa `false` döner).
+
+- Splash'in tüm ömrü bu modüldedir: açma, `waitForSplashReady`, durum mesajları ve `closeSplashWhenMainReady`.
+- `waitForSplashReady` renderer ile el sıkışmaz, `webContents`'in `did-finish-load` olayını `SPLASH_READY_TIMEOUT_MS`'lik bir ağla bekler. Gate gereklidir: renderer dinleyicilerini kurmadan gönderilen `webContents.send` sessizce düşer.
+- Sürüm IPC ile değil query string ile geçirilir (`loadFile(..., { query: { v } })`), böylece ilk boyamada görünür.
+- Durum mesajları `setSplashStatus(text, isError)` ile yazılır, görev çubuğu ilerlemesi `setSplashProgress(value, options)` ile. Pencere nesnesine dokunan tek yer splash modülüdür, dışarıdan `getSplashWindow().setProgressBar(...)` çağrılmaz. Ham `sendToSplash` dışa açıktır, çünkü `autoUpdater` diğer `splash:*` kanallarını doğrudan kullanır.
+- `CLOSE_FADE_MS` sabiti `splash.css`'teki `body` geçiş süresiyle **elle** eşlenir. Biri değişirse diğeri de değişmelidir.
+
+**Kılavuz.** Kullanım kılavuzu penceresi (saf HTML+CSS+JS), menüden ya da F1 ile açılır. Preload'u yoktur. Pencere tekildir: açık bir kılavuz varken ikincisi oluşturulmaz, mevcut pencere restore edilip odaklanır. Sürüm, destek adresi ve tema query string ile geçirilir. `openGuide` ana pencerenin `data-theme` değerini `executeJavaScript` ile okur ve `backgroundColor`'ı ona göre seçer. Menüdeki "Tema Değiştir" ana pencereye `EVENTS.TOGGLE_THEME` gönderdikten sonra `toggleGuideTheme()` çağırır. Sayfa içi olmayan bağlantılar `will-navigate` yakalanıp `shell.openExternal`'a devredilir, aksi hâlde `mailto:` bağlantısı hiçbir şey yapmaz.
 
 ---
 
 ## 3. Kod Yazma Kuralları
 
-- **Dil:** UI metinleri ve kullanıcıya dönen hata mesajları **Türkçe**; kod ve yorumlar **İngilizce** (commit başlıkları Türkçe gelenektedir, git log'a bak)
-- **Stil:** Prettier
-- **Naming:** değişkenler `camelCase`, React bileşenleri `PascalCase`, sabitler `UPPER_SNAKE_CASE`, IPC kanal string'leri `domain:kebab-case`
-- **Modül sistemi:** `electron/` ve `database/` → CommonJS (`require`); `src/` → ESM (`import`). Karıştırma.
-- **Import sırası** (CommonJS dosyalarda): 1) Node builtin, 2) external paketler, 3) local (`./`, `../`). Her grup kendi içinde alfabetik.
-- **Prop doğrulaması yoktur** (TypeScript de yok). `prop-types` bağımlılığı ve tüm `Component.propTypes` blokları kaldırıldı (2026-07-20): React 19 `propTypes` denetimini paketten çıkardı, tanımlar sessizce yok sayılıyordu — yanlış tip için hiçbir uyarı üretilmiyordu. Yeni bileşene `propTypes` **ekleme**; prop sözleşmesini destructuring imzasından ve varsayılan değerlerden okunur tut
-- **Yorum yazma:** Koda açıklama yorumu (`//`, `/* */`) **eklenmez** — kod kendini anlatmalıdır. Bir kararın gerekçesi korunacaksa yorum yerine bu dokümana yaz: mimari/iş kuralı ilgili bölüme, kalıcı bir tercih §17 ADR tablosuna, teknik borç `ROADMAP.md`'ye. Mevcut yorumları toplu temizleme amacıyla silme; yalnızca yenisini ekleme.
+- **Dil:** UI metinleri ve kullanıcıya dönen hata mesajları **Türkçe**, kod ve yorumlar **İngilizce**. Commit başlıkları Türkçe gelenektir.
+- **Stil:** Prettier. `.prettierrc` iki alan taşır: `printWidth: 120` ve `endOfLine: "auto"`. İkincisi zorunludur, çünkü Windows'ta çalışma kopyası CRLF, repo LF'tir ve varsayılan `"lf"` gerçek sapmayı satır sonu gürültüsünün altında gizler. Kalan sapma **toplu düzeltilmez**: dokunulan dosya o değişiklikle birlikte biçimlendirilir. Güncel sapma listesi için `npx prettier --list-different "src/**/*.{js,jsx,css}"`, sayıyı buraya yazma.
+- **Lint:** ESLint (`eslint.config.mjs`), `npm run lint`. Üç kural bilinmeli: (a) `no-console` yalnızca `console.error` ve `console.warn`'a izin verir, bu yüzden bilgi amaçlı log satırları da `warn`'dır, (b) `no-unused-vars` **hata** seviyesindedir ve yalnızca `^_` ile başlayan argümanları muaf tutar, (c) **üç ayrı globals bölgesi vardır**: `src/**` browser, `electron/**` + `database/**` Node, `guide.js` + `splash.js` yeniden browser. Yeni bir pencere renderer script'i eklenirse üçüncü bölgeye de yazılmalıdır, aksi hâlde Node globals altında lint edilip `document` için hata verir.
+- **Naming:** değişkenler `camelCase`, React bileşenleri `PascalCase`, sabitler `UPPER_SNAKE_CASE`, IPC kanal string'leri `domain:kebab-case`.
+- **Modül sistemi:** `electron/` ve `database/` CommonJS (`require`), `src/` ESM (`import`). Karıştırma.
+- **Import sırası** (CommonJS dosyalarda): 1) Node builtin, 2) external paketler, 3) local. Her grup kendi içinde alfabetik.
+- **Import alias:** `src/` içinde `@` → `src/` alias'ı tanımlıdır (`vite.config.js`). Yeni bileşenlerde `@/hooks/...` biçimi tercih edilir, eski dosyalardaki göreli yollar toplu dönüştürülmez.
+- **Prop doğrulaması yoktur** (TypeScript de yok, `prop-types` de yok). React 19 `propTypes` denetimini paketten çıkardı, tanımlar sessizce yok sayılıyordu. Yeni bileşene `propTypes` **ekleme**, prop sözleşmesini destructuring imzasından ve varsayılan değerlerden okunur tut.
+- **Yorum yazma.** Koda açıklama yorumu (`//`, `/* */`) **eklenmez**, kod kendini anlatmalıdır. Bir kararın gerekçesi korunacaksa yorum yerine bu dokümana yaz. Mevcut yorumları toplu temizleme amacıyla silme, yalnızca yenisini ekleme.
 
-### Yapmadan Önce Kullanıcıya Sor
+### Önce Sor: Tasarım Kararları
 
-- Mimari değişiklikler (klasör yapısı, yeni dependency)
+Planı sun, onay al, sonra yaz:
+
+- Mimari değişiklikler (klasör yapısı, yeni bağımlılık)
 - 3+ dosya etkileyen refactor
 - Veritabanı şeması değişikliği
-- IPC endpoint ekleme/değiştirme
+- IPC endpoint ekleme ya da değiştirme
 - 100+ satır silme
 
-### Asla Kullanıcı Onayı Olmadan Yapma
+### Önce Sor: Dışa Dönük ve Geri Alınamaz Eylemler
 
 - `git commit` / `git push`
 - `gh release create` / `gh release edit`
-- `npm run dist` veya `npm run build`
+- `npm run dist` ya da `npm run build`
 
 ### Asla Yapma
 
-- `.env` oluşturma veya API anahtarı/şifre ekleme
+- `.env` oluşturma ya da API anahtarı/şifre ekleme
 - Kullanıcıya sormadan bağımlılık yükseltme
 - Renderer'a Node API açma (preload whitelist dışına çıkma)
-- `dues` / `due_payments` / `incomes` / `expenses` kayıtlarını fiziksel silme (bkz. §8 iş kuralları)
+- `dues` / `due_payments` / `incomes` / `expenses` kayıtlarını fiziksel silme (§8)
 
 ---
 
@@ -131,100 +179,54 @@ Sıra **kritiktir**, değiştirme:
 
 ```
 SiteManager/
-├── assets/              # icon.ico ve statik varlıklar (installer + pencere ikonu)
+├── assets/              # icon.ico, logo, giriş ekranı arka planları
+├── public/              # Vite'ın olduğu gibi kopyaladığı statikler
 ├── database/
-│   ├── schema/          # Tablo şemaları — NN_tablo.sql, alfabetik yüklenir, CREATE ... IF NOT EXISTS
-│   │                    #   Numaralandırma FK bağımlılık sırasını izler (ADR #44): referans verilen tablo
-│   │                    #   kendisine referans verenden önce gelir
-│   ├── migrations/      # Mevcut tablolara ALTER — NNN_aciklama.sql, bir kez çalışır
-│   │                    #   Şu an BOŞ (yalnızca .gitkeep): 001-034 arası geçmiş 2026-08-04'te
-│   │                    #   sıkıştırıldı, son şema schema/ altında donduruldu (ADR #49).
-│   │                    #   Mekanizma duruyor, yeni migration'lar 035'ten devam eder
-│   ├── db.js            # Tek bağlantı (WAL, pragma'lar) — path: dev'de proje kökü, prod'da userData.
-│   │                    #   openDatabase() / getDb() / closeDb(). Require etmek bağlantı AÇMAZ (ADR #52):
-│   │                    #   açan tek yer main.js'in connectDatabase()'i, tüketiciler getDb() çağırır
-│   └── migrate.js       # runMigrations(db) — önce migrations, sonra schema
+│   ├── schema/          # NN_tablo.sql, alfabetik yüklenir, CREATE ... IF NOT EXISTS.
+│   │                    #   Numaralandırma FK bağımlılık sırasını izler: referans verilen
+│   │                    #   tablo, kendisine referans verenden önce gelir
+│   ├── migrations/      # NNN_aciklama.sql, bir kez çalışır. Şu an boş (.gitkeep)
+│   ├── db.js            # openDatabase() / getDb() / closeDb(). Require etmek bağlantı AÇMAZ
+│   └── migrate.js       # runMigrations(db) → önce migrations, sonra schema
 │
 ├── electron/
 │   ├── ipc/
-│   │   ├── channels.js        # Ana pencerenin IPC kanal sabitleri (Object.freeze + duplicate kontrolü).
-│   │   │                      #   Handler'lar VE preload buradan import eder — string'i asla elle yazma.
-│   │   │                      #   İstisna: splash'in `splash:*` kanalları burada DEĞİLDİR. Splash kendi
-│   │   │                      #   minimal preload'unu kullandığı için (sandbox:true, local require yok) o
-│   │   │                      #   kanallar ham string olarak durur: `windows/splash/preload.js`,
-│   │   │                      #   `windows/splash/index.js` ve `autoUpdater.js` (splash:status,
-│   │   │                      #   splash:update-available, splash:download-progress, splash:update-downloaded
-│   │   │                      #   ve ipcMain tarafında splash:restart-choice) — bkz. §2.3
-│   │   └── index.js           # registerIpcHandlers — modules/*/handlers.js'i tek `registrars` dizisinden
-│   │                          #   alfabetik sırayla kaydeder. Yeni domain = diziye tek satır
-│   ├── modules/               # Domain bazlı gruplama: her domain handler (validasyon) + service (SQL) çifti
-│   │   ├── apartment/{handlers,service}.js
-│   │   ├── auth/{handlers,service}.js       # Tek hesabın kimlik işlemleri: giriş, kurulum, şifre, kurtarma kodu, devir
-│   │   ├── building/{handlers,service}.js   # Bina (defter) CRUD: list/create/rename/archive — owner_id ile sahiplik
-│   │   ├── dashboard/{handlers,service}.js
-│   │   ├── dues/{handlers,service}.js
-│   │   ├── financial/{handlers,service}.js
-│   │   ├── report/{handlers,service}.js
-│   │   ├── resident/{handlers,service}.js  # Sakin yaşam döngüsü (ekle/düzenle/çıkış/geçmiş)
-│   │   ├── system/handlers.js         # Servisi yok — sadece app version döner
-│   │   ├── backup/{handlers,service}.js  # Yedek al / geri yükle. Menüden doğrudan, yedek alma ayrıca IPC ile
-│   │   │                                 #   (Profile'daki buton). Durum takibi YOK: son yedek tarihi hiçbir
-│   │   │                                 #   yerde saklanmaz (ADR #39 geri alındı)
-│   │   └── shared/                    # Domain'ler arası paylaşılan yardımcılar (handler/service değil)
-│   │       ├── safeHandler.js         # createSafeHandler(domain) → her handler'ı tek tip try/catch + loglama
-│   │       │                          #   zarfına sarar; event'i yutar, hata detayını renderer'a sızdırmaz
-│   │       ├── dbError.js             # createDbErrorResolver(columnLabels) → CHECK/UNIQUE/NOT NULL/FK
-│   │       │                          #   SQLite hatalarını Türkçe mesaja çevirir (resolveDbError, §9)
-│   │       ├── duesAccrual.js         # ensureMonthlyDues(buildingId) → eksik aylık aidat tahakkuku
-│   │       │                          #   üretir (idempotent, §8 kural 2 / ADR #32)
-│   │       └── trTime.js              # trNow/trToday/trYearMonth — main tarafında "şu an" TR saatiyle
-│   │                                  #   (§7.4); renderer karşılığı src/utils/date.js
-│   ├── autoUpdater.js          # Güncelleme akışlarının tek sahibi. İki giriş noktası:
-│   │                           #   checkForUpdatesBeforeStartup() → açılışta, splash'e bağlı, timeout'lu
-│   │                           #   checkForUpdatesOnDemand(mainWindow) → Yardım menüsünden, dialog'lu (§15)
-│   │                           #   `autoUpdater.logger = log` ataması da burada (modül gövdesinde): main.js
-│   │                           #   ve menu.js electron-updater'ı hiç import etmez
-│   │                           #   `autoUpdater.autoInstallOnAppQuit = false` da modül gövdesinde: indirilmiş
-│   │                           #   güncelleme yalnızca kullanıcı "Şimdi Yeniden Başlat" derse kurulur (§15/6)
-│   ├── errorReporting.js       # Loglama + ölümcül hata kutusunun tek sahibi (§13). İki fonksiyon export eder:
-│   │                           #   initLogging(getParentWindow?) → log.initialize({preload:false}) + maxSize +
-│   │                           #     startCatching + console bağlama + açılış satırı (sürüm + packaged/dev)
-│   │                           #     + renderer konsolunun error/warning satırlarını main.log'a aktarma
-│   │                           #   showFatalError(title, message, whatToDo, parentWindow?) → "Kayıt Dosyasını
-│   │                           #     Göster" butonlu kutu; log yolu electron-log'dan okunur (sabit tutulmaz)
-│   │                           #   Ayrıca SUPPORT_EMAIL sabitini export eder (menu.js ve windows/guide buradan alır)
-│   ├── windows/
-│   │   ├── main/index.js       # Ana pencere oluşturma + electron-serve
-│   │   ├── splash/             # Açılış ekranı (kendi preload'u ile)
-│   │   └── guide/              # Kullanım kılavuzu penceresi (openGuide + toggleGuideTheme)
-│   ├── main.js                 # App lifecycle — bkz. §2.2 açılış sırası
-│   ├── menu.js                 # Uygulama menüsü. Dosya: yedek al / geri yükle / çıkış · Görünüm: tema, zoom,
-│   │                           #   tam ekran (+ dev'de yenile ve DevTools) · Yardım: kılavuz (F1), güncelleme
-│   │                           #   kontrolü (yalnızca paketli sürümde), hata bildir, hakkında.
-│   │                           #   Yalnızca menü yapısı + tetikleme tutar; iş mantığı sahibi modüldedir
-│   │                           #   (yedek → backup/service, güncelleme → autoUpdater, kılavuz → windows/guide,
-│   │                           #   destek adresi → errorReporting). "Tema Değiştir" iki yere haber verir:
-│   │                           #   ana pencereye EVENTS.TOGGLE_THEME, açıksa kılavuza toggleGuideTheme (ADR #55)
-│   └── preload.js              # contextBridge — safeInvoke/safeOn ile kanal whitelist
+│   │   ├── channels.js  # Ana pencerenin kanal sabitleri. Handler'lar VE preload buradan
+│   │   │                #   import eder. Splash'in `splash:*` kanalları burada DEĞİLDİR
+│   │   └── index.js     # registerIpcHandlers, tek `registrars` dizisi
+│   ├── modules/         # Domain başına handler (validasyon) + service (SQL) çifti
+│   │   ├── apartment/   ├── auth/      ├── backup/   ├── building/  ├── dashboard/
+│   │   ├── dues/        ├── financial/ ├── report/    ├── resident/
+│   │   ├── system/handlers.js   # Servisi yok, yalnızca app version döner
+│   │   └── shared/
+│   │       ├── safeHandler.js   # createHandle(ipcMain, domain) → handle(...)
+│   │       ├── dbError.js       # createDbErrorResolver(columnLabels) → resolveDbError
+│   │       ├── validate.js      # Ortak doğrulama: fail / noValidation / validatePayload /
+│   │       │                    #   validateId / validateBuildingScope
+│   │       │                    #   + paylaşılan yüklemler (isIsoDate, isDateInRange,
+│   │       │                    #   isValidYear, isValidMonth, isEmailFormat) ve sınır sabitleri
+│   │       ├── tables.js        # assertFinancialTable(table, context) — dinamik tablo adı whitelist'i
+│   │       ├── duesAccrual.js   # ensureMonthlyDues(buildingId), idempotent tahakkuk
+│   │       └── trTime.js        # trToday / trYearMonth / monthBounds + TR_NOW_SQL sabiti
+│   ├── autoUpdater.js   # Güncelleme akışlarının tek sahibi (§15)
+│   ├── errorReporting.js # initLogging / showFatalError / SUPPORT_EMAIL (§13)
+│   ├── windows/         # main/ · splash/ · guide/
+│   ├── main.js          # App lifecycle, bkz. §2.2
+│   ├── menu.js          # Menü yapısı + tetikleme. İş mantığı sahibi modüldedir
+│   └── preload.js       # contextBridge, safeInvoke/safeOn ile kanal whitelist
 │
 └── src/
-    ├── components/      # AccountMenu (sağ üst hesap menüsü: Profilim / Bina Değiştir / Çıkış Yap — ADR #41),
-    │                    #   Footer (sürüm + sürüm notları modalı), ErrorBoundary, PageLoader, ProtectedRoute (auth/guest rota koruması — rol yok, ADR #26),
-    │                    #   CapsLockIndicator (şifre alanı içi Caps Lock uyarısı),
-    │                    #   FormField (ikon + floating-label + isteğe bağlı şifre göster/gizle; Setup ve Recover paylaşır — ADR #40),
-    │                    #   PasswordStrength (güç ölçeri + kural listesi; Setup ve Recover paylaşır — bkz. ADR #34) vb. paylaşılan bileşenler
-    ├── hooks/           # useTheme, useCurrentUser (oturum kaynağı: setCurrentUser/clearCurrentUser + 'user-session-changed' eventi),
-    │                    #   useCurrentBuilding (seçili bina: setCurrentBuilding/clearCurrentBuilding + 'building-session-changed'; logout sessionStorage'ı tümden temizler),
-    │                    #   useCapsLockOn (Caps Lock durumu — boolean döner),
-    │                    #   useNeedsSetup (getSetupState'in tek renderer sahibi: null=bilinmiyor, true/false=sonuç; App ve Setup kullanır)
+    ├── components/      # AccountMenu, Footer, ErrorBoundary, PageLoader, ProtectedRoute,
+    │                    #   CapsLockIndicator, FormField, PasswordStrength
+    ├── hooks/           # useTheme, useCurrentUser, useCurrentBuilding, useCapsLockOn, useNeedsSetup
     ├── pages/           # Her sayfa kendi klasöründe (JSX + CSS), App.jsx'te lazy-load
-    ├── utils/           # alert.js (SweetAlert2 sarmalayıcı), date.js (tarih/saat format), currency.js (para format), passwordStrength.js (şifre skoru + kural/ölçer üretimi — `PasswordStrength` bileşeninin veri kaynağı), releaseNotes.js (yama notları + HTML üretimi + "görüldü" durumu — Footer modalında gösterilir)
-    ├── App.jsx          # Rotalar (HashRouter) + StartupRedirect (setup/login yönlendirmesi)
+    ├── utils/           # alert.js, date.js, currency.js, passwordStrength.js, releaseNotes.js
+    ├── App.jsx          # Rotalar + StartupRedirect + RequireBuilding
     ├── main.jsx         # React mount
-    └── style.css        # Global stiller — light/dark tema CSS değişkenleri
+    └── style.css        # Global stiller, light/dark tema CSS değişkenleri
 ```
 
-**Apartments klasörü:** `src/pages/Apartments/` tek sayfadır — `Apartments.jsx` hem aidat/daire listesini hem tüm daire işlemlerini (tahsilat/düzenle/sil/toplu aidat modalları) barındırır. Ortak parçalar `components/`, sabitler `constants.js`, aidat veri çekme mantığı `useDues.js` hook'undadır. Salt-okunur ikinci sayfa (`ApartmentsManage.jsx`) 2026-08-02'de kaldırıldı — bkz. ADR #35.
+**Apartments klasörü** tek sayfadır: `Apartments.jsx` hem aidat/daire listesini hem tüm daire işlemlerini (tahsilat, düzenleme, pasife alma, toplu aidat) barındırır. Ortak parçalar `components/`, sabitler `constants.js`, aidat veri çekme mantığı `useDues.js` hook'undadır.
 
 ---
 
@@ -234,68 +236,97 @@ SiteManager/
 
 ```
 Renderer: window.electronAPI.recordPayment({...})
-  → preload.js safeInvoke(CH.DUES.RECORD_PAYMENT, payload)   # yalnızca invoke kanal whitelist'i
-  → ipcMain.handle (electron/modules/dues/handlers.js)        # safeHandler zarfı: event yutulur
-  →   safeHandler içindeki fn(payload)                        # alan varlığı, aralık, enum, regex
+  → preload.js safeInvoke(CH.DUES.RECORD_PAYMENT, payload)   # invoke kanal whitelist'i
+  → ipcMain.handle (electron/modules/dues/handlers.js)        # createHandle zarfı, event yutulur
+  →   zarfın çağırdığı validate(payload)                      # alan varlığı, aralık, enum, regex
   → dues/service.js                                           # transaction içinde SQL
   → dönüş: { success: true, ...data } | { success: false, message: "Türkçe mesaj" }
 ```
 
 ### 5.2 Kurallar
 
-1. **Kanal string'leri yalnızca `electron/ipc/channels.js`'te tanımlanır.** Handler ve preload aynı sabiti import eder; `channels.js` duplicate değerde açılışta hata fırlatır. Modül **named export** verir: `{ CHANNELS, EVENT_CHANNELS, INVOKE_CHANNELS }` (tüketiciler `const { CHANNELS: CH } = require(...)` yazar). Son iki alan `CHANNELS`'tan türetilir ve **yalnızca preload kullanır**: `EVENT_CHANNELS` = `CHANNELS.EVENTS` değerleri, `INVOKE_CHANNELS` = geri kalan her şey. Türetme burada yapılır, preload'da tekrarlanmaz. Domain grupları hem `channels.js`'te hem `preload.js`'te **alfabetik** sıradadır, ikisi birebir aynı sırayı izler. Grup **içi** üye sırası alfabetik değildir, sıranın sahibi `channels.js`'tir: `preload.js` ve `modules/<domain>/handlers.js` üyeleri o dosyadaki sırayla listeler. Grup adı ile kanal prefiksi ve modül klasörü aynı kelimedir (`REPORT` → `report:get-data` → `modules/report/`).
-2. **Yeni endpoint eklerken 4 dosya değişir:** `channels.js` (sabit) → `modules/<domain>/handlers.js` (validasyon) → `modules/<domain>/service.js` (SQL) → `preload.js` (electronAPI metodu). Yeni domain ise `ipc/index.js`'teki `registrars` dizisine bir satır ekle. Bu dokümandaki §10 tablosunu da güncelle.
-3. **Handler deseni — `safeHandler`:** Her handler `createSafeHandler("<domain>")` ile üretilen `safeHandler(channel, fn, errorMessage?)` zarfına sarılır (bkz. `electron/modules/shared/safeHandler.js`). Modül başında bir kez `const safeHandler = createSafeHandler("<domain>")` tanımlanır; her `ipcMain.handle(CH.X, safeHandler(CH.X, (payload) => {...}))` şeklinde yazılır. Zarf: Electron'un `event` argümanını yutar (handler yalnızca payload alır), `fn`'in sonucunu (senkron/async) olduğu gibi döndürür, beklenmeyen throw/reject'i yakalayıp `console.error("[<domain>.handlers] <channel>:", err)` loglar ve jenerik `errorMessage` (varsayılan `"İşlem sırasında bir hata oluştu."`) döner. **Handler içinde elle try/catch yazma** — özel bir hata mesajı gerekiyorsa 3. parametreyle geç (ör. report `SAVE_FILE` → `"Dosya kaydedilemedi."`). İstisna: `event` nesnesine ihtiyaç duyan veya `{success}` sözleşmesi dışında ham değer döndüren handler (ör. `system` → düz version string'i) sarılmaz.
-4. **Dönüş sözleşmesi:** Her handler `{ success: boolean, ... }` döner (yukarıdaki `system` istisnası hariç). Hata durumunda `message` alanı kullanıcıya gösterilebilir Türkçe metindir; iç hata detayı renderer'a sızdırılmaz. İş kuralı ihlali `{ success:false, message }` **döndürerek** bildirilir (throw değil) — throw yalnızca beklenmeyen hatalar içindir ve `safeHandler`'ın `catch`'ine düşer. Renderer bir hata türüne göre **dallanıyorsa** (yalnızca göstermiyorsa), servis ayrıca makine-okunur bir `code` alanı döner ve renderer o alana bakar — `message` metnine `startsWith`/`includes` ile bakma, metin değişince dallanma sessizce bozulur. Mevcut kod: `resetAccountPassword` → `INVALID_RECOVERY_CODE` (Recover sayfası bu durumda adım 1'e döner).
+**1. Kanal string'leri yalnızca `electron/ipc/channels.js`'te tanımlanır.** Handler ve preload aynı sabiti import eder, `channels.js` duplicate değerde açılışta hata fırlatır. Modül named export verir: `{ CHANNELS, EVENT_CHANNELS, INVOKE_CHANNELS }`. Tüketiciler `const { CHANNELS: CH } = require(...)` yazar. Son iki alan `CHANNELS`'tan türetilir ve yalnızca preload kullanır. Domain grupları hem `channels.js`'te hem `preload.js`'te **alfabetik** sıradadır. Grup içi üye sırasının sahibi `channels.js`'tir, `preload.js` ve `handlers.js` o sırayı izler. Grup adı, kanal prefiksi ve modül klasörü aynı kelimedir (`REPORT` → `report:get-data` → `modules/report/`).
 
-   **Servis gövdesinin tek şekli (ADR #54):** sahiplik ve iş kuralı kontrolleri fonksiyonun başında yapılır ve ihlal `return { success:false, message }` ile bildirilir. Kontroller `getDb().transaction(...)` bloğunun **dışındadır**, transaction yalnızca yazmaları sarar (tek süreç + senkron DB olduğu için kontrol ile yazma arasına başka bir işlem giremez). `catch` yalnızca beklenmeyen hata içindir: hata nesnesini `console.error("[<domain>.service] <fn>:", err)` ile loglar ve kullanıcıya **sabit** bir metin döndürür — DB kısıtı tetiklenebilen fonksiyonlarda `resolveDbError(err, "<İşlem>")`, salt okuma fonksiyonlarında elle yazılmış cümle. **`err.message` hiçbir zaman renderer'a döndürülmez.**
-5. **main→renderer eventleri** (`EVENTS.*`, `splash:*`) `webContents.send` ile gönderilir; preload `safeOn` unsubscribe fonksiyonu döner. Abonelik bir React bileşeninde kuruluyorsa bu fonksiyon `useEffect` cleanup'ında çağrılmalıdır. **Bugün öyle bir tüketici yoktur:** tek abone `useTheme.js`, aboneliği modül gövdesinde bir kez kurar (§11) ve uygulama ömrü boyunca yaşadığı için dönen fonksiyonu bilinçli olarak atar.
-6. **Yetkilendirme:** IPC katmanında oturum doğrulaması yoktur (tek kullanıcılı masaüstü uygulaması). Veri izolasyonu **`buildingId`** parametresiyle sağlanır (ADR #25 öncesi `managerId`'ydi) — bina verisi sorguları her zaman `WHERE building_id = ?` (veya `JOIN apartments a ... a.building_id = ?`) içermelidir. İptal işlemlerinde **iki ayrı kimlik** geçer: sahiplik `buildingId`, işlemi yapan kişi `userId` (`cancelled_by`). `getPaymentHistory` `{ dueId, buildingId }` alır ve `dues JOIN apartments` üzerinden bina sahipliğini doğrular. Bina CRUD'unda (`building` domaini) izolasyon `owner_id` ile: `WHERE owner_id = ?`.
+**2. Yeni endpoint eklerken 4 dosya değişir:** `channels.js` (sabit) → `modules/<domain>/handlers.js` (validasyon) → `modules/<domain>/service.js` (SQL) → `preload.js` (electronAPI metodu). Yeni domain ise `ipc/index.js`'teki `registrars` dizisine bir satır ekle. §10 tablosunu da güncelle.
+
+**3. Handler deseni.** Her handler `createHandle(ipcMain, "<domain>")` ile üretilen `handle(channel, validate, run, errorMessage?)` ile kaydedilir. Zarf Electron'un `event` argümanını yutar, `run`'ın sonucunu olduğu gibi döndürür, beklenmeyen throw/reject'i yakalayıp `console.error("[<domain>.handlers] <channel>:", err)` loglar ve jenerik `errorMessage` (varsayılan `"İşlem sırasında bir hata oluştu."`) döner. **Handler içinde elle try/catch yazma**, özel mesaj gerekiyorsa 4. parametreyle geç (ör. `report:save-file` → `"Dosya kaydedilemedi."`). Kanal adı böylece **bir kez** yazılır.
+
+`run` her zaman service'ten gelmez. İşin gövdesinde SQL yoksa ve yapılan şey bir Electron/Node API çağrısıysa fonksiyon handler dosyasında kalır. Bugün tek örnek `report:save-file`'dır (`dialog.showSaveDialog` + `fs.promises.writeFile`). Ayrım "handler ince, service kalın" değil, **veritabanına dokunan kod service'tedir**. `backup` bunun karşı örneğidir ve service'tedir, çünkü `getDb().backup()` ve `closeDb()` çağırır.
+
+Payload almayan endpoint'ler (`auth:get-setup-state`, `backup:run`) `validate` yerine `noValidation` geçer. **Tek istisna `system`**, ham sürüm string'i döndürdüğü için `ipcMain.handle`'ı doğrudan çağırır.
+
+**4. Doğrulayıcı sözleşmesi.** Her doğrulayıcı **hata nesnesi (`{success:false, message}`) ya da `null`** döner ve parçalar `??` ile zincirlenir. Tüm handler dosyaları aynı iskelettedir:
+
+```js
+handle(CH.X.Y, (payload) => validateBuildingScope(payload) ?? validateXFields(payload), service.y);
+```
+
+- **Kapsam doğrulayıcısı** ne kapsadığıyla adlandırılır (`validateBuildingScope`, `validateApartmentScope`, `validateResidentScope`, `validateAccountScope`, `validateOwnerScope`, `validateOwnedBuildingScope`) ve `validatePayload` + kimlik kontrollerini `??` ile kurar. `validateBuildingScope` (`validatePayload` + `buildingId`) altı modülde ortaktır, bu yüzden `shared/validate.js`'tedir. Domain kendi kimliğini onun üstüne zincirler, yani bina kimliği her zaman domain kimliğinden önce doğrulanır.
+- **Alan doğrulayıcısı** (`validateXFields`) trim/normalizasyonu kendi ilk satırlarında yapar, böylece kapsamın arkasına `??` ile eklenebilir. `const error = ...; if (error) return error;` kalıbı yazılmaz.
+- **Kanal başına `validateXPayload` sarmalayıcısı yazılmaz.** Bileşim `handle(...)` çağrısında satır içindedir, tek parça yetiyorsa doğrulayıcı doğrudan geçilir (`handle(CH.DASHBOARD.GET_STATS, validateBuildingScope, ...)`).
+- Birden fazla kanalda geçen alan kontrolü ayrı parçaya çıkarılır (`validateDueAmount`, `validateCancelReason`, `validatePassword`, `validateRequiredPassword`).
+
+`??` sağ tarafı tembel değerlendirdiği için ilk kontrol (payload gerçekten nesne mi) sonrakileri korur. Ortak parçalar `shared/validate.js`'tedir, alan bazlı kontroller domain'in kendi dosyasında kalır.
+
+**Aralık sabiti kuralı:** sayı hemen yanındaki mesajda da yazılıysa (`"... 50.000₺'yi geçemez"`) kontrolde **literal** kullanılır, ayrı `MAX_*` sabiti tanımlanmaz. Mesajda geçmeyen sınırlar (yıl aralığı, tarih aralığı, regex, enum dizisi) adlandırılmış sabit kalır.
+
+**Birden fazla domain'de geçen sınır `shared/validate.js`'e taşınır.** Yıl aralığı (2000-2100), tarih aralığı (`2000-01-01`..`2100-12-31`), ISO tarih biçimi ve e-posta biçimi orada tek kez tanımlıdır ve yüklem olarak dışa açılır: `isIsoDate` (biçim **ve** takvim geçerliliği), `isDateInRange`, `isValidYear`, `isValidMonth`, `isEmailFormat`, `MIN_EMAIL_LENGTH`, `MAX_EMAIL_LENGTH`. Bu dosya sınırlar için **yüklem** verir, **mesaj** vermez (mesaj üreten tek grup kimlik ve kapsam doğrulayıcılarıdır: `validatePayload`, `validateId`, `validateBuildingScope`): kullanıcıya dönen alan metni her zaman çağıran domain'de kalır, çünkü aynı sınır farklı domain'lerde farklı cümlelerle anlatılır (`"Geçersiz tarih."` / `"Geçersiz ödeme tarihi."` / `"Geçersiz çıkış tarihi."`). Yeni bir handler'da tarih ya da e-posta doğrularken kendi regex'ini yazma.
+
+**5. Dönüş sözleşmesi.** Her handler `{ success: boolean, ... }` döner (`system` hariç). Hata durumunda `message` kullanıcıya gösterilebilir Türkçe metindir, iç hata detayı renderer'a sızdırılmaz. İş kuralı ihlali `{ success:false, message }` **döndürerek** bildirilir, throw yalnızca beklenmeyen hatalar içindir.
+
+Renderer bir hata türüne göre **dallanıyorsa** servis ayrıca makine-okunur bir `code` alanı döner ve renderer o alana bakar. `message` metnine `startsWith`/`includes` ile bakma, metin değişince dallanma sessizce bozulur. Mevcut kod:
+
+| Servis                 | `code`                  | Ek alan       | Renderer davranışı                         |
+| ---------------------- | ----------------------- | ------------- | ------------------------------------------ |
+| `resetAccountPassword` | `INVALID_RECOVERY_CODE` | yok           | Recover sayfası adım 1'e döner             |
+| `verifyRecoveryCode`   | `INVALID_RECOVERY_CODE` | yok           | Adım 1'de mesaj gösterir                   |
+| `deleteApartment`      | `HAS_UNPAID_DUES`       | `unpaidTotal` | Tutarı gösterip `force:true` ile tekrarlar |
+
+**6. Servis gövdesinin tek şekli.** Sahiplik ve iş kuralı kontrolleri fonksiyonun başında yapılır ve ihlal `return { success:false, message }` ile bildirilir. Kontroller `getDb().transaction(...)` bloğunun **dışındadır**, transaction yalnızca yazmaları sarar. Tek süreç ve senkron DB olduğu için kontrol ile yazma arasına başka bir işlem giremez. `catch` yalnızca beklenmeyen hata içindir: hata **nesnesini** `console.error("[<domain>.service] <fn>:", err)` ile loglar ve kullanıcıya **sabit** bir metin döndürür (DB kısıtı tetiklenebilen fonksiyonlarda `resolveDbError(err, "<İşlem>")`, salt okuma fonksiyonlarında elle yazılmış cümle). **`err.message` hiçbir zaman renderer'a döndürülmez.**
+
+**7. main→renderer eventleri** (`EVENTS.*`, `splash:*`) `webContents.send` ile gönderilir, preload `safeOn` unsubscribe fonksiyonu döner. Abonelik bir React bileşeninde kuruluyorsa bu fonksiyon `useEffect` cleanup'ında çağrılmalıdır. Bugün tek abone `useTheme.js`'tir, aboneliği modül gövdesinde bir kez kurar ve uygulama ömrü boyunca yaşadığı için dönen fonksiyonu bilinçli olarak atar.
+
+**8. Yetkilendirme.** IPC katmanında oturum doğrulaması yoktur (tek kullanıcılı masaüstü uygulaması). Veri izolasyonu **`buildingId`** parametresiyle sağlanır: bina verisi sorguları her zaman `WHERE building_id = ?` ya da `JOIN apartments a ... a.building_id = ?` içermelidir. İptal işlemlerinde **iki ayrı kimlik** geçer: sahiplik `buildingId`, işlemi yapan kişi `userId` (`cancelled_by` / `collected_by`). Bina CRUD'unda izolasyon `owner_id` ile yapılır.
+
+### 5.3 Çağrı sözleşmesi
+
+Her `electronAPI` metodu **sıfır ya da tek bir nesne** argümanı alır ve onu `safeInvoke`'a olduğu gibi iletir. Pozisyonel argüman ve ham skaler payload yoktur. Bundan çıkan iki alt kural: (a) preload payload'ı **yeniden paketlemez**, (b) sahiplik anahtarı (`buildingId` / `ownerId`) her zaman payload'ın **üst seviyesindedir**, iç içe bir `data` nesnesinde değil. Aynı kural handler → service sınırında da geçerlidir: servis fonksiyonları doğrulanmış payload nesnesini olduğu gibi alır. Servis **içi** yardımcılar (`insertRecord`, `cancelRecord`, `findOwnedResident`, `findDuplicateName`) pozisyonel kalabilir, kural IPC sınırı içindir. Tek istisna `onToggleTheme(callback)`, o invoke değil event aboneliğidir.
 
 ---
 
-## 6. Kullanıcı Rolleri, Kimlik Doğrulama ve Oturum
+## 6. Kimlik Doğrulama ve Oturum
 
-**Tek hesap modeli (ADR #26):** Uygulama **tek role** sahiptir — bir makinede **bir hesap** vardır. Bu hesap hem binaları yönetir, hem kendi kurtarma kodunu tutar, hem de gerektiğinde **devredilir**. Admin/manager ayrımı ve ikinci hesap açma mantığı **kaldırıldı** (ADR #26). Kullanıcıya dönük etiket: **"Site Yöneticisi"** (kişi). Hesabın kişi adı `manager_name`'de tutulur, kurulumda girilir ve `useCurrentUser().managerName` ile karşılamada/Profile'da gösterilir.
+**Tek hesap modeli.** Uygulamada rol yoktur, bir makinede bir hesap vardır. Bu hesap binaları yönetir, kendi kurtarma kodunu tutar ve gerektiğinde devredilir. Kullanıcıya dönük etiket "Site Yöneticisi"dir. Hesabın kişi adı `manager_name`'de tutulur, kurulumda girilir ve `useCurrentUser().managerName` ile gösterilir. Tek hesap olduğundan servisler satırı `ORDER BY id LIMIT 1` ile bulur.
 
-- **Rol kavramı tamamen kaldırıldı (018).** `users.role` kolonu (ve kullanılmayan `display_name`) migration 018 ile tablodan **silindi**; artık ne şemada, ne kodda, ne session'da rol vardır. Tek hesap olduğundan `getSetupState`/`regenerateRecoveryCode`/`completeSetup` satırı `ORDER BY id LIMIT 1` ile bulur. `useCurrentUser` session'ında `role` alanı ve `VALID_ROLES` doğrulaması kaldırıldı. (Eski `WHERE role='admin'` sentinel'i "rol sistemi var" izlenimi veriyordu; oysa rol yok.)
-- Şifreler `bcryptjs` ile hash'lenir; düz metin hiçbir yerde saklanmaz/loglanmaz.
-- **Oturum:** `sessionStorage` → `currentUser` anahtarı (`SESSION_USER_KEY`, `useCurrentUser.js`). Tek doğruluk kaynağı `src/hooks/useCurrentUser.js`:
-  - `useCurrentUser()` reaktif okuma — **tek okuma yolu budur**. Hook dışı okuma için ayrı bir export yoktur (`getCurrentUser` modül içinde kaldı, dışarı açılmıyor: hiçbir çağıranı yoktu ve hook'suz okuma session değişimini kaçırır). İhtiyaç doğarsa export edilir.
-  - `setCurrentUser(user)` login sonrası yazar (persist edilen alanlar: `id, username, email, managerName, last_login`) + `user-session-changed` yayınlar.
-  - `clearCurrentUser()` logout: `sessionStorage.clear()` + event.
-  - **Kural:** `sessionStorage.setItem/clear` + elle `dispatchEvent` yazma; helper'ları kullan.
-- **Kalıcı oturum ("Beni hatırla") YOKTUR.** Oturum yalnızca `sessionStorage`'dadır; uygulama kapanınca silinir. (Bkz. `ROADMAP.md`.)
-- **Rota koruması:** `ProtectedRoute` yalnızca **auth/guest** ayrımı yapar (rol yok): `guestOnly` girişliyi `/select-building`'e atar, korumalı rota girişsizi `/`'e atar. Manager sayfaları ayrıca `RequireBuilding` altındadır (§11).
-- Tek hesap; hesap satırı **seed edilmez**, kurulum tamamlanınca `completeSetup` `INSERT` ile oluşturur (ADR #27).
+- Şifreler `bcryptjs` ile hash'lenir, düz metin hiçbir yerde saklanmaz ya da loglanmaz.
+- **Oturum:** `sessionStorage` → `currentUser` anahtarı. Tek doğruluk kaynağı `src/hooks/useCurrentUser.js`'tir. `useCurrentUser()` reaktif okumanın tek yoludur, `setCurrentUser(user)` login sonrası yazar ve `user-session-changed` yayınlar, `clearCurrentUser()` logout'ta `sessionStorage.clear()` çağırır. **Kural:** `sessionStorage.setItem/clear` + elle `dispatchEvent` yazma, helper'ları kullan.
+- **Kalıcı oturum ("Beni hatırla") yoktur.** Oturum yalnızca `sessionStorage`'dadır, uygulama kapanınca silinir.
+- **Rota koruması:** `ProtectedRoute` yalnızca auth/guest ayrımı yapar. `guestOnly` girişliyi `/select-building`'e atar, korumalı rota girişsizi `/`'e atar. Bina gerektiren sayfalar ayrıca `RequireBuilding` altındadır (§11).
 
-### İlk Kurulum (Setup) Akışı
+### İlk Kurulum (Setup)
 
-1. Açılışta hesap **seed edilmez**; taze kurulumda `users` boştur (bkz. §2.2 notu, ADR #27).
-2. Renderer açılışta `getSetupState()` çağırır → hesap **satırı yoksa** (veya legacy `password_changed_at IS NULL` ise) `needsSetup:true` döner ve `/setup`'a yönlendirir.
-3. Kullanıcı **ad soyad + kullanıcı adı + şifre** belirler → `completeSetup({ username, password, managerName })` → hesap satırını **`INSERT` ile oluşturur** (kullanıcı adı `/^[A-Za-z0-9_]{3,}$/`), kurtarma kodu üretilip **bir kez** gösterilir. Kod bir SweetAlert diyaloğunda değil, Recover'ın üçüncü adımı gibi **sayfa içi bir "Kurulum Tamamlandı" durumunda** gösterilir: kurtarma kodu + "Kodu Kopyala" butonu + kullanıcı adı, altında "Giriş Ekranına Git" butonu. Sayfa `/login`'e kendiliğinden yönlenmez; kullanıcı butona basar ve kullanıcı adı `location.state` ile Login'e taşınır. (`showAlert.setupCode` kaldırıldı.) Kullanıcı adı doğrudan kullanıcıdan gelir — yer tutucu `admin` hesabı yoktur. **Legacy yükseltme yolu:** eski sürümün seed'lediği pending satır (username='admin', `password_changed_at IS NULL`) varsa `INSERT` yerine o satır `UPDATE` edilir (iki satır oluşmasın diye).
-4. Endpoint yalnızca tamamlanmış hesap **yokken** çalışır (oturumsuz; kurulum bitince kilitlenir). Sayfa mount'ta `getSetupState` sorar, kurulum tamamlanmışsa `/login`'e yönlenir.
-5. Mevcut kurulumlar `008_mark_existing_admin_setup.sql` ile korunur (satırları vardır ve `password_changed_at` set'tir → `needsSetup:false`).
+1. Taze kurulumda `users` boştur, hesap satırı seed edilmez.
+2. Renderer açılışta `getSetupState()` çağırır. Hesap satırı yoksa `needsSetup:true` döner ve `/setup`'a yönlenir. **Hesap satırının varlığı kurulumun tamamlandığı anlamına gelir**, ara bir "pending" durum yoktur.
+3. Kullanıcı ad soyad + kullanıcı adı + şifre belirler → `completeSetup({ username, password, managerName })` hesabı `INSERT` ile oluşturur, kurtarma kodu üretilip **bir kez** gösterilir. Kod bir modalda değil sayfa içi "Kurulum Tamamlandı" durumunda gösterilir: kurtarma kodu + "Kodu Kopyala" + kullanıcı adı. Sayfa `/login`'e kendiliğinden yönlenmez, kullanıcı butona basar ve kullanıcı adı `location.state` ile Login'e taşınır.
+4. Endpoint yalnızca hesap satırı **yokken** çalışır ve tek yazma yolu `INSERT`'tür. Sayfa mount'ta `getSetupState` sorar, kurulum tamamlanmışsa `/login`'e yönlenir.
 
-### Hesap Şifre Kurtarma
+### Şifre Kurtarma
 
-- Kurtarma kodu: 16 karakter, `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` alfabesi (I/O/0/1 yok), `XXXX-XXXX-XXXX-XXXX`. `normalizeRecoveryCode` tire/boşluk/küçük harfi tolere eder.
-- `resetAccountPassword(recoveryCode, newPassword)` **`/recover` sayfasından** (giriş ekranındaki "Şifrenizi mi unuttunuz?" altındaki "Kurtarma kodu ile sıfırlayın" bağlantısı), oturumsuz; kod **tek kullanımlıktır**, her kullanımda yenisi üretilir. Sayfa iki adımlı (1: kod, 2: yeni şifre + tekrar). Adım 1, `verifyRecoveryCode(recoveryCode)` ile kodu **sunucuda doğrular** (yan etkisiz bcrypt karşılaştırması); kod hatalıysa kullanıcı şifreyi yazmadan adım 1'de mesajla uyarılır. Doğru kod adım 2'ye geçirir; nihai (ve yetkili) doğrulama yine `resetAccountPassword` içindedir — adım 1'deki `verifyRecoveryCode` yalnızca erken UX kontrolüdür, güvenlik sınırı değildir (ADR #16). Beklenmeyen bir hatada yine adım 1'e dönülür, girilen şifre state'te korunur.
-- **Kullanıcı adı kurtarma:** Kullanıcı adı için ayrı bir kurtarma endpoint'i **yoktur** (brute-force oracle'ından kaçınmak için, ADR #16 mantığı). `resetAccountPassword` başarı yanıtında hesabın `username`'ini de döndürür; `/recover` **üçüncü adımı** (sayfa içi "Şifreniz Yenilendi" durumu, modal değil) yeni kurtarma koduyla birlikte kullanıcı adını da gösterir. Sayfa `/login`'e kendiliğinden yönlenmez; kullanıcı kodu okuyup butona basar ve kullanıcı adı `location.state` ile Login'e taşınır. Kod panoya otomatik yazılmaz, "Kodu Kopyala" butonu vardır. Böylece kod doğrulamasını tamamlayan kişi kullanıcı adını unutmuşsa öğrenir — kod zaten kimlik kanıtı olduğu için yeni bir açık yaratmaz.
-- **Kullanıcı adını unutmayı önleme (Login otomatik doldurma):** `getSetupState` kurulum tamamlanmışsa `username` alanını da döndürür (bekliyorsa `null`). `Login` mount'ta bunu çağırıp kullanıcı adı alanını doldurur ve odağı şifreye alır; kullanıcı normalde yalnızca şifre yazar. `location.state?.username` (ör. devir sonrası yönlendirme) varsa ona öncelik verilir ve sorgu atlanır. Alan düzenlenebilir kalır (tek hesap olduğundan dolan değer her zaman doğrudur).
-- Giriş yapmış hesap Profile'dan `regenerateRecoveryCode(password)` ile (mevcut şifre doğrulanarak) yeni kod üretir.
-- `recovery_hash` bcrypt ile, tek hesapta saklanır.
+- Kurtarma kodu 16 karakterdir, `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` alfabesinden (I/O/0/1 yok) üretilir ve `XXXX-XXXX-XXXX-XXXX` biçiminde gösterilir. `normalizeRecoveryCode` tire, boşluk ve küçük harfi tolere eder.
+- `resetAccountPassword(recoveryCode, newPassword)` `/recover` sayfasından oturumsuz çağrılır. Kod **tek kullanımlıktır**, her kullanımda yenisi üretilir. Sayfa iki adımlıdır (1: kod, 2: yeni şifre + tekrar). Adım 1 `verifyRecoveryCode` ile kodu yan etkisiz doğrular, böylece kullanıcı şifreyi yazmadan hatayı görür. Nihai ve yetkili doğrulama yine `resetAccountPassword` içindedir, adım 1 yalnızca erken UX kontrolüdür.
+- **Kullanıcı adı için ayrı kurtarma endpoint'i yoktur.** `resetAccountPassword` başarı yanıtında `username` da döner ve `/recover` üçüncü adımı (sayfa içi "Şifreniz Yenilendi" durumu) yeni kurtarma koduyla birlikte kullanıcı adını gösterir. Kod panoya otomatik yazılmaz, "Kodu Kopyala" butonu vardır.
+- **Login otomatik doldurma:** `getSetupState` kurulum tamamlanmışsa `username` alanını da döndürür. Login mount'ta bunu çağırıp kullanıcı adı alanını doldurur ve odağı şifreye alır. `location.state?.username` varsa ona öncelik verilir ve sorgu atlanır.
+- Giriş yapmış hesap Profile'dan `regenerateRecoveryCode(password)` ile yeni kod üretir.
+- Login'de timing attack koruması vardır: kullanıcı bulunamasa da sahte hash karşılaştırması yapılır (`DUMMY_HASH`). **Yalnızca login'de anlamlıdır** ve başka yola kopyalanmamalıdır: kurtarma yollarında hesabın varlığı `getSetupState` ile zaten açıkça bildirilir, `regenerateRecoveryCode` ise açık oturum ister.
 
 ### Hesap Yönetimi (Profile sayfası)
 
-Silinen admin panelinin yerini **Profile (`/profile`)** aldı — tek hesabın tüm yönetimi burada:
-
-- **Şifre değiştir:** `changePassword(userId, oldPassword, newPassword)` (mevcut şifre doğrulanır).
+- **Şifre değiştir:** `changePassword(userId, oldPassword, newPassword)`. Mevcut şifre doğrulanır, yeni şifre eskisiyle aynı olamaz.
 - **Yeni kurtarma kodu üret:** `regenerateRecoveryCode(password)`.
-- **Hesabı Devret:** `transferAccount(userId, password, newPerson)` — giriş yapmış hesabın **kendini** devretmesi: mevcut şifre doğrulanır, `manager_name` yeni kişiye set edilir, tek kullanımlık geçici şifre üretilir (bir kez modalda gösterilir). Binalar/veriler aynı hesapta kalır. Devir sonrası eski şifre geçersiz olur → renderer oturumu kapatıp `/login`'e atar. (Şifre unutulursa yedek yol `/recover`.)
+- **E-posta:** `updateEmail(userId, email)`. İsteğe bağlıdır, boş değer kaldırır.
+- **Hesabı Devret:** `transferAccount(userId, password, newPerson)`. Mevcut şifre doğrulanır, `manager_name` yeni kişiye set edilir, tek kullanımlık geçici şifre **ve yeni bir kurtarma kodu** üretilir, ikisi de ardışık iki modalda bir kez gösterilir (`temporaryPassword`, `transferredRecoveryCode`). Kurtarma kodunun yenilenmesi zorunludur, aksi hâlde devreden kişi elindeki eski kodla şifreyi sıfırlayıp hesaba geri girebilirdi. Binalar ve veriler aynı hesapta kalır. Devir sonrası eski şifre geçersiz olur, renderer oturumu kapatıp `/login`'e atar.
 - **Veri Yedeği:** "Yedek Al" butonu (`runBackup`). Geri yükleme burada değildir, menüdedir.
-- **Bina yönetimi Profile'da DEĞİLDİR** — yeniden adlandırma/arşivleme/geri getirme `SelectBuilding` sayfasındadır (ADR #36). Bina **silinmez, arşivlenir** (`is_active=0`); arşivdekiler seçim ekranının altındaki "Silinen Binalar" bölümünden geri getirilir. O bölümdeki **"Kalıcı Sil"** ikinci kademedir (`is_removed=1`): bina her listeden çıkar ve geri getirilemez, ama satır ve bağlı tüm kayıtlar veritabanında durur (ADR #42). Butonun adı kullanıcı kılavuzunda da geçer (`electron/windows/guide/guide.html`), değişirse orası da güncellenmeli.
-- Login'de timing attack koruması: kullanıcı bulunamasa da sahte hash karşılaştırması yapılır.
+- **Bina yönetimi Profile'da değildir.** Yeniden adlandırma, arşivleme ve geri getirme `SelectBuilding` sayfasındadır.
 
 ---
 
@@ -303,310 +334,335 @@ Silinen admin panelinin yerini **Profile (`/profile`)** aldı — tek hesabın t
 
 ### 7.1 Bağlantı ve Pragma'lar (`database/db.js`)
 
-- **Tek bağlantı**, main process'te, **açık bir `openDatabase()` çağrısıyla** açılır (modül yüklenirken değil — ADR #52). Dev'de dosya proje kökünde (`database.db`), paketli sürümde `%APPDATA%/mavikent-site-yonetimi/` (userData) altındadır
+- **Tek bağlantı**, main process'te, **açık bir `openDatabase()` çağrısıyla** açılır. Modül yüklenirken açılmaz. Dev'de dosya proje kökündedir (`database.db`), paketli sürümde `%APPDATA%/mavikent-site-yonetimi/` altındadır.
 - **Modül üç fonksiyon export eder, `db` nesnesini değil:**
-  - `openDatabase()` — bağlantıyı açar (idempotent, açıksa mevcut olanı döner), pragma'ları uygular, `will-quit` dinleyicisini kaydeder ve bağlantıyı döndürür. **Tek çağıranı `main.js`'in `connectDatabase()`'idir** (§2.2 adım 3). Başka hiçbir yerden çağırma
-  - `getDb()` — açık bağlantıyı döndürür, açılmamışsa `throw` eder. Service'ler her sorguda bunu çağırır (`getDb().prepare(...)`), modül gövdesinde bağlantı **yakalamaz**
-  - `closeDb()` — aşağıdaki kapanış adımları
-- Pragma'lar: `foreign_keys=ON`, `journal_mode=WAL`, `synchronous=NORMAL`, `busy_timeout=3000`, `cache_size=-16000` (16000 KiB, ~15,6 MB), `temp_store=MEMORY`
-- `closeDb()`: `optimize` + `wal_checkpoint(TRUNCATE)` + `close`, sonra modül içi referansı `null`'lar (böylece kapanmış bir bağlantı `getDb()` ile dağıtılmaz, çağıran net bir hata alır). Üç adım da birbirinden bağımsız denenir (biri hata verirse loglanır, sonraki yine çalışır). **`will-quit`'te** otomatik çağrılır (`before-quit` değil: o olay pencereler kapanmadan önce tetiklendiği için renderer hâlâ IPC gönderebilecekken bağlantıyı kapatırdı). Restore işlemi dosya kilidini bırakmak için elle çağırır
-- Açılışta veritabanı yolu `[Database] Opening database: <path>` satırıyla loglanır (dev + prod). Bağlantı açma hatası ayrıca sarmalanmaz — `main.js` `openDatabase()` çağrısını zaten try/catch içine alıp kullanıcıya dialog gösterir ve hatayı loglar, yol bilgisi de bir önceki satırda durur
-- better-sqlite3 **senkron** çalışır — sorgular event loop'u bloklar. Uzun sorgu yazma; listeler büyürse sayfalama ekle (ROADMAP)
+  - `openDatabase()` bağlantıyı açar (idempotent), pragma'ları uygular, `will-quit` dinleyicisini kaydeder ve bağlantıyı döndürür. **Tek çağıranı `main.js`'in `connectDatabase()`'idir.**
+  - `getDb()` açık bağlantıyı döndürür, açılmamışsa `throw` eder. Service'ler her sorguda bunu çağırır, modül gövdesinde bağlantı **yakalamaz**.
+  - `closeDb()` aşağıdaki kapanış adımlarını uygular.
+- Pragma'lar: `foreign_keys=ON`, `journal_mode=WAL`, `synchronous=NORMAL`, `busy_timeout=3000`, `cache_size=-16000`, `temp_store=MEMORY`.
+- `closeDb()`: `optimize` + `wal_checkpoint(TRUNCATE)` + `close`, sonra modül içi referansı `null`'lar. Böylece kapanmış bir bağlantı `getDb()` ile dağıtılmaz. Üç adım da birbirinden bağımsız denenir. **`will-quit`'te** otomatik çağrılır (`before-quit` değil, çünkü o olay pencereler kapanmadan önce tetiklenir ve renderer hâlâ IPC gönderebilecekken bağlantıyı kapatırdı). Restore işlemi dosya kilidini bırakmak için elle çağırır.
+- Açılışta yol `[Database] Opening database: <path>` satırıyla loglanır.
+- better-sqlite3 **senkron** çalışır, sorgular event loop'u bloklar. Uzun sorgu yazma.
 
 ### 7.2 Şema
 
-**Tüm tablolarda geçerli iki kural:** `created_at`/`updated_at` **NOT NULL**'dur (026-034; DEFAULT TR saatidir ve açık NULL yazımı reddedilir). Finansal tablolar (`dues`, `due_payments`, `incomes`, `expenses`, `payment_cancellations`) **BEFORE DELETE trigger'ı ile korunur** — §8'in "silinmez" kuralı artık yalnızca serviste değil DB'de de zorlanır (ADR #45).
+**Tüm tablolarda geçerli iki kural:** `created_at`/`updated_at` NOT NULL'dur ve DEFAULT'ları TR saatidir. Finansal tablolar (`dues`, `due_payments`, `incomes`, `expenses`, `payment_cancellations`) **BEFORE DELETE trigger'ı ile korunur**, yani §8'in "silinmez" kuralı yalnızca serviste değil DB'de de zorlanır.
 
 ```sql
-users                 (id, username, email, manager_name, password_hash, recovery_hash, is_active,
-                       last_login, password_changed_at, created_at, updated_at)
-                       -- username: NOT NULL, 3-30, yalnızca [A-Za-z0-9_]. Tekillik kolon içi UNIQUE ile değil
-                       --   ayrı index ile: idx_users_username (username COLLATE NOCASE) — 026. Kolon içi
-                       --   "UNIQUE ... COLLATE NOCASE" sırası collation'ın indekse uygulanıp uygulanmadığını
-                       --   okurken belirsiz bırakıyordu; açık index bunu görünür kılar (ADR #46)
-                       -- manager_name: hesabı kullanan kişinin adı (NOT NULL, 2-60); Profile'da/karşılamada gösterilir (bkz. §17 ADR #25)
-                       --   020 ile NOT NULL yapıldı (eski null satırlar username ile backfill'lendi); handler completeSetup'ta zorunlu kılar, service null yazmaz
-                       -- email: UNIQUE ve NOT NULL DEĞİL (012). Kimlik/kurtarma işlevi yok (giriş kullanıcı adıyla,
-                       --   kurtarma kodla); yalnızca bilgi amaçlı, isteğe bağlı iletişim alanı. Kurulumda seed NULL yazar
-                       --   (eski sabit yer tutucu e-posta 019 ile NULL'landı); kullanıcı Profile'dan updateEmail ile
-                       --   kendisi girer/temizler
-                       -- recovery_hash: hesabın kurtarma kodunun bcrypt hash'i (tek kullanımlık)
-                       -- password_changed_at NULL = setup tamamlanmamış
-                       -- is_active: bugün YAZILMIYOR (hep 1); login + createBuilding owner kontrolünde okunur. Bilinçli
-                       --   olarak KALDIRILMADI: ileriki hesap devri "yeni satır + eski satırı is_active=0" modeliyle
-                       --   yapılırsa (geçmiş collected_by/cancelled_by bağları kişi bazında korunur) bu kolon gerekir
-                       --   (bkz. ROADMAP — hesap devri). Devir bugünkü modelde satırı yerinde overwrite eder (transferAccount)
-                       -- role ve display_name kalıntı kolonları 018 ile kaldırıldı (tek hesap, rol yok — ADR #26)
+users                 (id, username, email, manager_name, password_hash, recovery_hash,
+                       is_active, last_login, password_changed_at, created_at, updated_at)
+                       idx_users_username (username COLLATE NOCASE) UNIQUE
+                       -- username: NOT NULL, 3-30, yalnızca [A-Za-z0-9_]. Tekillik kolon içi
+                       --   UNIQUE ile değil ayrı index ile, collation açıkça görünsün diye
+                       -- manager_name: NOT NULL, 2-60. Hesabı kullanan kişinin adı
+                       -- email: UNIQUE ve NOT NULL DEĞİL. Kimlik/kurtarma işlevi yok, bilgi amaçlı
+                       -- recovery_hash: NOT NULL. Kurtarma kodunun bcrypt hash'i (tek kullanımlık).
+                       --   Satır varsa kod da vardır, servis null kontrolü yapmaz
+                       -- password_changed_at: NOT NULL, son şifre değişikliği. Kurulumda INSERT ile
+                       --   yazılır, yani kurulum durumu göstergesi DEĞİLDİR, satırın varlığı odur
+                       -- is_active: bugün yazılmıyor (hep 1), login + createBuilding'de okunur
 
 buildings             (id, owner_id→users.id, name CHECK(len 2-60), is_active, is_removed,
                        created_at, updated_at)
-                       idx_buildings_owner_name (owner_id, name COLLATE NOCASE) WHERE is_removed = 0   -- kısmi UNIQUE index (023/024; kolon 025 ile is_purged→is_removed, ad 027)
-                       -- Tek kolonluk idx_buildings_owner_id 027 ile kaldırıldı: owner_id ile süzen iki sorgu da
-                       --   is_removed=0 içerdiği için kısmi index ikisine de yetiyor
-                       -- Defterin sahibi varlık. Bir kişi (owner_id) birden fazla bina yönetebilir (ADR #25)
-                       -- Kullanıcı giriş yaptıktan sonra binayı kendi oluşturur (SelectBuilding). Silinmez, arşivlenir (is_active=0)
-                       -- is_removed=1: arşivden de kaldırılmış, hiçbir listede görünmez; satır ve bağlı kayıtlar durur (ADR #42)
-                       -- Aynı hesapta aynı isimde ikinci bina açılamaz (büyük/küçük harf duyarsız). Kaldırılan (is_removed=1)
-                       --   binaların adı serbest kalır, bu yüzden index kısmidir
+                       idx_buildings_owner_name (owner_id, name COLLATE NOCASE)
+                         UNIQUE WHERE is_removed = 0
+                       -- Defterin sahibi varlık. Bir kişi birden fazla bina yönetebilir
+                       -- Silinmez: is_active=0 arşiv, is_removed=1 kalıcı kaldırma (§8/11)
+                       -- Index kısmidir: kaldırılan binanın adı yeniden kullanılabilir
 
-apartments            (id, building_id→buildings.id, apartment_no, floor,
-                       type∈{0+1,1+1,2+1,3+1,4+1}, square_meters,
-                       due_amount, is_active, created_at, updated_at)
+apartments            (id, building_id→buildings.id ON DELETE RESTRICT, apartment_no, floor,
+                       type∈{0+1,1+1,2+1,3+1,4+1}, square_meters, due_amount,
+                       is_active, created_at, updated_at)
                        idx_apartments_building_no (building_id, apartment_no COLLATE NOCASE) UNIQUE
-                       -- Tek kolonluk idx_apartments_building_id 028 ile kaldırıldı: bileşik indeksin prefix'iydi
+                       -- apartment_no 1-10, yalnızca harf/rakam · floor -2..99
+                       -- square_meters 0<x<=1000 · due_amount 0<x<=50000
 
 residents             (id, apartment_id→apartments.id ON DELETE CASCADE,
-                       full_name CHECK(len<=60), phone CHECK(len 10-20), email CHECK(len 5-254),
-                       national_id, resident_type∈{owner,tenant}, move_in_date, move_out_date,
-                       is_active, notes CHECK(len<=500), created_at, updated_at)
-                       -- İsteğe bağlı metin alanları (full_name, phone, notes) doluysa boşluktan ibaret olamaz
-                       --   (`length(trim(x)) > 0`) — projedeki cancel_reason/description/note ile aynı desen
-                       -- Trigger: move_out_date <= date('now') ise is_active=0 (gelecek çıkış tarihi aktif kalır)
-                       -- full_name/notes/phone/email üst sınırları 029 ile eklendi (öncesinde full_name ve notes
-                       --   tümüyle sınırsızdı). full_name isteğe bağlıdır, ama boş string yazılamaz
+                       full_name, phone, email, national_id, resident_type∈{owner,tenant},
+                       move_in_date, move_out_date, is_active, notes, created_at, updated_at)
+                       idx_residents_apartment_id (apartment_id)
+                       -- İsteğe bağlı metin alanları doluysa boşluktan ibaret olamaz
+                       -- full_name<=60 · phone 10-20 ([0-9+()- ]) · email 5-254 · notes<=500
+                       -- national_id 11 hane · move_out_date >= move_in_date
+                       -- INSERT ve UPDATE trigger'ı: move_out_date <= bugün ise is_active=0
+                       --   (gelecek tarihli çıkış sakini aktif bırakır)
 
 dues                  (id, apartment_id→apartments.id ON DELETE RESTRICT, year, month,
                        due_amount CHECK(>0 AND <=50000),
                        paid_amount CHECK(>=0 AND <=due_amount),
-                       status∈{unpaid,partial,paid}, created_at, updated_at)
+                       status, created_at, updated_at)
                        UNIQUE(apartment_id, year, month)
-                       -- status paid_amount'tan TÜRETİLİR ve CHECK ile bağlanmıştır (030): paid>=due→paid,
-                       --   paid>0→partial, aksi→unpaid. Servisteki calcDueStatus ile birebir aynı ifadedir,
-                       --   biri değişirse diğeri de değişmeli. Tutarsız status yazılamaz (ADR #47)
-                       -- FK 030 ile CASCADE'den RESTRICT'e çevrildi: aidat kaydı §8 gereği silinemez
+                       -- status paid_amount'tan TÜRETİLİR ve CHECK ile ona bağlanmıştır:
+                       --   paid>=due→paid, paid>0→partial, aksi→unpaid. Servisteki
+                       --   calcDueStatus ile birebir aynı ifadedir, biri değişirse diğeri de
+                       -- FK RESTRICT: aidat kaydı §8 gereği silinemez
 
 due_payments          (id, due_id→dues.id, collected_by→users.id,
                        amount CHECK(>0 AND <=1000000),
                        payment_method∈{cash,bank_transfer,card,other},
                        payment_date CHECK(ISO + 2000-01-01..2100-12-31),
                        note CHECK(trim boş değil AND len<=500), created_at)
+                       idx_due_payments_due_id (due_id)
 
 payment_cancellations (id, payment_id→due_payments.id UNIQUE, cancelled_by→users.id,
-                       cancel_reason, cancelled_at)
-                       -- Immutable audit log: trigger ile UPDATE/DELETE engellenir
+                       cancel_reason CHECK(trim boş değil AND len<=300), cancelled_at)
+                       -- Immutable audit log: trigger ile UPDATE ve DELETE engellenir
 
 incomes               (id, building_id→buildings.id, due_payment_id→due_payments.id UNIQUE,
-                       amount, date CHECK(ISO + 2000-01-01..2100-12-31), description,
-                       category∈{dues,rent,parking,donation,other},
+                       amount, date, description, category∈{dues,rent,parking,donation,other},
                        is_cancelled, cancelled_at, cancel_reason, cancelled_by→users.id,
                        created_at, updated_at)
+                       idx_incomes_building_date · idx_incomes_active_only (WHERE is_cancelled=0)
+                       -- Tablo düzeyi CHECK: iptal alanlarının dördü ya hep NULL ya hep dolu
+                       -- Trigger: iptal edilmiş kayıt UPDATE edilemez
 
-expenses              (id, building_id→buildings.id, amount,
-                       date CHECK(ISO + 2000-01-01..2100-12-31), description,
+expenses              (id, building_id→buildings.id, amount, date, description,
                        category∈{maintenance,cleaning,utility,staff,other},
                        is_cancelled, cancelled_at, cancel_reason, cancelled_by→users.id,
                        created_at, updated_at)
+                       idx_expenses_building_date · idx_expenses_active_only
+                       -- incomes ile aynı iptal CHECK'i ve trigger'ları
 ```
 
 ### 7.3 Migration / Schema Sistemi (`database/migrate.js`)
 
 `runMigrations()` her başlangıçta çalışır, sırası:
 
-> **Migration geçmişi sıkıştırıldı (2026-08-04, ADR #49).** `database/migrations/` şu an boştur (yalnızca `.gitkeep`). Eski 001-034 dosyalarının ürettiği şema `schema/` altındaki dosyalarla **ölçülerek** birebir aynı doğrulandı (46 öğe, 0 fark), sonra dosyalar silindi. Bu dokümanda geçen migration numaraları (012, 018, 020, 026-034 vb.) artık **tarihsel referanstır**, o dosyalar repoda yoktur. Gerekçe metinleri korunmuştur çünkü kararın nedenini anlatırlar. Yeni migration'lar **035'ten** devam eder. `applyMigrations` klasörün yokluğunu tolere eder (`fs.existsSync` erken dönüşü): klasör boş kaldığında paketleyici onu asar'a taşımayabilir, bu kontrol olmazsa paketli sürüm açılışta patlar.
+1. **`database/migrations/`** uygulanmamış dosyalar ada göre sıralı çalıştırılır, her biri kendi transaction'ındadır ve `migrations` tablosuna kaydedilir.
+   - Kayıt tablosu `migrate.js` içinde bootstrap edilir, `schema/` altında değildir, çünkü schema aşamasından önce gerekir. `applied_at` INSERT'te elle yazılmaz, DEFAULT'tan gelir.
+   - Migration sırasında `foreign_keys=OFF`, sonunda `foreign_key_check` yapılır ve ihlal varsa rollback edilir.
+   - **Hata toleransı yoktur.** Patlayan migration transaction'ı geri alır ve açılışı durdurur. Boş `.sql` dosyası da tolere edilmez.
+   - **Fresh install:** `users` tablosu yoksa tüm migration'lar çalıştırılmadan "uygulandı" işaretlenir, tabloları schema aşaması güncel haliyle oluşturur.
+   - `applyMigrations` klasörün yokluğunu tolere eder. Klasör boş kaldığında paketleyici onu asar'a taşımayabilir, bu kontrol olmazsa paketli sürüm açılışta patlar.
+2. **`database/schema/`** `CREATE TABLE/TRIGGER/INDEX IF NOT EXISTS` ile tek transaction'da yüklenir, mevcut kurulumda no-op'tur. Dosya numaraları FK bağımlılık sırasını izler: `01_users` → `02_buildings` → `03_apartments` → `04_residents` → `05_dues` → `06_due_payments` → `07_payment_cancellations` → `08_incomes` → `09_expenses`.
 
-1. **`database/migrations/`** — uygulanmamış dosyalar ada göre sıralı, her biri kendi transaction'ında çalışır ve `migrations` tablosuna kaydedilir. Detaylar:
-   - Kayıt tablosu `migrate.js` içinde bootstrap edilir (`schema/` altında **değildir**, çünkü schema aşamasından önce gerekir): `migrations (filename TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT (datetime('now','+3 hours')))`. `applied_at` INSERT'te elle yazılmaz, DEFAULT'tan gelir
-   - Migration sırasında `foreign_keys=OFF`; sonunda `foreign_key_check` yapılır, ihlal varsa rollback
-   - **Hata toleransı yoktur:** patlayan migration transaction'ı geri alır ve açılışı durdurur. Eskiden `duplicate column name` hatası "zaten uygulanmış" sayılıp kaydediliyordu; bu kaldırıldı, çünkü çok ifadeli bir dosyanın ortasında patlaması hâlinde geri alınmış migration "uygulandı" işaretleniyor ve kalan ifadeler sessizce atlanıyordu (tam olarak v1.1.8 kolon kayması hatasının sınıfı). Boş `.sql` dosyası da artık tolere edilmez, `db.exec` hatası verir
-   - **Fresh install:** `users` tablosu yoksa tüm migration'lar çalıştırılmadan "uygulandı" işaretlenir — tabloları schema aşaması güncel haliyle oluşturur
-2. **`database/schema/`** — `CREATE TABLE/TRIGGER IF NOT EXISTS` ile yüklenir; mevcut kurulumda no-op. Dosya numaraları **FK bağımlılık sırasını** izler (ADR #44): `01_users` → `02_buildings` → `03_apartments` → `04_residents` → `05_dues` → `06_due_payments` → `07_payment_cancellations` → `08_incomes` → `09_expenses`
+**Migration klasörü şu an boştur** (yalnızca `.gitkeep`). Geçmiş bir kez sıkıştırıldı ve son şema `schema/` altında donduruldu. Mekanizma duruyor, yeni migration'lar buradan devam eder.
 
-| Durum                              | Ne yapılır                                                                                                                                                                                      |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Yeni tablo                         | `database/schema/NN_tablo.sql` oluştur; numarayı **referans verdiği tüm tablolardan sonraya** koy, gerekiyorsa sonraki dosyaları yeniden numaralandır (hepsi `IF NOT EXISTS` olduğu için mevcut kurulumlar etkilenmez) |
-| Mevcut tabloya sütun/index/trigger | `database/migrations/NNN_aciklama.sql` **VE** ilgili `schema/` dosyasını da aynı hale getir (fresh install ile mevcut kurulum aynı şemada buluşmalı — v1.1.8'deki kolon kayması bug'ının dersi) |
-| CHECK constraint değişikliği       | SQLite `ALTER ... CHECK` desteklemez → tablo yeniden oluşturma migration'ı (örnek: `001_due_payments_raise_amount_limit.sql`)                                                                   |
-| Tablo silme/yeniden adlandırma     | Önce kullanıcıya sor                                                                                                                                                                            |
+| Durum                                | Ne yapılır                                                                                                                                                 |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Yeni tablo                           | `database/schema/NN_tablo.sql` oluştur, numarayı referans verdiği tüm tablolardan sonraya koy. Hepsi `IF NOT EXISTS` olduğu için mevcut kurulum etkilenmez |
+| Mevcut tabloya sütun/index/trigger   | `database/migrations/NNN_aciklama.sql` **VE** ilgili `schema/` dosyasını aynı hale getir. Fresh install ile mevcut kurulum aynı şemada buluşmalıdır        |
+| CHECK constraint değişikliği         | SQLite `ALTER ... CHECK` desteklemez, tablo yeniden oluşturma migration'ı gerekir                                                                          |
+| Tablo silme ya da yeniden adlandırma | Önce kullanıcıya sor                                                                                                                                       |
 
-**Migration yazım kuralları:** dosya salt SQL'dir (JS migration yok); geri alma (down) mekanizması yoktur — geri dönüş yeni bir migration ile yapılır; migration bir kez release edildiyse **asla düzenlenmez**, yeni dosya eklenir. Aynı sınır sıkıştırma için de geçerlidir: ilk sürüm dağıtıldıktan sonra geçmiş bir daha silinemez (ADR #49).
+**Migration yazım kuralları:** dosya salt SQL'dir (JS migration yok), geri alma (down) mekanizması yoktur, geri dönüş yeni bir migration ile yapılır. Bir migration release edildiyse **asla düzenlenmez**, yeni dosya eklenir.
 
 ### 7.4 SQL Yazım Standartları
 
-- Bağlantıya erişim **her zaman `getDb()` ile**, çağrı anında (`const { getDb } = require(".../database/db")`). Modül gövdesinde `const db = getDb()` yazma — o satır modül yüklenirken çalışır ve bağlantı henüz açılmamış olur (ADR #52)
-- Her sorgu **prepared statement** (`getDb().prepare(...).run/get/all`) — string birleştirme ile SQL üretme; dinamik filtre gerekiyorsa WHERE parçalarını koşullu kur, değerleri her zaman parametre olarak geçir
-- Birden fazla yazma içeren işlemler `getDb().transaction(() => {...})()` içinde
-- Manager verisi sorgularında `manager_id = ?` filtresi zorunlu (bkz. §5.2 madde 5)
-- Para `REAL` saklanır (bilinçli karar: TL tutarları, tek kullanıcılı defter — kuruş hassasiyeti toplamalarda `ROUND` ile yönetilir); ekranda `src/utils/currency.js` → `formatCurrency()` ile formatlanır (§11, ADR #33)
-- Tarihler ISO-8601 `TEXT` (`YYYY-MM-DD` veya `datetime('now', '+3 hours')`)
-- **Saat dilimi:** Tüm otomatik zaman damgaları **Türkiye yerel saati (UTC+3)** ile saklanır. Türkiye 2016'dan beri DST kullanmadığından sabit `+3 hours` deterministiktir. Kural: her `created_at/updated_at/cancelled_at/last_login/...` yazımı `datetime('now', '+3 hours')` kullanır (schema DEFAULT'ları, trigger'lar ve INSERT/UPDATE'lerde açıkça). `updated_at` için **trigger yoktur** — yazan her UPDATE ifadesi `updated_at`'i kendisi set etmek zorundadır (ADR #48). Kullanıcının seçtiği takvim tarihleri (`date`, `payment_date`, `move_in_date`, `move_out_date`) kaydırılmaz. JS tarafında "bugün"/"şu an" da TR bazlıdır ve **elle hesaplanmaz**: renderer'da `src/utils/date.js` (`getToday`/`getCurrentYear`/`getCurrentMonth`), main'de `electron/modules/shared/trTime.js` (`trNow`/`trToday`/`trYearMonth`). `+3` kaydırmasını bu iki dosya dışında yazma. Okuma tarafı (`date.js`) saklanan değeri **olduğu gibi yerel** parse eder — ikinci bir UTC→yerel çevrimi yapılmaz. Eski UTC veriler `010_shift_timestamps_to_tr_time.sql` ile +3 saat kaydırıldı.
+- Bağlantıya erişim **her zaman `getDb()` ile ve çağrı anında** yapılır. Modül gövdesinde `const db = getDb()` yazma, o satır modül yüklenirken çalışır ve bağlantı henüz açılmamış olur.
+- Her sorgu **prepared statement**'tır. String birleştirme ile SQL üretme, dinamik filtre gerekiyorsa WHERE parçalarını koşullu kur ve değerleri her zaman parametre olarak geçir. Tablo adı dinamikse `ALLOWED_TABLES` benzeri bir whitelist ile korunur.
+- Birden fazla yazma içeren işlemler `getDb().transaction(() => {...})()` içindedir.
+- Bina verisi sorgularında `building_id = ?` filtresi zorunludur (§5.2 madde 8).
+- Para `REAL` saklanır. Ekranda `src/utils/currency.js` → `formatCurrency()` ile formatlanır.
+- Tarihler ISO-8601 `TEXT`'tir (`YYYY-MM-DD` ya da `datetime('now', '+3 hours')`).
+- **Saat dilimi.** Tüm otomatik zaman damgaları **Türkiye yerel saati (UTC+3)** ile saklanır. Türkiye DST kullanmadığından sabit `+3 hours` deterministiktir. Her `created_at/updated_at/cancelled_at/last_login` yazımı bu ifadeyi kullanır. **`updated_at` için trigger yoktur**, yazan her UPDATE ifadesi onu kendisi set etmek zorundadır. Kullanıcının seçtiği takvim tarihleri (`date`, `payment_date`, `move_in_date`, `move_out_date`) kaydırılmaz.
+- JS tarafında "bugün" ve "şu an" da TR bazlıdır ve **elle hesaplanmaz**: renderer'da `src/utils/date.js`, main'de `electron/modules/shared/trTime.js`. `+3` kaydırmasını bu iki dosya dışında yazma. Servis SQL'lerinde `datetime('now', '+3 hours')` metni `trTime.js`'in `TR_NOW_SQL` sabitinden gelir ve şablon literaline gömülür (sabit bir SQL parçasıdır, değer değildir). Bu metin kod tabanında yalnızca `trTime.js`'te geçer, schema dosyalarındaki DEFAULT'lar hariç.
 
 ---
 
 ## 8. Kritik İş Kuralları
 
-> **Silme yasağı DB'de zorlanır.** Aşağıdaki 1, 4 ve 5 numaralı kurallar artık yalnızca servis disiplini değil: `dues`, `due_payments`, `incomes`, `expenses` ve `payment_cancellations` tablolarında `BEFORE DELETE` trigger'ı `RAISE(ABORT)` eder (ADR #45). Kodda hiçbir `DELETE FROM` yoktur ve olmamalıdır.
+> **Silme yasağı DB'de zorlanır.** `dues`, `due_payments`, `incomes`, `expenses` ve `payment_cancellations` tablolarında `BEFORE DELETE` trigger'ı `RAISE(ABORT)` eder. Kodda hiçbir `DELETE FROM` yoktur ve olmamalıdır.
 
-1. **Aidat kaydı silinemez** — yalnızca düzenlenebilir. `status` alanı `paid_amount`'tan türetilir ve CHECK ile ona bağlıdır (§7.2, ADR #47): `paid_amount` yazan her UPDATE `status`'ü de doğru değerle yazmalıdır, aksi hâlde CHECK ihlali olur.
-2. **Aylık tahakkuk — `ensureMonthlyDues(buildingId)`** (`electron/modules/shared/duesAccrual.js`). `dues` satırı ödemeyi beklemez: her aktif daire için, **dairenin oluşturulma ayından içinde bulunulan aya kadar** her ay bir satır üretilir (`INSERT OR IGNORE` + recursive CTE, `apartments.due_amount` o anki değeriyle dondurulur). Üretici **idempotenttir** ve okuma öncesi çağrılır: `getDuesForMonth`, `dashboard.getStats`, `report.getReportData`. Ayrı bir zamanlayıcı yoktur — uygulama açılıp ilgili sayfaya girildiğinde eksik aylar tamamlanır. Gelecek aylar üretilmez; `getDuesForMonth` ve rapor sorguları o yüzden `LEFT JOIN` + `COALESCE(d.due_amount, a.due_amount)` desenini korur (gelecek ay görüntülenirse sanal satır gösterilir). `recordPayment`'taki `INSERT OR IGNORE` de bu sebeple duruyor.
-3. **`bulkUpdateDueAmount`** — yalnızca `apartments.due_amount`'ı günceller; mevcut `dues` kayıtlarına dokunmaz. Tahakkuk etmiş aylar (içinde bulunulan ay dahil) **eski tutarda kalır**, yeni tutar bir sonraki ayın tahakkukunda geçerli olur.
-4. **Gelir/gider silinemez** — `cancelIncome`/`cancelExpense` ile `is_cancelled=1` yapılır; iptal nedeni ve iptal eden kaydedilir.
-5. **Ödeme iptali** — `due_payments` kaydı silinmez; `payment_cancellations`'a immutable kayıt eklenir. Bağlı `incomes` kaydı otomatik iptal edilir. `paid_amount` çıkarma ile değil, **aktif ödemelerin `SUM`'ı ile yeniden hesaplanır** (idempotent, tutarlı).
-6. **Aidat bağlantılı gelir** (`due_payment_id IS NOT NULL`) doğrudan iptal edilemez; yalnızca `cancelPayment` üzerinden otomatik iptal edilir.
-7. **Soft-delete:** daire `is_active=0` — `recordPayment` `AND is_active=1` kontrolü içerir. Pasif daireye ödeme alınamaz.
-8. **Sakinler (ayrı `resident` domain + `/residents` sayfası):** `is_active=1` aktif sakindir; bir dairenin birden fazla geçmiş sakini olabilir. `move_out_date` **bugün veya geçmiş** bir tarihe set edilince trigger `is_active=0` yapar; **gelecek** bir çıkış tarihi sakini aktif bırakır (henüz taşınmadığı için verileri görünmeye devam eder). Not: gelecek tarih geldiğinde otomatik deaktivasyon olmaz (trigger yalnızca yazma anında çalışır); tarih geçtikten sonraki ilk güncellemede deaktif olur. **Sakin yaşam döngüsü artık daire formuna gömülü değildir** (`updateApartment` sakine dokunmaz; `isResidentReplacement` sezgisi kaldırıldı). Kullanıcı niyeti açık aksiyonlarla ifade edilir:
-   - `addResident` — dairede **aktif sakin yoksa** yeni sakin ekler; aktif sakin varken reddeder (önce çıkış gerekir).
-   - `updateResident` — aktif sakin satırını yerinde günceller. Düzenleme modalı mevcut değerlerle **prefill** edilir; overwrite eder (boş bırakılan alan = bilinçli temizleme, kazara veri kaybı olmaz). Manager sahipliği `residents JOIN apartments` ile doğrulanır.
-   - `moveOutResident` — `move_out_date` set eder; trigger deaktif eder. **Değişim** = önce çıkış, sonra yeni sakin ekleme (iki açık adım; eski sakin geçmiş kaydı olarak korunur).
-   - `getResidentsOverview` — manager'ın aktif daireleri + aktif sakini (LEFT JOIN). `getResidentHistory` — bir dairenin tüm (aktif+geçmiş) sakinleri.
-9. **Ödeme kaydı → gelir kaydı:** `recordPayment` aynı transaction'da `incomes`'a `category='dues'`, `due_payment_id` bağlı bir kayıt ekler. Aidat geliri asla elle girilmez — `addIncome` handler'ı `category='dues'` gelen isteği **reddeder** (şemada değer geçerlidir, çünkü `recordPayment` doğrudan SQL ile yazar).
-10. **Yedekleme/geri yükleme** (`electron/modules/backup/service.js`). Geri yükleme **yalnızca menüden** çağrılır (IPC'si yoktur — uygulamayı yeniden başlatır). Yedek alma iki yerden tetiklenir: menü ve Profile'daki "Yedek Al" butonu (`backup:run`, `silent:true` ile dialog yerine `{success,message}` döner). **Yedeğin ne zaman alındığı saklanmaz** (ADR #39 geri alındı): ayar dosyası, son yedek göstergesi ve Dashboard uyarı şeridi kaldırıldı:
-    - Yedek: `db.backup(filePath)` (WAL-güvenli online backup) + hedefteki artık `-wal/-shm` temizliği
-    - Geri yükleme: seçilen dosyada `integrity_check` → onay → mevcut DB `.bak`'a kopyalanır → `closeDb()` (Windows dosya kilidi için) → kopyala → eski `-wal/-shm` silinir (yeni DB'ye replay olmasın) → `app.relaunch()`. Hata olursa `.bak`'tan geri dönülür ve **bu yolda da `app.relaunch()` çağrılır** — `closeDb()` sonrası bağlantı yeniden açılmadığından, uygulama ölü bağlantıyla kalmasın diye geri yüklenen dosyayla temiz başlatılır.
-11. **Bina silinmez** — arşiv (`is_active=0`) ve kaldırma (`is_removed=1`) iki soft-delete kademesidir; `buildings` satırı hiçbir yolla `DELETE` edilmez. Hesap içinde bina adı tekildir (büyük/küçük harf duyarsız); kontrol serviste yapılır, DB'de kısmi UNIQUE index vardır (ADR #42).
+1. **Aidat kaydı silinemez**, yalnızca düzenlenebilir. `status` alanı `paid_amount`'tan türetilir ve CHECK ile ona bağlıdır, yani `paid_amount` yazan her UPDATE `status`'ü de doğru değerle yazmalıdır.
+
+2. **Aylık tahakkuk (`ensureMonthlyDues(buildingId)`).** `dues` satırı ödemeyi beklemez: her aktif daire için, **dairenin oluşturulma ayından içinde bulunulan aya kadar** her ay bir satır üretilir (`INSERT OR IGNORE` + recursive CTE, tutar `apartments.due_amount`'un o anki değeriyle **dondurulur**). Üretici idempotenttir ve okuma öncesi çağrılır: `getDuesForMonth`, `dashboard.getStats`, `report.getReportData` ve `deleteApartment`'ın borç kontrolü. Ayrı bir zamanlayıcı yoktur, uygulama açılıp ilgili sayfaya girildiğinde eksik aylar tamamlanır. Gelecek aylar üretilmez, bu yüzden okuma sorguları `LEFT JOIN` + `COALESCE(d.due_amount, a.due_amount)` desenini güvenlik ağı olarak korur.
+
+3. **Aidat tutarı değişikliği geçmişe işlemez.** Hem `bulkUpdateDueAmount` hem `updateApartment` yalnızca `apartments.due_amount`'ı yazar, mevcut `dues` kayıtlarına dokunmaz. Tahakkuk etmiş aylar (içinde bulunulan ay dahil) eski tutarda kalır, yeni tutar bir sonraki ayın tahakkukunda geçerli olur.
+
+4. **Gelir ve gider silinemez.** `cancelIncome`/`cancelExpense` ile `is_cancelled=1` yapılır, iptal nedeni ve iptal eden kaydedilir. İptal edilmiş kayıt sonradan güncellenemez (trigger).
+
+5. **Ödeme iptali.** `due_payments` kaydı silinmez, `payment_cancellations`'a immutable kayıt eklenir. Bağlı `incomes` kaydı aynı transaction'da otomatik iptal edilir. `paid_amount` çıkarma ile değil **aktif ödemelerin `SUM`'ı ile yeniden hesaplanır**, böylece idempotent ve tutarlı kalır.
+
+6. **Aidat bağlantılı gelir** (`due_payment_id IS NOT NULL`) doğrudan iptal edilemez, yalnızca `cancelPayment` üzerinden otomatik iptal edilir.
+
+7. **Daire soft-delete'i (`deleteApartment`) ve yeniden aktifleştirme.** Daire `is_active=0` yapılır, satır silinmez. `recordPayment` `AND is_active=1` kontrolü içerir, pasif daireye ödeme alınamaz. Dört alt kural:
+   - **Ödenmemiş borç iki adımlı onaya bağlıdır.** Pasif daire tüm okuma sorgularından düştüğü için ödenmemiş aidat tahsilat oranından ve raporlardan da düşer. Servis bu yüzden borç varken **reddeder** ve `{ success:false, code:"HAS_UNPAID_DUES", unpaidTotal }` döner. Renderer tutarı `formatCurrency` ile gösterip onay alır ve isteği `force: true` ile tekrarlar. `dues` satırları her hâlükârda veritabanında kalır.
+   - **Aktif sakin aynı transaction'da çıkışlı yapılır** (`is_active=0`, `move_out_date = COALESCE(move_out_date, bugün)`). Tarih `COALESCE` ile yazılır: kullanıcı daha önce ileri tarihli bir çıkış girdiyse o tarih kullanıcının verisidir ve bugünle ezilmez.
+   - **Aynı daire numarası yeniden kullanılabilir.** Unique index pasif satırları da kapsadığı için `addApartment` önce aynı numarada satır arar: aktif satır varsa reddeder, **pasif satır varsa onu yeni değerlerle güncelleyip `is_active=1` yapar**. Bu yolda `created_at` de o ana çekilir, çünkü tahakkuk `created_at` ayından başlar ve eski tarih korunsaydı dairenin pasif olduğu aylar için geriye dönük borç üretilirdi. İlk aktif dönemin `dues` kayıtları olduğu gibi durur.
+   - **Dört endpoint de binanın durumunu doğrular.** Hedef bina kaldırılmışsa "Bina bulunamadı.", arşivlenmişse "Arşivlenmiş bir binada daire işlemi yapılamaz." döner.
+
+8. **Sakinler.** `is_active=1` aktif sakindir, bir dairenin birden fazla geçmiş sakini olabilir. `move_out_date` bugün ya da geçmiş bir tarihe set edilince trigger `is_active=0` yapar, **gelecek** bir çıkış tarihi sakini aktif bırakır. Not: gelecek tarih geldiğinde otomatik deaktivasyon olmaz (trigger yalnızca yazma anında çalışır), tarih geçtikten sonraki ilk güncellemede deaktif olur. Sakin yaşam döngüsü daire formuna gömülü **değildir**, `updateApartment` sakine dokunmaz. Kullanıcı niyeti açık aksiyonlarla ifade edilir:
+   - `addResident` dairede aktif sakin yoksa ekler, aktif sakin varken reddeder.
+   - `updateResident` aktif sakin satırını yerinde günceller ve overwrite eder. Modal mevcut değerlerle prefill edilir, boş bırakılan alan bilinçli temizlemedir. **`move_out_date`'e dokunmaz:** o alanın tek sahibi `moveOutResident`'tır. Düzenleme formunda çıkış tarihi alanı yoktur, dolayısıyla `updateResident` onu yazsaydı ya her düzenlemede tarihi silerdi ya da (eski `COALESCE` çözümünde olduğu gibi) yanlış girilmiş bir çıkış tarihi hiçbir yoldan temizlenemezdi.
+   - `moveOutResident` `move_out_date` set eder, trigger deaktif eder. **Değişim** = önce çıkış, sonra yeni sakin (iki açık adım, eski sakin geçmiş kaydı olarak korunur).
+   - `getResidentsOverview` aktif daireleri ve aktif sakini (LEFT JOIN) döner. `getResidentHistory` bir dairenin tüm sakinlerini döner ve sahiplik kontrolünü **dairenin aktifliğine bakmadan** yapar (`findOwnedApartment`), çünkü pasife alınmış bir dairenin geçmişi de okunabilmelidir. Yazma yolları (`addResident`) aktiflik şartını korur (`findOwnedActiveApartment`).
+
+9. **Ödeme kaydı → gelir kaydı.** `recordPayment` aynı transaction'da `incomes`'a `category='dues'` ve `due_payment_id` bağlı bir kayıt ekler. Fazla ödeme reddedilir (kalan borç kontrolü). Aidat geliri asla elle girilmez: `addIncome` handler'ı `category='dues'` gelen isteği **reddeder** (şemada değer geçerlidir, çünkü `recordPayment` doğrudan SQL ile yazar).
+
+10. **Yedekleme ve geri yükleme** (`electron/modules/backup/service.js`). Geri yükleme **yalnızca menüden** çağrılır, IPC'si yoktur, çünkü uygulamayı yeniden başlatır. Yedek alma iki yerden tetiklenir: menü ve Profile'daki "Yedek Al" butonu (`backup:run`, `silent:true` ile dialog yerine `{success,message}` döner). Yedeğin ne zaman alındığı **hiçbir yerde saklanmaz**.
+    - Yedek: `getDb().backup(filePath)` (WAL-güvenli online backup) + hedefteki artık `-wal`/`-shm` temizliği.
+    - Geri yükleme: `validateBackupFile` → onay → mevcut DB `.bak`'a kopyalanır → `closeDb()` (Windows dosya kilidi için) → eski `-wal`/`-shm` silinir → kopyalama → `app.relaunch()` + `app.exit()` (`relaunch` tek başına kapatmaz). Hata olursa `.bak`'tan geri dönülür ve **bu yolda da yeniden başlatılır**, çünkü `closeDb()` sonrası bağlantı yeniden açılmaz.
+    - **`validateBackupFile` iki şey doğrular:** `integrity_check` ve `REQUIRED_TABLES`'ın (`users`, `buildings`, `apartments`, `dues`) `sqlite_master`'da bulunması. İkincisi olmazsa başka bir programın sağlam SQLite dosyası da kabul edilir, üzerine yazılır ve kullanıcının verisi geri dönüşsüz kaybolurdu. Salt okunur test bağlantısı `finally` içinde kapatılır, aksi hâlde Windows'ta dosya kilitli kalıp sonraki kopyalamayı engeller.
+    - **`.bak` silinmez.** Ne başarılı geri yüklemede ne de rollback'te. Yanlış yedek geri yüklendiğinde tek dönüş yolu odur ve rollback kopyalaması da başarısız olabilir. Dosyanın yolu başarı kutusunun `detail` alanında kullanıcıya gösterilir. Sonraki geri yükleme onu üzerine yazar, yani yalnızca bir önceki durum saklanır.
+
+11. **Bina silinmez.** Arşiv (`is_active=0`) ve kaldırma (`is_removed=1`) iki soft-delete kademesidir, `buildings` satırı hiçbir yolla `DELETE` edilmez. `removeBuilding` yalnızca arşivdeki binada çalışır. Hesap içinde bina adı tekildir (büyük/küçük harf duyarsız), kontrol serviste yapılır ve DB'de kısmi UNIQUE index son savunma hattıdır.
 
 ---
 
 ## 9. Validasyon Katmanları
 
-Girdi doğrulaması **tek katmanda** yapılır (handler); altındaki iki katman farklı işler görür — **değişiklik yaparken ikisini de gözden geçir**:
+Girdi doğrulaması **tek katmanda** yapılır (handler). Altındaki iki katman farklı işler görür, değişiklik yaparken ikisini de gözden geçir:
 
-| Katman     | Dosya                            | Ne yapar                                                                                                       |
-| ---------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| 1. Bridge  | `preload.js`                     | **Yalnızca kanal whitelist'i.** `safeInvoke` yalnızca `INVOKE_CHANNELS`, `safeOn` yalnızca `EVENT_CHANNELS` kabul eder (iki ayrı set, bkz. §5.2 madde 1) — dışındaki kanal fırlatır. Böylece bir invoke kanalına abone olunamaz, bir event kanalı da `invoke` edilemez. Payload'a **bakmaz**, tip/null kontrolü yapmaz (`safeOn`'un callback tip kontrolü hariç). Payload doğrulamak bu katmanın işi değildir — handler zaten hepsini denetliyor |
-| 2. Handler | `electron/modules/*/handlers.js` | **Asıl doğrulama katmanı.** Alan varlığı, tip, aralık, format (regex, enum), rezerve değerler — `safeHandler(fn)` içindeki `fn`'de yapılır |
-| 3. DB      | `database/schema/*.sql`          | Son savunma hattı: CHECK, NOT NULL, UNIQUE, FK, trigger                                                        |
+| Katman     | Dosya                            | Ne yapar                                                                                                                                                                                                                      |
+| ---------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Bridge  | `preload.js`                     | **Yalnızca kanal whitelist'i.** `safeInvoke` yalnızca `INVOKE_CHANNELS`, `safeOn` yalnızca `EVENT_CHANNELS` kabul eder. Böylece bir invoke kanalına abone olunamaz, bir event kanalı da invoke edilemez. Payload'a **bakmaz** |
+| 2. Handler | `electron/modules/*/handlers.js` | **Asıl doğrulama katmanı.** Alan varlığı, tip, aralık, format (regex, enum), rezerve değerler                                                                                                                                 |
+| 3. DB      | `database/schema/*.sql`          | Son savunma hattı: CHECK, NOT NULL, UNIQUE, FK, trigger                                                                                                                                                                       |
 
-Handler katmanı asıl güvenlik sınırıdır (preload atlatılabilir varsayılır). DB katmanı son savunma hattıdır — CHECK ihlali service'teki `resolveDbError` ile Türkçe mesaja çevrilir; ortak `safeHandler` yalnızca beklenmeyen (throw edilen) hataları jenerik mesaja çevirir (bkz. §5.2 madde 3).
+Handler katmanı asıl güvenlik sınırıdır (preload atlatılabilir varsayılır). DB katmanındaki ihlal service'teki `resolveDbError` ile Türkçe mesaja çevrilir, ortak `createHandle` zarfı yalnızca beklenmeyen throw'ları jenerik mesaja çevirir.
 
-**Handler ↔ şema paritesi (kural):** Handler validasyonu, ilgili sütunun `CHECK` kısıtındaki aralık/format/enum'u **birebir yansıtmalıdır**. Amaç: sınır dışı girdi jenerik DB hatası yerine handler'da düzgün Türkçe mesajla yakalansın. Şemadaki bir CHECK'i değiştirirken handler'daki eş kontrolü de güncelle. Mevcut parite noktaları:
+**Handler ↔ şema paritesi (kural).** Handler validasyonu, ilgili sütunun `CHECK` kısıtındaki aralığı, formatı ve enum'unu **birebir yansıtmalıdır**. Amaç, sınır dışı girdinin jenerik DB hatası yerine handler'da düzgün Türkçe mesajla yakalanmasıdır. Şemadaki bir CHECK'i değiştirirken handler'daki eş kontrolü de güncelle. Mevcut parite noktaları:
 
-- `apartment` → daire no (1-10, harf/rakam), kat (-2..99), metrekare (0<x≤1000), aidat (0<x≤50000). **Sakin alanları apartment'ta değil `resident` handler'ında doğrulanır.**
-- `resident` → ad soyad (≤60, isteğe bağlı), telefon (10-20, `[0-9+()- ]`), e-posta (ASCII, `@` + `.`, 5-254), TC (11 hane), sakin türü (`owner,tenant`), not (≤500), giriş/çıkış tarihi (geçerli ISO tarih + `çıkış ≥ giriş`), çıkış (move-out) tarihi (geçerli ISO). Aynı sınırlar `Residents.jsx` form alanlarında `maxLength` olarak da durur, kullanıcı sınırı aşan bir değeri yazamadan görür
-- `auth` (ADR #26 sonrası) → `login` kullanıcı adı + şifre zorunlu; `completeSetup` kullanıcı adı `[A-Za-z0-9_]{3,30}` + şifre ≥8 + `managerName` zorunlu 2-60 (handler reddeder, boş/null geçilemez — `users.manager_name` NOT NULL); `transferAccount` → `userId` pozitif tamsayı + `password` + `newPerson` (2-60); `changePassword` → `userId` + eski/yeni şifre (≥8); `updateEmail` → `userId` pozitif tamsayı + `email` (boş/null = kaldır, doluysa 5-254 + `@`/`.` içeren format); `resetAccountPassword` → `recoveryCode` + yeni şifre (≥8); `verifyRecoveryCode` → `recoveryCode` zorunlu (boş/null reddedilir); `regenerateRecoveryCode` → `password`
-- `building` → bina adı (`name`) 2-60 zorunlu, `ownerId`/`buildingId` pozitif tamsayı. **Ad tekilliği handler'da değil serviste** kontrol edilir (`findDuplicateName`, DB sorgusu gerektirir): `createBuilding` ve `renameBuilding` hesap içinde aynı adı reddeder, mesaj çakışan binanın arşivde olup olmadığına göre ayrışır. Son savunma hattı kısmi UNIQUE index'tir
-- `dues` → dönem (`year` 2000-2100, `month` 1-12 — `validatePeriod`, hem `getDuesForMonth` hem `recordPayment` yolunda), ödeme tutarı (0<x≤1.000.000), not ≤500 (trim'lenir, boşluktan ibaret not `null` olur), iptal nedeni ≤300, ödeme tarihi (ISO + `2000-01-01`..`2100-12-31`)
-- `financial` → tutar (0<x≤1.000.000), açıklama ≤500, tarih (ISO + `2000-01-01`..`2100-12-31`), iptal nedeni ≤300, kategori enum (gelir — **elle girilebilenler**: `rent,parking,donation,other`; `dues` handler'da reddedilir ama şemada geçerlidir · gider: `maintenance,cleaning,utility,staff,other`). `getTransactions` isteğe bağlı `{year, month}` dönemi alır: yıl 2000-2100, ay 1-12; `null` = tüm zamanlar
+- `apartment` → daire no (1-10, harf/rakam), kat (-2..99), metrekare (0<x≤1000), aidat (0<x≤50000). Sakin alanları apartment'ta değil `resident` handler'ında doğrulanır.
+- `resident` → ad soyad (≤60, isteğe bağlı), telefon (10-20, `[0-9+()- ]`), e-posta (ASCII + ortak biçim yüklemi, 5-254), TC (11 hane), sakin türü, not (≤500), giriş/çıkış tarihi (`isIsoDate` + `çıkış ≥ giriş`). Aynı sınırlar `Residents.jsx` form alanlarında `maxLength` olarak da durur. Yalnızca sakine özgü kurallar bu dosyada kalır (`PHONE_RE`, `NATIONAL_ID_RE`, `NON_ASCII_RE`).
+- `auth` → `login` kullanıcı adı + şifre zorunlu. `completeSetup` kullanıcı adı `[A-Za-z0-9_]{3,30}` + şifre ≥8 + `managerName` 2-60. `transferAccount` `userId` + `password` + `newPerson` (2-60). `changePassword` `userId` + eski/yeni şifre (≥8). `updateEmail` `userId` + `email` (boş/null kaldırır, doluysa 5-254 + format). `resetAccountPassword` `recoveryCode` + yeni şifre (≥8). `verifyRecoveryCode` ve `regenerateRecoveryCode` ilgili tek alan.
+- `building` → bina adı 2-60 zorunlu, `ownerId`/`buildingId` pozitif tamsayı. **Ad tekilliği handler'da değil serviste** kontrol edilir (`findDuplicateName`, DB sorgusu gerektirir), mesaj çakışan binanın arşivde olup olmadığına göre ayrışır.
+- `dues` → dönem (`isValidYear` + `isValidMonth`), ödeme tutarı (0<x≤1.000.000), not ≤500 (trim'lenir), iptal nedeni ≤300, ödeme tarihi (`isIsoDate` + `isDateInRange`), `collected_by` pozitif tamsayı.
+- `financial` → tutar (0<x≤1.000.000), açıklama zorunlu ≤500, tarih (`isIsoDate` + `isDateInRange`), iptal nedeni ≤300, kategori enum'u (gelir tarafında **elle girilebilenler**: `rent,parking,donation,other`, `dues` reddedilir. Gider: `maintenance,cleaning,utility,staff,other`). `getTransactions` isteğe bağlı `{year, month}` alır, `null` tüm zamanlar demektir.
+- `report` → `buildingId` + `year` (2000-2100) + `month` (1-12). `saveReportFile` dosya adı ve buffer varlığı.
 
-**Girdi normalizasyonu (validasyondan önce):** Kullanıcı metin alanları handler katmanında, **validasyondan önce** in-place `trim()` edilir; böylece hem validasyon (anchored regex boşluğa takılmaz) hem de DB'ye yazılan değer kırpılmış olur. Kural: **normalize tek yerde, handler'da yapılır — service tekrar trim'lemez.**
+**Handler ↔ renderer enum paritesi (kural).** Kullanıcının seçtiği enum listeleri iki süreçte ayrı ayrı durur ve ortaklaştırılamaz (main CommonJS, renderer ESM, aralarında yalnızca IPC var). Bugünkü çiftler: daire tipi (`apartment/handlers.js` → `APARTMENT_TYPES` ↔ `src/pages/Apartments/constants.js` → `APARTMENT_TYPES`), ödeme yöntemi (`dues/handlers.js` → `VALID_PAYMENT_METHODS` ↔ `constants.js` → `PAYMENT_METHOD_LABELS`), gelir/gider kategorileri (`financial/handlers.js` ↔ ilgili sayfaların `<select>`'leri) ve sakin türü (`resident/handlers.js` → `RESIDENT_TYPES` ↔ `Residents.jsx`). Birine değer eklerken diğerini ve şemadaki `CHECK`'i de güncelle. Renderer listesini sayfa içinde tekrar tanımlama, sahibi `constants.js`'tir.
 
-- `apartment/handlers.js` → `normalizeApartmentData` (`TRIMMED_FIELDS` listesi: yalnızca `apartment_no`), `ADD` ve `UPDATE` yollarında çağrılır.
-- `resident/handlers.js` → `normalizeResidentData` (tüm sakin string alanları: `full_name, phone, email, national_id, resident_type, move_in_date, move_out_date, notes`), `ADD` ve `UPDATE` yollarında çağrılır.
-- `auth/handlers.js` → `normalizeIdentityFields` (`username`, `email`) `LOGIN`'de; `COMPLETE_SETUP`'ta `managerName`, `TRANSFER_ACCOUNT`'ta `newPerson` trim'lenir.
-- `financial/handlers.js` → `normalizeFinancialData` (`TRIMMED_FIELDS`: `description`, `category`), `ADD_INCOME` ve `ADD_EXPENSE` yollarında çağrılır; **service (`insertRecord`) tekrar trim'lemez.**
-- **Şifreler asla trim'lenmez** (baştaki/sondaki boşluk kasıtlı olabilir).
-- `dues`/`financial` `reason` (iptal nedeni) alanları handler'da `.trim()` ile kırpılıp service'e öyle geçirilir. `recordPayment`'ın `note` alanı da handler'da trim'lenir (şemadaki `length(trim(note)) > 0` kısıtı boşluktan ibaret notu reddeder, service `note || null` ile onu `null`'a çevirir).
+**Girdi normalizasyonu (validasyondan önce).** Kullanıcı metin alanları handler katmanında, validasyondan önce in-place `trim()` edilir. Böylece hem validasyon hem DB'ye yazılan değer kırpılmış olur. **Normalize tek yerde, handler'da yapılır, service tekrar trim'lemez.**
+
+- `apartment/handlers.js` → tek trim'lenen alan `apartment_no`.
+- `resident/handlers.js` → `normalizeResidentData` tüm sakin string alanlarını kapsar, `validateResidentFields`'in ilk satırında çağrılır, yani ADD ve UPDATE yollarının ikisinde de çalışır.
+- `auth/handlers.js` → `trimField` yardımcısı: `username`, `email`, `managerName`, `newPerson`.
+- `financial/handlers.js` → `normalizeFinancialData` (`description`, `category`).
+- `building/handlers.js` → `validateName` bina adını doğrulamadan önce trim'ler.
+- `dues` ve `financial` iptal nedenleri ile `recordPayment`'ın `note` alanı handler'da trim'lenir.
+- **Şifreler asla trim'lenmez.** Baştaki ya da sondaki boşluk kasıtlı olabilir.
 
 ---
 
-## 10. electronAPI — IPC Endpoint Özeti
+## 10. electronAPI Endpoint Özeti
 
-**Çağrı sözleşmesi (kural):** Her `electronAPI` metodu **sıfır ya da tek bir nesne** argümanı alır ve onu `safeInvoke`'a olduğu gibi iletir. Pozisyonel argüman (`getDuesForMonth(buildingId, year, month)`) ve ham skaler payload (`getStats(buildingId)`) **yoktur**; ikisi de nesneye çevrildi. Gerekçe: alan adları çağrı yerinde görünür olur, yan yana duran iki ID'nin yer değiştirmesi imkânsızlaşır ve preload'da her metot tek satırlık aynı şekle iner. Bundan çıkan iki alt kural: (a) preload payload'ı **yeniden paketlemez** (`{ password }` sarmalaması artık çağıranın işi), (b) sahiplik anahtarı (`buildingId`/`ownerId`) her zaman payload'ın **üst seviyesindedir**, iç içe bir `data` nesnesinde değil. Tek istisna `onToggleTheme(callback)`: o invoke değil event aboneliğidir. Aşağıdaki tablo her metodun payload alanlarını verir.
+| Grup                   | Metodlar                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Apartment              | `addApartment({buildingId, apartment_no, floor, type, square_meters, due_amount})`, `updateApartment({id, buildingId, ...aynı alanlar})`, `deleteApartment({id, buildingId, force?})`, `bulkUpdateDueAmount({buildingId, amount})`                                                                                                                                            |
+| Auth                   | `login({username, password})`, `changePassword({userId, oldPassword, newPassword})`, `updateEmail({userId, email})`, `transferAccount({userId, password, newPerson})`, `resetAccountPassword({recoveryCode, newPassword})`, `verifyRecoveryCode({recoveryCode})`, `regenerateRecoveryCode({password})`, `getSetupState()`, `completeSetup({username, password, managerName})` |
+| Backup                 | `runBackup()` (dialog açar, sonucu döndürür)                                                                                                                                                                                                                                                                                                                                  |
+| Building               | `listBuildings({ownerId})` (yalnızca `is_removed=0`), `createBuilding({ownerId, name})`, `renameBuilding({buildingId, ownerId, name})`, `updateBuildingStatus({buildingId, ownerId, isActive})`, `removeBuilding({buildingId, ownerId})`                                                                                                                                      |
+| Dashboard              | `getStats({buildingId})` → `{cash, collections, delays}`                                                                                                                                                                                                                                                                                                                      |
+| Dues                   | `getDuesForMonth({buildingId, year, month})`, `recordPayment({apartmentId, buildingId, year, month, paymentData})`, `cancelPayment({paymentId, buildingId, userId, reason})`, `getPaymentHistory({dueId, buildingId})`                                                                                                                                                        |
+| Events (main→renderer) | `onToggleTheme(callback)`, tek callback alan metot, unsubscribe döner                                                                                                                                                                                                                                                                                                         |
+| Financial              | `addIncome` / `addExpense` (`{buildingId, amount, date, description, category}`), `getTransactions({buildingId, period})` (`period` = `{year, month}` ya da `null`), `cancelIncome` / `cancelExpense` (`{id, buildingId, userId, reason}`)                                                                                                                                    |
+| Report                 | `getReportData({buildingId, year, month})`, `saveReportFile({filename, buffer})` (`buffer` bir `Uint8Array`'dir, main tarafında `Buffer.from` ile yazılır)                                                                                                                                                                                                                    |
+| Resident               | `getResidentsOverview({buildingId})`, `getResidentHistory({apartmentId, buildingId})`, `addResident({apartmentId, buildingId, ...sakin alanları})`, `updateResident({residentId, buildingId, ...sakin alanları})`, `moveOutResident({residentId, buildingId, moveOutDate})`                                                                                                   |
+| System                 | `getAppVersion()` (ham string döner, `{success}` sözleşmesi dışındadır)                                                                                                                                                                                                                                                                                                       |
 
-| Grup                   | Metodlar                                                                                                                                                                |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Apartment              | `addApartment({buildingId, apartment_no, floor, type, square_meters, due_amount})`, `updateApartment({id, buildingId, ...aynı alanlar})`, `deleteApartment({id, buildingId})`, `bulkUpdateDueAmount({buildingId, amount})` (hepsi `buildingId` ile bina-scoped) |
-| Auth                   | `login({username,password})`, `changePassword({userId,oldPassword,newPassword})`, `updateEmail({userId,email})` (Profile, isteğe bağlı; boş = kaldır), `transferAccount({userId,password,newPerson})` (self-service devir), `resetAccountPassword({recoveryCode,newPassword})` (/recover, oturumsuz), `verifyRecoveryCode({recoveryCode})` (/recover adım 1, yan etkisiz kod doğrulama), `regenerateRecoveryCode({password})`, `getSetupState()`, `completeSetup({username,password,managerName})` |
-| Backup                 | `runBackup()` (dialog açar, sonucu döndürür)                                                                                                                            |
-| Building               | `listBuildings({ownerId})` (yalnızca `is_removed=0`), `createBuilding({ownerId,name})`, `renameBuilding({buildingId,ownerId,name})`, `updateBuildingStatus({buildingId,ownerId,isActive})`, `removeBuilding({buildingId,ownerId})` (yalnızca arşivdeki binada çalışır; owner_id ile sahiplik doğrulanır; bina hiçbir yolla fiziksel silinmez) |
-| Dashboard              | `getStats({buildingId})`                                                                                                                                                |
-| Dues                   | `getDuesForMonth({buildingId, year, month})`, `recordPayment({apartmentId, buildingId, year, month, paymentData})`, `cancelPayment({paymentId, buildingId, userId, reason})` (`buildingId` sahiplik + `userId` iptal eden), `getPaymentHistory({dueId, buildingId})` |
-| Events (main→renderer) | `onToggleTheme(callback)` — tek callback alan metot, unsubscribe döner                                                                                                  |
-| Financial              | `addIncome`/`addExpense` (`{buildingId, amount, date, description, category}`), `getTransactions({buildingId, period})` (`period` = `{year, month}` ya da `null` = tümü), `cancelIncome`/`cancelExpense` (`{id, buildingId, userId, reason}` — `buildingId` sahiplik + `userId` iptal eden) |
-| Report                 | `getReportData({buildingId, year, month})`, `saveReportFile({filename, buffer})` (`buffer` bir `Uint8Array`'dir, düz sayı dizisi değil — main tarafında `Buffer.from` ile yazılır) |
-| Resident               | `getResidentsOverview({buildingId})`, `getResidentHistory({apartmentId, buildingId})`, `addResident`/`updateResident` (`{apartmentId veya residentId, buildingId, ...sakin alanları}`), `moveOutResident({residentId, buildingId, moveOutDate})` |
-| System                 | `getAppVersion()`                                                                                                                                                       |
-
-Kanal adları için tek kaynak: `electron/ipc/channels.js`. Tablonun grup sırası o dosyadaki (alfabetik) sırayı izler.
+Kanal adları için tek kaynak `electron/ipc/channels.js`'tir. Tablonun grup sırası o dosyadaki alfabetik sırayı izler.
 
 ---
 
 ## 11. React / Renderer Mimarisi
 
-- **Routing:** HashRouter (Electron `file://`/`app://` uyumu için — BrowserRouter kullanma). Rotalar `App.jsx`'te, tüm sayfalar `lazy()` + `Suspense`
-- **State yönetimi:** Global state kütüphanesi **yoktur** (bilinçli karar — uygulama küçük). Sayfa state'i lokal `useState`/`useEffect`; oturum `sessionStorage` + `useCurrentUser`; **seçili bina** `sessionStorage` + `useCurrentBuilding`; tema `useTheme` (CSS değişkenleri + `onToggleTheme` IPC eventi)
-- **Seçili bina session'ı, bina durumu değişince güncellenir (kural).** `SelectBuilding`'de seçili binanın adı değişirse `setCurrentBuilding` yeniden yazılır, bina arşivlenir (`is_active=0`) veya kaldırılırsa (`is_removed=1`) `clearCurrentBuilding` çağrılır. Aksi hâlde `RequireBuilding` yalnızca session'a baktığı için kullanıcı arşivlenmiş/kaldırılmış bir binanın Dashboard'una dönüp oraya kayıt girebiliyordu (menüden Profilim → "Geri Dön" yolu). Bina durumunu değiştiren yeni bir aksiyon eklenirse aynı kontrolü yaz
-- **`useTheme` modül düzeyinde tek kaynak tutar.** Tema değeri (`currentTheme`) ve `onToggleTheme` IPC aboneliği hook'un içinde değil modül gövdesindedir; hook yalnızca bir dinleyici kaydeder. Gerekçe: state hook örneğine özel olsaydı ikinci bir tüketici bağımsız bir tema state'i açar, ikisi de `data-theme` yazmaya çalışır ve menüden gelen tek bir tema eventi her abonede bir kez tetiklenerek temayı çift çevirirdi (tüketici sayısı çift ise hiç değişmemiş görünürdü). Bugün tek tüketici `Footer`, ama kısıt koda gömülü değil dokümanda kalırsa sessizce bozulur
-- **Bina bağlamı (manager):** Giriş sonrası kullanıcı her zaman `/select-building`'e yönlenir (giriş/koruma yönlendirmeleri bu sabit yolu doğrudan kullanır), bina seçer/oluşturur → `setCurrentBuilding` → `/dashboard`. Manager sayfaları `RequireBuilding` guard'ı altındadır. **Building-scoped `electronAPI` çağrıları `user.id` değil seçili `building.id`'yi geçer**; yalnızca işlemi yapan kişiyi kaydeden alanlar (`collected_by`, iptal `userId`, `changePassword`) `currentUser.id` kullanır. Dashboard başlığı + Reports PDF başlığı = `building.name`. (Eskiden bina = `user.displayName`'di; bkz. §17 ADR #25)
-- **Veri çekme deseni:** sayfa mount'ta `electronAPI` çağırır, `res.success` kontrol eder, hata mesajını SweetAlert ile gösterir. Cache katmanı yok — her sayfa girişinde taze veri
-- **Alert/Dialog:** SweetAlert **yalnızca `src/utils/alert.js`'te** kullanılır — sayfalar/bileşenler `sweetalert2`'yi import etmez, `showAlert` metodlarını çağırır. Yeni bir dialog gerekiyorsa `alert.js`'e metod ekle (tema renkleri, `heightAuto:false` ve buton gelenekleri orada tek noktada). `swalBase`/`swalColors` export'ları kaldırıldı.
-  - **Dönüş sözleşmesi:** `confirm`/`confirmDanger` ham `SweetAlertResult` değil **`boolean`** döner (`if (confirmed)` — `result.isConfirmed` yazma). `prompt`/`cancelReason`/`passwordPrompt` değeri döner, vazgeçilirse `null`. Yeni bir dialog metodu eklerken bu deseni koru: çağıran SweetAlert'in sonuç nesnesini görmemelidir.
-  - **İmza:** `confirm(title, body, cancelText, confirmText)` / `confirmDanger(...)` — iptal metni **3.**, onay metni **4.** parametredir (ekranda `reverseButtons` ile soldan sağa görünen sırayla aynı) ve ikisi de **zorunludur**, varsayılan yoktur. Her iki buton metni de çağrı yerinde durur; diyalogun ne sorduğunu bilen yer orasıdır ve "Vazgeç" varsayılanı, farklı bir metin isteyen ekranların ayrı bir seçenek nesnesi geçmesini gerektiriyordu.
-  - **Trim:** `prompt` girdileri **her zaman** trim'lenir; tek istisna `type: "password"` alanlarıdır (baştaki/sondaki boşluk kasıtlı olabilir — §9 ile aynı kural). Opt-in `trim` bayrağı yoktur, çağrı yerinden trim geçme.
-  - **Genişlik:** Diyalog metodları amaca özel genişlik taşır (varsayılan 42em) — paylaşılan bir metodu büyütmek yerine daha geniş bir diyalog için kendi metodunu ekle (ör. `releaseNotes()` → 54em, madde listeleri 42em'de kötü sarıyordu).
-  - **Dialog stilleri `style.css`'te**, `swal-*` sınıflarında tutulur (`swal-code`, `swal-copy-row`, `swal-copy-button`, `swal-copy-note`) — `alert.js`'in ürettiği HTML'e inline `style="font-size:..."` yazma.
-  - **Kod/şifre gösteren diyaloglar** (`regeneratedCode`, `temporaryPassword`) panoya **otomatik yazmaz**; kullanıcı "Kodu Kopyala" butonuna basar, sonuç yan nota yazılır. Kullanıcı istemeden panosuna dokunma.
-- **Formatlama:** tarih/saat için `src/utils/date.js`. Bu dosya tarih alanının tek sahibidir: `MONTHS` (Türkçe ay adları), `formatMonthYear(year, month)`, `getToday`/`getCurrentYear`/`getCurrentMonth` (hepsi TR bazlı) ve `formatDate`/`formatDateShort`/`formatDateTime` buradan gelir. **Kural:** "bugün/şu anki yıl/ay" için renderer'da ham `new Date()` kullanma (makine saat dilimine bağlı kalır — §7.4); ay adı dizisini sayfa içinde tekrar tanımlama. Formatlayıcılar boş/geçersiz girdide `"—"` döner, çağıran tarafta elle null kontrolü gerekmez (ham ISO değeri ekrana basma — `move_in_date` gibi tarih alanlarını da bu formatlayıcılardan geçir). Saat içermeyen bir değere `formatDateTime` verilirse yalnızca tarih döner (uydurma `00:00` üretmez). Ayrı bir `formatTime` **yoktur**, ihtiyaç doğarsa bu dosyaya eklenir. **Para** için `src/utils/currency.js` → `formatCurrency(value)`; tek biçim `1.250,00 ₺` (tr-TR, her zaman iki hane kuruş, sonda `₺`), geçersiz girdide `"—"`. Sayfa içinde `toLocaleString("tr-TR")` ile elle para formatlama (bkz. §17 ADR #33)
-- **Sabitler:** paylaşılan bir `utils/constants.js` **yoktur** — her sabit onu kullanan modülde tanımlanır (`THEME_KEY`/`VALID_THEMES` → `useTheme.js`, `SESSION_USER_KEY` → `useCurrentUser.js`). Birden fazla modülden kullanılan sabit, sahibi olan modülden export edilir. Sabitler için ayrı bir çöplük dosyası açma
-- **Tema:** light/dark, `style.css` içindeki CSS değişkenleri; bileşen CSS'lerinde renkleri değişken üzerinden kullan, hex sabitleme. **Değişken eşiği:** yeni bir CSS değişkeni yalnızca **gerçekten gerekliyse** tanımlanır — bir değer aynı dosyada **birden fazla yerde** kullanılıyorsa veya temaya göre değişiyorsa değişken olur; tek yerde geçen ve temadan bağımsız bir değer için değişken açma (gereksiz token kalabalığı istenmiyor, literal yaz). Accent türevleri `--accent-focus-ring / --accent-selection / --accent-tint` ailesindedir. **Temalar arası tek fark renktir:** iki tema aynı değişken setini aynı anahtarlarla tanımlar; birinde olup diğerinde olmayan gölge/katman/kalınlık **olmaz**. Bunu garantilemek için geometri (offset, blur, spread, `1px solid`, katman sayısı) kuralın içinde literal yazılır, değişken **yalnızca rengi taşır** — `box-shadow: 0 3px 16px var(--x-glow)` doğru, `box-shadow: var(--x-glow)` yanlıştır (ikincisinde bir tema iki katman, diğeri tek katman tanımlayabilir ve fark sessizce kalıcılaşır). Aynı sebeple `[data-theme="light"]` altında yapısal override (farklı `box-shadow` yapısı, farklı `border-width`) yazma; yalnızca değişken değeri ezilir. **Not:** boşluk/köşe yarıçapı için token ölçeği (`--space-*`, `--radius-*`) yoktur — literal px değerleri kullanılır. `style.css` yalnızca global reset + tema değişkenleri + temel eleman stillerini (body, tipografi, buton, form, scrollbar, toast) barındırır; **paylaşılan `.u-*` yardımcı sınıfı yoktur** (kullanılmadıkları için kaldırıldı — yeni sayfa stilini kendi CSS dosyasında yaz).
-- **Koşullu mesajlara yer ayrılmaz:** Hata mesajı, doğrulama uyarısı ve ipucu satırı **koşullu render** edilir (`{error && <div .../>}`); boşken yer tutan sabit yükseklikli yuva (`min-height` ile rezerve edilmiş boş kutu, `color: transparent` ile gizlenmiş metin) **açılmaz**. Gerekçe: mesaj yokken ekranda amaçsız büyük boşluk kalıyor ve sayfa gereksiz uzuyor (Recover'da ~190px'e ulaşmıştı, kart pencereye sığmıyordu). Mesaj belirince alttaki içeriğin kayması kabul edilen bedeldir. **İstisna:** Caps Lock göstergesi. O, kullanıcı yazarken sürekli açılıp kapanabilen bir durumdur ve alan içi rozet olarak konumlandırıldığı için zaten akışta yer kaplamaz (bkz. ADR #19).
-- **Şifre alanları:** Her şifre girişi (`Login`, `Setup`, `Recover`) `<CapsLockIndicator />` içerir — alan içinde, göster/gizle butonunun solunda beliren "Büyük Harf" rozeti. Durum takibi bileşenin kendi `useCapsLockOn()` hook'undadır; sayfa **kendi `capsLockOn` state'ini tutmaz, input'a `onKeyUp/onKeyDown/onBlur` bağlamaz**. Hook `document` üzerinde dinler (odak dışı tuş/fare olayları da güncellenir); alan `onBlur`'ünde sıfırlama yapılmaz, çünkü Caps Lock odak kaybedince kapanmıyor. Uyarı **kutulu bir hata bloğu değildir** — kırmızı hata kutusuyla aynı forma sahip olması "bir şeyi yanlış yaptın" izlenimi veriyordu ve belirip kaybolurken altındaki ölçer/kural listesini zıplatıyordu; zeminsiz ve çerçevesiz rozet konumlandırılmış olduğu için akışta yer kaplamaz. Tam cümle `title` + `aria-label`'dadır. Göster/gizle her şifre alanında ayrı state ile çalışır (kullanıcı genelde tek alanı açmak ister)
-- **Okunabilirlik (hedef kitle):** Kullanıcıların çoğunluğu **40+ yaş** apartman yöneticileridir. **Alt sınır 1rem'dir** (önceki ~0.9rem eşiği 2026-07-20'de yükseltildi): gövde, etiket, giriş alanı, buton ve tablo hücresi metni 1rem'in altına inmez. Uzun bir metni tek satıra sığdırmak için fontu küçültme; metni sar, kısalt ya da kapsayıcıyı genişlet (küçük font okunabilirliğe feda edilmez).
-  - **Uygulama politikası:** Eski sayfalarda 1rem altı tanımlar hâlâ vardır ve bilinçli olarak **toplu düzeltilmemiştir** — yoğun tablo sayfalarında satır yüksekliği/sütun genişliği değişeceği için her sayfa kendi içinde ve iki temada gözle doğrulanarak taşınmalıdır. Kural **yeni yazılan koda derhal uygulanır**; eski sayfalar o sayfaya dokunuldukça yükseltilir. Kalan ihlallerin listesi burada **sayı olarak tutulmaz** (her CSS değişikliğinde bayatlıyordu); güncel durum için `grep -rE "font-size:\s*0\.[0-9]+rem" src` yeterlidir.
-  - Eşiği tam karşılayan sayfalar: `Login` (en küçük metin 1.05rem), `Setup` (1rem), `Recover` (1rem). Not: üçü de `CapsLockIndicator`'ı kullanır ve o paylaşılan bileşenin rozet metni 0.88rem'dir (alan içinde göster/gizle butonuyla yer paylaştığı için ayrı değerlendirilmelidir). Üç giriş ekranı da **floating-label** kullanır (`.login-float-label` / `.setup-float-label` / `.recover-float-label`; **kurtarma kodu alanı hariç** — o statik üst etiket kullanır, `.recover-code-label`, 1rem): etiket boş ve odaksız alanda placeholder gibi alan içinde durur (1.12rem, Login'de 1.16rem), alan dolunca ya da odaklanınca yukarı kayıp 0.96rem'e küçülür ve aksan rengine döner. Bu küçülme desenin doğası gereğidir (rozet gibi ayrı değerlendirilir), gövde/tablo metni değildir. Detay ve kurulum kuralları için bkz. §17 ADR #28.
-  - Kural `src/` dışındaki HTML pencerelerinde de geçerlidir: `electron/windows/guide/guide.css` 2026-08-06'da px'ten rem'e taşındı ve gövde/tablo/bağlantı/giriş alanı metinleri 1rem tabanına çekildi. Alt sınırın altında kalanlar yalnızca rozet sınıfıdır (sürüm rozeti, adım numarası, `kbd` tuş kapağı, kenar çubuğu grup başlıkları, SSS oku). Kılavuz hedef kitlenin kafası karıştığında açtığı belgedir, yeni metin eklerken tabanı koru.
+- **Routing:** HashRouter (Electron `file://` ve `app://` uyumu için, BrowserRouter kullanma). Rotalar `App.jsx`'te, tüm sayfalar `lazy()` + `Suspense`.
+- **State yönetimi:** Global state kütüphanesi **yoktur** (bilinçli karar, uygulama küçük). Sayfa state'i lokal `useState`/`useEffect`, oturum `sessionStorage` + `useCurrentUser`, seçili bina `sessionStorage` + `useCurrentBuilding`, tema `useTheme`.
+- **Seçili bina session'ı, bina durumu değişince güncellenir (kural).** `SelectBuilding`'de seçili binanın adı değişirse `setCurrentBuilding` yeniden yazılır, bina arşivlenir ya da kaldırılırsa `clearCurrentBuilding` çağrılır. Aksi hâlde `RequireBuilding` yalnızca session'a baktığı için kullanıcı arşivlenmiş bir binanın Dashboard'una dönüp oraya kayıt girebilir. Bina durumunu değiştiren yeni bir aksiyon eklenirse aynı kontrolü yaz.
+- **`useTheme` modül düzeyinde tek kaynak tutar.** Tema değeri ve `onToggleTheme` IPC aboneliği hook'un içinde değil modül gövdesindedir, hook yalnızca bir dinleyici kaydeder. Aksi hâlde ikinci bir tüketici bağımsız bir tema state'i açar ve menüden gelen tek bir event temayı her abonede bir kez çevirir.
+- **Bina bağlamı.** Giriş sonrası kullanıcı `/select-building`'e yönlenir, bina seçer ya da oluşturur, `setCurrentBuilding` çağrılır ve `/dashboard`'a gidilir. **Tek aktif bina varsa bu ekran atlanır** ve doğrudan panoya geçilir. Hesap menüsündeki "Bina Değiştir" `location.state.manual` bayrağıyla gider, o zaman atlama yapılmaz. Bina gerektiren sayfalar `RequireBuilding` guard'ı altındadır. **Building-scoped `electronAPI` çağrıları `user.id` değil seçili `building.id`'yi geçer.** Yalnızca işlemi yapan kişiyi kaydeden alanlar (`collected_by`, iptal `userId`, `changePassword`) `currentUser.id` kullanır. Dashboard başlığı ve Reports PDF başlığı `building.name`'dir.
+- **Veri çekme deseni:** sayfa mount'ta `electronAPI` çağırır, `res.success` kontrol eder, hata mesajını SweetAlert ile gösterir. Cache katmanı yoktur, her sayfa girişinde taze veri alınır.
+- **Alert/Dialog:** SweetAlert **yalnızca `src/utils/alert.js`'te** kullanılır. Sayfalar `sweetalert2`'yi import etmez, `showAlert` metodlarını çağırır. Yeni bir dialog gerekiyorsa `alert.js`'e metod ekle.
+  - **Dönüş sözleşmesi:** `confirm`/`confirmDanger` ham `SweetAlertResult` değil **`boolean`** döner (`if (confirmed)` yaz, `result.isConfirmed` değil). `prompt`/`cancelReason`/`passwordPrompt` değeri döner, vazgeçilirse `null`.
+  - **Gövde (`body`) iki biçim alır:** düz string ya da `{ html }` / `{ text }` nesnesi. Vurgu, satır sonu ya da tutar gösteren onaylar `{ html }` kullanır. HTML'e **kullanıcıdan gelen ham metin gömme**.
+  - **İmza:** `confirm(title, body, cancelText, confirmText)`. İptal metni 3., onay metni 4. parametredir (ekranda `reverseButtons` ile soldan sağa görünen sırayla aynı) ve ikisi de zorunludur.
+  - **Trim:** `prompt` girdileri her zaman trim'lenir, tek istisna `type: "password"` alanlarıdır.
+  - **Genişlik:** Diyalog metodları amaca özel genişlik taşır. Paylaşılan bir metodu büyütmek yerine daha geniş bir diyalog için kendi metodunu ekle.
+  - Dialog stilleri `style.css`'te `swal-*` sınıflarında tutulur, üretilen HTML'e inline `style` yazma.
+  - **Kod ve şifre gösteren diyaloglar** (`regeneratedCode`, `temporaryPassword`) panoya otomatik yazmaz, kullanıcı "Kodu Kopyala" butonuna basar.
+  - **Başarı bildirimleri modal değil toast'tır** (`showAlert.toast`). Modal kalanlar: hatalar, karar isteyen diyaloglar ve bir kez gösterilen kod diyalogları.
+- **Formatlama.** Tarih ve saat için `src/utils/date.js` tek sahiptir: `MONTHS`, `formatMonthYear`, `getToday`/`getCurrentYear`/`getCurrentMonth` (hepsi TR bazlı), `formatDate`/`formatDateShort`/`formatDateTime`. Renderer'da ham `new Date()` ile "bugün" hesaplama, ay adı dizisini sayfa içinde tekrar tanımlama. Formatlayıcılar boş ya da geçersiz girdide `"—"` döner, çağıran tarafta elle null kontrolü gerekmez. Saat içermeyen bir değere `formatDateTime` verilirse yalnızca tarih döner.
+  **Dönem seçicilerinin kaynağı da bu dosyadır:** `getYearOptions()` (içinde bulunulan yıl dahil son 5 yıl), `getMonthOptions(year)` (içinde bulunulan yılda bu ayda biter) ve `clampMonth(year, month)`. Bunu kullanan üç sayfa var: `Apartments`, `Transactions`, `Reports`. Sonucu bir kuraldır: **gelecek bir dönem arayüzden seçilemez**, bu da §8 kural 2'nin kullanıcıya bakan yüzüdür. Yeni bir yıl/ay seçici yazarken listeleri elle üretme ve ay değişimini `clampMonth`'suz bırakma.
+  **Para** için `src/utils/currency.js` → `formatCurrency(value)`. Tek biçim `1.250,00 ₺`'dir (tr-TR, her zaman iki hane kuruş), geçersiz girdide `"—"` döner. Sayfa içinde `toLocaleString("tr-TR")` ile elle para formatlama.
+- **Sabitler:** paylaşılan bir `utils/constants.js` **yoktur**. Her sabit onu kullanan modülde tanımlanır (`THEME_KEY` → `useTheme.js`, `SESSION_USER_KEY` → `useCurrentUser.js`). Birden fazla modülden kullanılan sabit, sahibi olan modülden export edilir. Sabitler için ayrı bir çöplük dosyası açma.
+- **Tema:** light/dark, `style.css` içindeki CSS değişkenleri. Bileşen CSS'lerinde renkleri değişken üzerinden kullan, hex sabitleme.
+  - **Değişken eşiği:** yeni bir CSS değişkeni yalnızca gerçekten gerekliyse tanımlanır. Bir değer aynı dosyada birden fazla yerde kullanılıyorsa ya da temaya göre değişiyorsa değişken olur, tek yerde geçen ve temadan bağımsız bir değer için literal yaz.
+  - **Temalar arası tek fark renktir.** İki tema aynı değişken setini aynı anahtarlarla tanımlar. Bunu garantilemek için geometri (offset, blur, spread, `1px solid`, katman sayısı) kuralın içinde literal yazılır ve değişken **yalnızca rengi taşır**: `box-shadow: 0 3px 16px var(--x-glow)` doğru, `box-shadow: var(--x-glow)` yanlıştır. Aynı sebeple `[data-theme="light"]` altında yapısal override yazma, yalnızca değişken değeri ezilir.
+  - Boşluk ve köşe yarıçapı için token ölçeği yoktur, literal px kullanılır. `style.css` yalnızca global reset, tema değişkenleri ve temel eleman stillerini barındırır, paylaşılan `.u-*` yardımcı sınıfı yoktur.
+  - **Bileşen renkleri değişken sözleşmesiyle geçirilir.** `PasswordStrength` `--pw-*`, `FormField` `--ff-*` ailesini kullanır ve her sayfa bu eşlemeyi **kendi kök sınıfında** yapar (`.setup-page-bg`, `.recover-page-bg`), `:root`'ta yapmaz. Tüm sayfa CSS'leri tek bundle'da toplandığı için `:root` tanımları birbirini ezer. Dış boşluk bileşende değil sayfa CSS'inde kalır.
+- **Koşullu mesajlara yer ayrılmaz.** Hata mesajı, doğrulama uyarısı ve ipucu satırı koşullu render edilir (`{error && <div .../>}`). Boşken yer tutan sabit yükseklikli yuva açılmaz. Mesaj belirince alttaki içeriğin kayması kabul edilen bedeldir. **İstisna:** Caps Lock göstergesi, alan içi rozet olarak konumlandığı için zaten akışta yer kaplamaz.
+- **Şifre alanları.** Her şifre girişi `CapsLockIndicator` içerir (alan içinde, göster/gizle butonunun solunda beliren "Büyük Harf" rozeti). Durum takibi bileşenin kendi `useCapsLockOn()` hook'undadır, sayfa kendi `capsLockOn` state'ini tutmaz ve input'a olay bağlamaz. Hook `document` üzerinde dinler, alan `onBlur`'ünde sıfırlama yapılmaz. Uyarı kutulu bir hata bloğu değildir, zeminsiz rozettir. Tam cümle `title` ve `aria-label`'dadır. Göster/gizle her alanda ayrı state ile çalışır.
+- **Giriş ekranlarının form alanı** paylaşılan `FormField` bileşenindedir (ikon + floating-label + isteğe bağlı şifre göster/gizle + Caps Lock rozeti + isteğe bağlı `hint`). Floating-label kurulumu: `<label>` input'un **kardeşi ve DOM'da ondan sonra** gelir, input `placeholder` taşımak zorundadır (`:not(:placeholder-shown)` çalışsın diye) ve dolgu üstten kalın alttan incedir.
+- **Okunabilirlik (hedef kitle).** Kullanıcıların çoğunluğu 40+ yaş apartman yöneticileridir. **Alt sınır 1rem'dir:** gövde, etiket, giriş alanı, buton ve tablo hücresi metni bunun altına inmez. Uzun bir metni tek satıra sığdırmak için fontu küçültme, metni sar ya da kapsayıcıyı genişlet.
+  - **Uygulama politikası:** Eski sayfalarda 1rem altı tanımlar hâlâ vardır ve bilinçli olarak toplu düzeltilmemiştir, çünkü yoğun tablo sayfalarında satır yüksekliği ve sütun genişliği değişir. Kural **yeni yazılan koda derhal uygulanır**, eski sayfalar o sayfaya dokunuldukça yükseltilir. Kalan ihlallerin sayısı burada tutulmaz, güncel durum için `grep -rE "font-size:\s*0\.[0-9]+rem" src` yeterlidir.
+  - Rozet metinleri (Caps Lock rozeti, floated etiket, sürüm rozeti, `kbd` tuş kapağı) bu sınırdan ayrı değerlendirilir.
+  - Kural `src/` dışındaki HTML pencerelerinde de geçerlidir (`guide.css`, `splash.css`).
 
 ### Rotalar
 
-Rol kavramı yoktur (ADR #26). Koruma iki katmandır: `ProtectedRoute` (girişli/girişsiz) ve `RequireBuilding` (seçili bina var mı).
+Koruma iki katmandır: `ProtectedRoute` (girişli/girişsiz) ve `RequireBuilding` (seçili bina var mı).
 
-| Rota                 | Bileşen          | Koruma                                                              |
-| -------------------- | ---------------- | ------------------------------------------------------------------- |
-| `/login`             | Login            | guestOnly                                                           |
-| `/setup`             | Setup            | guestOnly (yalnızca `needsSetup` iken; iki adım + sayfa içi "Kurulum Tamamlandı" durumu) |
-| `/recover`           | Recover          | guestOnly (hesap şifre sıfırlama: kod → yeni şifre → sonuç, üç sayfa içi durum) |
-| `/select-building`   | SelectBuilding   | auth (bina seç/oluştur/adlandır/arşivle. **Tek aktif bina varsa atlanır** → doğrudan `/dashboard`; `location.state.manual` ile açıldığında atlanmaz — ADR #38) |
-| `/dashboard`         | Dashboard        | auth + bina                                                         |
-| `/add-apartment`     | AddApartment     | auth + bina                                                         |
-| `/apartments`        | Apartments       | auth + bina (aidat listesi + tahsilat/düzenle/sil/toplu aidat)      |
-| `/residents`         | Residents        | auth + bina                                                         |
-| `/add-income`        | AddIncome        | auth + bina                                                         |
-| `/add-expense`       | AddExpense       | auth + bina                                                         |
-| `/transactions`      | Transactions     | auth + bina                                                         |
-| `/profile`           | Profile          | auth (bina **gerekmez** — hesap sayfasıdır; "Aktif Bina" satırı ve "Geri Dön" hedefi bina yoksa uyarlanır) |
-| `/reports`           | Reports          | auth + bina                                                         |
+| Rota               | Bileşen         | Koruma                                                                                        |
+| ------------------ | --------------- | --------------------------------------------------------------------------------------------- |
+| `/login`           | Login           | guestOnly                                                                                     |
+| `/setup`           | Setup           | guestOnly, yalnızca `needsSetup` iken                                                         |
+| `/recover`         | Recover         | guestOnly, üç sayfa içi durum: kod → yeni şifre → sonuç                                       |
+| `/select-building` | SelectBuilding  | auth. Bina seç/oluştur/adlandır/arşivle. Tek aktif bina varsa atlanır                         |
+| `/dashboard`       | Dashboard       | auth + bina                                                                                   |
+| `/add-apartment`   | AddApartment    | auth + bina                                                                                   |
+| `/apartments`      | Apartments      | auth + bina. Aidat listesi + tahsilat/düzenle/pasife al/toplu aidat                           |
+| `/residents`       | Residents       | auth + bina                                                                                   |
+| `/add-income`      | AddIncome       | auth + bina                                                                                   |
+| `/add-expense`     | AddExpense      | auth + bina                                                                                   |
+| `/transactions`    | Transactions    | auth + bina                                                                                   |
+| `/reports`         | Reports         | auth + bina                                                                                   |
+| `/profile`         | Profile         | auth. Bina **gerekmez**, hesap sayfasıdır. "Aktif Bina" satırı ve "Geri Dön" hedefi uyarlanır |
+| `*`                | StartupRedirect | Oturuma ve `needsSetup`'a göre yönlendirir                                                    |
 
-"auth + bina" = `ProtectedRoute` altında `RequireBuilding` guard'ı; bina seçilmemişse `/select-building`'e atar.
+**Hesap menüsü (`AccountMenu`)** tüm korumalı sayfalarda, sağ üstte bulunur: Profilim, Bina Değiştir, ayraç, Çıkış Yap. Menünün prop'u yoktur, her sayfada aynı öğeleri gösterir. Yerleşim kuralı: sayfanın başlık satırı zaten `space-between` bir flex ise menü o satırın sağ ucuna girer, değilse başlığın üstüne paylaşılan `.account-menu-row` ile kendi satırında durur. Dışarı tıklama ve Escape menüyü kapatır. Etiket `managerName`, yoksa `username`'dir.
 
 ---
 
 ## 12. Güvenlik Kuralları
 
-- `nodeIntegration:false`, `contextIsolation:true`, `webSecurity:true` — değiştirme. `sandbox:false` yalnızca preload'un CommonJS `require` ihtiyacı içindir
-- Preload'da **whitelist dışı kanal çağrısı fırlatır** (`safeInvoke`/`safeOn`) — yeni kanal eklemeden preload'dan çağrılamaz
-- Handler hataları renderer'a jenerik mesajla döner; stack/iç detay **asla** UI'a sızdırılmaz
-- Şifre/kurtarma kodu asla loglanmaz, asla renderer'a düz metin dönülmez (kurtarma kodu tek istisna: üretildiği anda bir kez gösterilir)
-- Harici URL açma yalnızca `shell.openExternal` ile ve sabit URL'lerle yapılır
-- Uygulama offline'dır; tek ağ trafiği `electron-updater`'ın GitHub Releases kontrolüdür
-- **Her pencerenin HTML'i kendi CSP `<meta http-equiv>` etiketini taşır** ve üçü de birbirinden bağımsızdır: `index.html` (ana pencere, dev sunucusuyla konuştuğu için `connect-src`'de localhost taşır), `electron/windows/splash/splash.html` ve `electron/windows/guide/guide.html` (ikisi de `file://`, `default-src 'none'` tabanlı). Yeni bir pencere HTML'i eklerken CSP'sini de ekle: Electron paketlenmemiş sürümde CSP'siz her renderer için konsola "Insecure Content-Security-Policy" uyarısı basar ve ADR #53 sonrası bu uyarı `main.log`'a da düşer. Denetim yanıt başlığıyla **giderilemez** (ölçüldü: dev sunucusuna `Content-Security-Policy` başlığı eklemek uyarıyı susturmadı), politika sayfanın kendisinde olmalıdır
+- `nodeIntegration:false`, `contextIsolation:true`, `webSecurity:true`. Değiştirme. `sandbox:false` yalnızca ana pencerenin preload'unun CommonJS `require` ihtiyacı içindir.
+- Preload'da **whitelist dışı kanal çağrısı fırlatır** (`safeInvoke`/`safeOn`). Yeni kanal eklenmeden preload'dan çağrılamaz.
+- Handler hataları renderer'a jenerik mesajla döner, stack ve iç detay **asla** UI'a sızdırılmaz.
+- Şifre ve kurtarma kodu asla loglanmaz, asla renderer'a düz metin dönülmez. Tek istisna kurtarma kodudur, üretildiği anda bir kez gösterilir.
+- Harici URL açma yalnızca `shell.openExternal` ile ve sabit URL'lerle yapılır.
+- Uygulama offline'dır, tek ağ trafiği `electron-updater`'ın GitHub Releases kontrolüdür.
+- **Her pencerenin HTML'i kendi CSP `<meta http-equiv>` etiketini taşır** ve üçü birbirinden bağımsızdır: `index.html` (dev sunucusuyla konuştuğu için `connect-src`'de localhost taşır), `splash.html` ve `guide.html` (ikisi de `default-src 'none'` tabanlı). Yeni bir pencere HTML'i eklerken CSP'sini de ekle. Electron paketlenmemiş sürümde CSP'siz her renderer için konsola uyarı basar ve bu uyarı `main.log`'a da düşer. Denetim yanıt başlığıyla giderilemez, politika sayfanın kendisinde olmalıdır.
 
 ---
 
 ## 13. Hata Yönetimi ve Loglama
 
-- **Main process:** `electron-log` (`log.initialize({ preload: false })` + `errorHandler.startCatching()`, dosya limiti 5 MB). Log dosyası: `%APPDATA%/mavikent-site-yonetimi/logs/main.log`. **Kurulumun tamamı `electron/errorReporting.js`'tedir**, `main.js` yalnızca `initLogging(getMainWindow)` çağırır (ADR #51). **`preload: false` bilinçlidir:** paketin varsayılanı, app ready olduğunda her session'a kendi preload dosyasını enjekte eder (renderer'ın electron-log kullanabilmesi için). Bu projede renderer electron-log'u hiç import etmez, yani üç pencerenin (ana, splash, kılavuz) hepsine ölü bir preload yükleniyordu
-- **Log dosyasının yolu sabit tutulmaz**, `log.transports.file.getFile().path` ile paketin kendisinden okunur. Eskiden `path.join(app.getPath("userData"), "logs", "main.log")` ile elle kuruluyordu: bugün aynı sonucu veriyor ama yol iki ayrı yerde tanımlı oluyordu ve electron-log'un çözümü değişse (ya da `app.setPath` çağrılsa) kutu var olmayan bir dosyayı göstermeye çalışırdı. `getFile()` dosyayı **oluşturmaz**, yalnızca yolu çözer; dosyanın varlığını `initLogging`'in son satırındaki açılış kaydı garantiler
-- **Açılış kaydı:** `initLogging` son adımda `[Main] Starting v<sürüm> (packaged|dev)` satırını yazar. main.log'un ilk satırı budur; bir arıza raporunda hangi sürümün çalıştığı log'dan okunur ve "Kayıt Dosyasını Göster" butonu her zaman var olan bir dosyayı gösterir
-- **Ölümcül hata kutusu tek yerden üretilir: `showFatalError(title, message, whatToDo, parentWindow?)` (`errorReporting.js`).** Üç çağıranı vardır: DB açılamaması, açılış hatası ve yakalanmamış hata. Kutu üç parça taşır: ne olduğu (`message`), **kullanıcının ne yapacağı** (`whatToDo`, ör. "Uygulamanın açık başka bir penceresi varsa kapatın ve tekrar deneyin") ve bir "Kayıt Dosyasını Göster" butonu (`shell.showItemInFolder` ile log dosyasını Explorer'da seçili açar) + `SUPPORT_EMAIL` adresi. **Kural: kullanıcıya yalnızca dosya yolu yazan kutu kurma.** 40+ hedef kitle için `%APPDATA%` altındaki bir yolu elle bulmak eylem değildir, kutu ya bir adım söylemeli ya da dosyayı kendisi açmalıdır. `app.isReady()` false iken (ready öncesi yakalanan hata) butonlu kutu kullanılamaz, o yolda `showErrorBox` ile aynı metin ve yol yazılır. `SUPPORT_EMAIL` aynı dosyada tanımlıdır ve `menu.js` oradan import eder (Yardım → Hata Bildir ile aynı adres, tek tanım)
-- **Kutu mümkünse ana pencereye bağlanır.** `parentWindow` verilmezse dialog hiçbir pencereye modal olmaz ve Windows'ta ana pencerenin arkasına düşüp uygulamayı donmuş gösterebilir. `main.js` "Başlatma Hatası" yolunda `getMainWindow()` geçer (henüz pencere yoksa `null` döner, kutu penceresiz açılır); yakalanmamış hata yolunda pencereyi `initLogging`'e verilen `getParentWindow` resolver'ı sağlar. **Resolver parametre olarak geçirilir, `errorReporting.js` `windows/main`'i import etmez:** `windows/main` → `menu.js` → `errorReporting.js` zinciri zaten var, ters yönde import eklemek döngü kurar ve `menu.js` yarı yüklenmiş modülden `SUPPORT_EMAIL`'i `undefined` olarak alırdı
-- **`startCatching` kendi diyaloğunu göstermez:** `{ showDialog: false }` ile çağrılır ve yerine Türkçe bir `onError` kutusu gösterilir. Paketin varsayılanı `showDialog: true`'dur ve yakalanmamış bir hatada `"A JavaScript error occurred in the browser process"` başlıklı, gövdesi ham stack trace olan **İngilizce** bir kutu açar — 40+ hedef kitle için okunamaz bir metin ve uygulamanın geri kalanındaki Türkçe hata diline aykırı. `onError` yalnızca `uncaughtException` için kutu açar (`errorName` `rejection` içeriyorsa sessiz kalır, paketin kendi davranışıyla aynı)
-- **`onError` hatayı kendisi loglar ve her zaman `false` döner.** Paketin `handle()` fonksiyonu önce `onError`'ı çağırır, dosyaya yazan `logFn`'i **sonra** çalıştırır: `showFatalError` bloklayan bir modal olduğu için kullanıcı "Kayıt Dosyasını Göster"e bastığında dosyada tam da raporlanan hata bulunmuyordu. Bu yüzden `onError` içinde önce `log.error(errorName, error)` çağrılır, sonra kutu açılır. `false` dönüşü paketin kendi loglamasını atlar (aksi hâlde aynı hata iki kez düşerdi)
-- **Ölümcül kutu süreç ömrü boyunca bir kez açılır** (`fatalErrorShown` bayrağı, yalnızca `onError` yolunda). `uncaughtException` tekrar eden bir kaynaktan (timer, olay dinleyicisi) geliyorsa her tekrarda yeni bir senkron kutu açılır ve kullanıcı uygulamayı kapatamaz hâle gelirdi. `main.js`'in iki çağrısı zaten tek atımlıktır ve arkasından `app.quit()` gelir
-- **`console` electron-log'a bağlıdır.** `initLogging()` son adımda `Object.assign(console, log.functions)` çağırır (paketin önerdiği yol), böylece main process'teki her `console.warn/error` main.log'a da yazılır. **Bu satır olmadan `log.initialize()` main process console'unu yakalamaz** — yalnızca renderer preload'unu kurar, yani paketli sürümde tüm `console.*` çıktısı kaybolurdu. Satırın `require("electron-log")`'tan **sonra** gelmesi zorunludur: console transport'u orijinal metotları modül yüklenirken kopyalar, sıralama bozulursa sonsuz döngü oluşur. Log çağrıları `console.warn`/`console.error` ile yazılır (`no-console` kuralı yalnızca bu ikisine izin verir); bilgi amaçlı satırlar da bu yüzden `warn`'dır
-- **Handler'lar:** `console.error("[<domain>.handlers] <channel>:", err)` deseni. Bu log ortak `safeHandler` zarfı tarafından otomatik üretilir; `<channel>` tam kanal string'idir (ör. `apartment:add`). Handler içinde elle try/catch yazılmaz (bkz. §5.2 madde 3)
-- **Servisler:** beklenen iş kuralı ihlallerinde `{ success:false, message }` döner, beklenmeyen hatayı kendi `try/catch`'inde yakalar, loglar ve sabit bir Türkçe mesaja çevirir (bkz. §5.2 madde 4 ve ADR #54). `safeHandler`'ın `catch`'i bu yüzden pratikte yalnızca servise hiç girmeden oluşan hataları (handler validasyonundaki programcı hatası gibi) yakalar. Programcı hatası koruları (`ALLOWED_TABLES` gibi) **İngilizce** mesajla `throw` eder, çünkü kullanıcıya hiç ulaşmazlar
-- **Renderer:** hata mesajı SweetAlert ile gösterilir. Renderer'da ayrı bir log altyapısı **yoktur**, ama renderer konsoluna düşen `error` ve `warning` satırları main tarafından yakalanıp main.log'a yazılır (`catchRendererConsole`, `[Renderer] <mesaj> (<kaynak>:<satır>)` biçiminde). Yakalayıcı `app.on("web-contents-created")` ile kurulur, yani üç pencereyi de (ana, splash, kılavuz) kapsar ve `src/` tarafında hiçbir kod gerektirmez. `info`/`debug` bilinçli olarak alınmaz, aksi hâlde dev'de Vite ve React çıktısı dosyayı doldurur. **Bu yol electron-log'un kendi renderer köprüsü değildir** (ADR #53) ve konsol metnini alır, yapısal stack trace vermez. Gerçek bir teşhis ihtiyacı doğarsa yerine `electronAPI` üzerinden kendi kanalımız açılır (bkz. ROADMAP teknik borç #5)
-- Log mesajları İngilizce prefix + açıklama şeklindedir. Prefix modülü tanıtır, dosyayı yazan kişiyi değil: `[Main]` yalnızca `main.js` ve `errorReporting.js`'in açılış satırı, `[Migrate]`, `[Database]`, `[Updater]` (`autoUpdater.js`), `[Splash]` (`windows/splash/index.js`), `[MainWindow]` (`windows/main/index.js`), `[Guide]` (`windows/guide/index.js`), `[Renderer]` (renderer konsolundan aktarılan satırlar), `[<domain>.handlers]` (`safeHandler`)
-- **Hata nesnesi olduğu gibi loglanır, `err.message` değil.** `console.error("[Main] Backup failed:", err)` doğru, `..., err.message)` yanlıştır: ikincisi stack'i atar ve dosyaya düşen log satırı hatanın nerede oluştuğunu söylemez. Gerçek bir arıza anında (yedekleme, geri yükleme, güncelleme) elimizdeki tek kanıt bu satırdır. `safeHandler` ve tüm servisler zaten nesneyi basar
+- **Main process:** `electron-log`. Kurulumun tamamı `electron/errorReporting.js`'tedir, `main.js` yalnızca `initLogging(getMainWindow)` çağırır. Log dosyası `%APPDATA%/mavikent-site-yonetimi/logs/main.log`'tur, boyut sınırı 5 MB'tır.
+- **`log.initialize({ preload: false })` bilinçlidir.** Paketin varsayılanı her session'a kendi preload dosyasını enjekte eder, bu projede renderer electron-log'u hiç import etmez ve üç pencereye de ölü bir preload yüklenirdi.
+- **`console` electron-log'a bağlıdır.** `initLogging()` `Object.assign(console, log.functions)` çağırır, böylece main process'teki her `console.warn/error` main.log'a da yazılır. **Bu satır olmadan `log.initialize()` main process console'unu yakalamaz.** Satırın `require("electron-log")`'tan **sonra** gelmesi zorunludur, sıralama bozulursa sonsuz döngü oluşur.
+- **Log dosyasının yolu sabit tutulmaz**, `log.transports.file.getFile().path` ile paketin kendisinden okunur. `getFile()` dosyayı oluşturmaz, yalnızca yolu çözer. Varlığını `initLogging`'in son satırındaki açılış kaydı garantiler: `[Main] Starting v<sürüm> (packaged|dev)`. main.log'un ilk satırı budur.
+- **Ölümcül hata kutusu tek yerden üretilir: `showFatalError(title, message, whatToDo, parentWindow?)`.** Üç çağıranı vardır: DB açılamaması, açılış hatası ve yakalanmamış hata. Kutu üç parça taşır: ne olduğu, **kullanıcının ne yapacağı** ve bir "Kayıt Dosyasını Göster" butonu (`shell.showItemInFolder`) + `SUPPORT_EMAIL` adresi. **Kural: kullanıcıya yalnızca dosya yolu yazan kutu kurma.** 40+ hedef kitle için `%APPDATA%` altındaki bir yolu elle bulmak eylem değildir. `app.isReady()` false iken butonlu kutu kullanılamaz, o yolda `showErrorBox` kullanılır.
+- **Kutu mümkünse ana pencereye bağlanır.** Aksi hâlde Windows'ta ana pencerenin arkasına düşüp uygulamayı donmuş gösterebilir. Pencereyi `initLogging`'e verilen resolver sağlar. **Resolver parametre olarak geçirilir, `errorReporting.js` `windows/main`'i import etmez:** `windows/main` → `menu.js` → `errorReporting.js` zinciri zaten var, ters yönde import döngü kurar.
+- **`startCatching` kendi diyaloğunu göstermez.** `{ showDialog: false }` ile çağrılır ve yerine Türkçe bir `onError` kutusu gösterilir, çünkü paketin varsayılanı gövdesi ham stack trace olan İngilizce bir kutu açar. `onError` yalnızca `uncaughtException` için kutu açar, `rejection` içeren hata adlarında sessiz kalır. Hatayı **kendisi loglar** ve her zaman `false` döner: paket `onError`'ı dosyaya yazmadan önce çağırdığı için, bloklayan modal açıkken log dosyasında raporlanan hata bulunmuyordu. `false` dönüşü paketin kendi loglamasını atlar, aksi hâlde aynı hata iki kez düşer.
+- **Ölümcül kutu süreç ömrü boyunca bir kez açılır** (`fatalErrorShown` bayrağı, yalnızca `onError` yolunda). Tekrar eden bir kaynaktan gelen hata aksi hâlde her tekrarda yeni bir senkron kutu açar ve kullanıcı uygulamayı kapatamaz.
+- **Handler'lar:** `console.error("[<domain>.handlers] <channel>:", err)` deseni. Bu log ortak `createHandle` zarfı tarafından otomatik üretilir, handler içinde elle try/catch yazılmaz.
+- **Servisler:** beklenen iş kuralı ihlalinde `{ success:false, message }` döner, beklenmeyen hatayı kendi `try/catch`'inde yakalar, loglar ve sabit bir Türkçe mesaja çevirir. Programcı hatası koruları (`ALLOWED_TABLES` gibi) **İngilizce** mesajla `throw` eder, çünkü kullanıcıya hiç ulaşmazlar.
+- **Renderer:** hata mesajı SweetAlert ile gösterilir. Renderer'da ayrı bir log altyapısı yoktur, ama renderer konsoluna düşen `error` ve `warning` satırları main tarafından yakalanıp main.log'a yazılır (`catchRendererConsole`, `[Renderer] <mesaj> (<kaynak>:<satır>)` biçiminde). Yakalayıcı `app.on("web-contents-created")` ile kurulur, yani üç pencereyi de kapsar ve `src/` tarafında hiçbir kod gerektirmez. `info` ve `debug` bilinçli olarak alınmaz. Bu yol konsol metnini alır, yapısal stack trace vermez. React ağacındaki hatalar ayrıca `ErrorBoundary` ile yakalanır ve kullanıcıya kopyalanabilir detayla gösterilir.
+- Log mesajları İngilizce prefix + açıklama şeklindedir. Prefix modülü tanıtır: `[Main]`, `[Migrate]`, `[Database]`, `[Updater]`, `[Splash]`, `[MainWindow]`, `[Guide]`, `[Renderer]`, `[ErrorBoundary]`, `[<domain>.handlers]`, `[<domain>.service]`.
+- **Hata nesnesi olduğu gibi loglanır, `err.message` değil.** `console.error("[Main] Backup failed:", err)` doğru, `..., err.message)` yanlıştır. İkincisi stack'i atar ve log satırı hatanın nerede oluştuğunu söylemez. Gerçek bir arıza anında (yedekleme, geri yükleme, güncelleme) elimizdeki tek kanıt bu satırdır. Aynı sebeple `catch` bloğunu hata nesnesini yakalamadan yazma (`catch {`).
 
 ---
 
 ## 14. Performans Kuralları
 
-- better-sqlite3 senkrondur → IPC handler'ları hızlı tutulmalı; ağır rapor sorgularında index kullan (`year, month`, `manager_id` filtreleri)
-- Listeleri renderer'da filtrelemek yerine SQL'de filtrele (özellikle Transactions büyüdükçe)
-- Sayfalar lazy-load'dur — yeni sayfa eklerken aynı deseni koru
-- `app.disableHardwareAcceleration()` bilinçlidir (eski donanımlarda render sorunlarını önler) — kaldırma
-- Büyük PDF üretimi renderer'da yapılır; UI donmasını önlemek için üretim öncesi loading göstergesi kullan
+- better-sqlite3 senkrondur, IPC handler'ları hızlı tutulmalıdır. Ağır rapor sorgularında index kullan.
+- Listeleri renderer'da filtrelemek yerine SQL'de filtrele (özellikle Transactions büyüdükçe).
+- Sayfalar lazy-load'dur, yeni sayfa eklerken aynı deseni koru.
+- `app.disableHardwareAcceleration()` bilinçlidir (eski donanımlarda render sorunlarını önler). Kaldırma.
+- Büyük PDF üretimi renderer'da yapılır, UI donmasını önlemek için üretim öncesi loading göstergesi kullan.
 
 ---
 
-## 15. Build, Dağıtım ve Release Süreci
+## 15. Build, Dağıtım ve Release
 
 ```bash
 npm run dev            # Vite + Electron eş zamanlı (concurrently + wait-on)
 npm run start          # Sadece Electron (önceden build edilmiş dist/ ile)
 npm run build          # Vite production build
-npm run dist           # Vite build + electron-builder (.exe NSIS installer → dist_electron/)
+npm run preview        # Vite'ın dist/ önizleme sunucusu (tarayıcıda, electronAPI yoktur)
+npm run dist           # Vite build + electron-builder (NSIS installer → dist_electron/)
 npm run rebuild        # Native modülleri (better-sqlite3) Electron ABI'sine yeniden derle
 npm run lint           # ESLint
 npm run reset-db       # Dev DB dosyalarını siler → fresh install + /setup akışı
@@ -615,141 +671,66 @@ npm run reset-appdata  # Paketli sürümün %APPDATA% verisini siler
 
 ### Release Adımları (kullanıcı onayıyla)
 
-1. `package.json` → `version` yükselt (semver: bugfix=patch, özellik=minor)
-2. **Yama notları (`src/utils/releaseNotes.js`) güncellenmeli** — yeni sürüm yayınlanmadan önce uygulama içi sürüm notları da güncellenir (Footer'daki "Sürüm Notları" modalında gösterilir). Kural: **yalnızca son 3 yama** listede kalır — yeni sürümü diziye **başa** ekle, en eski (4.) kaydı sil. Her kayıt `{ version, date (YYYY-MM-DD), title, changes: [...] }` biçimindedir; `version` `package.json` ile aynı olmalı, `changes` kullanıcıya dönük kısa Türkçe maddelerdir.
-3. Commit mesajı geleneği: `feat: vX.Y.Z — kısa Türkçe açıklama` / `fix: vX.Y.Z — ...`
-4. `npm run dist` → `dist_electron/Mavikent-Site-Yonetimi-Setup-X.Y.Z.exe`
-5. GitHub Release oluştur (tag `vX.Y.Z`); `electron-updater` `latest.yml` + installer'ı release asset'lerinden okur
-6. Otomatik güncelleme: açılışta kontrol (20 sn timeout, indirme için 60 sn stall watchdog — internet yoksa/yavaşsa uygulama açılmaya devam eder). Kullanıcı "Şimdi Yeniden Başlat" derse `quitAndInstall`, çağrı hata verirse loglanıp açılışa devam edilir (aksi hâlde splash sonsuza kadar açık kalırdı). **`autoUpdater.autoInstallOnAppQuit = false`** (modül gövdesinde, paketin varsayılanı `true`): "Daha Sonra" diyen kullanıcı o oturumda mevcut sürümü kullanmaya devam eder ve indirilmiş güncelleme uygulama kapatılınca **sessizce kurulmaz**. Kurulum yalnızca kullanıcı açıkça yeniden başlatmayı seçtiğinde olur (açılış akışındaki buton ya da Yardım → Güncellemeleri Kontrol Et). İndirilen dosya önbellekte kalır, sonraki kontrol onu yeniden indirmez. Açılış akışındaki `autoUpdater.checkForUpdates()` çağrısı `.catch(() => {})` ile kapatılır ve bu **bilinçlidir**: `electron-updater` hatayı hem `error` olayıyla yayınlar hem de dönen promise'i reddeder, yani hata zaten `error` dinleyicisinde loglanıp arayüze yansır. `catch` olmadan internetsiz her açılışta aynı hata `main.log`'a ikinci kez sahipsiz reddedilme olarak düşüyordu
-7. **Menüden güncelleme (Yardım → Güncellemeleri Kontrol Et):** `autoUpdater.js` → `checkForUpdatesOnDemand(mainWindow)`. `menu.js` yalnızca çağırır, güncelleme mantığı içermez (`electron-updater`'ı import etmez) — aynı desen yedeklemede de geçerlidir (`runBackup(mainWindow)`). Akış açılış akışından ayrıdır ve **olay dinleyicisi kullanmaz**. `checkForUpdates()` **20 sn'lik bir `setTimeout` promise'i ile `Promise.race`'e sokulur** (açılış akışıyla aynı `CHECK_TIMEOUT_MS`). Zamanlayıcı erken dönüşte temizlenmez, gerekmez de: kalan zamanlayıcı yalnızca `race`'in çoktan sahiplendiği bir reddi tetikler ve uygulamanın kapanışını geciktirmez. Sınır gereklidir, çünkü `electron-updater`'ın kendi 60 sn'lik zaman aşımı bu ortamda **çalışmaz**: `builder-util-runtime` onu `request.on("socket")` üzerine kuruyor, Electron'un `net.ClientRequest`'i ise `socket` olayı yaymıyor: istek asılı kalırsa `isUpdateFlowActive` kalıcı olarak `true` kalıyor ve menü sonraki her tıklamada uygulama kapatılana kadar "Güncelleme işlemi sürüyor." diyordu. İndirmeye süre sınırı **konmaz** (yavaş bağlantıda büyük installer meşru olarak uzun sürer). `downloadPromise`'in sonucu, kullanıcıya "indiriliyor" kutusu gösterilmeden **önce** `then(() => null, (err) => err)` ile ele alınır, sonuç kutu kapandıktan sonra değerlendirilir: kutu açıkken gerçekleşen bir indirme hatası aksi hâlde sahipsiz reddedilme (`unhandledRejection`) olarak loglanıyordu. Ardından yeniden başlatma diyaloğu gösterilir. Gerekçe: `autoUpdater` olayları global'dir ve `checkForUpdatesBeforeStartup` açılış bitince kendi dinleyicilerinin **tamamını** kaldırır — menü akışı `update-downloaded`'a güvenseydi, dinleyiciyi kendisi kaydetmek ve her çıkış yolunda kaldırmak zorunda kalırdı (kaldırmayı unutan yol = üst üste binen diyaloglar). `isUpdateFlowActive` bayrağı eşzamanlı ikinci bir akışı engeller. Menü öğesi **dev'de gösterilmez**: paketlenmemiş uygulamada `checkForUpdates()` ağa hiç çıkmadan `null` döner ve akış yanlışlıkla "Uygulamanız güncel." yazardı
+1. `package.json` → `version` yükselt (semver: bugfix=patch, özellik=minor).
+2. **Yama notları (`src/utils/releaseNotes.js`) güncellenmeli.** Footer'daki "Sürüm Notları" modalında gösterilir. Kural: **yalnızca son 3 yama** listede kalır, yeni sürümü diziye başa ekle ve en eski kaydı sil. Her kayıt `{ version, date (YYYY-MM-DD), title, changes: [...] }` biçimindedir, `version` `package.json` ile aynı olmalıdır ve `changes` kullanıcıya dönük kısa Türkçe maddelerdir.
+3. Commit mesajı geleneği: `feat: vX.Y.Z — kısa Türkçe açıklama` ya da `fix: vX.Y.Z — ...`.
+4. `npm run dist` → `dist_electron/Mavikent-Site-Yonetimi-Setup-X.Y.Z.exe`.
+5. GitHub Release oluştur (tag `vX.Y.Z`). `electron-updater` `latest.yml` ve installer'ı release asset'lerinden okur.
+
+### Güncelleme Akışları (`electron/autoUpdater.js`)
+
+Modül gövdesinde `autoUpdater.logger = log` ve `autoUpdater.autoInstallOnAppQuit = false` atanır. `main.js` ve `menu.js` `electron-updater`'ı hiç import etmez.
+
+**Açılışta (`runStartupUpdateFlow`).** Splash'e bağlıdır ve olay dinleyicileriyle çalışır. Kontrol için `CHECK_TIMEOUT_MS`, indirme için `DOWNLOAD_STALL_TIMEOUT_MS`'lik bir ilerlemesizlik watchdog'u vardır, yani internet yoksa ya da yavaşsa uygulama açılmaya devam eder. Akış bittiğinde tüm dinleyiciler kaldırılır. Kullanıcı "Şimdi Yeniden Başlat" derse `quitAndInstall` çağrılır, hata verirse loglanıp açılışa devam edilir (aksi hâlde splash sonsuza kadar açık kalır). `checkForUpdates()` çağrısı `.catch(() => {})` ile kapatılır ve bu bilinçlidir: `electron-updater` hatayı hem `error` olayıyla yayınlar hem promise'i reddeder, yani hata zaten dinleyicide loglanır.
+
+**`autoInstallOnAppQuit = false`** paketin varsayılanının tersidir: "Daha Sonra" diyen kullanıcı o oturumda mevcut sürümü kullanmaya devam eder ve indirilmiş güncelleme uygulama kapatılınca sessizce kurulmaz. Kurulum yalnızca kullanıcı açıkça yeniden başlatmayı seçtiğinde olur. İndirilen dosya önbellekte kalır.
+
+**Menüden (`runOnDemandUpdateFlow(mainWindow)`).** Yardım → Güncellemeleri Kontrol Et. Akış açılış akışından ayrıdır ve **olay dinleyicisi kullanmaz**, çünkü `autoUpdater` olayları global'dir ve açılış akışı kendi dinleyicilerinin tamamını kaldırır. `checkForUpdates()` `CHECK_TIMEOUT_MS`'lik bir `setTimeout` promise'i ile `Promise.race`'e sokulur. Sınır gereklidir, çünkü `electron-updater`'ın kendi zaman aşımı bu ortamda çalışmaz (`request.on("socket")` üzerine kuruludur, Electron'un `net.ClientRequest`'i o olayı yaymaz) ve istek asılı kalırsa `isUpdateFlowActive` kalıcı olarak `true` kalır. İndirmeye süre sınırı konmaz. `downloadPromise`'in sonucu, kullanıcıya "indiriliyor" kutusu gösterilmeden **önce** `then(() => null, (err) => err)` ile ele alınır ve kutu kapandıktan sonra değerlendirilir, aksi hâlde kutu açıkken oluşan hata sahipsiz reddedilme olarak loglanır. `isUpdateFlowActive` bayrağı eşzamanlı ikinci akışı engeller. Menü öğesi **dev'de gösterilmez**, çünkü paketlenmemiş uygulamada `checkForUpdates()` ağa çıkmadan `null` döner ve akış yanlışlıkla "Uygulamanız güncel." yazar.
 
 ### Build Ortam Notları (Windows)
 
-- NSIS build'i `TMP=C:\WINDOWS\TEMP` gibi anormal temp değişkenlerinde bozulur — build öncesi TMP/TEMP'in kullanıcı temp'ine işaret ettiğini doğrula
-- `setAppUserModelId` çağrısı görev çubuğu ikonunun boş çıkmasına neden olmuştu — ekleme
-- `asarUnpack: **/*.node` — better-sqlite3 native binary'si asar dışında kalmalı
+- NSIS build'i `TMP=C:\WINDOWS\TEMP` gibi anormal temp değişkenlerinde bozulur. Build öncesi TMP/TEMP'in kullanıcı temp'ine işaret ettiğini doğrula.
+- `setAppUserModelId` çağrısı görev çubuğu ikonunun boş çıkmasına neden olmuştu. Ekleme.
+- `asarUnpack: **/*.node` zorunludur, better-sqlite3 native binary'si asar dışında kalmalıdır.
 
 ---
 
 ## 16. Debugging Notları
 
-| Sorun                        | Bakılacak yer                                                                    |
-| ---------------------------- | -------------------------------------------------------------------------------- |
-| Uygulama açılmıyor (prod)    | `%APPDATA%/mavikent-site-yonetimi/logs/main.log`                                 |
-| "Blocked IPC channel" hatası | Kanal `channels.js`'te tanımlı mı? Preload güncellenmiş mi?                      |
-| Migration hatası             | `main.log` + `migrations` tablosu içeriği; migration transaction'ı rollback olur |
-| DB kilitli (Windows)         | WAL dosyaları + başka instance kontrolü; `busy_timeout=3000` var                 |
-| Dev'de sıfırdan başlama      | `npm run reset-db` (3 dosyayı birden siler — tek tek silme)                      |
-| DevTools                     | Menü → Görünüm → Geliştirici Araçları (yalnızca dev, F12)                        |
-| Güncelleme test              | Yalnızca paketli sürümde çalışır (`isDev` kontrolü); dev'de hem açılış kontrolü atlanır hem menü öğesi gizlenir |
+| Sorun                        | Bakılacak yer                                                                                |
+| ---------------------------- | -------------------------------------------------------------------------------------------- |
+| Uygulama açılmıyor (prod)    | `%APPDATA%/mavikent-site-yonetimi/logs/main.log`                                             |
+| "Blocked IPC channel" hatası | Kanal `channels.js`'te tanımlı mı, preload güncellenmiş mi                                   |
+| Migration hatası             | `main.log` + `migrations` tablosu içeriği. Migration transaction'ı rollback olur             |
+| DB kilitli (Windows)         | WAL dosyaları + başka instance kontrolü. `busy_timeout=3000` vardır                          |
+| Dev'de sıfırdan başlama      | `npm run reset-db` (üç dosyayı birden siler, tek tek silme)                                  |
+| DevTools                     | Menü → Görünüm → Geliştirici Araçları (yalnızca dev, F12)                                    |
+| Güncelleme testi             | Yalnızca paketli sürümde çalışır. Dev'de hem açılış kontrolü atlanır hem menü öğesi gizlenir |
 
 ---
 
-## 17. Mimari Karar Kayıtları (ADR Özeti)
-
-| #   | Karar                                                                                                                                                                  | Gerekçe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | better-sqlite3 (senkron) main process'te                                                                                                                               | Offline, tek kullanıcı, transaction garantisi basit; async ORM karmaşıklığı gereksiz                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| 2   | Handler/service ayrımı, domain bazlı modüller                                                                                                                          | Validasyon ile SQL'i ayırmak; her domain tek klasörde (v1.1.7 refactor)                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| 3   | Kanal sabitleri tek dosyada + preload whitelist                                                                                                                        | Kanal adı typo'su açılışta yakalanır; renderer keyfi kanal çağıramaz                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| 4   | Soft-delete + immutable audit (`payment_cancellations`)                                                                                                                | Finansal kayıtlar izlenebilir olmalı; silme yerine iptal                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| 5   | `paid_amount` = aktif ödemelerin SUM'ı                                                                                                                                 | Artımlı güncelleme drift yaratır; yeniden hesap idempotenttir                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| 6   | Update kontrolü migration'lardan önce                                                                                                                                  | Bozuk migration içeren sürüm güncellemeyle kurtarılabilsin (v1.1.9)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| 7   | Global state kütüphanesi yok                                                                                                                                           | Sayfa başına lokal state yeterli; bağımlılık maliyeti fayda getirmiyor                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| 8   | Para `REAL`                                                                                                                                                            | TL defteri, tek kullanıcı; kuruş hassasiyeti ROUND ile yönetilir. Hassas muhasebe gerekirse kuruş-integer'a migration düşünülür                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| 9   | HashRouter                                                                                                                                                             | Paketli Electron'da `file://`/custom protocol altında BrowserRouter path'leri kırılır                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| 10  | Setup akışı: zorunlu ilk kurulum ekranı (eski `SETUP_PENDING` sentinel'i ADR #27 ile kaldırıldı — artık satır seed edilmiyor)                                                                                                     | Varsayılan şifre riski sıfırlanır; kurtarma kodu bir kez gösterilir (v1.2.0)                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| 11  | Ortak `safeHandler` zarfı (`electron/modules/shared/safeHandler.js`)                                                                                                   | Her handler'daki tekrar eden try/catch + loglama + `event` yutma boilerplate'i tek yerde toplanır; handler'lar yalnızca validasyon + service çağrısına odaklanır                                                                                                                                                                                                                                                                                                                                                                                    |
-| 12  | Sakin yönetimi ayrı `resident` domain + `/residents` sayfası; merge-form sezgisi yerine açık aksiyonlar                                                                | `updateApartment`'a gömülü üç yönlü sakin dallanması (`isResidentReplacement`) sorumlulukları karıştırıyor ve kısmi güncellemede veri kaybı riski taşıyordu. Ekle/Düzenle/Çıkış/Geçmiş açık aksiyonları kullanıcı niyetini tahmin etmeye gerek bırakmaz; daire formları yalnızca daire tutar                                                                                                                                                                                                                                                        |
-| 13  | `resolveDbError` ortaklaştırıldı — `createDbErrorResolver(columnLabels)` (`electron/modules/shared/dbError.js`)                                                        | Service'lerde tekrar eden UNIQUE/CHECK/NOT NULL/FK → Türkçe mesaj çevirisi tek yerde toplanır; her domain kendi `columnLabels` sözlüğüyle resolver üretir. 2026-08-05'te `dues`, `auth` ve `building` de bu çözücüye bağlandı, yani DB'ye yazan **her** servis onu kullanır (ADR #54)                                                                                                                                                                                                                                                                                                                                                    |
-| 14  | ~~Apartments sayfası `Apartments.jsx` (salt-okunur liste) ve `ApartmentsManage.jsx` (daire işlemleri) olarak ikiye bölündü~~ — **ADR #35 ile geri alındı (2026-08-02)**                                               | Tek dosya 700+ satıra ulaşmıştı (ROADMAP T1); okuma ve yönetim sorumlulukları ayrışınca her dosya küçülüp bakımı kolaylaştı — ortak parçalar `components/`, `constants.js`, `useDues.js`'e taşındı                                                                                                                                                                                                                                                                                                                                                  |
-| 15  | Arka plan görseli **yalnızca giriş ekranlarında** (login/setup/splash) kullanılır; iç sayfalarda yoktur. Görsel dili **soyut mimari çizgi işi**, fotoğraf/render değil | Fotoğraf spesifik olmak zorundadır ve spesifik olduğu an kullanıcıların çoğuyla uyuşmaz (eski login görselleri gökdelen ve lüks villaydı); ayrıca detay/kontrast metin okunabilirliğini düşürür ve tema başına ayrı çekim gerektirdiği için iki tema iki farklı sahne anlatır. Soyut çizgi işi nötr, düşük detaylı ve tek motifin renk çevrimiyle iki temaya eşlenebilir. İç sayfalar günde onlarca kez açılan tablo/rakam ekranlarıdır — arka plan görseli orada kontrastı düşürür ve tekrar gördükçe gürültüye dönüşür (§11 okunabilirlik kuralı) |
-
-| 16 | Admin şifre kurtarma SweetAlert formundan ayrı `/recover` sayfasına taşındı; iki adımlı. Adım 1 kodu `verifyRecoveryCode` ile sunucuda doğrular (2026-07-31 kararı); nihai/yetkili doğrulama yine `resetAccountPassword` içindedir | Tek modalde kod + şifre isteniyordu: şifre tekrarı, göster/gizle ve Caps Lock uyarısı yoktu — kullanıcı göremediği şifreyi yanlış yazarsa tek kullanımlık kod harcanmış ve uygulamaya girilemez oluyordu. Kod alanı da ham `text`'ti (maske/otomatik büyük harf yok). **`verifyRecoveryCode` başta bilinçli eklenMEmişti** ("brute-force oracle" gerekçesiyle); bu karar sonradan **tersine çevrildi**: (a) oracle zaten mevcut — `resetAccountPassword` yanlış kodda `INVALID_RECOVERY_CODE`, doğru kodda `success` dönerek aynı doğru/yanlış sinyalini veriyor, ayrı adım yeni sızıntı açmıyor; (b) tehdit modeli fiziksel erişim (offline, tek makine) ve 32^16 anahtar uzayı + bcrypt yavaşlığı UI brute-force'u zaten imkânsız kılıyor; (c) UX bedeli gerçekti — kodu yanlış giren kullanıcı yeni şifreyi iki kez yazdıktan *sonra* hatayı öğreniyordu (hedef kitle 40+). Fayda ≈ 0, maliyet somut olduğu için adım 1'e yan etkisiz doğrulama eklendi. İki adımın state'i hâlâ tek bileşende tutulur; beklenmeyen hatada şifre kaybolmaz |
-
-| 17 | Setup sayfası teal paletten **login ile aynı mavi aileye** geçirildi (dark `--setup-accent: #38a5f7`, light `#1d4ed8`) | Logo mavi gradyandır (`#29c1fb → #1240f0`) ve `--login-accent` (`#38a5f7`) ile aynı aileden; teal olan tek şey Setup'tı. Setup ve login arka arkaya gelen ekranlardır (kurulum biter bitmez `/login`'e yönlendirilir), iki farklı aksan rengi aynı uygulama hissini zayıflatıyordu. Logoyu sayfaya uydurmak yerine sayfa markaya uyduruldu. Şifre gücü ölçerinin kırmızı→yeşil renkleri **tema değil anlam** taşıdığı için dokunulmadı |
-
-| 18 | `prop-types` bağımlılığı ve tüm `Component.propTypes` blokları kaldırıldı (2026-07-20); yerine TypeScript **gelmedi**, prop doğrulaması yok | React 19 `propTypes` denetimini paketten çıkardı: tanımlar sessizce yok sayılıyor. Ölçüldü (React 19.2.7, `renderToString` + kasıtlı yanlış tip) → hiçbir uyarı üretilmedi. Yani 13 tanımın tamamı ölü koddu; çalışmayan bir denetimi tutmak, var olmayan bir korumaya güvenmek demektir. Zorunlu object/func prop'lar eksik geçilirse bileşen zaten anında çöker; `ProtectedRoute`'un `oneOf(VALID_ROLES)` kontrolü de gerçek bir açık kapatmıyordu — `hasRole` katı eşitlik yaptığı için hatalı rol **kapalı tarafa** düşer (erişim reddedilir). Yerine konsola yazan bir guard denendi ve kaldırıldı: hatalı rol zaten ekranda "Erişim reddedildi" toast'ı + yönlendirme olarak görünüyor, rotalar tek dosyada ve iki rol var |
-| 19 | Caps Lock uyarısı paylaşılan `CapsLockIndicator` + `useCapsLockOn` ikilisinde; **alan içi rozet**, metin bloğu değil | Uyarı üç sayfada (Login/Recover/Setup) birebir aynı CSS ile kopyalanmıştı. Kutulu biçim iki sorun taşıyordu: kırmızı hata kutusuyla aynı forma sahip olduğu için hata sanılıyordu ve belirip kaybolurken altındaki içeriği zıplatıyordu. Durum takibinin sayfada tutulması ayrıca hataya açıktı — `onBlur`'de sıfırlanınca başka yere tıklamak uyarıyı Caps Lock hâlâ açıkken kapatıyordu; `document` dinleyicisi bunu çözer. Setup bu uyarının en kritik olduğu ekrandır: Caps Lock açıkken iki alana da aynı şey yazıldığı için "şifreler eşleşiyor" yeşile döner, hesap büyük harfle oluşur ve kullanıcı sonradan giremez (kurtarma kodu gerekir) |
-
-| 20 | Tema değişkenleri **yalnızca renk taşır**; geometri (offset/blur/spread, `1px solid`, katman sayısı) kuralın içinde literal yazılır | Geometri değişkenin içine gömülünce iki tema sessizce ayrışıyordu: Login/Recover/Setup'ta buton glow'u koyuda `0 3px 16px` açıkta `0 3px 14px`, kart çerçevesi koyuda `1px` açıkta `1.5px`, odak halkası koyuda iki katman açıkta tek katmandı; Footer gölgesi 12px/14px ayrılmıştı. Hiçbiri kasıtlı değildi, hepsi kopyala-yapıştır sırasında oluşup fark edilmeden kalmıştı. `box-shadow: var(--x)` yazıldığı sürece bir temaya katman eklemek serbesttir ve gözden kaçar; `box-shadow: 0 3px 16px var(--x-glow)` yazıldığında ise değişken tek bir renk yuvasıdır, yapısal sapma fiziksel olarak mümkün değildir. Aynı sebeple `[data-theme="light"]` altında yapısal override yazılmaz — bu yolla eklenmiş `.login-container` ve `.recover-container` gölge override'ları ile `.setup-welcome::after` gradyan/opacity override'ı kaldırıldı |
-
-| 24 | **Tek bilgisayar modeli.** Uygulama tek bir makinede çalışır; veritabanı `%APPDATA%` altındadır ve senkronizasyon yoktur. Bundan çıkan kural: **hesaplar makineye özeldir.** Bir kurulumda açılan hesap başka bir kurulumda **yoktur**; birden fazla bina ancak hepsi aynı bilgisayardan yönetiliyorsa anlamlıdır. Yönetici devri (`transferAccount`), yeni kişinin **aynı bilgisayarda** geçici şifreyle giriş yapmasıdır. Makineler arası tek taşıma yolu yedek dosyasıdır ve geri yükleme **tüm veritabanını** değiştirir (tek binayı ayırıp gönderme yoktur). Kullanıcıya dönük metinler bu varsayımı açıkça söyler ("hesap yalnızca bu bilgisayarda geçerlidir") | Varsayım koda baştan gömülüydü ama hiçbir yerde yazılı değildi ve arayüz metinleri uzaktan işleyen bir süreç varmış izlenimi veriyordu. Farklı bilgisayarlardaki iki kurulum iki ayrı veritabanıdır: bir makinede üretilen geçici şifre diğerinde işe yaramaz, çünkü o hesap orada mevcut değildir. Alternatif (makineler arası senkronizasyon) ADR #1'in offline/sunucusuz kararını geçersiz kılar ve tek kullanıcılı bir defter için karşılığı yoktur; bu yüzden model desteklenmedi, **açıkça yazıldı** |
-
-| 25 | **1 hesap = 1 kişi (login); bir kişi N bina (defter) yönetebilir.** Ayrı `buildings` tablosu (`owner_id→users.id`, `name`); `apartments`/`incomes`/`expenses` `building_id→buildings.id` taşır (eski `manager_id` kolonları 015-017 ile yeniden adlandırıldı). Giriş sonrası kullanıcı `/select-building` ekranından binasını seçer/oluşturur; seçili bina `useCurrentBuilding` ile `sessionStorage`'da tutulur ve building-scoped IPC çağrılarında `user.id` yerine `building.id` geçilir. `collected_by`/`cancelled_by` hâlâ `users.id`'dir (işlemi yapan kişi). Kişi adı `manager_name`'dedir | Bir kişi gerçekte birden fazla bloğu/binayı yönetebiliyor (ör. A sitesi E ve F blok, ya da farklı sitelerden binalar). Önceki model (1 hesap = 1 bina = 1 defter) bunu ancak kişi başına N ayrı hesap + N ayrı şifre ile karşılıyordu; giriş/çıkış ve şifre kurtarma kişi başına katlanıyor, "akış tuhaf" hissi buradan doğuyordu. Bina defterini kişiden ayırınca: tek şifreyle giriş, giriş sonrası bina seçimi, şifre kurtarma **kişi başına** sadeleşti. Binalar arası ortak rapor **yok** (her defter bağımsız, yalnızca sahibi ortak); bu yüzden `buildings` altında hiyerarşi (site→blok) kurulmadı, düz bina. Bedeli: 3 tablolu kolon-yeniden-adlandırma migration'ı (014-017) ve ~25 sorgunun `building_id`'ye taşınması — üretimde veri olmadığı için (fresh install şemadan kurulur) risk düşüktü. Devir (`transferAccount`) hesap bazlıdır: kişi değişiminde tüm binalar yeni kişiye geçer |
-
-| 26 | **Tek rol.** Admin/manager düalitesi ve ikinci hesap açma mantığı kaldırıldı; bir makinede tek hesap vardır. Bu hesap binaları yönetir, kendi kurtarma kodunu tutar ve gerektiğinde **kendini devreder** (`transferAccount`). İlk ekran "Sistem Yöneticisi kurulumu" değil **genel kurulum**tur (ad soyad + şifre + kurtarma kodu). Silinen `AdminDashboard`'ın işlevleri (şifre değiştir, kurtarma kodu üret, devir, bina yönetimi) `Profile` sayfasına taşındı. `users.role` kolonu başta kalıntı olarak bırakılmıştı; sonradan `display_name` ile birlikte migration 018 ile **tamamen silindi** (tek hesap bulma artık `ORDER BY id LIMIT 1`; session'da rol yok). Kaldırılan IPC: `createManager`, `getManagers`, `updateManager`, `updateManagerStatus`, `resetManagerPassword`, `getSystemStats`. `resetAdminPassword→resetAccountPassword`, `completeAdminSetup→completeSetup`, `transferManager→transferAccount` | Kullanım profili "tek makinede tek kişi" (net karar). ADR #25 zaten bir kişinin tek hesapla N bina yönetmesini sağlamıştı; bu, ikinci hesap ihtiyacını ortadan kaldırdı. Admin katmanının tek kalan somut değeri kurtarma kodu emanetçiliğiydi ve o da tek hesapta zaten sağlanıyor. Admin'in bedeli ise çift-giriş dansıydı (admin'e gir → kendine manager aç → çık → manager gir). Rolleri birleştirince: tek şifre, tek giriş, kurtarma doğrudan hesabın kendi kodunda. Devir korundu çünkü Türkiye'de yönetici yılda bir değişir — ama artık admin'in başkasını devretmesi değil, hesabın kendini yeni operatöre (geçici şifre + yeni ad) aktarmasıdır; şifre unutulursa `/recover` yedeği var. `role` kolonu ilk adımda CHECK-rewrite migration'ından kaçınmak için kalıntı bırakılmıştı, 018 ile tablo yeniden oluşturularak temizlendi |
-
-| 27 | **Hesap satırı seed edilmez; kurulumda `INSERT` ile oluşur.** Eski `seedAccount` açılış adımı (§2.2 adım 8) ve `SETUP_PENDING` sentinel'i (ADR #10) kaldırıldı. Taze kurulumda `users` boştur; `getSetupState` satır yoksa `needsSetup:true` döner, `completeSetup` hesabı `INSERT` eder. Legacy pending satır (eski seed'in `username='admin'`, `password_changed_at IS NULL` satırı) varsa `completeSetup` `INSERT` yerine onu `UPDATE` eder. `database/seed.js` dosyası tümden **silindi**; içindeki kurtarma kodu üretim/normalizasyon fonksiyonları (tek tüketicisi olan) `auth/service.js`'e inline edildi ve alfabe sabiti geçici şifre üreticisiyle paylaşıldı (`CODE_ALPHABET`) | Seed yolu, `username='admin'` gibi **sahte bir yer tutucu** yazmak zorundaydı çünkü `users.username` `NOT NULL`'dur. Bu username hiçbir zaman kullanıcıya görünmüyor ve `SETUP_PENDING` geçerli bir bcrypt hash olmadığı için o satıra giriş de yapılamıyordu — yani zararsızdı ama kavramsal olarak yanlıştı: username kullanıcının kimliğidir, uygulama onu uyduramaz. `NOT NULL` kısıtı yüzünden username'in gerçekten kullanıcıdan gelmesinin tek yolu satırı seed anında değil, kullanıcı adını girdiği kurulum anında oluşturmaktır. Bedeli: "hesap satırı hep vardır" invariant'ı gitti — `getSetupState`/`completeSetup` satır yokluğunu tolere eder, açılış artık hesapsız da açılır (zaten `/setup`'a yönleniyordu) |
-
-| 28 | **Üç giriş ekranında (Login/Setup/Recover) alan etiketi tek tip: floating-label.** Statik üst etiket kaldırıldı (`.login-label` hiç var olmadı, `.setup-label` ve `.recover-label` silindi). Kurulum kuralı: `<label>` **input'un kardeşi ve DOM'da ondan sonra** gelir (CSS `~` seçicisi buna dayanır), kapsayıcıya `position: relative` verilir, input `placeholder` **taşımak zorundadır** (`:not(:placeholder-shown)` çalışsın diye) ve placeholder odaklanana kadar `color: transparent`'tır — etiketle üst üste binmesin. Input dolgusu üstten kalın alttan ince olur (ör. `26px 18px 8px 50px`), etiketin yukarı kayacağı yer budur. **İstisna: kurtarma kodu alanı.** Bu alan ortalanmış, monospace ve `XXXX-XXXX-XXXX-XXXX` maskeli olduğu için floating-label'dan çıkarıldı: etiket alanın üstünde statik durur (`.recover-code-label`, 1rem) ve format placeholder'ı (`ABCD-EFGH-JKLP-QRST`) alan boşken **sürekli görünür**. Gerekçe: kullanıcının bu alanda ihtiyacı olan ipucu etiketin adı değil kodun biçimidir, ortadaki floated etiket ise tam o placeholder'ın yerini kaplıyordu | Aynı akışta arka arkaya gelen ekranlarda (Login → "Şifremi unuttum" → Recover, Setup → Login) alan formunun değişmesi ADR #17'nin renk için çözdüğü tutarsızlığın yapısal karşılığıydı: aynı bileşen (kilit ikonu + CapsLockIndicator + göster/gizle) bir sayfada üst etiketli, diğerinde etiketsizdi. Statik etikete yakınsamak da bir seçenekti ve tutarlılığı aynı şekilde sağlardı; floating tercih edildi çünkü etiket + alan iki satır yerine tek satıra iner ve Recover kartı zaten pencereye zor sığacak kadar uzundu (§11 "koşullu mesaja yer ayırma" kuralının çözdüğü sorunun aynısı). Bedeli: floated etiket 0.96rem'dir, yani §11'in 1rem alt sınırının altında — rozet gibi **istisna** sayılır, çünkü tam boyutlu hâli (1.12rem) alan boşken zaten okunmuştur ve floated hâl yalnızca hatırlatıcıdır. Kod alanının format placeholder'ı (`ABCD-EFGH-JKLP-QRST`) artık odaklanınca görünür: kullanıcı yazmaya başlamadan hemen önce, yani ihtiyaç anında |
-
-| 29 | **Kalıcı oturum ("Beni hatırla") eklenmeyecek.** Oturum yalnızca `sessionStorage`'dadır ve uygulama kapanınca ölür. Talep gelirse yeniden değerlendirilir, o zamana kadar açık bir konu değil **verilmiş bir karardır** | Tek kullanıcılı, tamamen offline, kullanıcının kendi makinesinde çalışan bir uygulamada kalıcı oturum şifre korumasını fiilen devre dışı bırakır; kazanç girişte birkaç saniyedir. Bedeli somut: `users`'a kolon veya yeni tablo (migration + schema çifti), en az bir yeni IPC endpoint, `useCurrentUser`'ın `sessionStorage` dışına taşınması ve token'ın diskte nasıl saklanacağına dair yeni bir güvenlik kararı. Oturumun süreçle birlikte ölmesi sistemin en sade ve en güvenli taraflarından biridir. Not: CLAUDE.md uzun süre "30 günlük session token" yazıyordu, böyle bir şey hiç var olmadı (2026-07-18'de silindi) |
-
-| 30 | **Bağımlılık eklemeden çözülebilen yerde bağımlılık eklenmez.** Bugüne kadar bu ilkeyle bağlanan kararlar: trend grafiği saf SVG (recharts değil), dışa aktarım CSV + UTF-8 BOM (`xlsx` paketi değil), yedek zamanlayıcı `setInterval` (`node-cron` değil), ayar saklama userData altında JSON dosyası (`settings` tablosu değil — **karar geçerli, uygulaması yok:** tek tüketicisi kalmayınca `shared/appSettings.js` 2026-08-05'te silindi, bkz. ADR #39; ayar ihtiyacı doğarsa yine JSON dosyası yazılır), bulut yedeği kullanıcının seçtiği senkron klasörü (OAuth entegrasyonu değil) | Beşi de aynı hesabın sonucu: paketin getirdiği boyut, yükseltme ve güvenlik bakımı, kazandırdığı işlevden büyük. 6 çubukluk bir grafik SVG ile 40 satırdır; CSV Excel ihtiyacının neredeyse tamamını karşılar; günde bir kez çalışan bir zamanlayıcı cron ifadesi gerektirmez; DB'ye ayar tablosu açmak migration + schema çifti demektir, JSON dosyası ise sıfır şema borcu; OAuth ise token saklama + kota + sağlayıcı başına ayrı kod anlamına gelir, senkron klasörünü zaten işletim sistemindeki Drive/OneDrive istemcisi halleder. Bu kararlar ilgili görev başlarken yeniden tartışılmaz, yalnızca somut bir gereksinim onları çürütürse değişir |
-
-| 31 | **Otomatik test yok.** Vitest bağımlılığı ve `npm run test` script'i kaldırıldı (2026-08-02). Doğrulama elle yapılır: `npm run dev` ile akışın gezilmesi + `npm run lint` | Vitest 5 ay boyunca kurulu durdu ve **tek bir test dosyası yazılmadı** — `npm run test` çalıştırıldığında hiçbir şey doğrulamıyordu. Var olmayan bir güvenlik ağını doküman ve `package.json` üzerinde taşımak, ADR #18'in `propTypes` için verdiği kararın aynısıydı: çalışmayan bir denetimi tutmak, olmayan bir korumaya güvenmek demektir. Test ihtiyacı somutlaşırsa (ör. para hesabı yapan saf fonksiyonlar için) bağımlılık geri eklenir; o zamana kadar bu bir **verilmiş karardır**, açık bir konu değil |
-
-| 32 | **Aidat tahakkuk esasına geçti: `dues` satırı ödemeyi beklemez, her ay üretilir.** Eski kural ("satır yalnızca ödeme anında oluşur") kaldırıldı; yerine idempotent bir üretici geldi — `ensureMonthlyDues(buildingId)`, her aktif daire için oluşturulma ayından içinde bulunulan aya kadar satır açar ve tutarı o anki `apartments.due_amount` ile **dondurur**. Dashboard, Apartments ve Rapor okumadan önce üreticiyi çağırır. Ayrı backfill migration'ı yoktur: mevcut kurulumda geçmiş aylar ilk okumada tamamlanır | Eski model iki ayrı hata üretiyordu. **Birincisi:** hiç ödeme yapmamış dairenin satırı olmadığı için `dues`'tan INNER JOIN ile başlayan her sorgu tam da **borçlu daireleri** atlıyordu — 10 daireden 1'i ödediğinde Dashboard "%100 tahsilat" yazıyor, aylık rapor yalnızca ödeyenleri listeliyordu. **İkincisi:** eksik aylar okuma anında `apartments.due_amount` ile sanal olarak tamamlandığı için, aidat 1000'den 1500'e çıkarıldığında **ödenmemiş geçmiş aylar da 1500'e dönüşüyordu** — geçmişe dönük borç değişimi, muhasebede kabul edilemez. Sanal tamamlama bu ikinci hatayı yapısal olarak çözemez: tarihsel tutarı saklamanın tek yolu ya satırı üretmek ya da ayrı bir tutar-geçmişi tablosu açmaktır. Satır üretmek seçildi çünkü `dues` zaten o satırların yeri; ayrı tablo hem yeni bir şema hem her sorguya fazladan JOIN demekti ve "sanal aidat" kavramını yerinde bırakıyordu. Üretim maliyeti önemsiz (20 daire × 12 ay = 240 satır/yıl). Bedeli: yazma işlemi okuma yolunda tetikleniyor (`INSERT OR IGNORE`, ikinci çağrıdan itibaren no-op) ve gelecek aylar üretilmediği için `COALESCE` deseni okuma sorgularında güvenlik ağı olarak duruyor |
-
-| 33 | **Para formatlaması `src/utils/currency.js`'te ortaklaştırıldı; tek biçim `1.250,00 ₺` (her zaman iki hane kuruş).** Eski kural ("paylaşılan para yardımcısı yoktur, her sayfa kendi formatlar") kaldırıldı | "Tekrar bilinçlidir" denmişti ama sonuç bilinçli olmayan bir tutarsızlıktı: 14 kullanımın 13'ü `toLocaleString("tr-TR")` (kuruşsuz), Reports ise `minimumFractionDigits: 2` (kuruşlu) kullanıyordu — aynı tutar ekranda `1.250 ₺`, raporda `1.250,00 ₺` görünüyordu. Ayrıca `Reports` ve `Transactions` zaten kendi `fmt`/`formatCurrency` sarmalayıcılarını yazmıştı, yani ortaklaştırmaya yarı yolda kalınmıştı. Kuruşlu biçim seçildi: uygulama bir **defter**tir, kısmi ödeme ve gider tutarları kuruş içerebilir ve kuruşu gizlemek toplamlarda "1₺ eksik" görünümü yaratır. Bu ADR #30'un "gereksiz bağımlılık/soyutlama açma" ilkesiyle çelişmez — yeni bağımlılık yok, 10 satırlık tek fonksiyon ve 14 çağrı yeri var. Biçimi değiştirmek artık tek satırlık bir iştir |
-
-| 34 | **Şifre gücü ölçeri + kural listesi paylaşılan `PasswordStrength` bileşeninde; sayfaya özel renkler `--pw-*` değişken sözleşmesiyle geçirilir.** Bileşen CSS'i nötr sınıflar (`pw-*`) kullanır ve rengi 9 değişkenden alır (`--pw-track`, `--pw-chip-bg`, `--pw-chip-color`, `--pw-pending-color`, `--pw-icon-color`, `--pw-valid-color`, `--pw-valid-bg`, `--pw-neutral-bg`, `--pw-neutral-color`). Her sayfa bu eşlemeyi **kendi kök sınıfında** yapar (`.setup-page-bg`, `.recover-page-bg`) — `:root`'ta **yapmaz**, çünkü tüm sayfa CSS'leri tek bundle'da toplanır ve `:root` tanımları birbirini ezer. Dış boşluk (margin) bileşende değil, sayfa CSS'inde kalır (`.setup-page-bg .pw-rules { margin-top: -6px }`) — yerleşim sayfanın sorumluluğudur. ~~**Şifre alanının kendisi ortaklaştırılMADI**~~ — **ADR #40 ile ortaklaştırıldı (2026-08-02)**: değerler önce hizalandı, sonra alan `FormField` bileşenine çıkarıldı | Aynı 200 satırlık CSS iki dosyada prefix farkıyla duruyordu ve **fiilen ayrışmıştı**: Recover'ın `.recover-rule-icon` light override'ı Setup'ta farklı sırada tanımlıydı, `margin` değerleri tutmuyordu, segment kutusunda `aria-hidden` yalnızca Recover'da vardı. K-09'da bulunan kopyala-butonu farkı da aynı kök nedenin ürünüydü: bir tarafa yapılan iyileştirme diğerine geçmiyor. ADR #19 (`CapsLockIndicator`) bu yolu zaten açmıştı. `--pw-*` sözleşmesi seçildi çünkü alternatifi (bileşene `variant="setup"` prop'u geçip CSS'te iki blok tutmak) tekrarı bileşenin içine taşımaktan ibaretti. Kazanç: 402 satır CSS silindi (Setup 850→667, Recover 990→802, paylaşılan 212), iki ekranın ölçeri artık **yapısal olarak** aynı |
-
-| 35 | **`/apartments` ve `/apartments/manage` tek sayfada birleştirildi; ADR #14 geri alındı.** `ApartmentsManage.jsx` silindi, rota kaldırıldı, Dashboard'daki iki kart ("Mevcut Daireleri Görüntüle" + "Daire İşlemleri") tek karta indi ("Daireler ve Aidat"). Tahsilat artık satırdaki **"Tahsil Et"** butonuyla başlar (ödenmiş satırda "Detay"); durum rozetinin tıklanabilirliği geriye dönük uyum için korundu. Satır ikonları emoji yerine `react-icons` (`FiEdit2`/`FiTrash2`), silme ayraçla ayrıldı | ADR #14 bölmeyi **dosya boyutu** gerekçesiyle yapmıştı (700+ satır); bu bir kod kararıydı ama navigasyona sızdı ve kullanıcıyı "görüntüleme mi, işlem mi" seçimine zorladı. Tek kullanıcılı bir defterde salt-okunur kip bir ihtiyaç değil; üstelik salt-okunur sayfada yönetim sayfasına bağlantı yoktu, yani "daireleri görüntüle" diyen kullanıcı çıkmaz sokağa giriyor ve tahsilat 3 adım yerine 5 adım sürüyordu. Ortak parçalar `components/`'a taşındığı için birleşik sayfa ~160 satır — ADR #14'ün gerekçesi zaten geçersizleşmişti. Birincil aksiyonun pasif görünen bir rozetin arkasında olması ayrı bir sorundu: rozet, salt-okunur kipteki statik rozetle birebir aynı görünüyordu |
-| 36 | **Bina yönetimi (yeniden adlandır / arşivle / geri getir) Profile'dan `SelectBuilding`'e taşındı.** Profile'daki "Binalarım" kartı kaldırıldı; her bina kartının yanında düzenle/arşivle ikonları, listenin altında "Arşivdekiler" bölümü var | Bina bir **hesap** özelliği değil **defter** özelliğidir; kullanıcı binalarının listesine baktığı ekranda onları yönetememek yapay bir ayrımdı. Yeniden adlandırma 4 adımdan (bina seç → Dashboard → Profilim → listede bul) 1 adıma indi. Arşivden geri getirme de artık arşivin görüldüğü yerde. Bedeli: `SelectBuilding` sade bir seçim ekranı olmaktan çıkıp hafif bir yönetim ekranına döndü — kabul edildi, çünkü aksiyonlar ikincil ikon olarak duruyor ve ana akış (karta tıkla → gir) değişmedi |
-| 37 | **Başarı bildirimleri modal değil toast.** `showAlert.success` tümüyle kaldırıldı (14 çağrı → `showAlert.toast`; metodun kendisi `alert.js`'te ölü olarak kalmıştı, 2026-08-03'te silindi). Modal kalanlar: hatalar, karar isteyen diyaloglar (`confirm`/`prompt`/`cancelReason`/`passwordPrompt`), AddApartment'ın "Başka Daire Ekle?" akışı ve bir kez gösterilen kod diyalogları (`regeneratedCode`, `temporaryPassword`) | Tahsilat en sık yapılan iştir ve her ödeme "Kaydedildi" modalını kapatmayı gerektiriyordu: 20 daireli bir binada ay başı tahsilatı 20 gereksiz tık. "Kaydedildi" bilgisi modalin dikkat talebini hak etmiyor — sonuç zaten tabloda anında görünüyor. `showAlert.toast` yazılmış ama hiç kullanılmamıştı (K-14 onu ölü kod diye silmeyi öneriyordu); silmek yerine amacına koşuldu. `await showAlert.success(...)` bekleyen 5 çağrı da temizlendi, yani modal kapanışı ve tablo yenilenmesi artık kullanıcıyı beklemiyor |
-| 38 | **Tek aktif bina varsa `/select-building` atlanır.** `listBuildings` tam olarak 1 aktif bina döndürüyorsa o bina seçilip `/dashboard`'a `replace` ile gidilir. Dashboard'daki "Bina Değiştir" `navigate("/select-building", { state: { manual: true } })` gönderir; sayfa bu bayrağı görünce otomatik girişi atlar | Tek bina yöneten kullanıcı (hedef kitlenin çoğunluğu) her girişte tek seçenekli bir menüyle karşılaşıyordu — karar sunmayan bir ekran. Oturum başına 1 tık + 1 sayfa geçişi. Bayrak `location.state`'te taşındı: `sessionStorage`'a yeni anahtar açmak ya da `useCurrentBuilding`'e "kullanıcı elle çıktı" durumu eklemek gerekmedi, yönlendirme niyeti yönlendirmenin kendisiyle gidiyor. 0 bina → boş durum, 2+ bina → liste; koşul `=== 1` olduğu için çoklu binada ekran her zaman görünür |
-| 39 | **Yedek alma uygulama içine çıktı** (`backup:run`, `runBackup(mainWindow, { silent })` IPC yolunda dialog yerine `{success, message}` döndürür). **Geri yükleme IPC'ye açılmadı**, menüde kaldı. ~~Son yedek tarihi `settings.json`'da tutulur ve 7 günü aşınca Dashboard'da uyarı şeridi gösterilir~~ — **durum takibi kısmı 2026-08-05'te geri alındı:** `shared/appSettings.js`, `backup:get-status` kanalı, Profile'daki "Son yedek" satırı ve Dashboard şeridi silindi. Gerekçe: altyapı tek bir anahtar (`lastBackupAt`) için ayrı bir dosya, ayrı bir IPC kanalı ve iki sayfada state taşıyordu, karşılığında verdiği tek şey bir hatırlatmaydı. Yedek alma ve geri yükleme işlevlerinin ikisi de yerinde duruyor. **Bedeli açıkça kabul edildi:** kullanıcıya "yedek al" diyen sinyal yok, yedeğin en son ne zaman alındığı hiçbir yerde görünmüyor ve ROADMAP'teki otomatik yedekleme maddesi ön koşullarını kaybetti (yapılacaksa saklama katmanı sıfırdan kurulur) | Tek bilgisayar modelinde (ADR #24) yedek verinin tek kopyasıdır; disk arızası tüm defteri siler. Buna karşılık işlev yalnızca menü çubuğundaydı — 40+ hedef kitlenin en az kullandığı arayüz öğesi. En yüksek riskli işlev en düşük görünürlükteydi ve kullanıcıya "yedek al" diyen hiçbir sinyal yoktu. Şerit seçildi (açılış modalı değil): akışı kesmiyor, kapatılabiliyor ama göz ardı edilemiyor. Geri yükleme dışarıda bırakıldı çünkü `closeDb()` + `app.relaunch()` yapıyor; onu bir renderer butonunun arkasına koymak kaza riskini görünürlük kazancının üstüne çıkarır |
-
-| 40 | **Form alanı (ikon + input + floating-label + isteğe bağlı şifre göster/gizle + Caps Lock rozeti) paylaşılan `FormField` bileşeninde; renkler `--ff-*` sözleşmesiyle geçirilir.** Ortak görünüm **Recover'ın değerleri** baz alınarak seçildi: dolgu `26px 18px 8px 50px`, çerçeve koyu `rgba(255,255,255,0.16)` / açık `rgba(29,78,216,0.3)`. Setup bu değerlere hizalandı. Bileşen hem metin hem şifre alanını karşılar (`type="password"` ise toggle + `CapsLockIndicator` eklenir); isteğe bağlı `hint` prop'u alan altındaki açıklama satırını basar. Her sayfa 11 `--ff-*` değişkenini **kendi kök sınıfında** eşler (`.setup-page-bg`, `.recover-page-bg`) — ADR #34 ile aynı desen, aynı gerekçe (`:root` eşlemesi tek bundle'da birbirini ezer) | ADR #34 ölçeri ortaklaştırırken alanı **bilinçli olarak dışarıda bırakmıştı**, çünkü iki sayfanın dolgu ve zemin değerleri farklıydı ve birleştirmek bir tasarım kararı gerektiriyordu. Karar verildi (Recover baz): Recover kartı zaten pencereye zor sığıyor (ADR #28), kompakt dolgu onu uzatmayan tek seçenekti; belirgin çerçeve ise koyu temada alan sınırını görünür kılıyor (40+ hedef kitle). Değerler hizalanınca iki bloğun **tek farkı token adları kaldı**, yani çıkarma mekanik bir işe döndü. Kazanç: Setup 667→565, Recover 802→714 satır; paylaşılan bileşen 106 satır — net ~190 satır azaldı ve bir ekrana yapılan iyileştirme artık diğerine kendiliğinden geçiyor. Login **kapsam dışı** bırakıldı: kendi `--login-*` paleti ve farklı kart geometrisi var, onu da katmak üçüncü bir tasarım kararı demek |
-
-| 41 | **Çıkış yapma ve hesap aksiyonları paylaşılan `AccountMenu` bileşeninde toplandı: sağ üstte kullanıcı adıyla açılan açılır menü.** Menü öğeleri Profilim, Bina Değiştir, ayraç, Çıkış Yap (kırmızı metin, zeminsiz). Dashboard'ın sayfa sonundaki kırmızı "Çıkış Yap" butonu ve başlık satırındaki "Bina Değiştir" butonu kaldırıldı, ikisi de menüye girdi. `SelectBuilding`'in sağ üstteki `sb-logout` butonu menüyle değiştirildi. Menünün **prop'u yoktur**, her sayfada aynı öğeleri gösterir. **Menü tüm korumalı sayfalarda bulunur** (2026-08-03'te Apartments, Residents, Transactions, Reports, Profile, AddIncome, AddExpense, AddApartment'a da eklendi; başta yalnızca Dashboard ve SelectBuilding'de vardı). Yerleşim kuralı: sayfanın başlık satırı zaten `space-between` bir flex ise menü o satırın sağ ucuna girer (Dashboard, SelectBuilding, Apartments, Residents), değilse başlığın üstüne paylaşılan `.account-menu-row` (sağa yaslı flex, `AccountMenu.css`'te) ile kendi satırında durur. İki yolda da menü sayfanın sağ üstündedir. Dışarı tıklama ve Escape menüyü kapatır. Menü etiketi `managerName`, yoksa `username` | Çıkış üç yerde tutarsızdı: `SelectBuilding`'de sağ üstte tam çerçeveli buton, Dashboard'da sayfanın en altında kırmızı rozetli buton, Profile'da hiç yoktu. Üstelik `SelectBuilding`'deki buton o ekranın tek başlık kontrolüydü, yani bina seçmeye gelen kullanıcının gördüğü en ağır eleman "ayrıl" oluyordu. Kapsayıcısının adı `sb-identity` olmasına rağmen içinde kimlik yoktu, kullanıcı adı uygulamanın hiçbir yerinde görünmüyordu — standart desenin tam tersi. ADR #38 nedeniyle tek binalı kullanıcı `SelectBuilding`'i hiç görmediğinden o çıkış yolu fiilen ölüydü, diğeri de uzun bir sayfanın altında kaydırma ardındaydı. Menü deseni üçünü birden çözer: kimlik görünür olur, çıkış her sayfada aynı yerde durur ve kaza riski açılır menünün arkasında kalır. Onay diyaloğu korundu | 
-
-| 42  | **Bina silme iki kademelidir ve hiçbir kademe satırı fiziksel silmez.** 1. kademe arşiv (`is_active=0`, geri getirilebilir), 2. kademe kaldırma (`is_removed=1`, `removeBuilding`) — bina hiçbir listede görünmez, geri getirme yolu yoktur, ama satır ve bağlı `apartments`/`incomes`/`expenses` kayıtları veritabanında durur. `listBuildings` `is_removed=0` filtreler. Ayrıca **hesap içinde bina adı tekildir** (`UNIQUE(owner_id, name COLLATE NOCASE)`), index kısmidir: `WHERE is_removed = 0`, yani kaldırılan binanın adı yeniden kullanılabilir | Kullanıcı arşiv listesinin sonsuza dek büyümesini istemedi ama verinin gitmesini de istemedi. `DELETE` yolu zaten kapalı: `buildings` FK'ları `ON DELETE RESTRICT` olduğu için dairesi/geliri olan bina silinemez, silinebilseydi de §8'in "finansal kayıt silinmez" kuralı çiğnenirdi. Üçüncü bir tablo ya da arşiv-arşivi açmak yerine tek bayrak seçildi: sorgu maliyeti sıfır, migration tek satır. Ad tekilliği aynı işte çıktı, çünkü listede iki "A Blok" varken hangisinin arşivlendiğini ayırt etmek imkânsızdı. Index'in kısmi olması şart: kaldırılan bina görünmediği hâlde adını rehin tutsaydı, kullanıcı sebebini göremediği bir "bu isim kullanılıyor" hatasıyla karşılaşırdı |
-
-| 43  | **`/profile` `RequireBuilding` dışına çıkarıldı; `AccountMenu`'nün `showBuildingActions` prop'u kaldırıldı.** Profil artık yalnızca `ProtectedRoute` altındadır, seçili bina olmadan da açılır. Sayfa bina yokluğunu zaten tolere ediyordu ("Aktif Bina" satırı koşullu render); ek olarak "Geri Dön" butonu bina varsa `/dashboard`'a, yoksa `/select-building`'e gider. Menü her sayfada aynı üç öğeyi gösterir | Prop tek bir şeyi çözüyordu: `SelectBuilding`'de "Profilim" öğesini gizlemek. Gizleme gerekçesi de `RequireBuilding`'di, yani kısıt kendi çözümünü doğuruyordu. Oysa profil bir **hesap** sayfasıdır, defter sayfası değil: şifre değiştirme, kurtarma kodu üretme, devir ve yedek alma; dördü de seçili binaya bağımlı değil (ADR #26 hesap ile defteri zaten ayırmıştı). Kısıtı kaldırmak hem yapay engeli hem prop'u aynı anda düşürdü. Alternatif (prop'u koruyup profili kilitli bırakmak) kullanıcıya bazen çalışan bazen sessizce geri atan bir menü öğesi bırakıyordu: `SelectBuilding`'e menüden gelen kullanıcıda bina hâlâ session'da olduğu için çalışıyor, girişten sonra doğrudan gelen kullanıcıda çalışmıyordu |
-| 44  | **`database/schema/` dosya numaraları FK bağımlılık sırasını izler.** Sıra: `01_users` → `02_buildings` → `03_apartments` → `04_residents` → `05_dues` → `06_due_payments` → `07_payment_cancellations` → `08_incomes` → `09_expenses`. Yeni tablo, referans verdiği tüm tablolardan **sonraya** numaralanır | Dosyalar alfabetik yükleniyor ama `buildings` `09`'daydı ve ona referans veren `apartments` (`02`), `incomes` (`04`), `expenses` (`05`) ondan **önce** oluşturuluyordu. Bu bugüne dek kırılmadı: SQLite ileri FK referansına izin verir ve `loadSchema` hepsini tek transaction'da çalıştırır, yani commit anında tablolar mevcut olur. Ama sıranın yanlışlığı hiçbir yerde görünmüyordu ve bir gün bir schema dosyasına veri yazımı ya da `foreign_key_check` eklendiğinde sessizce patlayacaktı. Yeniden numaralandırmanın maliyeti sıfıra yakındı: tüm dosyalar `IF NOT EXISTS` olduğu için mevcut kurulumlarda no-op kalır, yalnızca taze kurulumun oluşturma sırası değişir |
-| 45  | **Finansal tabloların silinmezliği DB'de zorlanır.** `dues`, `due_payments`, `incomes`, `expenses` tablolarına `BEFORE DELETE` + `RAISE(ABORT)` trigger'ı eklendi (030-034); `payment_cancellations`'ta zaten vardı. Ayrıca `dues.apartment_id` FK'sı `ON DELETE CASCADE`'den `RESTRICT`'e çevrildi | §8'in "aidat/gelir/gider silinemez" kuralı beş sürümdür yazılıydı ama yalnızca servis disiplini olarak yaşıyordu: hiçbir katman `DELETE FROM incomes`'ı engellemiyordu. `payment_cancellations` bu korumaya sahipti, yani desen zaten kabul edilmişti, sadece dört tabloya uygulanmamıştı. `dues`'un CASCADE'i daha somut bir çelişkiydi: bir daire silindiğinde tüm aidat geçmişi sessizce gidecekti ve kural tam da bunu yasaklıyordu. Bugün kod hiçbir yerde `DELETE FROM` yazmıyor, yani trigger'lar bugünkü davranışı değiştirmez — değiştirdikleri şey, yarın yanlışlıkla yazılacak bir `DELETE`'in sessizce başarılı olmasıdır. Maliyet: trigger başına 4 satır, sıfır çalışma zamanı yükü (yalnızca DELETE yolunda) |
-| 46  | **`users.username` tekilliği kolon içi `UNIQUE` yerine açık index ile: `idx_users_username (username COLLATE NOCASE)`.** Kolon tanımı `NOT NULL COLLATE NOCASE` olarak kaldı | Eski tanım `username TEXT UNIQUE NOT NULL COLLATE NOCASE` idi; yani collation, `UNIQUE`'ten **sonra** yazılıydı ve okuyan kişi örtük unique indeksin NOCASE mi yoksa BINARY mi karşılaştırdığını tanımdan çıkaramıyordu. Aynı dosyada `apartments` bunu zaten açık indeksle ve `COLLATE NOCASE`'i indeks tanımına yazarak yapıyordu, yani doğru desen projede mevcuttu. Ölçüldü (better-sqlite3 3.53, `Yonetici` varken `yonetici` INSERT'i): yeni tanımda çakışma engelleniyor. Belirsizliği ölçmek yerine ortadan kaldırmak seçildi: tek hesaplı bir uygulamada bu kısıt pratikte hiç tetiklenmiyor, ama tetiklenmediği için yanlış olsaydı da fark edilmezdi |
-| 47  | **`dues.status`, `paid_amount`'tan türetilir ve CHECK ile ona bağlanır** (`status = CASE WHEN paid_amount >= due_amount THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END`). Eski `status IN ('unpaid','partial','paid')` enum kısıtı bu ifadenin içinde eridiği için ayrıca tutulmadı. Kolon **kaldırılmadı** | Durum tamamen servisteki `calcDueStatus`'a emanetti: `paid_amount = 0` iken `status = 'paid'` yazan bir satır DB'ye girebiliyordu ve hiçbir katman itiraz etmiyordu. Böyle bir satır, aidat listesinde "ödendi" görünüp tahsilat yüzdesini bozar, yani sessiz ve parayla ilgili bir hata. Alternatif kolonu tümden silmekti (zaten türetilebilir), ama o her okuma sorgusuna `CASE` eklemeyi ve `getDuesForMonth`/rapor sorgularındaki `COALESCE(d.status, 'unpaid')` desenini yeniden yazmayı gerektiriyordu; kazancı ise bir kolonluk depolamaydı. CHECK, kolonu yerinde bırakıp yanlış değeri imkânsız kılıyor. Bedeli: `paid_amount` yazan her UPDATE artık `status`'ü de doğru yazmak zorunda (mevcut iki UPDATE zaten yazıyordu) ve migration mevcut satırların durumunu yeniden hesaplıyor |
-| 48  | **`updated_at` trigger'ları kaldırıldı; kolonu yazmak tümüyle UPDATE ifadesinin sorumluluğudur.** `trg_users_updated_at`, `trg_dues_updated_at`, `trg_buildings_updated_at` silindi (026/027/030); `auth/service.js`'teki altı UPDATE `updated_at`'i açıkça yazacak şekilde tamamlandı | Mekanizma üç tabloda vardı, dört tabloda (`apartments`, `residents`, `incomes`, `expenses`) yoktu ve **var olduğu yerde de çoğunlukla ölüydü**: `dues` ile `buildings`'te servis `updated_at`'i her zaman kendisi yazdığı için trigger'ın `WHEN OLD.updated_at = NEW.updated_at` koşulu tutmuyordu. Yani yedi tablo için üç farklı davranış vardı ve hangisinin hangisi olduğu ancak servis kodu okunarak anlaşılıyordu. Eksik dördüne trigger eklemek de bir seçenekti ve kararın zor tarafı buydu; `incomes`/`expenses`'te reddedildi, çünkü oradaki `prevent_update_after_cancel` trigger'ı ile etkileşime giriyor ve güvenliği "şu yol zaten erişilemez" akıl yürütmesine dayanıyordu — tam olarak burada temizlenen türden bir kırılganlık. Tek mekanizma seçildi: açık yazım. Unutulan bir `updated_at` artık sessizce eskir, ama kolon renderer'da **hiçbir yerde okunmuyor** (yalnızca `created_at` okunuyor), yani riskin karşılığı yok. ADR #18 ve #31 ile aynı ilke: çalışmayan bir denetimi tutmak, olmayan bir korumaya güvenmektir |
-| 49  | **Migration geçmişi sıkıştırıldı: 001-034 arası 34 dosya silindi, son şema `schema/` altında donduruldu.** `database/migrations/` klasörü ve `migrate.js`'in migration mekanizması **korundu** (yalnızca `.gitkeep` kaldı), yeni migration'lar 035'ten devam eder. Silmeden önce denklik ölçüldü: mevcut veritabanının kopyasına tüm migration'lar uygulanıp elde edilen şema, sıfırdan yalnızca `schema/` ile kurulan şemayla karşılaştırıldı (tablolar, indeksler, trigger'lar, kolon tipi/NOT NULL/DEFAULT/PK ve FK'ların ON DELETE/ON UPDATE davranışı, toplam 46 öğe) → **0 fark**. Ayrıca `loadSchema`'nın mevcut veritabanında hiçbir öğeyi değiştirmediği doğrulandı, yani bir sapmayı örtmüş olma ihtimali elendi. `applyMigrations`'a klasör yokluğu kontrolü geri eklendi | Migration klasörü, uygulamanın hiç kullanıcıya çıkmadığı bir dönemde 34 dosyaya ulaşmıştı ve bunların büyük kısmı birbirini iptal ediyordu (ör. 011 `display_name` ekliyor, 018 siliyor; 024 `is_purged` ekliyor, 025 yeniden adlandırıyor; 003/005/012 aynı `users` tablosunu üç kez yeniden inşa ediyor). Migration geçmişinin tek işlevi **kurulu tabanı** yeni şemaya taşımaktır. Kurulu taban yoksa geçmiş hiçbir işe yaramaz, yalnızca okunması gereken 34 dosya ve "hangi kolon ne zaman neye dönüştü" karmaşası üretir. Şema dosyaları zaten son hâli tutuyordu ve ölçüm bunu doğruladı. Mekanizmanın kendisi silinmedi çünkü ilk gerçek sürümden sonra kurulu taban oluşur ve o andan itibaren migration'lar zorunlu hâle gelir. Bu ADR'nin geçerlilik sınırı da budur: **ilk sürüm dağıtıldıktan sonra geçmiş bir daha sıkıştırılamaz**, çünkü sıkıştırma kurulu tabandaki veritabanlarını yükseltilemez bırakır. Bedeli: bu dokümandaki migration numarası referansları artık var olmayan dosyalara işaret ediyor (§7.3'te not düşüldü); gerekçe metinleri kararların nedenini anlattığı için silinmedi |
-| 50  | **`electronAPI` köprüsü tek tipe indirildi: her metot sıfır ya da tek bir nesne payload'ı alır ve onu değiştirmeden iletir.** Pozisyonel imzalar (`updateApartment(id, data)`, `getDuesForMonth(buildingId, year, month)`, `getPaymentHistory(dueId, buildingId)`, `getResidentHistory(apartmentId, buildingId)`, `getReportData(buildingId, year, month)`, `saveReportFile(filename, buffer)`, `deleteApartment(id, buildingId)`, `bulkUpdateDueAmount(buildingId, amount)`), ham skaler payload'lar (`listBuildings(ownerId)`, `getStats(buildingId)`, `getResidentsOverview(buildingId)`) ve preload'ın yeniden paketlemeleri (`regenerateRecoveryCode(password)` → `{password}`) kaldırıldı. Aynı hamlede: `getTransactions` tek çok-argümanlı invoke olmaktan çıktı, `updateApartment`'ın `{id, data}` iç içe şekli düzleşti (böylece `buildingId` her yolda üst seviyede), whitelist `INVOKE_CHANNELS`/`EVENT_CHANNELS` diye ikiye ayrıldı, `channels.js` named export'a geçip bu iki seti kendisi türetti (düzleştirme ifadesi iki dosyada tekrarlanmıyor) ve hem `channels.js` hem `preload.js` grup sırası alfabetiğe çekildi | Dosyada aynı anda **üç** çağrı konvansiyonu yaşıyordu ve hangisinin nerede geçerli olduğu ancak handler okunarak anlaşılıyordu. Somut risk pozisyonel olanlardaydı: `deleteApartment(due.apartment_id, building.id)` gibi yan yana iki tamsayı, yer değiştirdiğinde tip hatası vermez, başka bir binanın dairesini hedefler ve handler'ın `Number.isInteger` kontrolünden sorunsuz geçer. Nesne payload'da alan adı çağrı yerinde durduğu için bu hata sınıfı yapısal olarak yok olur. Preload'ın destructuring ile yeniden paketlemesi de bırakıldı: hiçbir şey doğrulamıyordu (§9'a göre doğrulama katmanı handler'dır), buna karşılık payload şeklini ikinci bir yerde tutuyor ve renderer'ın eklediği yeni bir alanı **sessizce düşürüyordu** — hata vermeyen, izi olmayan bir kayıp. Whitelist'in tek set olması ayrı bir gevşeklikti: `safeOn` ile `apartment:add`'e abone olunabiliyor, `safeInvoke` ile `events:toggle-theme` çağrılabiliyordu; ikisi de sessizce hiçbir şey yapmaz. Bedeli: 12 main + 15 renderer dosyasında mekanik düzenleme ve `channels.js` tüketicilerinin import satırı (bare export yerine `{ CHANNELS: CH }`, ki bu zaten projenin `db.js`/`safeHandler.js`/`dbError.js`'te izlediği desendir) |
-
-| 51  | **Loglama kurulumu ve ölümcül hata kutusu `main.js`'ten `electron/errorReporting.js`'e çıkarıldı.** Modül `initLogging()` ve `showFatalError()` export eder, `LOG_FILE_PATH` ve `SUPPORT_EMAIL` orada tanımlıdır. `SUPPORT_EMAIL` `menu.js`'ten **taşındı**, artık bağımlılık yönü menü → hata bildirimi (eskiden main.js menüden çekiyordu). `main.js` `initLogging()` çağırmaktan başka bir şey yapmaz | 120 satırlık `main.js`'in ~40 satırı log kurulumu ve hata kutusuydu, yani "app lifecycle" dosyasının üçte biri lifecycle değildi. Bu kodun §13'te kendine ait bir doküman bölümü var (`Object.assign` sıralama zorunluluğu, `showDialog:false` gerekçesi, "yalnızca dosya yolu yazan kutu kurma" kuralı) — kendi bölümü olan bir sorumluluk kendi dosyasını hak eder. Desen zaten projede mevcuttu: `autoUpdater.js` ve `menu.js` aynı gerekçeyle çıkarılmıştı. Yan fayda: `Object.assign(console, log.functions)`'ın `require("electron-log")` sonrasına gelme zorunluluğu artık modülün içine kapandı, `main.js`'teki satırları yeniden sıralayan biri onu kazara bozamaz. `SUPPORT_EMAIL`'in taşınması şart değildi (alternatif: `errorReporting.js` onu `menu.js`'ten import eder) ama o yol hata modülünü menüye bağlıyordu; menünün "Hata Bildir" öğesi zaten aynı işin parçası olduğu için sabit hata tarafına alındı ve `main.js` adresi hiç görmez oldu. Tek tüketicili bir modül olması ADR #30 ile çelişmez: yeni bağımlılık yok, yapılan şey dosya bölmek |
-| 52  | **`database/db.js` modül gövdesinde bağlantı açmayı bıraktı: `openDatabase()` / `getDb()` / `closeDb()`.** Modülü require etmek artık hiçbir şey yapmaz, bağlantıyı yalnızca `main.js`'in `connectDatabase()`'i açar ve service'ler her sorguda `getDb()` çağırır (modül gövdesinde `db` yakalamazlar). Bunun doğrudan sonucu: `main.js`'teki `require("./ipc/index.js")` lazy olmaktan çıkıp dosya başına taşındı ve "main.js'e DB'ye dokunan üst seviye require ekleme" kuralı gereksizleşti. `closeDb()` referansı `null`'lar. Değişen dosyalar: `db.js`, 9 service + `duesAccrual`, `backup/service` (fonksiyon içi lazy require'ları da üst seviyeye çıktı), `main.js` | Eski modelde `require("../database/db")` bir SQLite dosyası açıyor, `mkdir` çalıştırıyor ve `will-quit` dinleyicisi kaydediyordu. Yani **import sırası davranışa bağlıydı** ve bu, dokümanda sonsuza dek hatırlanması gereken bir kural üretiyordu: yanlış yere konmuş tek bir üst seviye require, bağlantıyı `app.whenReady`'den ve `initLogging()`'ten önce açıp bozuk bir DB dosyasında kullanıcıya Türkçe kutu yerine ham Electron çökmesi gösteriyor, log'a da hiçbir şey yazmıyordu. Yani ihlalin cezası sessiz değil ama **geç**: yalnızca sahada, en kötü anda görünür. ADR #45 (silme yasağını trigger'a bağlamak), #47 (`status`'ü CHECK'e bağlamak) ve #48 ile aynı ilke uygulandı: **yanlışı yasaklayan bir kural yerine, yanlışı imkânsız kılan bir mekanizma.** İkinci kazanç: geri yükleme akışı `closeDb()` çağırdıktan sonra service'ler kapalı bir bağlantı nesnesini tutuyordu ve yeniden açma yolu yoktu (bugün `app.relaunch()` bunu maskeliyor), `getDb()` dolaylılığı o kapıyı da açıyor. Bedeli ~127 referansın mekanik dönüşümü ve çağrı yerlerinin `db.prepare` yerine `getDb().prepare` olması. Doğrulama: `npm run dev` ile tam açılış, renderer'ın `getSetupState` turu hatasız (main.log'da tek handler hatası yok) |
-| 53  | **Renderer hataları main tarafında `console-message` dinlenerek loglanır; electron-log'un renderer köprüsü kullanılmaz.** `log.initialize({ preload: false })` ile paketin enjekte ettiği preload kapatıldı, yerine `app.on("web-contents-created")` üzerinden her pencerenin `console-message` olayı dinlenip `error`/`warning` satırları main.log'a yazılıyor (`catchRendererConsole`, ~10 satır). `src/` tarafında hiçbir değişiklik yok. Paketin hazır `spyRendererConsole: true` seçeneği de kullanılmadı | Üç yol vardı. **(A) Genel kullanım**, yani paketin tasarlandığı yol: `preload: true` bırakılır, renderer `electron-log/renderer` import edip `errorHandler.startCatching()` çağırır. Yapısal stack trace verir ama enjekte edilen preload `contextBridge` ile `__electronLog` köprüsünü ve `__ELECTRON_LOG__` ham kanallarını açar. Bunlar `channels.js` whitelist'inin dışındadır, yani §2.1/§12'nin "renderer yalnızca `electronAPI` üzerinden konuşur" kuralını delen **ikinci bir köprü** demektir. **(C) Kendi kanalımız:** `main.jsx`'te `window.onerror` + `unhandledrejection` dinlenip 4 dosyalık standart endpoint turuyla main'e gönderilir. Mimariye tam uygun ve stack trace verir, ama teşhis ihtiyacı bugün varsayımsal ve karşılığında kalıcı bir IPC yüzeyi açılır. **(B) seçildi** çünkü sıfır mimari borç ve sıfır renderer değişikliğiyle "bir şey patladı mı, nerede" sorusunu cevaplıyor, ayrıca splash ve kılavuz pencerelerini de kapsıyor (ikisi saf HTML, hiçbir zaman electron-log import etmeyecek). Bedeli: konsol metni alınır, yapısal stack trace alınmaz. Paketin `spyRendererConsole` seçeneği tam bu işi yapıyor gibi görünse de kullanılamadı: electron-log 5.4.4 olayı eski konumsal imzayla (`(event, level, message)`) dinliyor, Electron 41 ise tek bir `details` nesnesi gönderiyor, yani main.log'a `undefined` yazardı (2026-08-05 ölçümü). Gerçek bir stack trace ihtiyacı doğarsa C'ye geçilir ve B'nin 10 satırı silinir |
-
-| 54  | **Servis hata sözleşmesi tek tipe indirildi (2026-08-05).** Üç kural: (a) sahiplik/iş kuralı kontrolleri fonksiyonun başında yapılır ve `return { success:false, message }` ile bildirilir, (b) bu kontroller `transaction` bloğunun **dışındadır** ve transaction yalnızca yazmaları sarar, (c) `catch` yalnızca beklenmeyen hata içindir, hata nesnesini loglar ve kullanıcıya sabit metin döndürür (`resolveDbError` ya da elle yazılmış cümle), `err.message` asla dönmez. Bunun sonucunda: `dues`'un iki `catch`'indeki `err.message ||` kaldırıldı, `dues` ve `resident`'ta transaction içindeki dört + iki `throw` guard'a çevrildi, `resident`'ın `not_found`/`active_exists` sentinel'leri silindi, `auth`'un iki `includes("CHECK")` sniff'i `resolveDbError`'a devredildi, `backup`'ın dört sessiz `catch {`'i loglar hâle geldi. Programcı hatası koruları (`ALLOWED_TABLES`) her iki serviste de İngilizce mesajla `throw` eder | Aynı iş için beş ayrı yöntem yaşıyordu ve hangisinin nerede geçerli olduğu ancak servis okunarak anlaşılıyordu. İkisi somut hataydı. **Birincisi:** `dues`'un `err.message ||` dönüşü ham SQLite metnini arayüze taşıyordu (`SqliteError: database is locked` gibi bir satır SweetAlert kutusunda görünebiliyordu), yani §12'nin "iç hata detayı sızdırılmaz" kuralının tek ihlali oydu. **İkincisi:** `backup`'ın `catch {` blokları hata nesnesini hiç yakalamadığı için geri yükleme başarısız olduğunda `main.log`'da tek satır iz kalmıyordu, oysa §13 tam da bu akışı örnek göstererek "elimizdeki tek kanıt bu satırdır" diyor. Kalan üçü doğru çalışıyordu ama her biri farklı bir mekanizmaydı ve yeni bir servis yazan kişi hangisini kopyalayacağını bilemezdi. Kontrollerin transaction dışına alınabilmesinin sebebi ADR #1'in doğrudan sonucu: uygulama tek süreçli ve better-sqlite3 senkron olduğu için kontrol ile yazma arasına başka bir işlem giremez, yani "kontrolü transaction içinde tut" gerekçesi bu projede geçersiz. Bedeli: `auth`'ta CHECK ihlali artık "Geçersiz e-posta adresi." yerine bağlama dayalı genel bir cümle veriyor, ama o yol yalnızca handler validasyonu ile şema kısıtı çeliştiğinde çalışır (yani bir hata durumudur, kullanıcı girdisiyle oluşmaz) ve karşılığında UNIQUE ihlali artık "Kullanıcı adı zaten kullanılıyor." diyor |
-
-| 55  | **Kılavuz penceresi uygulamanın temasını izler; tema query string ile geçirilir, açıkken `executeJavaScript` ile çevrilir. Yeni IPC kanalı ve preload açılmadı (2026-08-06).** `openGuide(mainWindow)` pencereyi açmadan önce ana pencerenin `document.documentElement.dataset.theme` değerini okur, `theme` parametresini `v` ve `mail` ile birlikte `loadFile` query'sine koyar ve `backgroundColor`'ı ona göre seçer. Menüdeki "Tema Değiştir" ana pencereye `EVENTS.TOGGLE_THEME` gönderdikten sonra `toggleGuideTheme()` çağırır, o da açık kılavuz penceresinde `data-theme` değerini çevirir (değer taşınmaz, iki taraf aynı noktadan başladığı için senkron kalır). `guide.js` artık `<head>`'dedir: ilk satırı `data-theme`'i gövde boyanmadan yazar, geri kalanı `DOMContentLoaded`'a sarılıdır | Kılavuz ayrı bir `file://` penceresidir, yani uygulamanın `localStorage`'ını (ADR yok, `useTheme.js`) göremez. Üç yol vardı. **(A) Yeni IPC kanalı + preload:** mimariye en uygun görünen yol, ama kılavuzun bugün preload'u yok ve açmak `sandbox:false` gerektiriyor (§12), yani tek bir renk için pencereye kalıcı bir köprü açılırdı. **(B) `nativeTheme`:** uygulama teması kullanıcı tarafından menüden çevriliyor, işletim sistemi temasından bağımsız, dolayısıyla yanlış cevap verir. **(C) seçildi:** query string zaten sürüm için kullanılıyordu, tema onun yanına tek alan olarak eklendi ve toggle tarafı okuma değil çevirme olduğu için değer senkronizasyonu sorunu hiç doğmadı. `executeJavaScript` yerel ve güvenilen bir sayfaya karşı kullanılıyor, dışarıdan gelen hiçbir veri enjekte edilmiyor. Bedeli: kılavuz açıkken tema iki ayrı yerden çevriliyor, yani menüye üçüncü bir tema tetikleyicisi eklenirse orada da `toggleGuideTheme()` çağrılmalı. `guide.js`'in `<head>`'e taşınması şarttı, aksi hâlde koyu temada sayfa önce beyaz boyanıp sonra kararıyordu |
-
-Yeni önemli karar aldığında bu tabloya bir satır ekle: **karar + gerekçe**, tahmin bırakma.
-
----
-
-## 18. Küçük Modeller İçin Hızlı Rehber
+## 17. Hızlı Rehber
 
 Yeni bir görevde izlenecek sıra:
 
-1. **Görev bir sayfa/UI işi mi?** → `src/pages/<Sayfa>/` içinde çalış; veri ihtiyacı varsa mevcut `electronAPI` metodlarına bak (§10)
-2. **Yeni veri/endpoint mi gerekiyor?** → Önce kullanıcıya sor (§3). Onaylanırsa §5.2'deki 4-dosya adımını izle; doğrulamayı handler'da yaz ve şema kısıtlarıyla parite kur (§9)
-3. **Şema değişikliği mi?** → §7.3 tablosuna göre migration + schema çiftini birlikte güncelle; iş kurallarını (§8) ihlal etmediğini kontrol et
-4. **Emin olmadığın davranış mı var?** → Tahmin etme; ilgili `service.js`'i oku — iş mantığının tek doğruluk kaynağı koddur, bu doküman haritadır
-5. **Bitirirken:** değişen davranışı bu dokümanda güncelle; tamamlanan ROADMAP maddesini ROADMAP.md'den sil
+1. **Görev bir sayfa ya da UI işi mi?** → `src/pages/<Sayfa>/` içinde çalış, veri ihtiyacı varsa mevcut `electronAPI` metodlarına bak (§10).
+2. **Yeni veri ya da endpoint mi gerekiyor?** → Önce kullanıcıya sor (§3). Onaylanırsa §5.2'deki 4 dosya adımını izle, doğrulamayı handler'da yaz ve şema kısıtlarıyla parite kur (§9).
+3. **Şema değişikliği mi?** → §7.3 tablosuna göre migration + schema çiftini birlikte güncelle, iş kurallarını (§8) ihlal etmediğini kontrol et.
+4. **Emin olmadığın davranış mı var?** → Tahmin etme, ilgili `service.js`'i oku. İş mantığının tek doğruluk kaynağı koddur, bu doküman haritadır.
+5. **Bitirirken:** değişen davranışı bu dokümanda güncelle, tamamlanan ROADMAP maddesini `ROADMAP.md`'den sil.
 
 Sık yapılan hatalar (yapma):
 
-- Kanal string'ini elle yazmak (sabit import et)
-- Yalnızca schema'yı veya yalnızca migration'ı güncellemek (ikisi birlikte)
+- Kanal string'ini elle yazmak (sabiti import et)
+- Yalnızca schema'yı ya da yalnızca migration'ı güncellemek (ikisi birlikte)
 - `dues`/`incomes`/`expenses` kaydını DELETE etmek (iptal mekanizması kullan)
-- Renderer'dan `require`/Node API kullanmaya çalışmak
+- Renderer'dan `require` ya da Node API kullanmaya çalışmak
 - SweetAlert'i doğrudan çağırmak (`utils/alert.js` kullan)
-- Koda açıklama yorumu eklemek (gerekçeyi bu dokümana yaz — §3)
-- `showAlert.confirm` sonucunda `result.isConfirmed` beklemek — metod boolean döner (§11)
-- `manager_id` filtresi olmadan manager verisi sorgulamak
-- Handler içinde elle try/catch yazmak (`safeHandler` zarfı kullan — §5.2 madde 3)
-- Metin alanını service'te tekrar trim'lemek — normalizasyon handler'da tek yerde yapılır (§9); şifreyi trim'lemek
-- Service'te `err.message`'ı renderer'a döndürmek ya da iş kuralı ihlalini `transaction` içinden `throw` etmek (ADR #54)
-- `catch` bloğunu hata nesnesini yakalamadan yazmak (`catch {`) — log satırı arıza anındaki tek kanıttır (§13)
+- Koda açıklama yorumu eklemek (gerekçeyi bu dokümana yaz, §3)
+- `showAlert.confirm` sonucunda `result.isConfirmed` beklemek (metod boolean döner, §11)
+- `buildingId` filtresi olmadan bina verisi sorgulamak
+- Handler içinde elle try/catch yazmak (`createHandle` zarfını kullan, §5.2)
+- Modül gövdesinde `const db = getDb()` yazmak (bağlantı henüz açılmamıştır, §7.4)
+- Metin alanını service'te tekrar trim'lemek (normalizasyon handler'da tek yerdedir, §9), şifreyi trim'lemek
+- Service'te `err.message`'ı renderer'a döndürmek ya da iş kuralı ihlalini `transaction` içinden `throw` etmek
+- `catch` bloğunu hata nesnesini yakalamadan yazmak (`catch {`), log satırı arıza anındaki tek kanıttır (§13)

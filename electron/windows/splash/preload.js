@@ -5,8 +5,6 @@ function safeOn(channel, listener) {
 }
 
 contextBridge.exposeInMainWorld("splashAPI", {
-  ready: () => ipcRenderer.send("splash:ready"),
-  onVersion: (listener) => safeOn("splash:version", listener),
   onStatus: (listener) => safeOn("splash:status", listener),
   onUpdateAvailable: (listener) => safeOn("splash:update-available", listener),
   onDownloadProgress: (listener) => safeOn("splash:download-progress", listener),

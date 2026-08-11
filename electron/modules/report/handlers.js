@@ -1,81 +1,55 @@
 const fs = require("fs");
 const { dialog } = require("electron");
 const { CHANNELS: CH } = require("../../ipc/channels");
-const { createSafeHandler } = require("../shared/safeHandler");
+const { createHandle } = require("../shared/safeHandler");
+const { fail, isValidMonth, isValidYear, validateBuildingScope, validatePayload } = require("../shared/validate");
 const reportService = require("./service");
 
-const safeHandler = createSafeHandler("report");
-
-const MIN_YEAR = 2000;
-const MAX_YEAR = 2100;
-
-function validateGetReportData(payload) {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return { success: false, message: "Geçersiz istek." };
-  }
-  const { buildingId, year, month } = payload;
-  if (!Number.isInteger(buildingId) || buildingId <= 0) {
-    return { success: false, message: "Geçersiz bina ID." };
-  }
-  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
-    return { success: false, message: "Geçersiz tarih bilgisi." };
-  }
-  if (year < MIN_YEAR || year > MAX_YEAR) {
-    return { success: false, message: "Geçersiz yıl." };
+function validatePeriod(payload) {
+  const { year, month } = payload;
+  if (!isValidYear(year) || !isValidMonth(month)) {
+    return fail("Geçersiz tarih bilgisi.");
   }
   return null;
 }
 
-function validateSaveFileData(payload) {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return { success: false, message: "Geçersiz istek." };
+function validateSaveFileFields(payload) {
+  if (typeof payload.filename !== "string" || !payload.filename) {
+    return fail("Geçersiz dosya adı.");
   }
-  const { filename, buffer } = payload;
-  if (!filename || typeof filename !== "string") {
-    return { success: false, message: "Geçersiz dosya adı." };
-  }
-  if (!buffer) {
-    return { success: false, message: "Geçersiz dosya içeriği." };
+  if (!payload.buffer) {
+    return fail("Geçersiz dosya içeriği.");
   }
   return null;
+}
+
+async function saveReportFile(payload) {
+  const { filename, buffer } = payload;
+  const { filePath, canceled } = await dialog.showSaveDialog({
+    title: "Raporu Kaydet",
+    defaultPath: filename,
+    filters: [{ name: "PDF Dosyası", extensions: ["pdf"] }],
+  });
+
+  if (canceled || !filePath) return { success: false, message: "İptal edildi." };
+
+  await fs.promises.writeFile(filePath, Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer));
+  return { success: true, message: `Rapor kaydedildi: ${filePath}` };
 }
 
 function registerReportHandlers(ipcMain) {
-  ipcMain.handle(
+  const handle = createHandle(ipcMain, "report");
+
+  handle(
     CH.REPORT.GET_DATA,
-    safeHandler(CH.REPORT.GET_DATA, (payload) => {
-      const error = validateGetReportData(payload);
-      if (error) {
-        return error;
-      }
-      return reportService.getReportData(payload.buildingId, payload.year, payload.month);
-    }),
+    (payload) => validateBuildingScope(payload) ?? validatePeriod(payload),
+    reportService.getReportData,
   );
-
-  ipcMain.handle(
+  handle(
     CH.REPORT.SAVE_FILE,
-    safeHandler(
-      CH.REPORT.SAVE_FILE,
-      async (payload) => {
-        const error = validateSaveFileData(payload);
-        if (error) {
-          return error;
-        }
-        const { filename, buffer } = payload;
-        const { filePath, canceled } = await dialog.showSaveDialog({
-          title: "Raporu Kaydet",
-          defaultPath: filename,
-          filters: [{ name: "PDF Dosyası", extensions: ["pdf"] }],
-        });
-
-        if (canceled || !filePath) return { success: false, message: "İptal edildi." };
-
-        const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
-        await fs.promises.writeFile(filePath, buf);
-        return { success: true, message: `Rapor kaydedildi: ${filePath}` };
-      },
-      "Dosya kaydedilemedi.",
-    ),
+    (payload) => validatePayload(payload) ?? validateSaveFileFields(payload),
+    saveReportFile,
+    "Dosya kaydedilemedi.",
   );
 }
 

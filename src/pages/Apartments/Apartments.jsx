@@ -6,6 +6,7 @@ import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
 import { showAlert } from "@/utils/alert";
+import { formatCurrency } from "@/utils/currency";
 import { getCurrentYear, getCurrentMonth, getYearOptions, clampMonth } from "@/utils/date";
 import { useDues } from "./useDues";
 import DuesSummary from "./components/DuesSummary";
@@ -54,10 +55,38 @@ function Apartments() {
 
     const res = await window.electronAPI.deleteApartment({ id: due.apartment_id, buildingId: building.id });
     if (res.success) {
-      showAlert.toast("Silindi", res.message);
+      showAlert.toast("Pasife Alındı", res.message);
+      refetch();
+      return;
+    }
+
+    if (res.code !== "HAS_UNPAID_DUES") {
+      showAlert.error("Hata", res.message);
+      return;
+    }
+
+    const forced = await showAlert.confirmDanger(
+      "Ödenmemiş Aidat Var",
+      {
+        html: `<b>Daire ${due.apartment_no}</b> için <b>${formatCurrency(res.unpaidTotal)}</b> ödenmemiş aidat bulunuyor. Daire pasife alınırsa bu borç tahsilat oranından ve raporlardan çıkar, kayıtlar veritabanında korunur.`,
+      },
+      "Vazgeç",
+      "Yine de Pasife Al",
+    );
+
+    if (!forced) return;
+
+    const forcedRes = await window.electronAPI.deleteApartment({
+      id: due.apartment_id,
+      buildingId: building.id,
+      force: true,
+    });
+
+    if (forcedRes.success) {
+      showAlert.toast("Pasife Alındı", forcedRes.message);
       refetch();
     } else {
-      showAlert.error("Hata", res.message);
+      showAlert.error("Hata", forcedRes.message);
     }
   };
 

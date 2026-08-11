@@ -1,14 +1,17 @@
 const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
+const { TR_NOW_SQL } = require("../shared/trTime");
 
 const COLUMN_LABELS = {
   name: "Bina adı",
   owner_id: "Hesap",
 };
 
+const NOT_FOUND_MESSAGE = "Bina bulunamadı veya bu işlem için yetkiniz yok.";
+
 const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
 
-function listBuildings(ownerId) {
+function listBuildings(payload) {
   try {
     const data = getDb()
       .prepare(
@@ -16,7 +19,7 @@ function listBuildings(ownerId) {
          FROM buildings WHERE owner_id = ? AND is_removed = 0
          ORDER BY is_active DESC, name COLLATE NOCASE ASC`,
       )
-      .all(ownerId);
+      .all(payload.ownerId);
     return { success: true, data };
   } catch (err) {
     console.error("[building.service] listBuildings:", err);
@@ -40,7 +43,8 @@ function duplicateNameMessage(duplicate) {
     : "Bu isimde arşivlenmiş bir binanız var. Arşivden geri getirebilir ya da farklı bir isim seçebilirsiniz.";
 }
 
-function createBuilding(ownerId, name) {
+function createBuilding(payload) {
+  const { ownerId, name } = payload;
   try {
     const owner = getDb().prepare(`SELECT id FROM users WHERE id = ? AND is_active = 1`).get(ownerId);
     if (!owner) return { success: false, message: "Hesap bulunamadı." };
@@ -51,7 +55,7 @@ function createBuilding(ownerId, name) {
     const result = getDb()
       .prepare(
         `INSERT INTO buildings (owner_id, name, created_at, updated_at)
-         VALUES (?, ?, datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
+         VALUES (?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
       )
       .run(ownerId, name);
     return { success: true, message: "Bina oluşturuldu.", id: result.lastInsertRowid };
@@ -61,18 +65,16 @@ function createBuilding(ownerId, name) {
   }
 }
 
-function renameBuilding(buildingId, ownerId, name) {
+function renameBuilding(payload) {
+  const { buildingId, ownerId, name } = payload;
   try {
     const duplicate = findDuplicateName(ownerId, name, buildingId);
     if (duplicate) return { success: false, message: duplicateNameMessage(duplicate) };
 
     const result = getDb()
-      .prepare(
-        `UPDATE buildings SET name = ?, updated_at = datetime('now', '+3 hours')
-         WHERE id = ? AND owner_id = ?`,
-      )
+      .prepare(`UPDATE buildings SET name = ?, updated_at = ${TR_NOW_SQL} WHERE id = ? AND owner_id = ?`)
       .run(name, buildingId, ownerId);
-    if (result.changes === 0) return { success: false, message: "Bina bulunamadı veya bu işlem için yetkiniz yok." };
+    if (result.changes === 0) return { success: false, message: NOT_FOUND_MESSAGE };
     return { success: true, message: "Bina adı güncellendi." };
   } catch (err) {
     console.error("[building.service] renameBuilding:", err);
@@ -80,34 +82,30 @@ function renameBuilding(buildingId, ownerId, name) {
   }
 }
 
-function updateBuildingStatus(buildingId, ownerId, isActive) {
+function updateBuildingStatus(payload) {
+  const { buildingId, ownerId, isActive } = payload;
   try {
     const result = getDb()
-      .prepare(
-        `UPDATE buildings SET is_active = ?, updated_at = datetime('now', '+3 hours')
-         WHERE id = ? AND owner_id = ?`,
-      )
+      .prepare(`UPDATE buildings SET is_active = ?, updated_at = ${TR_NOW_SQL} WHERE id = ? AND owner_id = ?`)
       .run(isActive ? 1 : 0, buildingId, ownerId);
-    if (result.changes === 0) return { success: false, message: "Bina bulunamadı veya bu işlem için yetkiniz yok." };
-    const msg = isActive ? "Bina arşivden çıkarıldı." : "Bina arşivlendi.";
-    return { success: true, message: msg };
+    if (result.changes === 0) return { success: false, message: NOT_FOUND_MESSAGE };
+    return { success: true, message: isActive ? "Bina arşivden çıkarıldı." : "Bina arşivlendi." };
   } catch (err) {
     console.error("[building.service] updateBuildingStatus:", err);
     return { success: false, message: resolveDbError(err, "Bina durumu güncelleme") };
   }
 }
 
-function removeBuilding(buildingId, ownerId) {
+function removeBuilding(payload) {
+  const { buildingId, ownerId } = payload;
   try {
     const result = getDb()
       .prepare(
-        `UPDATE buildings SET is_removed = 1, updated_at = datetime('now', '+3 hours')
+        `UPDATE buildings SET is_removed = 1, updated_at = ${TR_NOW_SQL}
          WHERE id = ? AND owner_id = ? AND is_active = 0 AND is_removed = 0`,
       )
       .run(buildingId, ownerId);
-    if (result.changes === 0) {
-      return { success: false, message: "Bina bulunamadı veya bu işlem için yetkiniz yok." };
-    }
+    if (result.changes === 0) return { success: false, message: NOT_FOUND_MESSAGE };
     return { success: true, message: "Bina kalıcı olarak silindi." };
   } catch (err) {
     console.error("[building.service] removeBuilding:", err);

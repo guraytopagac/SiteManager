@@ -38,4 +38,4 @@ function ensureMonthlyDues(buildingId) {
     .run(startPeriod, endPeriod, buildingId);
 }
 
-module.exports = { ensureMonthlyDues, currentPeriod };
+module.exports = { ensureMonthlyDues };

@@ -1,183 +1,127 @@
 const { CHANNELS: CH } = require("../../ipc/channels");
-const { createSafeHandler } = require("../shared/safeHandler");
+const { createHandle } = require("../shared/safeHandler");
+const {
+  fail,
+  isDateInRange,
+  isIsoDate,
+  isValidMonth,
+  isValidYear,
+  validateBuildingScope,
+  validateId,
+} = require("../shared/validate");
 const financialService = require("./service");
 
-const safeHandler = createSafeHandler("financial");
-
-const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const MIN_DATE = "2000-01-01";
-const MAX_DATE = "2100-12-31";
-const MAX_AMOUNT = 1000000;
-const MAX_DESCRIPTION_LENGTH = 500;
-const MAX_REASON_LENGTH = 300;
 const MANUAL_INCOME_CATEGORIES = ["rent", "parking", "donation", "other"];
 const EXPENSE_CATEGORIES = ["maintenance", "cleaning", "utility", "staff", "other"];
 
 const TRIMMED_FIELDS = ["description", "category"];
-function normalizeFinancialData(data) {
+
+function normalizeFinancialData(payload) {
   for (const field of TRIMMED_FIELDS) {
-    if (typeof data[field] === "string") {
-      data[field] = data[field].trim();
+    if (typeof payload[field] === "string") {
+      payload[field] = payload[field].trim();
     }
   }
-  return data;
 }
 
-function validateAmountDescriptionCategory(data, allowedCategories) {
-  if (!Number.isFinite(data.amount) || data.amount <= 0) {
-    return { success: false, message: "Geçersiz tutar." };
+function validateRecordFields(payload, allowedCategories) {
+  if (!Number.isFinite(payload.amount) || payload.amount <= 0) {
+    return fail("Geçersiz tutar.");
   }
-  if (data.amount > MAX_AMOUNT) {
-    return { success: false, message: "Tutar 1.000.000₺'yi aşamaz." };
+  if (payload.amount > 1000000) {
+    return fail("Tutar 1.000.000₺'yi aşamaz.");
   }
-  if (!Number.isInteger(data.buildingId) || data.buildingId <= 0) {
-    return { success: false, message: "Geçersiz bina ID." };
+  if (!payload.date) {
+    return fail("Eksik alan: tarih bilgisi.");
   }
-  if (!data.date) {
-    return { success: false, message: "Eksik alan: tarih bilgisi." };
+  if (!isIsoDate(payload.date) || !isDateInRange(payload.date)) {
+    return fail("Geçersiz tarih.");
   }
-  if (
-    typeof data.date !== "string" ||
-    !ISO_DATE_RE.test(data.date) ||
-    data.date < MIN_DATE ||
-    data.date > MAX_DATE
-  ) {
-    return { success: false, message: "Geçersiz tarih." };
+  if (typeof payload.description !== "string" || !payload.description) {
+    return fail("Açıklama alanı zorunludur.");
   }
-  const description = typeof data.description === "string" ? data.description : "";
-  if (!description) {
-    return { success: false, message: "Açıklama alanı zorunludur." };
+  if (payload.description.length > 500) {
+    return fail("Açıklama en fazla 500 karakter olabilir.");
   }
-  if (description.length > MAX_DESCRIPTION_LENGTH) {
-    return { success: false, message: "Açıklama en fazla 500 karakter olabilir." };
-  }
-  if (data.category != null && data.category !== "") {
-    if (!allowedCategories.includes(data.category)) {
-      return { success: false, message: "Geçersiz kategori." };
-    }
+  if (payload.category != null && payload.category !== "" && !allowedCategories.includes(payload.category)) {
+    return fail("Geçersiz kategori.");
   }
   return null;
 }
 
-function validateIncomeData(data) {
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
-    return { success: false, message: "Geçersiz istek." };
+function validateIncomeFields(payload) {
+  normalizeFinancialData(payload);
+  if (payload.category === "dues") {
+    return fail("Aidat gelirleri elle eklenemez; daire üzerinden tahsil edilir.");
   }
-  normalizeFinancialData(data);
-  if (data.category === "dues") {
-    return { success: false, message: "Aidat gelirleri elle eklenemez; daire üzerinden tahsil edilir." };
-  }
-  return validateAmountDescriptionCategory(data, MANUAL_INCOME_CATEGORIES);
+  return validateRecordFields(payload, MANUAL_INCOME_CATEGORIES);
 }
 
-function validateExpenseData(data) {
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
-    return { success: false, message: "Geçersiz istek." };
-  }
-  normalizeFinancialData(data);
-  return validateAmountDescriptionCategory(data, EXPENSE_CATEGORIES);
+function validateExpenseFields(payload) {
+  normalizeFinancialData(payload);
+  return validateRecordFields(payload, EXPENSE_CATEGORIES);
 }
 
-function validateGetTransactionsData(payload) {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return { success: false, message: "Geçersiz istek." };
-  }
-  const { buildingId, period } = payload;
-  if (!Number.isInteger(buildingId) || buildingId <= 0) {
-    return { success: false, message: "Geçersiz bina ID." };
-  }
+function validatePeriod(period) {
   if (period == null) {
     return null;
   }
   if (typeof period !== "object" || Array.isArray(period)) {
-    return { success: false, message: "Geçersiz dönem." };
+    return fail("Geçersiz dönem.");
   }
-  if (!Number.isInteger(period.year) || period.year < 2000 || period.year > 2100) {
-    return { success: false, message: "Geçersiz yıl." };
+  if (!isValidYear(period.year)) {
+    return fail("Geçersiz yıl.");
   }
-  if (!Number.isInteger(period.month) || period.month < 1 || period.month > 12) {
-    return { success: false, message: "Geçersiz ay." };
+  if (!isValidMonth(period.month)) {
+    return fail("Geçersiz ay.");
   }
   return null;
 }
 
-function validateCancelData(payload) {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return { success: false, message: "Geçersiz istek." };
+function validateCancelReason(payload) {
+  if (typeof payload.reason !== "string" || !payload.reason.trim()) {
+    return fail("İptal nedeni zorunludur.");
   }
-  const { id, buildingId, userId, reason } = payload;
-  if (!Number.isInteger(id) || id <= 0) {
-    return { success: false, message: "Geçersiz kayıt ID." };
-  }
-  if (!Number.isInteger(buildingId) || buildingId <= 0) {
-    return { success: false, message: "Geçersiz bina ID." };
-  }
-  if (!Number.isInteger(userId) || userId <= 0) {
-    return { success: false, message: "Geçersiz kullanıcı ID." };
-  }
-  if (!reason?.trim()) {
-    return { success: false, message: "İptal nedeni zorunludur." };
-  }
-  if (reason.trim().length > MAX_REASON_LENGTH) {
-    return { success: false, message: "İptal nedeni en fazla 300 karakter olabilir." };
+  payload.reason = payload.reason.trim();
+  if (payload.reason.length > 300) {
+    return fail("İptal nedeni en fazla 300 karakter olabilir.");
   }
   return null;
+}
+
+function validateCancelScope(payload) {
+  return (
+    validateBuildingScope(payload) ?? validateId(payload.id, "kayıt ID") ?? validateId(payload.userId, "kullanıcı ID")
+  );
 }
 
 function registerFinancialHandlers(ipcMain) {
-  ipcMain.handle(
+  const handle = createHandle(ipcMain, "financial");
+
+  handle(
     CH.FINANCIAL.ADD_INCOME,
-    safeHandler(CH.FINANCIAL.ADD_INCOME, (data) => {
-      const error = validateIncomeData(data);
-      if (error) {
-        return error;
-      }
-      return financialService.addIncome(data);
-    }),
+    (payload) => validateBuildingScope(payload) ?? validateIncomeFields(payload),
+    financialService.addIncome,
   );
-
-  ipcMain.handle(
+  handle(
     CH.FINANCIAL.ADD_EXPENSE,
-    safeHandler(CH.FINANCIAL.ADD_EXPENSE, (data) => {
-      const error = validateExpenseData(data);
-      if (error) {
-        return error;
-      }
-      return financialService.addExpense(data);
-    }),
+    (payload) => validateBuildingScope(payload) ?? validateExpenseFields(payload),
+    financialService.addExpense,
   );
-
-  ipcMain.handle(
+  handle(
     CH.FINANCIAL.GET_TRANSACTIONS,
-    safeHandler(CH.FINANCIAL.GET_TRANSACTIONS, (payload) => {
-      const error = validateGetTransactionsData(payload);
-      if (error) {
-        return error;
-      }
-      return financialService.getTransactions(payload.buildingId, payload.period);
-    }),
+    (payload) => validateBuildingScope(payload) ?? validatePeriod(payload.period),
+    financialService.getTransactions,
   );
-
-  ipcMain.handle(
+  handle(
     CH.FINANCIAL.CANCEL_INCOME,
-    safeHandler(CH.FINANCIAL.CANCEL_INCOME, (payload) => {
-      const error = validateCancelData(payload);
-      if (error) {
-        return error;
-      }
-      return financialService.cancelIncome(payload.id, payload.buildingId, payload.userId, payload.reason.trim());
-    }),
+    (payload) => validateCancelScope(payload) ?? validateCancelReason(payload),
+    financialService.cancelIncome,
   );
-
-  ipcMain.handle(
+  handle(
     CH.FINANCIAL.CANCEL_EXPENSE,
-    safeHandler(CH.FINANCIAL.CANCEL_EXPENSE, (payload) => {
-      const error = validateCancelData(payload);
-      if (error) {
-        return error;
-      }
-      return financialService.cancelExpense(payload.id, payload.buildingId, payload.userId, payload.reason.trim());
-    }),
+    (payload) => validateCancelScope(payload) ?? validateCancelReason(payload),
+    financialService.cancelExpense,
   );
 }
 

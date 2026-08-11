@@ -1,32 +1,29 @@
 const { getDb } = require("../../../database/db");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
+const { assertFinancialTable } = require("../shared/tables");
+const { monthBounds } = require("../shared/trTime");
 
-const ALLOWED_TABLES = new Set(["incomes", "expenses"]);
-
-function fetchByMonth(table, buildingId, startDate, endDate) {
-  if (!ALLOWED_TABLES.has(table)) throw new Error(`fetchByMonth: table not allowed: ${table}`);
+function fetchByMonth(table, buildingId, start, end) {
+  assertFinancialTable(table, "fetchByMonth");
   return getDb()
     .prepare(
       `SELECT id, amount, date, description
        FROM ${table}
-       WHERE building_id = ? AND date BETWEEN ? AND ? AND is_cancelled = 0
+       WHERE building_id = ? AND date >= ? AND date < ? AND is_cancelled = 0
        ORDER BY date ASC`,
     )
-    .all(buildingId, startDate, endDate);
+    .all(buildingId, start, end);
 }
 
-function getReportData(buildingId, year, month) {
+function getReportData(payload) {
+  const { buildingId, year, month } = payload;
   try {
     ensureMonthlyDues(buildingId);
 
-    const yearStr = String(year);
-    const monthStr = String(month).padStart(2, "0");
-    const startDate = `${yearStr}-${monthStr}-01`;
-    const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${yearStr}-${monthStr}-${String(lastDay).padStart(2, "0")}`;
+    const { start, end } = monthBounds(year, month);
 
-    const incomes = fetchByMonth("incomes", buildingId, startDate, endDate);
-    const expenses = fetchByMonth("expenses", buildingId, startDate, endDate);
+    const incomes = fetchByMonth("incomes", buildingId, start, end);
+    const expenses = fetchByMonth("expenses", buildingId, start, end);
 
     const dues = getDb()
       .prepare(

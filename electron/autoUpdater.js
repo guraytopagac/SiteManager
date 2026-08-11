@@ -1,7 +1,7 @@
 const { app, dialog, ipcMain } = require("electron");
 const log = require("electron-log");
 const { autoUpdater } = require("electron-updater");
-const { sendToSplash, getSplashWindow } = require("./windows/splash");
+const { sendToSplash, setSplashStatus, setSplashProgress, getSplashWindow } = require("./windows/splash");
 
 autoUpdater.logger = log;
 autoUpdater.autoInstallOnAppQuit = false;
@@ -14,14 +14,7 @@ const DOWNLOAD_STALLED_MESSAGE = `Update download made no progress for ${DOWNLOA
 
 let isUpdateFlowActive = false;
 
-function setTaskbarProgress(value, options) {
-  const splash = getSplashWindow();
-  if (splash && !splash.isDestroyed()) {
-    splash.setProgressBar(value, options);
-  }
-}
-
-function checkForUpdatesBeforeStartup() {
+function runStartupUpdateFlow() {
   return new Promise((resolve) => {
     let finished = false;
     let idleTimeout = null;
@@ -37,8 +30,8 @@ function checkForUpdatesBeforeStartup() {
     };
 
     const skipUpdate = () => {
-      sendToSplash("splash:status", { text: "Güncelleme kontrol edilemedi, atlanıyor", isError: true });
-      setTaskbarProgress(1, { mode: "error" });
+      setSplashStatus("Güncelleme kontrol edilemedi, atlanıyor", true);
+      setSplashProgress(1, { mode: "error" });
       continueStartup();
     };
 
@@ -50,54 +43,50 @@ function checkForUpdatesBeforeStartup() {
       }, ms);
     };
 
+    const onError = (err) => {
+      console.error("[Updater] Update error:", err);
+      skipUpdate();
+    };
+
+    const onUpdateAvailable = (info) => {
+      waitForProgress(DOWNLOAD_STALL_TIMEOUT_MS, DOWNLOAD_STALLED_MESSAGE);
+      sendToSplash("splash:update-available", { version: info.version });
+    };
+
+    const onDownloadProgress = (progress) => {
+      waitForProgress(DOWNLOAD_STALL_TIMEOUT_MS, DOWNLOAD_STALLED_MESSAGE);
+      setSplashProgress(progress.percent / 100);
+      sendToSplash("splash:download-progress", {
+        percent: Math.round(progress.percent),
+        transferred: progress.transferred,
+        total: progress.total,
+        bytesPerSecond: progress.bytesPerSecond,
+      });
+    };
+
+    const onUpdateDownloaded = async () => {
+      clearTimeout(idleTimeout);
+      setSplashProgress(-1);
+      sendToSplash("splash:update-downloaded", {});
+
+      const userWantsRestart = await askToRestart();
+      if (userWantsRestart) {
+        try {
+          autoUpdater.quitAndInstall(true, true);
+          return;
+        } catch (err) {
+          console.error("[Updater] Restart to install failed:", err);
+        }
+      }
+      continueStartup();
+    };
+
     const eventHandlers = [
       ["update-not-available", continueStartup],
-      [
-        "error",
-        (err) => {
-          console.error("[Updater] Update error:", err);
-          skipUpdate();
-        },
-      ],
-      [
-        "update-available",
-        (info) => {
-          waitForProgress(DOWNLOAD_STALL_TIMEOUT_MS, DOWNLOAD_STALLED_MESSAGE);
-          sendToSplash("splash:update-available", { version: info.version });
-        },
-      ],
-      [
-        "download-progress",
-        (progress) => {
-          waitForProgress(DOWNLOAD_STALL_TIMEOUT_MS, DOWNLOAD_STALLED_MESSAGE);
-          setTaskbarProgress(progress.percent / 100);
-          sendToSplash("splash:download-progress", {
-            percent: Math.round(progress.percent),
-            transferred: progress.transferred,
-            total: progress.total,
-            bytesPerSecond: progress.bytesPerSecond,
-          });
-        },
-      ],
-      [
-        "update-downloaded",
-        async () => {
-          clearTimeout(idleTimeout);
-          setTaskbarProgress(-1);
-          sendToSplash("splash:update-downloaded", {});
-
-          const userWantsRestart = await askToRestart();
-          if (userWantsRestart) {
-            try {
-              autoUpdater.quitAndInstall(true, true);
-              return;
-            } catch (err) {
-              console.error("[Updater] Restart to install failed:", err);
-            }
-          }
-          continueStartup();
-        },
-      ],
+      ["error", onError],
+      ["update-available", onUpdateAvailable],
+      ["download-progress", onDownloadProgress],
+      ["update-downloaded", onUpdateDownloaded],
     ];
 
     for (const [event, handler] of eventHandlers) {
@@ -130,7 +119,7 @@ function askToRestart() {
   });
 }
 
-async function checkForUpdatesOnDemand(mainWindow) {
+async function runOnDemandUpdateFlow(mainWindow) {
   if (isUpdateFlowActive) {
     await dialog.showMessageBox(mainWindow, {
       type: "info",
@@ -207,4 +196,4 @@ async function checkForUpdatesOnDemand(mainWindow) {
   }
 }
 
-module.exports = { checkForUpdatesBeforeStartup, checkForUpdatesOnDemand };
+module.exports = { runOnDemandUpdateFlow, runStartupUpdateFlow };

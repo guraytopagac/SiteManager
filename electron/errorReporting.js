@@ -4,7 +4,7 @@ const log = require("electron-log");
 const SUPPORT_EMAIL = "guray.topagac.dev@gmail.com";
 const LOG_FILE_MAX_SIZE = 5 * 1024 * 1024;
 
-let getParentWindow = () => null;
+let getParentWindow;
 let fatalErrorShown = false;
 
 function showFatalError(title, message, whatToDo, parentWindow) {
@@ -49,7 +49,7 @@ function catchRendererConsole() {
 }
 
 function initLogging(parentWindowResolver) {
-  if (parentWindowResolver) getParentWindow = parentWindowResolver;
+  getParentWindow = parentWindowResolver;
 
   log.initialize({ preload: false });
   log.transports.file.maxSize = LOG_FILE_MAX_SIZE;
@@ -67,7 +67,7 @@ function initLogging(parentWindowResolver) {
         "Beklenmeyen Hata",
         "Uygulamada beklenmeyen bir hata oluştu.",
         "Uygulamayı kapatıp yeniden açın. Verileriniz etkilenmedi.",
-        getParentWindow(),
+        getParentWindow?.(),
       );
       return false;
     },

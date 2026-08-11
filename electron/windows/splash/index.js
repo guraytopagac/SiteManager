@@ -1,5 +1,5 @@
 const path = require("path");
-const { BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow } = require("electron");
 
 const ICON_PATH = path.join(__dirname, "../../../assets/icon.ico");
 const DEV_LINGER_MS = 800;
@@ -34,13 +34,23 @@ function createSplashWindow() {
     console.error(`[Splash] Failed to load: ${errorCode} ${errorDescription}`);
   });
 
-  splashWindow.loadFile(path.join(__dirname, "splash.html")).catch(() => {});
+  splashWindow.loadFile(path.join(__dirname, "splash.html"), { query: { v: app.getVersion() } }).catch(() => {});
   splashWindow.on("closed", () => (splashWindow = null));
 }
 
 function sendToSplash(channel, data) {
   if (splashWindow && !splashWindow.isDestroyed()) {
     splashWindow.webContents.send(channel, data);
+  }
+}
+
+function setSplashStatus(text, isError = false) {
+  sendToSplash("splash:status", { text, isError });
+}
+
+function setSplashProgress(value, options) {
+  if (splashWindow && !splashWindow.isDestroyed()) {
+    splashWindow.setProgressBar(value, options);
   }
 }
 
@@ -55,7 +65,7 @@ function closeSplashAndShowMain(mainWindow) {
   };
 
   if (splash && !splash.isDestroyed()) {
-    sendToSplash("splash:closing");
+    splash.webContents.send("splash:closing");
     splashWindow = null;
     setTimeout(() => {
       if (!splash.isDestroyed()) splash.close();
@@ -79,7 +89,7 @@ function closeSplashWhenMainReady(mainWindow, isDev) {
 
   fallbackTimer = setTimeout(() => {
     console.warn(
-      `[Splash] ready-to-show not received within ${MAIN_WINDOW_READY_TIMEOUT_MS / 1000}s, revealing the main window anyway.`
+      `[Splash] ready-to-show not received within ${MAIN_WINDOW_READY_TIMEOUT_MS / 1000}s, revealing the main window anyway.`,
     );
     reveal(0);
   }, MAIN_WINDOW_READY_TIMEOUT_MS);
@@ -93,23 +103,28 @@ function getSplashWindow() {
 
 function waitForSplashReady() {
   return new Promise((resolve) => {
-    let timeoutId = null;
+    if (!splashWindow) return resolve();
 
-    const onReady = () => {
-      clearTimeout(timeoutId);
-      resolve();
-    };
-
-    timeoutId = setTimeout(() => {
-      ipcMain.removeListener("splash:ready", onReady);
+    const timeoutId = setTimeout(() => {
       console.warn(
-        `[Splash] splash:ready not received, continuing via fallback after ${SPLASH_READY_TIMEOUT_MS / 1000}s.`
+        `[Splash] did-finish-load not received, continuing via fallback after ${SPLASH_READY_TIMEOUT_MS / 1000}s.`,
       );
       resolve();
     }, SPLASH_READY_TIMEOUT_MS);
 
-    ipcMain.once("splash:ready", onReady);
+    splashWindow.webContents.once("did-finish-load", () => {
+      clearTimeout(timeoutId);
+      resolve();
+    });
   });
 }
 
-module.exports = { createSplashWindow, sendToSplash, closeSplashWhenMainReady, getSplashWindow, waitForSplashReady };
+module.exports = {
+  createSplashWindow,
+  sendToSplash,
+  setSplashStatus,
+  setSplashProgress,
+  closeSplashWhenMainReady,
+  getSplashWindow,
+  waitForSplashReady,
+};

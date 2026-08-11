@@ -1,6 +1,6 @@
 const path = require("path");
 const { Menu, dialog, app, shell } = require("electron");
-const { checkForUpdatesOnDemand } = require("./autoUpdater");
+const { runOnDemandUpdateFlow } = require("./autoUpdater");
 const { SUPPORT_EMAIL } = require("./errorReporting");
 const { CHANNELS: CH } = require("./ipc/channels");
 const { runBackup, runRestore } = require("./modules/backup/service");
@@ -85,7 +85,7 @@ function buildMenu(mainWindow, isDev) {
               {
                 label: "Güncellemeleri Kontrol Et",
                 async click() {
-                  await checkForUpdatesOnDemand(mainWindow);
+                  await runOnDemandUpdateFlow(mainWindow);
                 },
               },
             ]),

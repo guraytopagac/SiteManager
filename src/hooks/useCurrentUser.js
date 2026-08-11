@@ -5,8 +5,8 @@ const SESSION_CHANGED_EVENT = "user-session-changed";
 
 function pickSessionFields(user) {
   if (!user?.id) return null;
-  const { id, username, email, managerName, last_login } = user;
-  return { id, username, email, managerName, last_login };
+  const { id, username, email, managerName, lastLogin } = user;
+  return { id, username, email, managerName, lastLogin };
 }
 
 function isSameSessionUser(a, b) {
@@ -17,7 +17,7 @@ function isSameSessionUser(a, b) {
     a.username === b.username &&
     a.email === b.email &&
     a.managerName === b.managerName &&
-    a.last_login === b.last_login
+    a.lastLogin === b.lastLogin
   );
 }
 

@@ -6,9 +6,7 @@ const { app } = require("electron");
 let db = null;
 
 function resolveDbPath() {
-  return app.isPackaged
-    ? path.join(app.getPath("userData"), "database.db")
-    : path.join(__dirname, "..", "database.db");
+  return app.isPackaged ? path.join(app.getPath("userData"), "database.db") : path.join(__dirname, "..", "database.db");
 }
 
 function runQuietly(name, fn) {

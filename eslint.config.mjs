@@ -5,7 +5,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import { defineConfig, globalIgnores } from "eslint/config";
 
 const commonRules = {
-  "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+  "no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
   "no-console": ["warn", { allow: ["error", "warn"] }],
 };
 

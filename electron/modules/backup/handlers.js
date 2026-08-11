@@ -1,18 +1,17 @@
 const { CHANNELS: CH } = require("../../ipc/channels");
-const { createSafeHandler } = require("../shared/safeHandler");
 const { getMainWindow } = require("../../windows/main");
+const { createHandle } = require("../shared/safeHandler");
+const { noValidation } = require("../shared/validate");
 const backupService = require("./service");
 
-const safeHandler = createSafeHandler("backup");
-
 function registerBackupHandlers(ipcMain) {
-  ipcMain.handle(
+  const handle = createHandle(ipcMain, "backup");
+
+  handle(
     CH.BACKUP.RUN,
-    safeHandler(
-      CH.BACKUP.RUN,
-      () => backupService.runBackup(getMainWindow(), { silent: true }),
-      "Yedek alınamadı.",
-    ),
+    noValidation,
+    () => backupService.runBackup(getMainWindow(), { silent: true }),
+    "Yedek alınamadı.",
   );
 }
 

@@ -19,7 +19,7 @@ function EditModal({ apartment, building, onClose, onSaved }) {
     const res = await window.electronAPI.updateApartment({
       id: apartment.apartment_id,
       ...form,
-      floor: Number(form.floor),
+      floor: form.floor !== "" ? Number(form.floor) : null,
       square_meters: form.square_meters ? Number(form.square_meters) : null,
       due_amount: Number(form.due_amount),
       buildingId: building.id,

@@ -1,13 +1,13 @@
 const { app, ipcMain } = require("electron");
 const { openDatabase } = require("../database/db");
 const { runMigrations } = require("../database/migrate");
-const { checkForUpdatesBeforeStartup } = require("./autoUpdater");
+const { runStartupUpdateFlow } = require("./autoUpdater");
 const { initLogging, showFatalError } = require("./errorReporting");
 const registerIpcHandlers = require("./ipc");
 const { createMainWindow, getMainWindow } = require("./windows/main");
 const {
   createSplashWindow,
-  sendToSplash,
+  setSplashStatus,
   closeSplashWhenMainReady,
   getSplashWindow,
   waitForSplashReady,
@@ -43,26 +43,19 @@ async function startApp() {
 
   try {
     createSplashWindow();
-
     await waitForSplashReady();
 
-    sendToSplash("splash:version", { version: app.getVersion() });
-
     if (!isDev) {
-      sendToSplash("splash:status", { text: "Güncellemeler kontrol ediliyor" });
-      await checkForUpdatesBeforeStartup();
+      setSplashStatus("Güncellemeler kontrol ediliyor");
+      await runStartupUpdateFlow();
     }
 
-    sendToSplash("splash:status", { text: "Veriler hazırlanıyor" });
-
+    setSplashStatus("Veriler hazırlanıyor");
     runMigrations(db);
-
     registerIpcHandlers(ipcMain);
 
-    sendToSplash("splash:status", { text: "Uygulama yükleniyor" });
-
+    setSplashStatus("Uygulama yükleniyor");
     const mainWindow = createMainWindow(isDev);
-
     closeSplashWhenMainReady(mainWindow, isDev);
   } catch (err) {
     console.error("[Main] Startup failed:", err);

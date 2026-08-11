@@ -14,6 +14,9 @@ const restartNowBtn = document.getElementById("restart-now");
 const restartLaterBtn = document.getElementById("restart-later");
 
 const DEFAULT_PROGRESS_STATUS = progressStatus.textContent;
+const currentVersion = new URLSearchParams(window.location.search).get("v") || "";
+
+versionEl.textContent = currentVersion ? "v" + currentVersion : "v—";
 
 function formatMB(bytes) {
   if (!bytes) return "0 MB";
@@ -26,14 +29,7 @@ function formatEta(seconds) {
   return Math.ceil(seconds / 60) + " dk kaldı";
 }
 
-let currentVersion = "";
-
 if (window.splashAPI) {
-  window.splashAPI.onVersion(({ version }) => {
-    currentVersion = version;
-    versionEl.textContent = "v" + version;
-  });
-
   window.splashAPI.onStatus(({ text, isError }) => {
     statusEl.classList.toggle("splash-status-error", Boolean(isError));
     statusDotsEl.classList.toggle("splash-hidden", Boolean(isError));
@@ -80,6 +76,4 @@ if (window.splashAPI) {
   window.splashAPI.onClosing(() => {
     document.body.classList.add("splash-closing");
   });
-
-  window.splashAPI.ready();
 }

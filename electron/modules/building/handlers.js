@@ -1,142 +1,53 @@
 const { CHANNELS: CH } = require("../../ipc/channels");
-const { createSafeHandler } = require("../shared/safeHandler");
+const { createHandle } = require("../shared/safeHandler");
+const { fail, validateBuildingScope, validateId, validatePayload } = require("../shared/validate");
 const buildingService = require("./service");
 
-const safeHandler = createSafeHandler("building");
-
-const MIN_NAME_LENGTH = 2;
-const MAX_NAME_LENGTH = 60;
-
-function validateOwnerId(ownerId) {
-  if (!Number.isInteger(ownerId) || ownerId <= 0) {
-    return { success: false, message: "Geçersiz hesap ID." };
-  }
-  return null;
+function validateOwnerScope(payload) {
+  return validatePayload(payload) ?? validateId(payload.ownerId, "hesap ID");
 }
 
-function validateName(name) {
-  if (typeof name !== "string" || !name) {
-    return { success: false, message: "Bina adı zorunludur." };
-  }
-  if (name.length < MIN_NAME_LENGTH || name.length > MAX_NAME_LENGTH) {
-    return { success: false, message: "Bina adı 2 ile 60 karakter arasında olmalıdır." };
-  }
-  return null;
+function validateOwnedBuildingScope(payload) {
+  return validateBuildingScope(payload) ?? validateId(payload.ownerId, "hesap ID");
 }
 
-function validateBuildingId(buildingId) {
-  if (!Number.isInteger(buildingId) || buildingId <= 0) {
-    return { success: false, message: "Geçersiz bina ID." };
-  }
-  return null;
-}
-
-function validateListData(payload) {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return { success: false, message: "Geçersiz istek." };
-  }
-  return validateOwnerId(payload.ownerId);
-}
-
-function validateCreateData(payload) {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return { success: false, message: "Geçersiz istek." };
-  }
+function validateName(payload) {
   if (typeof payload.name === "string") {
     payload.name = payload.name.trim();
   }
-  const ownerError = validateOwnerId(payload.ownerId);
-  if (ownerError) return ownerError;
-  return validateName(payload.name);
-}
-
-function validateRenameData(payload) {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return { success: false, message: "Geçersiz istek." };
+  if (typeof payload.name !== "string" || !payload.name) {
+    return fail("Bina adı zorunludur.");
   }
-  if (typeof payload.name === "string") {
-    payload.name = payload.name.trim();
-  }
-  const idError = validateBuildingId(payload.buildingId);
-  if (idError) return idError;
-  const ownerError = validateOwnerId(payload.ownerId);
-  if (ownerError) return ownerError;
-  return validateName(payload.name);
-}
-
-function validateOwnershipData(payload) {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return { success: false, message: "Geçersiz istek." };
-  }
-  const idError = validateBuildingId(payload.buildingId);
-  if (idError) return idError;
-  return validateOwnerId(payload.ownerId);
-}
-
-function validateUpdateStatusData(payload) {
-  const error = validateOwnershipData(payload);
-  if (error) return error;
-  if (typeof payload.isActive !== "boolean") {
-    return { success: false, message: "Geçersiz durum değeri." };
+  if (payload.name.length < 2 || payload.name.length > 60) {
+    return fail("Bina adı 2 ile 60 karakter arasında olmalıdır.");
   }
   return null;
+}
+
+function validateStatus(payload) {
+  return typeof payload.isActive === "boolean" ? null : fail("Geçersiz durum değeri.");
 }
 
 function registerBuildingHandlers(ipcMain) {
-  ipcMain.handle(
-    CH.BUILDING.LIST,
-    safeHandler(CH.BUILDING.LIST, (payload) => {
-      const error = validateListData(payload);
-      if (error) {
-        return error;
-      }
-      return buildingService.listBuildings(payload.ownerId);
-    }),
-  );
+  const handle = createHandle(ipcMain, "building");
 
-  ipcMain.handle(
+  handle(CH.BUILDING.LIST, validateOwnerScope, buildingService.listBuildings);
+  handle(
     CH.BUILDING.CREATE,
-    safeHandler(CH.BUILDING.CREATE, (payload) => {
-      const error = validateCreateData(payload);
-      if (error) {
-        return error;
-      }
-      return buildingService.createBuilding(payload.ownerId, payload.name);
-    }),
+    (payload) => validateOwnerScope(payload) ?? validateName(payload),
+    buildingService.createBuilding,
   );
-
-  ipcMain.handle(
+  handle(
     CH.BUILDING.RENAME,
-    safeHandler(CH.BUILDING.RENAME, (payload) => {
-      const error = validateRenameData(payload);
-      if (error) {
-        return error;
-      }
-      return buildingService.renameBuilding(payload.buildingId, payload.ownerId, payload.name);
-    }),
+    (payload) => validateOwnedBuildingScope(payload) ?? validateName(payload),
+    buildingService.renameBuilding,
   );
-
-  ipcMain.handle(
+  handle(
     CH.BUILDING.UPDATE_STATUS,
-    safeHandler(CH.BUILDING.UPDATE_STATUS, (payload) => {
-      const error = validateUpdateStatusData(payload);
-      if (error) {
-        return error;
-      }
-      return buildingService.updateBuildingStatus(payload.buildingId, payload.ownerId, payload.isActive);
-    }),
+    (payload) => validateOwnedBuildingScope(payload) ?? validateStatus(payload),
+    buildingService.updateBuildingStatus,
   );
-
-  ipcMain.handle(
-    CH.BUILDING.REMOVE,
-    safeHandler(CH.BUILDING.REMOVE, (payload) => {
-      const error = validateOwnershipData(payload);
-      if (error) {
-        return error;
-      }
-      return buildingService.removeBuilding(payload.buildingId, payload.ownerId);
-    }),
-  );
+  handle(CH.BUILDING.REMOVE, validateOwnedBuildingScope, buildingService.removeBuilding);
 }
 
 module.exports = registerBuildingHandlers;

@@ -1,5 +1,6 @@
 const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
+const { TR_NOW_SQL } = require("../shared/trTime");
 
 const COLUMN_LABELS = {
   phone: "Telefon numarası",
@@ -11,7 +12,14 @@ const COLUMN_LABELS = {
   resident_type: "Sakin türü",
 };
 
+const APARTMENT_NOT_FOUND_MESSAGE = "Daire bulunamadı veya bu işlem için yetkiniz yok.";
+const RESIDENT_NOT_FOUND_MESSAGE = "Sakin bulunamadı veya bu işlem için yetkiniz yok.";
+
 const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
+
+function findOwnedApartment(apartmentId, buildingId) {
+  return getDb().prepare(`SELECT id FROM apartments WHERE id = ? AND building_id = ?`).get(apartmentId, buildingId);
+}
 
 function findOwnedActiveApartment(apartmentId, buildingId) {
   return getDb()
@@ -29,7 +37,8 @@ function findOwnedResident(residentId, buildingId) {
     .get(residentId, buildingId);
 }
 
-function getResidentsOverview(buildingId) {
+function getResidentsOverview(payload) {
+  const { buildingId } = payload;
   try {
     const data = getDb()
       .prepare(
@@ -50,10 +59,11 @@ function getResidentsOverview(buildingId) {
   }
 }
 
-function getResidentHistory(apartmentId, buildingId) {
+function getResidentHistory(payload) {
+  const { apartmentId, buildingId } = payload;
   try {
-    if (!findOwnedActiveApartment(apartmentId, buildingId)) {
-      return { success: false, message: "Daire bulunamadı veya bu işlem için yetkiniz yok." };
+    if (!findOwnedApartment(apartmentId, buildingId)) {
+      return { success: false, message: APARTMENT_NOT_FOUND_MESSAGE };
     }
 
     const data = getDb()
@@ -77,7 +87,7 @@ function addResident(payload) {
   const { apartmentId, buildingId } = payload;
   try {
     if (!findOwnedActiveApartment(apartmentId, buildingId))
-      return { success: false, message: "Daire bulunamadı veya bu işlem için yetkiniz yok." };
+      return { success: false, message: APARTMENT_NOT_FOUND_MESSAGE };
 
     const existingActiveResident = getDb()
       .prepare(`SELECT id FROM residents WHERE apartment_id = ? AND is_active = 1`)
@@ -85,20 +95,22 @@ function addResident(payload) {
     if (existingActiveResident)
       return { success: false, message: "Bu dairede aktif bir sakin var. Önce çıkış yaptırın." };
 
-    getDb().prepare(
-      `INSERT INTO residents (apartment_id, full_name, phone, email, national_id, resident_type, move_in_date, move_out_date, notes, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+3 hours'), datetime('now', '+3 hours'))`,
-    ).run(
-      apartmentId,
-      payload.full_name || null,
-      payload.phone || null,
-      payload.email || null,
-      payload.national_id || null,
-      payload.resident_type || null,
-      payload.move_in_date || null,
-      payload.move_out_date || null,
-      payload.notes || null,
-    );
+    getDb()
+      .prepare(
+        `INSERT INTO residents (apartment_id, full_name, phone, email, national_id, resident_type, move_in_date, move_out_date, notes, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
+      )
+      .run(
+        apartmentId,
+        payload.full_name || null,
+        payload.phone || null,
+        payload.email || null,
+        payload.national_id || null,
+        payload.resident_type || null,
+        payload.move_in_date || null,
+        payload.move_out_date || null,
+        payload.notes || null,
+      );
 
     return { success: true, message: "Sakin eklendi." };
   } catch (err) {
@@ -110,24 +122,23 @@ function addResident(payload) {
 function updateResident(payload) {
   const { residentId, buildingId } = payload;
   try {
-    const owned = findOwnedResident(residentId, buildingId);
-    if (!owned) return { success: false, message: "Sakin bulunamadı veya bu işlem için yetkiniz yok." };
+    if (!findOwnedResident(residentId, buildingId)) return { success: false, message: RESIDENT_NOT_FOUND_MESSAGE };
 
-    getDb().prepare(
-      `UPDATE residents SET full_name = ?, phone = ?, email = ?, national_id = ?, resident_type = ?,
-       move_in_date = ?, move_out_date = COALESCE(?, move_out_date), notes = ?,
-       updated_at = datetime('now', '+3 hours') WHERE id = ?`,
-    ).run(
-      payload.full_name || null,
-      payload.phone || null,
-      payload.email || null,
-      payload.national_id || null,
-      payload.resident_type || null,
-      payload.move_in_date || null,
-      payload.move_out_date || null,
-      payload.notes || null,
-      residentId,
-    );
+    getDb()
+      .prepare(
+        `UPDATE residents SET full_name = ?, phone = ?, email = ?, national_id = ?, resident_type = ?,
+         move_in_date = ?, notes = ?, updated_at = ${TR_NOW_SQL} WHERE id = ?`,
+      )
+      .run(
+        payload.full_name || null,
+        payload.phone || null,
+        payload.email || null,
+        payload.national_id || null,
+        payload.resident_type || null,
+        payload.move_in_date || null,
+        payload.notes || null,
+        residentId,
+      );
 
     return { success: true, message: "Sakin bilgileri güncellendi." };
   } catch (err) {
@@ -139,13 +150,11 @@ function updateResident(payload) {
 function moveOutResident(payload) {
   const { residentId, buildingId, moveOutDate } = payload;
   try {
-    const owned = findOwnedResident(residentId, buildingId);
-    if (!owned) return { success: false, message: "Sakin bulunamadı veya bu işlem için yetkiniz yok." };
+    if (!findOwnedResident(residentId, buildingId)) return { success: false, message: RESIDENT_NOT_FOUND_MESSAGE };
 
-    getDb().prepare(`UPDATE residents SET move_out_date = ?, updated_at = datetime('now', '+3 hours') WHERE id = ?`).run(
-      moveOutDate,
-      residentId,
-    );
+    getDb()
+      .prepare(`UPDATE residents SET move_out_date = ?, updated_at = ${TR_NOW_SQL} WHERE id = ?`)
+      .run(moveOutDate, residentId);
 
     return { success: true, message: "Sakin çıkışı kaydedildi." };
   } catch (err) {

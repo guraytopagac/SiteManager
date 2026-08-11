@@ -32,7 +32,8 @@ function fetchStats(buildingId, year, month) {
   return { totalIncome, totalExpense, currentMonthDue, totalOverdue };
 }
 
-function getStats(buildingId) {
+function getStats(payload) {
+  const { buildingId } = payload;
   try {
     const { year, month } = trYearMonth();
 

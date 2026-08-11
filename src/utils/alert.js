@@ -251,6 +251,22 @@ Hesap <b>${managerName}</b> adına devredildi ve geçici bir şifre üretildi.<b
       width: "37em",
     }),
 
+  transferredRecoveryCode: (code) =>
+    codeDialog({
+      title: "Yeni Kurtarma Kodu",
+      code,
+      html: `
+Devir sırasında yeni bir kurtarma kodu üretildi, önceki kod geçersiz oldu.<br /><br />
+        ${CODE_LINE}
+        ${COPY_LINE}<br />
+        <p class="swal-note">Bu kodu da yeni yöneticiye iletin. Şifre unutulduğunda giriş ekranından bu kodla sıfırlama yapılır.</p>
+        <p class="swal-warning">Bu kod bir daha gösterilmeyecek.</p>
+      `,
+      confirmButtonText: "Anladım",
+      staticBackdrop: true,
+      width: "37em",
+    }),
+
   regeneratedCode: (code) =>
     codeDialog({
       title: "Kurtarma Kodunuz",

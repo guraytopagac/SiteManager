@@ -139,6 +139,7 @@ function Profile() {
     }
 
     await showAlert.temporaryPassword({ managerName: newPerson, code: res.temporaryPassword });
+    await showAlert.transferredRecoveryCode(res.recoveryCode);
     clearCurrentUser();
     navigate("/", { replace: true });
   };
@@ -179,7 +180,7 @@ function Profile() {
           )}
           <div className="info-item">
             <span className="info-label">Son Giriş</span>
-            <span className="info-value">{formatDateTime(currentUser?.last_login)}</span>
+            <span className="info-value">{formatDateTime(currentUser?.lastLogin)}</span>
           </div>
         </div>
       </div>
@@ -263,8 +264,9 @@ function Profile() {
       <div className="profile-card profile-card-danger">
         <h3 className="profile-section-title">Yönetici Değişikliği</h3>
         <p className="profile-muted">
-          Hesabı yeni bir yöneticiye devreder. Binalar ve geçmiş kayıtlar korunur; <strong>şifreniz geçersiz olur</strong>,
-          oturumunuz kapanır ve yeni yöneticiye bir kez gösterilen geçici şifre üretilir. Bu işlem geri alınamaz.
+          Hesabı yeni bir yöneticiye devreder. Binalar ve geçmiş kayıtlar korunur;{" "}
+          <strong>şifreniz geçersiz olur</strong>, oturumunuz kapanır ve yeni yöneticiye bir kez gösterilen geçici şifre
+          üretilir. Bu işlem geri alınamaz.
         </p>
         <div className="profile-action-row">
           <button className="btn-danger" onClick={handleTransfer}>

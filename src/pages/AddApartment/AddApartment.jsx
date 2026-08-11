@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./AddApartment.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
+import { APARTMENT_TYPES } from "@/pages/Apartments/constants";
 import { showAlert } from "@/utils/alert";
 
 const INITIAL_DATA = {
@@ -59,9 +60,11 @@ function AddApartment() {
   const handleCancel = () => {
     const hasData = Object.values(apartmentData).some((v) => v !== "");
     if (!hasData) return navigate("/dashboard");
-    showAlert.confirm("İptal", "Girilen bilgiler kaybolacak. Emin misiniz?", "Vazgeç", "Evet, Çık").then((confirmed) => {
-      if (confirmed) navigate("/dashboard");
-    });
+    showAlert
+      .confirm("İptal", "Girilen bilgiler kaybolacak. Emin misiniz?", "Vazgeç", "Evet, Çık")
+      .then((confirmed) => {
+        if (confirmed) navigate("/dashboard");
+      });
   };
 
   return (
@@ -72,74 +75,74 @@ function AddApartment() {
 
       <form onSubmit={handleAddApartment}>
         <section className="form-card">
-            <h3 className="form-section-title">Daire Bilgileri</h3>
+          <h3 className="form-section-title">Daire Bilgileri</h3>
 
-            <div className="form-grid">
-              <div className="input-group span-full">
-                <label>
-                  Daire No <span className="req">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Örn: 5"
-                  value={apartmentData.apartment_no}
-                  onChange={set("apartment_no")}
-                />
-              </div>
-              <div className="input-group">
-                <label>
-                  Kat <span className="req">*</span>
-                </label>
-                <input
-                  type="number"
-                  required
-                  min="-2"
-                  placeholder="Örn: 2"
-                  value={apartmentData.floor}
-                  onChange={set("floor")}
-                />
-              </div>
-              <div className="input-group">
-                <label>
-                  Daire Tipi <span className="req">*</span>
-                </label>
-                <select value={apartmentData.type} onChange={set("type")} required>
-                  <option value="">— Seçiniz —</option>
-                  <option value="0+1">0+1</option>
-                  <option value="1+1">1+1</option>
-                  <option value="2+1">2+1</option>
-                  <option value="3+1">3+1</option>
-                  <option value="4+1">4+1</option>
-                </select>
-              </div>
-              <div className="input-group">
-                <label>
-                  Metrekare <span className="optional-label">(isteğe bağlı)</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  placeholder="Örn: 85"
-                  value={apartmentData.square_meters}
-                  onChange={set("square_meters")}
-                />
-              </div>
-              <div className="input-group">
-                <label>
-                  Aidat Tutarı (₺) <span className="req">*</span>
-                </label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  placeholder="Örn: 1500"
-                  value={apartmentData.due_amount}
-                  onChange={set("due_amount")}
-                />
-              </div>
+          <div className="form-grid">
+            <div className="input-group span-full">
+              <label>
+                Daire No <span className="req">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Örn: 5"
+                value={apartmentData.apartment_no}
+                onChange={set("apartment_no")}
+              />
             </div>
+            <div className="input-group">
+              <label>
+                Kat <span className="req">*</span>
+              </label>
+              <input
+                type="number"
+                required
+                min="-2"
+                placeholder="Örn: 2"
+                value={apartmentData.floor}
+                onChange={set("floor")}
+              />
+            </div>
+            <div className="input-group">
+              <label>
+                Daire Tipi <span className="req">*</span>
+              </label>
+              <select value={apartmentData.type} onChange={set("type")} required>
+                <option value="">— Seçiniz —</option>
+                {APARTMENT_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="input-group">
+              <label>
+                Metrekare <span className="optional-label">(isteğe bağlı)</span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                placeholder="Örn: 85"
+                value={apartmentData.square_meters}
+                onChange={set("square_meters")}
+              />
+            </div>
+            <div className="input-group">
+              <label>
+                Aidat Tutarı (₺) <span className="req">*</span>
+              </label>
+              <input
+                type="number"
+                required
+                min="1"
+                placeholder="Örn: 1500"
+                value={apartmentData.due_amount}
+                onChange={set("due_amount")}
+              />
+            </div>
+          </div>
         </section>
 
         <div className="form-actions">
