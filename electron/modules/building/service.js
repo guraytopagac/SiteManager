@@ -1,12 +1,14 @@
+// Building rules. A building row is never deleted. is_active = 0 archives it, is_removed = 1
+// removes it, and all five endpoints touch only rows with is_removed = 0.
 const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
 const { TR_NOW_SQL } = require("../shared/trTime");
 
 const COLUMN_LABELS = {
   name: "Bina adı",
-  owner_id: "Hesap",
 };
 
+// One message for both cases, so it does not reveal whether the building belongs to someone else.
 const NOT_FOUND_MESSAGE = "Bina bulunamadı veya bu işlem için yetkiniz yok.";
 
 const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
@@ -15,7 +17,7 @@ function listBuildings(payload) {
   try {
     const data = getDb()
       .prepare(
-        `SELECT id, name, is_active, created_at
+        `SELECT id, name, is_active
          FROM buildings WHERE owner_id = ? AND is_removed = 0
          ORDER BY is_active DESC, name COLLATE NOCASE ASC`,
       )
@@ -27,20 +29,23 @@ function listBuildings(payload) {
   }
 }
 
+// Name check inside the account, ignoring upper and lower case. The partial unique index is the
+// last line of defence.
 function findDuplicateName(ownerId, name, excludeId = null) {
   return getDb()
     .prepare(
       `SELECT id, is_active FROM buildings
-       WHERE owner_id = ? AND is_removed = 0 AND name = ? COLLATE NOCASE AND (? IS NULL OR id != ?)
+       WHERE owner_id = ? AND is_removed = 0 AND name = ? COLLATE NOCASE AND id IS NOT ?
        LIMIT 1`,
     )
-    .get(ownerId, name, excludeId, excludeId);
+    .get(ownerId, name, excludeId);
 }
 
+// The wording changes if the building with that name sits in the deleted section.
 function duplicateNameMessage(duplicate) {
   return duplicate.is_active === 1
     ? "Bu isimde bir binanız zaten var."
-    : "Bu isimde arşivlenmiş bir binanız var. Arşivden geri getirebilir ya da farklı bir isim seçebilirsiniz.";
+    : "Bu isimde silinmiş bir binanız var. Silinen binalar bölümünden geri getirebilir ya da farklı bir isim seçebilirsiniz.";
 }
 
 function createBuilding(payload) {
@@ -72,7 +77,10 @@ function renameBuilding(payload) {
     if (duplicate) return { success: false, message: duplicateNameMessage(duplicate) };
 
     const result = getDb()
-      .prepare(`UPDATE buildings SET name = ?, updated_at = ${TR_NOW_SQL} WHERE id = ? AND owner_id = ?`)
+      .prepare(
+        `UPDATE buildings SET name = ?, updated_at = ${TR_NOW_SQL}
+         WHERE id = ? AND owner_id = ? AND is_removed = 0`,
+      )
       .run(name, buildingId, ownerId);
     if (result.changes === 0) return { success: false, message: NOT_FOUND_MESSAGE };
     return { success: true, message: "Bina adı güncellendi." };
@@ -82,30 +90,40 @@ function renameBuilding(payload) {
   }
 }
 
+// Archive and bring back. The UI calls these Sil and Geri Getir, so the messages use those words.
 function updateBuildingStatus(payload) {
   const { buildingId, ownerId, isActive } = payload;
   try {
     const result = getDb()
-      .prepare(`UPDATE buildings SET is_active = ?, updated_at = ${TR_NOW_SQL} WHERE id = ? AND owner_id = ?`)
+      .prepare(
+        `UPDATE buildings SET is_active = ?, updated_at = ${TR_NOW_SQL}
+         WHERE id = ? AND owner_id = ? AND is_removed = 0`,
+      )
       .run(isActive ? 1 : 0, buildingId, ownerId);
     if (result.changes === 0) return { success: false, message: NOT_FOUND_MESSAGE };
-    return { success: true, message: isActive ? "Bina arşivden çıkarıldı." : "Bina arşivlendi." };
+    return { success: true, message: isActive ? "Bina geri getirildi." : "Bina silindi." };
   } catch (err) {
     console.error("[building.service] updateBuildingStatus:", err);
     return { success: false, message: resolveDbError(err, "Bina durumu güncelleme") };
   }
 }
 
+// Remove for good, which is still a soft delete. Only an archived building can get here.
 function removeBuilding(payload) {
   const { buildingId, ownerId } = payload;
   try {
-    const result = getDb()
-      .prepare(
-        `UPDATE buildings SET is_removed = 1, updated_at = ${TR_NOW_SQL}
-         WHERE id = ? AND owner_id = ? AND is_active = 0 AND is_removed = 0`,
-      )
-      .run(buildingId, ownerId);
-    if (result.changes === 0) return { success: false, message: NOT_FOUND_MESSAGE };
+    const building = getDb()
+      .prepare(`SELECT is_active FROM buildings WHERE id = ? AND owner_id = ? AND is_removed = 0`)
+      .get(buildingId, ownerId);
+    if (!building) return { success: false, message: NOT_FOUND_MESSAGE };
+    if (building.is_active === 1) {
+      return {
+        success: false,
+        message: "Bina, kalıcı olarak silinmeden önce silinen binalar bölümüne taşınmalıdır.",
+      };
+    }
+
+    getDb().prepare(`UPDATE buildings SET is_removed = 1, updated_at = ${TR_NOW_SQL} WHERE id = ?`).run(buildingId);
     return { success: true, message: "Bina kalıcı olarak silindi." };
   } catch (err) {
     console.error("[building.service] removeBuilding:", err);

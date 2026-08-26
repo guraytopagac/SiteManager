@@ -12,5 +12,3 @@ export const PAYMENT_METHOD_LABELS = {
 };
 
 export const APARTMENT_TYPES = ["0+1", "1+1", "2+1", "3+1", "4+1"];
-
-export const OVERPAY_TOLERANCE = 0.01;

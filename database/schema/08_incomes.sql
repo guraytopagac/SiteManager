@@ -1,6 +1,8 @@
+-- Income ledger of a building. Dues income is written only by recordPayment.
 CREATE TABLE IF NOT EXISTS incomes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   building_id INTEGER NOT NULL,
+  -- Set for dues income only. UNIQUE keeps it to one income row per payment.
   due_payment_id INTEGER UNIQUE,
   amount REAL NOT NULL CHECK(amount > 0 AND amount <= 1000000),
   date TEXT NOT NULL CHECK(
@@ -9,6 +11,7 @@ CREATE TABLE IF NOT EXISTS incomes (
     date <= '2100-12-31'
   ),
   description TEXT NOT NULL CHECK(length(trim(description)) > 0 AND length(description) <= 500),
+  -- The dues category is kept for recordPayment. The handler rejects it on manual entry.
   category TEXT NOT NULL DEFAULT 'other' CHECK(category IN ('dues', 'rent', 'parking', 'donation', 'other')),
   is_cancelled INTEGER NOT NULL DEFAULT 0 CHECK(is_cancelled IN (0, 1)),
   cancelled_at TEXT CHECK(cancelled_at IS NULL OR datetime(cancelled_at) IS NOT NULL),
@@ -16,6 +19,7 @@ CREATE TABLE IF NOT EXISTS incomes (
   cancelled_by INTEGER,
   created_at TEXT NOT NULL DEFAULT (datetime('now', '+3 hours')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now', '+3 hours')),
+  -- The four cancel fields are either all NULL or all filled.
   CHECK(
     (is_cancelled = 0 AND cancelled_at IS NULL AND cancel_reason IS NULL AND cancelled_by IS NULL) OR
     (is_cancelled = 1 AND cancelled_at IS NOT NULL AND cancel_reason IS NOT NULL AND cancelled_by IS NOT NULL)
@@ -26,6 +30,7 @@ CREATE TABLE IF NOT EXISTS incomes (
 );
 
 CREATE INDEX IF NOT EXISTS idx_incomes_building_date ON incomes(building_id, date);
+-- Partial index for the common case. Reports and totals read only non-cancelled rows.
 CREATE INDEX IF NOT EXISTS idx_incomes_active_only ON incomes(building_id, date) WHERE is_cancelled = 0;
 
 CREATE TRIGGER IF NOT EXISTS trg_incomes_prevent_update_after_cancel

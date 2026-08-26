@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { showAlert } from "@/utils/alert";
 import { getToday, formatMonthYear, formatDate } from "@/utils/date";
 import { formatCurrency } from "@/utils/currency";
-import { PAYMENT_METHOD_LABELS, OVERPAY_TOLERANCE } from "../constants";
+import { PAYMENT_METHOD_LABELS } from "../constants";
 
 function PaymentModal({ due, year, month, currentUser, building, onClose, onPaymentSaved }) {
   const [amount, setAmount] = useState("");
@@ -46,12 +46,6 @@ function PaymentModal({ due, year, month, currentUser, building, onClose, onPaym
       return;
     }
 
-    const remaining = due.due_amount - due.paid_amount;
-    if (parsedAmount > remaining + OVERPAY_TOLERANCE) {
-      showAlert.warning("Fazla Ödeme", `Kalan borç ${formatCurrency(remaining)}. Daha fazlası girilemez.`);
-      return;
-    }
-
     setIsSubmitting(true);
     const res = await window.electronAPI.recordPayment({
       apartmentId: due.apartment_id,
@@ -76,6 +70,9 @@ function PaymentModal({ due, year, month, currentUser, building, onClose, onPaym
       setPaymentDate(getToday());
       onPaymentSaved();
       fetchHistory();
+    } else if (res.code === "OVERPAYMENT") {
+      showAlert.warning("Fazla Ödeme", `Kalan borç ${formatCurrency(res.remaining)}. Daha fazlası girilemez.`);
+      onPaymentSaved();
     } else {
       showAlert.error("Hata", res.message);
     }

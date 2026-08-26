@@ -1,16 +1,13 @@
+// Monthly dues accrual. There is no timer, missing months are filled in when a page is opened.
 const { getDb } = require("../../../database/db");
-const { trYearMonth } = require("./trTime");
+const { createdPeriodSql, currentPeriod } = require("./trTime");
 
-function currentPeriod() {
-  const { year, month } = trYearMonth();
-  return year * 12 + month;
-}
-
+// Creates the missing dues rows of a building, one per active apartment per month, from the
+// month the apartment was created up to this month. Safe to call again, and it runs before every read.
 function ensureMonthlyDues(buildingId) {
   const { startPeriod } = getDb()
     .prepare(
-      `SELECT MIN(CAST(strftime('%Y', created_at) AS INTEGER) * 12 + CAST(strftime('%m', created_at) AS INTEGER))
-              AS startPeriod
+      `SELECT MIN(${createdPeriodSql()}) AS startPeriod
        FROM apartments WHERE building_id = ? AND is_active = 1`,
     )
     .get(buildingId);
@@ -20,6 +17,8 @@ function ensureMonthlyDues(buildingId) {
   const endPeriod = currentPeriod();
   if (startPeriod > endPeriod) return;
 
+  // The recursive CTE lists the months. The amount is copied from apartments.due_amount, and the
+  // join keeps an apartment out of the months before it existed.
   getDb()
     .prepare(
       `INSERT OR IGNORE INTO dues (apartment_id, year, month, due_amount)
@@ -30,9 +29,7 @@ function ensureMonthlyDues(buildingId) {
      )
      SELECT a.id, (p.period - 1) / 12, (p.period - 1) % 12 + 1, a.due_amount
      FROM apartments a
-     JOIN periods p
-       ON p.period >= CAST(strftime('%Y', a.created_at) AS INTEGER) * 12
-                    + CAST(strftime('%m', a.created_at) AS INTEGER)
+     JOIN periods p ON p.period >= ${createdPeriodSql("a.")}
      WHERE a.building_id = ? AND a.is_active = 1`,
     )
     .run(startPeriod, endPeriod, buildingId);

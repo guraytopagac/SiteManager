@@ -1,3 +1,4 @@
+-- Audit log of cancelled payments. One row per payment, and rows can never change.
 CREATE TABLE IF NOT EXISTS payment_cancellations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   payment_id INTEGER NOT NULL UNIQUE,

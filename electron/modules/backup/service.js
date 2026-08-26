@@ -1,9 +1,12 @@
+// Backup and restore. It sits in a service, not a handler, because it uses the database
+// connection itself through getDb().backup() and closeDb().
 const fs = require("fs");
 const Database = require("better-sqlite3");
 const { dialog, app } = require("electron");
 const { closeDb, getDb } = require("../../../database/db");
 const { trToday } = require("../shared/trTime");
 
+// Without this check, a healthy SQLite file from another program would pass and overwrite the data.
 const REQUIRED_TABLES = ["users", "buildings", "apartments", "dues"];
 
 const BACKUP_OK_MESSAGE = "Yedek başarıyla alındı.";
@@ -15,11 +18,13 @@ function showMessage(mainWindow, options) {
   return dialog.showMessageBox(mainWindow, { buttons: ["Tamam"], ...options });
 }
 
+// Removes leftover WAL files, which would otherwise belong to the wrong database file.
 async function removeSidecarFiles(dbPath) {
   await fs.promises.unlink(`${dbPath}-wal`).catch(() => {});
   await fs.promises.unlink(`${dbPath}-shm`).catch(() => {});
 }
 
+// Checks the file is healthy and is really one of our backups. Returns a message or null.
 function validateBackupFile(filePath) {
   let testDb = null;
   try {
@@ -34,10 +39,12 @@ function validateBackupFile(filePath) {
     console.warn("[backup.service] validateBackupFile:", err);
     return CORRUPT_FILE_MESSAGE;
   } finally {
+    // Must close, or Windows keeps the file locked and the copy below fails.
     testDb?.close();
   }
 }
 
+// Safe copy while the database is open. Cancelling is not an error.
 async function runBackup(mainWindow, { silent = false } = {}) {
   const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
     title: "Yedek Dosyasını Kaydet",
@@ -64,6 +71,7 @@ async function runBackup(mainWindow, { silent = false } = {}) {
   }
 }
 
+// Restore, from the menu only. Check the file, ask, copy the current database aside, swap it, restart.
 async function runRestore(mainWindow) {
   const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow, {
     title: "Yedek Dosyasını Seç",
@@ -88,6 +96,7 @@ async function runRestore(mainWindow) {
 
   if (response !== 0) return;
 
+  // The .bak copy is never deleted. It is the only way back after restoring the wrong file.
   const dbPath = getDb().name;
   const tempBackup = `${dbPath}.bak`;
 
@@ -103,6 +112,8 @@ async function runRestore(mainWindow) {
     return;
   }
 
+  // Windows cannot overwrite a locked file, so the connection is closed here and never opened
+  // again. That is why both paths below end in a restart.
   closeDb();
 
   try {
@@ -114,6 +125,7 @@ async function runRestore(mainWindow) {
       message: "Verileriniz geri yüklendi. Uygulama yeniden başlatılıyor...",
       detail: `Önceki verilerinizin kopyası şu dosyada saklandı:\n${tempBackup}`,
     });
+    // relaunch only plans the restart, so exit has to follow it.
     app.relaunch();
     app.exit();
   } catch (err) {

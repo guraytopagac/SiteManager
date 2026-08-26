@@ -1,11 +1,15 @@
+// Runs at every startup: migrations first, then the schema files. A failure here stops the app.
 const fs = require("fs");
 const path = require("path");
 
+// Runs the migrations that have not run yet, in file name order, one transaction each.
 function applyMigrations(db) {
   const migrationsDir = path.join(__dirname, "migrations");
 
+  // The packager may drop an empty folder, so a missing folder must not break startup.
   if (!fs.existsSync(migrationsDir)) return;
 
+  // Created here, not in schema/, because it is needed before the schema step runs.
   db.exec(`
     CREATE TABLE IF NOT EXISTS migrations (
       filename TEXT PRIMARY KEY,
@@ -29,6 +33,7 @@ function applyMigrations(db) {
 
   const isFreshInstall = !db.prepare(`SELECT 1 FROM sqlite_master WHERE type='table' AND name='users' LIMIT 1`).get();
 
+  // Fresh install: the schema step already builds the current tables, so migrations are only marked.
   if (isFreshInstall) {
     const pendingMigrations = files.filter((file) => !appliedMigrations.has(file));
     db.transaction(() => {
@@ -44,6 +49,7 @@ function applyMigrations(db) {
     const sql = fs.readFileSync(path.join(migrationsDir, file), "utf8");
 
     try {
+      // Foreign keys are off while the file runs, then checked once before the commit.
       db.pragma("foreign_keys = OFF");
       db.transaction(() => {
         db.exec(sql);
@@ -61,6 +67,7 @@ function applyMigrations(db) {
   }
 }
 
+// Every statement is IF NOT EXISTS, so this does nothing on an existing install.
 function loadSchema(db) {
   const schemaDir = path.join(__dirname, "schema");
 
@@ -75,6 +82,7 @@ function loadSchema(db) {
       try {
         db.exec(sql);
       } catch (e) {
+        // Name the failing file, or the startup error box points at nothing.
         e.message = `[Migrate] Failed to load schema (${file}): ${e.message}`;
         throw e;
       }

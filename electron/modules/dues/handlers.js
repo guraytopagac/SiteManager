@@ -1,38 +1,23 @@
+// Dues IPC entry points. Every channel that takes a period rejects a future one.
 const { CHANNELS: CH } = require("../../ipc/channels");
-const { createHandle } = require("../shared/safeHandler");
+const { createHandle } = require("../../ipc/handler");
 const {
   fail,
-  isDateInRange,
-  isIsoDate,
-  isValidMonth,
-  isValidYear,
+  isValidDate,
   validateBuildingScope,
+  validateCancelReason,
   validateId,
   validatePayload,
+  validatePeriod,
 } = require("../shared/validate");
 const duesService = require("./service");
 
+// Same list as the schema CHECK and PAYMENT_METHOD_LABELS in src/pages/Apartments/constants.js.
 const VALID_PAYMENT_METHODS = ["cash", "bank_transfer", "card", "other"];
+const FUTURE_PERIOD_MESSAGE = "Gelecek bir dönem için aidat işlemi yapılamaz.";
 
-function validatePeriod(payload) {
-  const { year, month } = payload;
-  if (!isValidYear(year) || !isValidMonth(month)) {
-    return fail("Geçersiz tarih bilgisi.");
-  }
-  return null;
-}
-
-function validateCancelReason(payload) {
-  if (typeof payload.reason !== "string" || !payload.reason.trim()) {
-    return fail("İptal nedeni zorunludur.");
-  }
-  payload.reason = payload.reason.trim();
-  if (payload.reason.length > 300) {
-    return fail("İptal nedeni en fazla 300 karakter olabilir.");
-  }
-  return null;
-}
-
+// The payment form arrives as a nested object, so it gets its own payload check. The earliest
+// allowed month is checked in the service, which knows when the apartment was created.
 function validatePaymentData(paymentData) {
   const payloadError = validatePayload(paymentData);
   if (payloadError) {
@@ -46,7 +31,7 @@ function validatePaymentData(paymentData) {
   }
   if (paymentData.note != null) {
     if (typeof paymentData.note !== "string") {
-      return fail("Not en fazla 500 karakter olabilir.");
+      return fail("Geçersiz not.");
     }
     paymentData.note = paymentData.note.trim();
     if (paymentData.note.length > 500) {
@@ -56,7 +41,7 @@ function validatePaymentData(paymentData) {
   if (!VALID_PAYMENT_METHODS.includes(paymentData.payment_method)) {
     return fail("Geçersiz ödeme yöntemi.");
   }
-  if (!isIsoDate(paymentData.payment_date) || !isDateInRange(paymentData.payment_date)) {
+  if (!isValidDate(paymentData.payment_date)) {
     return fail("Geçersiz ödeme tarihi.");
   }
   return validateId(paymentData.collected_by, "tahsilat kullanıcısı");
@@ -67,7 +52,7 @@ function registerDuesHandlers(ipcMain) {
 
   handle(
     CH.DUES.GET_FOR_MONTH,
-    (payload) => validateBuildingScope(payload) ?? validatePeriod(payload),
+    (payload) => validateBuildingScope(payload) ?? validatePeriod(payload, FUTURE_PERIOD_MESSAGE),
     duesService.getDuesForMonth,
   );
   handle(
@@ -75,7 +60,7 @@ function registerDuesHandlers(ipcMain) {
     (payload) =>
       validateBuildingScope(payload) ??
       validateId(payload.apartmentId, "daire ID") ??
-      validatePeriod(payload) ??
+      validatePeriod(payload, FUTURE_PERIOD_MESSAGE) ??
       validatePaymentData(payload.paymentData),
     duesService.recordPayment,
   );

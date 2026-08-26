@@ -1,3 +1,4 @@
+-- Expense ledger of a building. Same cancel rules as incomes, without the dues link.
 CREATE TABLE IF NOT EXISTS expenses (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   building_id INTEGER NOT NULL,
@@ -15,6 +16,7 @@ CREATE TABLE IF NOT EXISTS expenses (
   cancelled_by INTEGER,
   created_at TEXT NOT NULL DEFAULT (datetime('now', '+3 hours')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now', '+3 hours')),
+  -- The four cancel fields are either all NULL or all filled.
   CHECK(
     (is_cancelled = 0 AND cancelled_at IS NULL AND cancel_reason IS NULL AND cancelled_by IS NULL) OR
     (is_cancelled = 1 AND cancelled_at IS NOT NULL AND cancel_reason IS NOT NULL AND cancelled_by IS NOT NULL)
@@ -24,6 +26,7 @@ CREATE TABLE IF NOT EXISTS expenses (
 );
 
 CREATE INDEX IF NOT EXISTS idx_expenses_building_date ON expenses(building_id, date);
+-- Partial index for the common case. Reports and totals read only non-cancelled rows.
 CREATE INDEX IF NOT EXISTS idx_expenses_active_only ON expenses(building_id, date) WHERE is_cancelled = 0;
 
 CREATE TRIGGER IF NOT EXISTS trg_expenses_prevent_update_after_cancel

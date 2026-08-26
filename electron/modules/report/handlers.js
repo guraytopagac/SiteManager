@@ -1,39 +1,46 @@
+// Report IPC entry points. One returns the monthly data, the other saves the PDF.
 const fs = require("fs");
 const { dialog } = require("electron");
 const { CHANNELS: CH } = require("../../ipc/channels");
-const { createHandle } = require("../shared/safeHandler");
-const { fail, isValidMonth, isValidYear, validateBuildingScope, validatePayload } = require("../shared/validate");
+const { createHandle } = require("../../ipc/handler");
+const { getMainWindow } = require("../../windows/main");
+const { fail, validateBuildingScope, validatePayload, validatePeriod } = require("../shared/validate");
 const reportService = require("./service");
 
-function validatePeriod(payload) {
-  const { year, month } = payload;
-  if (!isValidYear(year) || !isValidMonth(month)) {
-    return fail("Geçersiz tarih bilgisi.");
-  }
-  return null;
-}
+const FUTURE_PERIOD_MESSAGE = "Gelecek bir dönem için rapor alınamaz.";
+const MAX_FILENAME_LENGTH = 150;
+// Path separators and the characters Windows does not allow in a file name.
+const INVALID_FILENAME_RE = /[\\/:*?"<>|]/;
 
+// The renderer builds the PDF and sends it here as a Uint8Array.
 function validateSaveFileFields(payload) {
-  if (typeof payload.filename !== "string" || !payload.filename) {
+  const { filename, buffer } = payload;
+  if (typeof filename !== "string" || !filename || filename.length > MAX_FILENAME_LENGTH) {
     return fail("Geçersiz dosya adı.");
   }
-  if (!payload.buffer) {
+  if (INVALID_FILENAME_RE.test(filename)) {
+    return fail("Geçersiz dosya adı.");
+  }
+  if (!(buffer instanceof Uint8Array) || buffer.byteLength === 0) {
     return fail("Geçersiz dosya içeriği.");
   }
   return null;
 }
 
+// The only body that stays in a handler, because it never touches the database. The save box is
+// tied to the main window, or Windows can hide it behind the app.
 async function saveReportFile(payload) {
   const { filename, buffer } = payload;
-  const { filePath, canceled } = await dialog.showSaveDialog({
+  const { filePath, canceled } = await dialog.showSaveDialog(getMainWindow(), {
     title: "Raporu Kaydet",
     defaultPath: filename,
     filters: [{ name: "PDF Dosyası", extensions: ["pdf"] }],
   });
 
-  if (canceled || !filePath) return { success: false, message: "İptal edildi." };
+  // Cancelling is not an error. The caller reads the cancelled field, not the message.
+  if (canceled || !filePath) return { success: false, cancelled: true, message: "İptal edildi." };
 
-  await fs.promises.writeFile(filePath, Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer));
+  await fs.promises.writeFile(filePath, Buffer.from(buffer));
   return { success: true, message: `Rapor kaydedildi: ${filePath}` };
 }
 
@@ -42,7 +49,7 @@ function registerReportHandlers(ipcMain) {
 
   handle(
     CH.REPORT.GET_DATA,
-    (payload) => validateBuildingScope(payload) ?? validatePeriod(payload),
+    (payload) => validateBuildingScope(payload) ?? validatePeriod(payload, FUTURE_PERIOD_MESSAGE),
     reportService.getReportData,
   );
   handle(

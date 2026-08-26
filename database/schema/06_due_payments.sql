@@ -1,3 +1,4 @@
+-- Single payments against a due. Cancelling adds a payment_cancellations row instead of deleting.
 CREATE TABLE IF NOT EXISTS due_payments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   due_id INTEGER NOT NULL,

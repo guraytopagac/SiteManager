@@ -1,9 +1,12 @@
+// App entry point. The order of the startup steps below matters, do not change it.
 const { app, ipcMain } = require("electron");
 const { openDatabase } = require("../database/db");
 const { runMigrations } = require("../database/migrate");
 const { runStartupUpdateFlow } = require("./autoUpdater");
 const { initLogging, showFatalError } = require("./errorReporting");
 const registerIpcHandlers = require("./ipc");
+// Must stay at the top of the file. This module calls electron-serve, which registers a
+// custom scheme, and that only works before the app is ready.
 const { createMainWindow, getMainWindow } = require("./windows/main");
 const {
   createSplashWindow,
@@ -15,10 +18,13 @@ const {
 
 const isDev = !app.isPackaged;
 
+// Before the lock below, so a second instance also writes to main.log.
 initLogging(getMainWindow);
 
+// On purpose. It prevents drawing problems on old hardware.
 app.disableHardwareAcceleration();
 
+// The only place openDatabase is called.
 function connectDatabase() {
   try {
     return openDatabase();
@@ -33,6 +39,7 @@ function connectDatabase() {
   }
 }
 
+// Startup steps 3 to 8. Any failure here ends in an error box and app.quit().
 async function startApp() {
   const db = connectDatabase();
 
@@ -42,9 +49,11 @@ async function startApp() {
   }
 
   try {
+    // This wait is required. A send made before did-finish-load is dropped without a trace.
     createSplashWindow();
     await waitForSplashReady();
 
+    // Runs before the migrations, so a release with a broken migration can still be updated.
     if (!isDev) {
       setSplashStatus("Güncellemeler kontrol ediliyor");
       await runStartupUpdateFlow();
@@ -55,6 +64,7 @@ async function startApp() {
     registerIpcHandlers(ipcMain);
 
     setSplashStatus("Uygulama yükleniyor");
+    // Only created here. The splash module is what shows it.
     const mainWindow = createMainWindow(isDev);
     closeSplashWhenMainReady(mainWindow, isDev);
   } catch (err) {
@@ -69,6 +79,8 @@ async function startApp() {
   }
 }
 
+// A second instance quits at once and runs no startup step. Otherwise the migrations would
+// run twice on the same database file.
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {

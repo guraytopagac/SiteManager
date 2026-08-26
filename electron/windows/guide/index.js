@@ -1,3 +1,5 @@
+// The user guide window. Plain HTML with no preload, opened from the Help menu or F1.
+// Only one can be open, so a second one is never created.
 const path = require("path");
 const { app, BrowserWindow, screen, shell } = require("electron");
 const { SUPPORT_EMAIL } = require("../../errorReporting");
@@ -7,6 +9,7 @@ const BACKGROUND_COLORS = { light: "#f5f7fa", dark: "#16161f" };
 
 let guideWin = null;
 
+// Reads data-theme from the main window, so the guide opens with the right background colour.
 async function readAppTheme(parentWindow) {
   if (!parentWindow || parentWindow.isDestroyed()) return "light";
   try {
@@ -18,6 +21,7 @@ async function readAppTheme(parentWindow) {
   }
 }
 
+// Called by the menu theme item, after the main window has been told.
 function toggleGuideTheme() {
   if (!guideWin || guideWin.isDestroyed()) return;
   guideWin.webContents
@@ -53,12 +57,14 @@ async function openGuide(parentWindow) {
     guideWin.show();
   });
 
+  // A link that leaves the page opens in the system browser. Without this the mailto link does nothing.
   guideWin.webContents.on("will-navigate", (event, url) => {
     if (url.startsWith("file://")) return;
     event.preventDefault();
     shell.openExternal(url).catch((err) => console.warn("[Guide] External open failed:", err));
   });
 
+  // Version, support address and theme go in the query string, because there is no preload.
   guideWin.loadFile(path.join(__dirname, "guide.html"), {
     query: { v: app.getVersion(), mail: SUPPORT_EMAIL, theme },
   });

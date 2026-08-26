@@ -1,9 +1,11 @@
+// The only file that uses electron-updater. main.js and menu.js never import it.
 const { app, dialog, ipcMain } = require("electron");
 const log = require("electron-log");
 const { autoUpdater } = require("electron-updater");
 const { sendToSplash, setSplashStatus, setSplashProgress, getSplashWindow } = require("./windows/splash");
 
 autoUpdater.logger = log;
+// Not the package default. A downloaded update installs only when the user picks restart.
 autoUpdater.autoInstallOnAppQuit = false;
 
 const CHECK_TIMEOUT_MS = 20000;
@@ -14,11 +16,14 @@ const DOWNLOAD_STALLED_MESSAGE = `Update download made no progress for ${DOWNLOA
 
 let isUpdateFlowActive = false;
 
+// Startup flow, packaged builds only. It uses events and talks to the splash window.
+// Every path resolves, so a slow or missing connection cannot block startup.
 function runStartupUpdateFlow() {
   return new Promise((resolve) => {
     let finished = false;
     let idleTimeout = null;
 
+    // The one exit point. Removes every listener once, then lets startup go on.
     const continueStartup = () => {
       if (finished) return;
       finished = true;
@@ -35,6 +40,7 @@ function runStartupUpdateFlow() {
       continueStartup();
     };
 
+    // Restarted on every sign of progress, and gives up after ms of silence.
     const waitForProgress = (ms, giveUpReason) => {
       clearTimeout(idleTimeout);
       idleTimeout = setTimeout(() => {
@@ -64,6 +70,7 @@ function runStartupUpdateFlow() {
       });
     };
 
+    // The splash asks the restart question. Saying no keeps the current version for this session.
     const onUpdateDownloaded = async () => {
       clearTimeout(idleTimeout);
       setSplashProgress(-1);
@@ -75,6 +82,7 @@ function runStartupUpdateFlow() {
           autoUpdater.quitAndInstall(true, true);
           return;
         } catch (err) {
+          // Startup has to go on, or the splash would stay open for good.
           console.error("[Updater] Restart to install failed:", err);
         }
       }
@@ -94,10 +102,12 @@ function runStartupUpdateFlow() {
     }
 
     waitForProgress(CHECK_TIMEOUT_MS, CHECK_TIMED_OUT_MESSAGE);
+    // The rejection is dropped on purpose. The same failure also arrives through the error event.
     autoUpdater.checkForUpdates().catch(() => {});
   });
 }
 
+// Returns the restart choice made in the splash, or false if that window is gone.
 function askToRestart() {
   return new Promise((resolve) => {
     const splash = getSplashWindow();
@@ -119,6 +129,8 @@ function askToRestart() {
   });
 }
 
+// Menu flow. It uses no event listeners, because autoUpdater events are global and the
+// startup flow removes all of them.
 async function runOnDemandUpdateFlow(mainWindow) {
   if (isUpdateFlowActive) {
     await dialog.showMessageBox(mainWindow, {
@@ -135,6 +147,8 @@ async function runOnDemandUpdateFlow(mainWindow) {
   let isDownloading = false;
 
   try {
+    // Our own timeout. The one in electron-updater waits for a socket event Electron never sends,
+    // so a stuck request would leave isUpdateFlowActive true for good.
     const timedOut = new Promise((_resolve, reject) => {
       setTimeout(() => reject(new Error(CHECK_TIMED_OUT_MESSAGE)), CHECK_TIMEOUT_MS);
     });
@@ -152,6 +166,8 @@ async function runOnDemandUpdateFlow(mainWindow) {
       return;
     }
 
+    // Handled before the box opens and read after it closes. Otherwise a failure while the box is
+    // open would show up as an unhandled rejection.
     isDownloading = true;
     const download = result.downloadPromise.then(
       () => null,

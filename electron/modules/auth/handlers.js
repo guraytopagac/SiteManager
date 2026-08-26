@@ -1,18 +1,13 @@
+// Auth IPC entry points. Passwords are never trimmed, because a space may be part of the password.
 const { CHANNELS: CH } = require("../../ipc/channels");
-const { createHandle } = require("../shared/safeHandler");
-const {
-  MAX_EMAIL_LENGTH,
-  MIN_EMAIL_LENGTH,
-  fail,
-  isEmailFormat,
-  noValidation,
-  validateId,
-  validatePayload,
-} = require("../shared/validate");
+const { createHandle } = require("../../ipc/handler");
+const { fail, isValidEmail, noValidation, validateId, validatePayload } = require("../shared/validate");
 const authService = require("./service");
 
+// Same rule as the username CHECK on the users table.
 const USERNAME_RE = /^[A-Za-z0-9_]{3,30}$/;
 
+// Trimming happens here only. The service never trims again.
 function trimField(payload, field) {
   if (typeof payload[field] === "string") {
     payload[field] = payload[field].trim();
@@ -37,6 +32,7 @@ function validatePersonName(value, message) {
   return null;
 }
 
+// Presence only. The service checks the password against the hash.
 function validateRequiredPassword(payload) {
   if (typeof payload.password !== "string" || !payload.password) {
     return fail("Şifre zorunludur.");
@@ -64,6 +60,7 @@ function validateChangePasswordFields(payload) {
   return validatePassword(payload.newPassword);
 }
 
+// Email is optional. An empty value becomes null, which removes the stored address.
 function validateEmailField(payload) {
   trimField(payload, "email");
   const { email } = payload;
@@ -71,10 +68,7 @@ function validateEmailField(payload) {
     payload.email = null;
     return null;
   }
-  if (typeof email !== "string" || email.length < MIN_EMAIL_LENGTH || email.length > MAX_EMAIL_LENGTH) {
-    return fail("E-posta adresi 5 ile 254 karakter arasında olmalıdır.");
-  }
-  if (!isEmailFormat(email)) {
+  if (!isValidEmail(email)) {
     return fail("Geçerli bir e-posta adresi girin.");
   }
   return null;

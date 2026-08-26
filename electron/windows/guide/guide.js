@@ -1,5 +1,7 @@
+// Guide renderer. This window has no preload, so everything it needs comes in the query string.
 const params = new URLSearchParams(window.location.search);
 
+// Set before the first paint, so the guide never shows the wrong theme for a moment.
 document.documentElement.dataset.theme = params.get("theme") === "dark" ? "dark" : "light";
 
 function initHeader() {
@@ -43,6 +45,7 @@ function initScrollSpy(sidebarLinks) {
 
       if (visibleHeadings.size === 0) return;
 
+      // More than one heading can be on screen, so the highest one wins.
       const topmost = [...visibleHeadings].reduce((a, b) =>
         a.getBoundingClientRect().top <= b.getBoundingClientRect().top ? a : b,
       );
@@ -62,6 +65,7 @@ function initScrollSpy(sidebarLinks) {
   });
 }
 
+// Turns Turkish letters into plain ones, so searching gorunum also finds görünüm.
 function normalize(str) {
   return str
     .toLocaleLowerCase("tr")
@@ -73,6 +77,7 @@ function normalize(str) {
     .replace(/ç/g, "c");
 }
 
+// Everything between one h2 and the next. This is what the search looks in.
 function collectSectionText(id) {
   const heading = document.getElementById(id);
   if (!heading) return "";
@@ -99,6 +104,7 @@ function buildSearchIndex(navItems) {
   return haystacks;
 }
 
+// Filters the sidebar. A group label is hidden when none of the links under it match.
 function initSearch(navItems) {
   const searchInput = document.getElementById("guide-search-input");
   const searchEmpty = document.getElementById("guide-search-empty");

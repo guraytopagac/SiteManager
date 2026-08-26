@@ -41,7 +41,7 @@ function Icon({ name }) {
 function Dashboard() {
   const navigate = useNavigate();
   const building = useCurrentBuilding();
-  const [stats, setStats] = useState({ cash: 0, collections: 0, delays: 0 });
+  const [stats, setStats] = useState({ cash: 0, collections: null, delays: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
@@ -111,7 +111,7 @@ function Dashboard() {
         <div className="stat-card stat-card-tahsilat">
           <div className="stat-card-text">
             <h3>Tahsilat</h3>
-            <p>{stats.collections}%</p>
+            <p>{stats.collections === null ? "—" : `${stats.collections}%`}</p>
             <span className="stat-card-period">{formatMonthYear(getCurrentYear(), getCurrentMonth())}</span>
           </div>
           <div className="stat-icon-badge">

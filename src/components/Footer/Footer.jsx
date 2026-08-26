@@ -20,7 +20,7 @@ function Footer() {
         setVersion(appVersion);
         setHasUnseen(hasUnseenReleaseNotes(appVersion));
       })
-      .catch(() => setVersion(""));
+      .catch((err) => console.error("[Footer] getAppVersion:", err));
   }, []);
 
   const showReleaseNotes = () => {

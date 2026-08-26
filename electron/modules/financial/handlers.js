@@ -1,29 +1,37 @@
+// Financial IPC entry points, for income and expense entered by hand.
 const { CHANNELS: CH } = require("../../ipc/channels");
-const { createHandle } = require("../shared/safeHandler");
+const { createHandle } = require("../../ipc/handler");
+const { trToday } = require("../shared/trTime");
 const {
   fail,
-  isDateInRange,
-  isIsoDate,
+  isValidDate,
   isValidMonth,
   isValidYear,
   validateBuildingScope,
+  validateCancelReason,
   validateId,
 } = require("../shared/validate");
 const financialService = require("./service");
 
+// The dues category is valid in the schema but not here, because only recordPayment may write it.
+// Both lists match the schema CHECKs and the selects on the matching pages.
 const MANUAL_INCOME_CATEGORIES = ["rent", "parking", "donation", "other"];
 const EXPENSE_CATEGORIES = ["maintenance", "cleaning", "utility", "staff", "other"];
 
-const TRIMMED_FIELDS = ["description", "category"];
-
+// Trims and sets the default category, so the service needs no fallback of its own.
 function normalizeFinancialData(payload) {
-  for (const field of TRIMMED_FIELDS) {
-    if (typeof payload[field] === "string") {
-      payload[field] = payload[field].trim();
-    }
+  if (typeof payload.description === "string") {
+    payload.description = payload.description.trim();
+  }
+  if (typeof payload.category === "string") {
+    payload.category = payload.category.trim();
+  }
+  if (payload.category == null || payload.category === "") {
+    payload.category = "other";
   }
 }
 
+// Field checks shared by income and expense. The limits match the CHECK constraints.
 function validateRecordFields(payload, allowedCategories) {
   if (!Number.isFinite(payload.amount) || payload.amount <= 0) {
     return fail("Geçersiz tutar.");
@@ -31,11 +39,12 @@ function validateRecordFields(payload, allowedCategories) {
   if (payload.amount > 1000000) {
     return fail("Tutar 1.000.000₺'yi aşamaz.");
   }
-  if (!payload.date) {
-    return fail("Eksik alan: tarih bilgisi.");
-  }
-  if (!isIsoDate(payload.date) || !isDateInRange(payload.date)) {
+  if (!isValidDate(payload.date)) {
     return fail("Geçersiz tarih.");
+  }
+  // A later date is rejected by day here, while the period channels compare whole months.
+  if (payload.date > trToday()) {
+    return fail("İleri bir tarih seçilemez.");
   }
   if (typeof payload.description !== "string" || !payload.description) {
     return fail("Açıklama alanı zorunludur.");
@@ -43,7 +52,7 @@ function validateRecordFields(payload, allowedCategories) {
   if (payload.description.length > 500) {
     return fail("Açıklama en fazla 500 karakter olabilir.");
   }
-  if (payload.category != null && payload.category !== "" && !allowedCategories.includes(payload.category)) {
+  if (!allowedCategories.includes(payload.category)) {
     return fail("Geçersiz kategori.");
   }
   return null;
@@ -62,7 +71,9 @@ function validateExpenseFields(payload) {
   return validateRecordFields(payload, EXPENSE_CATEGORIES);
 }
 
-function validatePeriod(period) {
+// Checks the optional period of getTransactions, where null means all time. Not the same as
+// validatePeriod in shared/validate.js, which reads the payload fields and rejects a future period.
+function validateOptionalPeriod(period) {
   if (period == null) {
     return null;
   }
@@ -78,17 +89,7 @@ function validatePeriod(period) {
   return null;
 }
 
-function validateCancelReason(payload) {
-  if (typeof payload.reason !== "string" || !payload.reason.trim()) {
-    return fail("İptal nedeni zorunludur.");
-  }
-  payload.reason = payload.reason.trim();
-  if (payload.reason.length > 300) {
-    return fail("İptal nedeni en fazla 300 karakter olabilir.");
-  }
-  return null;
-}
-
+// A cancel call carries two ids. buildingId says which building, userId says who did it.
 function validateCancelScope(payload) {
   return (
     validateBuildingScope(payload) ?? validateId(payload.id, "kayıt ID") ?? validateId(payload.userId, "kullanıcı ID")
@@ -110,7 +111,7 @@ function registerFinancialHandlers(ipcMain) {
   );
   handle(
     CH.FINANCIAL.GET_TRANSACTIONS,
-    (payload) => validateBuildingScope(payload) ?? validatePeriod(payload.period),
+    (payload) => validateBuildingScope(payload) ?? validateOptionalPeriod(payload.period),
     financialService.getTransactions,
   );
   handle(

@@ -1,3 +1,4 @@
+-- Apartments are only soft-deleted (is_active = 0), because dues rows point at them.
 CREATE TABLE IF NOT EXISTS apartments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   building_id INTEGER NOT NULL,
@@ -8,6 +9,7 @@ CREATE TABLE IF NOT EXISTS apartments (
   floor INTEGER CHECK(floor IS NULL OR (floor >= -2 AND floor <= 99)),
   type TEXT NOT NULL CHECK(type IN ('0+1', '1+1', '2+1', '3+1', '4+1')),
   square_meters REAL CHECK(square_meters IS NULL OR (square_meters > 0 AND square_meters <= 1000)),
+  -- Current monthly due. Accrual copies it into each dues row, so edits do not change past months.
   due_amount REAL NOT NULL CHECK(due_amount > 0 AND due_amount <= 50000),
   is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0, 1)),
   created_at TEXT NOT NULL DEFAULT (datetime('now', '+3 hours')),
@@ -15,5 +17,6 @@ CREATE TABLE IF NOT EXISTS apartments (
   FOREIGN KEY(building_id) REFERENCES buildings(id) ON DELETE RESTRICT
 );
 
+-- Covers inactive rows too, which is why addApartment reuses a matching inactive apartment.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_apartments_building_no
   ON apartments(building_id, apartment_no COLLATE NOCASE);

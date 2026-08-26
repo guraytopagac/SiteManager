@@ -1,3 +1,5 @@
+// Turns a SQLite constraint error into a Turkish message. Last line of defence, because the
+// handler should have caught the bad input first.
 function extractConstraintCol(msg, prefix, columnLabels) {
   const raw = msg.split(prefix)[1]?.trim();
   if (!raw) return null;
@@ -11,6 +13,8 @@ function extractConstraintCol(msg, prefix, columnLabels) {
   return cols.find((col) => col in columnLabels) ?? cols[0];
 }
 
+// Only the UNIQUE and NOT NULL branches read a label, so give a column a label only when it
+// sits in a UNIQUE index or is NOT NULL.
 function createDbErrorResolver(columnLabels = {}) {
   return function resolveDbError(err, context) {
     const msg = err.message ?? "";
@@ -21,6 +25,7 @@ function createDbErrorResolver(columnLabels = {}) {
       return `${label} zaten kullanılıyor.`;
     }
 
+    // CHECK and FOREIGN KEY give no useful column name, so they get one general sentence.
     if (msg.includes("CHECK constraint failed")) {
       return `${context} sırasında girilen değerlerden biri geçerli aralıkta değil. Lütfen kontrol edin.`;
     }

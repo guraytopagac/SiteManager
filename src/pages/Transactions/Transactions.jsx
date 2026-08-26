@@ -46,6 +46,7 @@ function Transactions() {
   const [showAllTime, setShowAllTime] = useState(false);
   const [year, setYear] = useState(() => getCurrentYear());
   const [month, setMonth] = useState(() => getCurrentMonth());
+  const [totals, setTotals] = useState({ totalIncome: 0, totalExpense: 0, net: 0 });
 
   const handleYearChange = (selectedYear) => {
     setYear(selectedYear);
@@ -64,6 +65,7 @@ function Transactions() {
       });
       if (response.success) {
         setTransactions(response.data);
+        setTotals(response.totals);
       } else {
         showAlert.error("Hata", response.message || "İşlem geçmişi alınamadı.");
       }
@@ -91,6 +93,7 @@ function Transactions() {
         if (!isMounted) return;
         if (response.success) {
           setTransactions(response.data);
+          setTotals(response.totals);
         } else {
           showAlert.error("Hata", response.message || "İşlem geçmişi alınamadı.");
         }
@@ -127,12 +130,6 @@ function Transactions() {
     () => (filter === "all" ? transactions : transactions.filter((t) => t.type === filter)),
     [transactions, filter],
   );
-
-  const { totalIncome, totalExpense, net } = useMemo(() => {
-    const totalIncome = transactions.filter((t) => t.type === "income" && !t.is_cancelled).reduce((s, t) => s + t.amount, 0);
-    const totalExpense = transactions.filter((t) => t.type === "expense" && !t.is_cancelled).reduce((s, t) => s + t.amount, 0);
-    return { totalIncome, totalExpense, net: totalIncome - totalExpense };
-  }, [transactions]);
 
   if (loading) return <div className="loading">Yükleniyor...</div>;
 
@@ -188,17 +185,17 @@ function Transactions() {
       <div className="transactions-summary">
         <div className="summary-card income">
           <span className="summary-label">Toplam Gelir</span>
-          <span className="summary-amount">+{formatCurrency(totalIncome)}</span>
+          <span className="summary-amount">+{formatCurrency(totals.totalIncome)}</span>
         </div>
         <div className="summary-card expense">
           <span className="summary-label">Toplam Gider</span>
-          <span className="summary-amount">-{formatCurrency(totalExpense)}</span>
+          <span className="summary-amount">-{formatCurrency(totals.totalExpense)}</span>
         </div>
-        <div className={`summary-card net ${net >= 0 ? "positive" : "negative"}`}>
+        <div className={`summary-card net ${totals.net >= 0 ? "positive" : "negative"}`}>
           <span className="summary-label">Net</span>
           <span className="summary-amount">
-            {net >= 0 ? "+" : ""}
-            {formatCurrency(net)}
+            {totals.net >= 0 ? "+" : ""}
+            {formatCurrency(totals.net)}
           </span>
         </div>
       </div>

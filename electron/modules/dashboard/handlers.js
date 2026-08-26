@@ -1,5 +1,6 @@
+// Dashboard IPC entry point. Its only field is buildingId, so the shared scope check is enough.
 const { CHANNELS: CH } = require("../../ipc/channels");
-const { createHandle } = require("../shared/safeHandler");
+const { createHandle } = require("../../ipc/handler");
 const { validateBuildingScope } = require("../shared/validate");
 const dashboardService = require("./service");
 

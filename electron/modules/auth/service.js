@@ -1,3 +1,6 @@
+// Auth rules. There is one account, so every lookup takes the first row by id. Passwords and
+// recovery codes are stored as bcrypt hashes. The only value ever returned in clear text is a
+// new recovery code, shown to the user once.
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const { getDb } = require("../../../database/db");
@@ -16,6 +19,7 @@ const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const TEMP_PASSWORD_LENGTH = 12;
 const RECOVERY_LENGTH = 16;
 const RECOVERY_GROUP_RE = /.{1,4}/g;
+// Compared against when no user matches, so login takes about the same time either way.
 const DUMMY_HASH = "$2b$12$3X/2XNSPPTIIRZLnRyDSAOjqjj3mreEYkyjbWyz7RkwJbe0MBr8l.";
 
 const ACCOUNT_NOT_FOUND_MESSAGE = "Hesap bulunamadı.";
@@ -25,6 +29,7 @@ const INVALID_RECOVERY_MESSAGE = "Kurtarma kodu hatalı.";
 const NO_ACCOUNT_MESSAGE =
   "Bu bilgisayarda kurulu bir hesap bulunamadı. Uygulamayı yeniden başlatıp kurulumu tamamlayın.";
 
+// The alphabet has no I, O, 0 or 1, so a written code cannot be misread.
 function randomCode(length) {
   return Array.from({ length }, () => CODE_ALPHABET[crypto.randomInt(CODE_ALPHABET.length)]).join("");
 }
@@ -38,16 +43,19 @@ function generateTemporaryPassword() {
   return randomCode(TEMP_PASSWORD_LENGTH);
 }
 
+// Accepts dashes, spaces and lower case when the user types the code back in.
 function normalizeRecoveryCode(input) {
   return String(input || "")
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, "");
 }
 
+// The one account row. No row means setup is not done yet.
 function findAccount() {
   return getDb().prepare(`SELECT id, username, password_hash, recovery_hash FROM users ORDER BY id LIMIT 1`).get();
 }
 
+// Used by reset and verify. It returns a code field, because the renderer checks that field.
 function checkRecoveryCode(account, recoveryCode) {
   if (!account) {
     return { success: false, message: NO_ACCOUNT_MESSAGE };
@@ -58,6 +66,7 @@ function checkRecoveryCode(account, recoveryCode) {
   return null;
 }
 
+// The only user object the renderer ever sees. The hash columns are left out.
 function toSafeUser(user) {
   return {
     id: user.id,
@@ -78,6 +87,8 @@ function login(credentials) {
       .get(credentials.username);
 
     if (!user) {
+      // A fake compare, so a missing user takes about as long as a wrong password. It only helps
+      // here, because the recovery pages already tell you whether an account exists.
       bcrypt.compareSync(credentials.password, DUMMY_HASH);
       return { success: false, message: INVALID_CREDENTIALS_MESSAGE };
     }
@@ -97,6 +108,8 @@ function login(credentials) {
   }
 }
 
+// Hands the account to another person. Buildings and data stay where they are. The recovery code
+// is replaced too, or the old holder could use their code to get back in.
 function transferAccount(payload) {
   const { userId, password, newPerson } = payload;
   try {
@@ -172,6 +185,8 @@ function updateEmail(payload) {
   }
 }
 
+// Called from /recover without a session. The code is single use, so a new one is issued and
+// the username is returned with it.
 function resetAccountPassword(payload) {
   const { recoveryCode, newPassword } = payload;
   try {
@@ -201,6 +216,7 @@ function resetAccountPassword(payload) {
   }
 }
 
+// Step one of /recover. It changes nothing, so the user sees the error before typing a password.
 function verifyRecoveryCode(payload) {
   try {
     return checkRecoveryCode(findAccount(), payload.recoveryCode) ?? { success: true };
@@ -230,6 +246,7 @@ function regenerateRecoveryCode(payload) {
   }
 }
 
+// Used by the startup redirect and to fill in the username on the login page.
 function getSetupState() {
   try {
     const account = findAccount();
@@ -240,6 +257,7 @@ function getSetupState() {
   }
 }
 
+// Creates the one account row. It works only while no account exists, and INSERT is its only write.
 function completeSetup(payload) {
   const { username, password, managerName } = payload;
   try {

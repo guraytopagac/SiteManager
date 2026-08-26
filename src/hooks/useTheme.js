@@ -3,15 +3,9 @@ import { useEffect, useLayoutEffect, useState } from "react";
 const THEME_KEY = "theme";
 const VALID_THEMES = ["light", "dark"];
 
-function getInitialTheme() {
-  const savedTheme = localStorage.getItem(THEME_KEY);
-  if (VALID_THEMES.includes(savedTheme)) {
-    return savedTheme;
-  }
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
+const initialTheme = document.documentElement.dataset.theme;
 
-let currentTheme = getInitialTheme();
+let currentTheme = VALID_THEMES.includes(initialTheme) ? initialTheme : "dark";
 const listeners = new Set();
 
 export function toggleTheme() {

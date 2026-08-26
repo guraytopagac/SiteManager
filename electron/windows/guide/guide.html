@@ -1,4 +1,6 @@
-﻿<!doctype html>
+﻿<!-- User guide window. Plain HTML with no preload, so guide.js reads what it needs from the
+     query string. Every window needs its own CSP meta tag. -->
+<!doctype html>
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
@@ -26,6 +28,7 @@
           />
           <div class="guide-search-empty" id="guide-search-empty" hidden>Sonuç bulunamadı</div>
         </div>
+        <!-- The link order must match the h2 order in the content column. -->
         <nav aria-label="Kılavuz bölümleri">
           <div class="guide-section-label" role="heading" aria-level="2">Başlarken</div>
           <a href="#setup">İlk Kurulum</a>
@@ -53,6 +56,7 @@
       </aside>
 
       <main class="guide-content">
+        <!-- Filled from the v query parameter, and hidden until then. -->
         <div class="guide-version-badge" id="guide-version" hidden></div>
         <h1>Mavikent Site Yönetim Sistemi Uygulaması</h1>
         <p class="guide-subtitle">Kullanım Kılavuzu: tüm özellikler ve adım adım açıklamalar</p>
@@ -745,6 +749,7 @@
         <hr class="guide-section-sep" />
         <p class="guide-footer-note">
           Mavikent Site Yönetim Sistemi
+          <!-- Filled from the mail query parameter. -->
           <span id="guide-support" hidden>
             &nbsp;·&nbsp; Destek: <a class="guide-support-email" id="guide-support-email" href="#"></a>
           </span>

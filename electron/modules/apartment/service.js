@@ -1,8 +1,10 @@
+// Apartment rules. An apartment is only soft-deleted, and its number can be used again.
 const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
 const { TR_NOW_SQL, trToday } = require("../shared/trTime");
 
+// Only apartment_no can produce a named message, because it is the one column in a UNIQUE index.
 const COLUMN_LABELS = { apartment_no: "Daire numarası" };
 
 const NOT_FOUND_MESSAGE = "Daire bulunamadı.";
@@ -12,6 +14,7 @@ const DUPLICATE_INACTIVE_MESSAGE =
 
 const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
 
+// All four endpoints refuse a removed or archived building.
 function checkBuildingUsable(buildingId) {
   const building = getDb().prepare(`SELECT is_active FROM buildings WHERE id = ? AND is_removed = 0`).get(buildingId);
 
@@ -24,6 +27,7 @@ function checkBuildingUsable(buildingId) {
   return null;
 }
 
+// Searches active and inactive rows, because the unique index covers both.
 function findApartmentByNo(buildingId, apartmentNo, excludeId) {
   return getDb()
     .prepare(
@@ -37,6 +41,7 @@ function apartmentValues(payload) {
   return [payload.apartment_no, payload.floor ?? null, payload.type, payload.square_meters ?? null, payload.due_amount];
 }
 
+// Adds an apartment, or brings back an inactive row with the same number.
 function addApartment(payload) {
   try {
     const buildingError = checkBuildingUsable(payload.buildingId);
@@ -49,6 +54,8 @@ function addApartment(payload) {
       return { success: false, message: DUPLICATE_ACTIVE_MESSAGE };
     }
 
+    // This also resets created_at, because accrual starts from that month. Without it the months
+    // the apartment was inactive would be billed.
     if (existing) {
       getDb()
         .prepare(
@@ -76,6 +83,7 @@ function addApartment(payload) {
   }
 }
 
+// Never touches residents or dues rows that already exist.
 function updateApartment(payload) {
   try {
     const buildingError = checkBuildingUsable(payload.buildingId);
@@ -110,6 +118,7 @@ function updateApartment(payload) {
   }
 }
 
+// Soft delete. Unpaid debt is refused once, and it goes through when the renderer retries with force.
 function deleteApartment(payload) {
   try {
     const buildingError = checkBuildingUsable(payload.buildingId);
@@ -127,6 +136,7 @@ function deleteApartment(payload) {
     }
 
     if (payload.force !== true) {
+      // Accrue first, or a month that has not been created yet would look paid.
       ensureMonthlyDues(payload.buildingId);
 
       const { unpaidTotal } = db
@@ -146,6 +156,7 @@ function deleteApartment(payload) {
       }
     }
 
+    // COALESCE keeps a move-out date the user entered before, even a later one.
     const moveOutDate = trToday();
 
     db.transaction(() => {
@@ -164,6 +175,7 @@ function deleteApartment(payload) {
   }
 }
 
+// Writes the new amount to every active apartment. Dues rows keep the amount they already have.
 function bulkUpdateDueAmount(payload) {
   try {
     const buildingError = checkBuildingUsable(payload.buildingId);

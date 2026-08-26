@@ -32,10 +32,20 @@ export default defineConfig([
     rules: commonRules,
   },
   {
-    files: ["electron/windows/**/guide.js", "electron/windows/**/splash.js"],
+    files: ["electron/windows/**/guide.js", "electron/windows/**/splash.js", "public/*.js"],
     extends: [js.configs.recommended],
     languageOptions: {
       globals: { ...globals.browser },
+    },
+    rules: commonRules,
+  },
+  // Config files in the project root. Without this block they match no other one, which means
+  // eslint parses them and applies no rule at all.
+  {
+    files: ["*.js", "*.mjs"],
+    extends: [js.configs.recommended],
+    languageOptions: {
+      globals: { ...globals.node },
     },
     rules: commonRules,
   },

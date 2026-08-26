@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -39,66 +39,50 @@ function Reports() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("finance");
 
-  const fetchReport = async (selectedYear, selectedMonth) => {
-    if (!building?.id) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    try {
-      const response = await window.electronAPI.getReportData({
-        buildingId: building.id,
-        year: selectedYear,
-        month: selectedMonth,
-      });
-      if (response.success) {
-        setReportData(response.data);
-        setLoadedPeriod({ year: selectedYear, month: selectedMonth });
-        setActiveTab("finance");
-      } else {
-        showAlert.error("Hata", response.message || "Rapor verileri alınamadı.");
-      }
-    } catch {
-      showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    let isMounted = true;
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
-    (async () => {
+  const fetchReport = useCallback(
+    async (selectedYear, selectedMonth) => {
       if (!building?.id) {
         setLoading(false);
         return;
       }
-      const initialYear = getCurrentYear();
-      const initialMonth = getCurrentMonth();
+      setLoading(true);
       try {
         const response = await window.electronAPI.getReportData({
           buildingId: building.id,
-          year: initialYear,
-          month: initialMonth,
+          year: selectedYear,
+          month: selectedMonth,
         });
-        if (!isMounted) return;
+        if (!isMountedRef.current) return;
         if (response.success) {
           setReportData(response.data);
-          setLoadedPeriod({ year: initialYear, month: initialMonth });
+          setLoadedPeriod({ year: selectedYear, month: selectedMonth });
+          setActiveTab("finance");
         } else {
           showAlert.error("Hata", response.message || "Rapor verileri alınamadı.");
         }
       } catch {
-        if (isMounted) showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
+        if (isMountedRef.current) showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMountedRef.current) setLoading(false);
       }
-    })();
+    },
+    [building],
+  );
 
-    return () => {
-      isMounted = false;
-    };
-  }, [building?.id]);
+  useEffect(() => {
+    (async () => {
+      await fetchReport(getCurrentYear(), getCurrentMonth());
+    })();
+  }, [fetchReport]);
 
   const handleYearChange = (selectedYear) => {
     setYear(selectedYear);
@@ -106,14 +90,15 @@ function Reports() {
   };
 
   const collectionRate =
-    reportData && reportData.totalDue > 0 ? Math.round((reportData.totalPaid / reportData.totalDue) * 100) : 0;
+    reportData && reportData.totalDue > 0 ? Math.round((reportData.totalPaid / reportData.totalDue) * 100) : null;
 
   const financeRows = useMemo(() => (reportData ? buildFinanceRows(reportData) : []), [reportData]);
 
   const buildPdf = () => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const buildingName = building?.name || "Mavikent Site Yönetimi";
-    const title = `${buildingName} ${formatMonthYear(year, month)} Raporu`;
+    const period = loadedPeriod ?? { year, month };
+    const title = `${buildingName} ${formatMonthYear(period.year, period.month)} Raporu`;
     const pageW = doc.internal.pageSize.getWidth();
 
     doc.setFont("helvetica", "bold");
@@ -133,7 +118,7 @@ function Reports() {
           fmt(reportData.totalIncome),
           fmt(reportData.totalExpense),
           fmt(reportData.totalIncome - reportData.totalExpense),
-          reportData.totalDue > 0 ? `%${collectionRate}` : "—",
+          collectionRate === null ? "—" : `%${collectionRate}`,
         ],
       ],
       styles: { fontSize: 9, halign: "center" },
@@ -194,11 +179,12 @@ function Reports() {
   const handleExportPdf = async () => {
     try {
       const buffer = buildPdf();
-      const filename = `rapor_${year}_${String(month).padStart(2, "0")}.pdf`;
+      const period = loadedPeriod ?? { year, month };
+      const filename = `rapor_${period.year}_${String(period.month).padStart(2, "0")}.pdf`;
       const response = await window.electronAPI.saveReportFile({ filename, buffer: new Uint8Array(buffer) });
       if (response.success) {
         showAlert.toast("Kaydedildi", response.message);
-      } else if (response.message !== "İptal edildi.") {
+      } else if (!response.cancelled) {
         showAlert.error("Hata", response.message);
       }
     } catch (err) {
@@ -280,7 +266,7 @@ function Reports() {
             </div>
             <div className="summary-card collection">
               <span className="summary-label">Aidat Tahsilat</span>
-              <span className="summary-amount">%{collectionRate}</span>
+              <span className="summary-amount">{collectionRate === null ? "—" : `%${collectionRate}`}</span>
             </div>
           </div>
 
@@ -359,7 +345,7 @@ function Reports() {
                   </tr>
                 ) : (
                   reportData.dues.map((d) => (
-                    <tr key={`due-${d.apartment_no}-${d.floor}`}>
+                    <tr key={d.apartment_id}>
                       <td>{d.apartment_no}</td>
                       <td>{d.floor}</td>
                       <td>{d.type}</td>

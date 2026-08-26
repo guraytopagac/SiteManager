@@ -1,3 +1,5 @@
+<!-- Splash window. Every window needs its own CSP meta tag. Electron warns in the console
+     for any renderer without one. -->
 <!doctype html>
 <html lang="tr">
   <head>
@@ -24,6 +26,7 @@
 
       <h1 class="splash-title">Mavikent Site Yönetimi</h1>
 
+      <!-- The blocks below start hidden. splash.js shows them when an update is found. -->
       <div class="splash-update-badge" id="update-badge">
         <img src="../../../assets/download.svg" alt="" width="12" height="12" class="splash-badge-icon" />
         <span id="update-badge-text"></span>
@@ -47,6 +50,7 @@
         </div>
       </div>
 
+      <!-- The restart question is asked here, not in a dialog, because the update flow talks to this window. -->
       <div class="splash-restart-prompt" id="restart-prompt">
         <p class="splash-restart-text">Güncelleme hazır. Şimdi yeniden başlatılsın mı?</p>
         <div class="splash-restart-actions">
@@ -55,6 +59,7 @@
         </div>
       </div>
 
+      <!-- Filled from the v query parameter. -->
       <div class="splash-version-pill">
         <span id="version">v—</span>
       </div>

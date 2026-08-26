@@ -1,3 +1,4 @@
+// Registers the handlers of every domain. A new domain adds one line to the list.
 const registrars = [
   require("../modules/apartment/handlers"),
   require("../modules/auth/handlers"),

@@ -194,7 +194,7 @@ function SelectBuilding() {
       if (selectedBuilding?.id === building.id) {
         clearCurrentBuilding();
       }
-      showAlert.toast("Bina kalıcı olarak silindi.");
+      showAlert.toast(res.message);
       setReloadToken((t) => t + 1);
     } else {
       showAlert.error("Hata", res.message);
@@ -227,7 +227,7 @@ function SelectBuilding() {
       if (!willActivate && selectedBuilding?.id === building.id) {
         clearCurrentBuilding();
       }
-      showAlert.toast(willActivate ? "Bina geri getirildi." : "Bina silindi.");
+      showAlert.toast(res.message);
       setReloadToken((t) => t + 1);
     } else {
       showAlert.error("Hata", res.message);

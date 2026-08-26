@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Residents.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
@@ -43,25 +43,29 @@ function ResidentFormModal({ apartment, building, onClose, onSaved }) {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const res = isEdit
-      ? await window.electronAPI.updateResident({
-          residentId: apartment.resident_id,
-          buildingId: building.id,
-          ...form,
-        })
-      : await window.electronAPI.addResident({
-          apartmentId: apartment.apartment_id,
-          buildingId: building.id,
-          ...form,
-        });
+    try {
+      const res = isEdit
+        ? await window.electronAPI.updateResident({
+            residentId: apartment.resident_id,
+            buildingId: building.id,
+            ...form,
+          })
+        : await window.electronAPI.addResident({
+            apartmentId: apartment.apartment_id,
+            buildingId: building.id,
+            ...form,
+          });
 
-    setIsSubmitting(false);
-
-    if (res.success) {
-      showAlert.toast(isEdit ? "Güncellendi" : "Eklendi", res.message);
-      onSaved();
-    } else {
-      showAlert.error("Hata", res.message);
+      if (res.success) {
+        showAlert.toast(isEdit ? "Güncellendi" : "Eklendi", res.message);
+        onSaved();
+      } else {
+        showAlert.error("Hata", res.message);
+      }
+    } catch {
+      showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -95,13 +99,7 @@ function ResidentFormModal({ apartment, building, onClose, onSaved }) {
           </div>
           <div className="form-row">
             <label>E-posta</label>
-            <input
-              type="email"
-              maxLength={254}
-              placeholder="İsteğe bağlı"
-              value={form.email}
-              onChange={set("email")}
-            />
+            <input type="email" maxLength={254} placeholder="İsteğe bağlı" value={form.email} onChange={set("email")} />
           </div>
           <div className="form-row">
             <label>TC Kimlik No</label>
@@ -158,18 +156,23 @@ function MoveOutModal({ apartment, building, onClose, onSaved }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    const res = await window.electronAPI.moveOutResident({
-      residentId: apartment.resident_id,
-      buildingId: building.id,
-      moveOutDate,
-    });
-    setIsSubmitting(false);
+    try {
+      const res = await window.electronAPI.moveOutResident({
+        residentId: apartment.resident_id,
+        buildingId: building.id,
+        moveOutDate,
+      });
 
-    if (res.success) {
-      showAlert.toast("Kaydedildi", res.message);
-      onSaved();
-    } else {
-      showAlert.error("Hata", res.message);
+      if (res.success) {
+        showAlert.toast("Kaydedildi", res.message);
+        onSaved();
+      } else {
+        showAlert.error("Hata", res.message);
+      }
+    } catch {
+      showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -216,13 +219,22 @@ function HistoryModal({ apartment, building, onClose }) {
     let isMounted = true;
     (async () => {
       setLoading(true);
-      const res = await window.electronAPI.getResidentHistory({
-        apartmentId: apartment.apartment_id,
-        buildingId: building.id,
-      });
-      if (!isMounted) return;
-      if (res.success) setHistory(res.data);
-      setLoading(false);
+      try {
+        const res = await window.electronAPI.getResidentHistory({
+          apartmentId: apartment.apartment_id,
+          buildingId: building.id,
+        });
+        if (!isMounted) return;
+        if (res.success) {
+          setHistory(res.data);
+        } else {
+          showAlert.error("Hata", res.message || "Sakin geçmişi alınamadı.");
+        }
+      } catch {
+        if (isMounted) showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     })();
     return () => {
       isMounted = false;
@@ -276,48 +288,42 @@ function Residents() {
   const [moveOutTarget, setMoveOutTarget] = useState(null);
   const [historyTarget, setHistoryTarget] = useState(null);
 
-  const fetchOverview = useCallback(async () => {
-    setLoading(true);
-    setErrorMessage("");
+  const isMountedRef = useRef(true);
 
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const fetchOverview = useCallback(async () => {
     if (!building?.id) {
       navigate("/", { replace: true });
       return;
     }
-
-    const res = await window.electronAPI.getResidentsOverview({ buildingId: building.id });
-    if (res.success) {
-      setRows(res.data);
-    } else {
-      setErrorMessage(res.message || "Veriler alınamadı.");
-    }
-    setLoading(false);
-  }, [building, navigate]);
-
-  useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      setLoading(true);
-      setErrorMessage("");
-
-      if (!building?.id) {
-        navigate("/", { replace: true });
-        return;
-      }
-
+    setLoading(true);
+    setErrorMessage("");
+    try {
       const res = await window.electronAPI.getResidentsOverview({ buildingId: building.id });
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
       if (res.success) {
         setRows(res.data);
       } else {
         setErrorMessage(res.message || "Veriler alınamadı.");
       }
-      setLoading(false);
-    })();
-    return () => {
-      isMounted = false;
-    };
+    } catch {
+      if (isMountedRef.current) setErrorMessage("Beklenmedik bir hata oluştu.");
+    } finally {
+      if (isMountedRef.current) setLoading(false);
+    }
   }, [building, navigate]);
+
+  useEffect(() => {
+    (async () => {
+      await fetchOverview();
+    })();
+  }, [fetchOverview]);
 
   const handleSaved = useCallback(() => {
     setFormTarget(null);
@@ -435,11 +441,7 @@ function Residents() {
       )}
 
       {historyTarget && (
-        <HistoryModal
-          apartment={historyTarget}
-          building={building}
-          onClose={() => setHistoryTarget(null)}
-        />
+        <HistoryModal apartment={historyTarget} building={building} onClose={() => setHistoryTarget(null)} />
       )}
     </div>
   );

@@ -1,3 +1,5 @@
+// The only place channel names are written. Handlers and preload both import from here.
+// Groups are in alphabetical order, and a group name matches its prefix and module folder.
 const CHANNELS = {
   APARTMENT: {
     ADD: "apartment:add",
@@ -71,10 +73,12 @@ const CHANNELS = {
   },
 };
 
+// A repeated value would quietly overwrite a handler, so it fails at startup instead.
 const allChannelValues = Object.values(CHANNELS).flatMap(Object.values);
 if (new Set(allChannelValues).size !== allChannelValues.length)
   throw new Error("channels.js: duplicate channel value detected");
 
+// Used only by preload, so an event channel cannot be invoked and an invoke channel cannot be listened to.
 const EVENT_CHANNELS = new Set(Object.values(CHANNELS.EVENTS));
 const INVOKE_CHANNELS = new Set(allChannelValues.filter((channel) => !EVENT_CHANNELS.has(channel)));
 

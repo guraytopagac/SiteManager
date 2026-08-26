@@ -1,3 +1,4 @@
+/* Guide styles. They stand alone and share nothing with src/style.css. */
 *,
 *::before,
 *::after {
@@ -6,6 +7,7 @@
   padding: 0;
 }
 
+/* Light colours. The dark block below changes colours only, never sizes or spacing. */
 :root {
   --guide-bg: #f5f7fa;
   --guide-surface: #ffffff;
@@ -53,6 +55,7 @@
   --guide-shadow: rgba(26, 26, 46, 0.25);
 }
 
+/* Set by index.js from the query string, and switched by toggleGuideTheme. */
 [data-theme="dark"] {
   --guide-bg: #16161f;
   --guide-surface: #1e1e2a;
@@ -218,6 +221,7 @@ body {
   font-weight: 600;
 }
 
+/* Text never goes below 1rem. Most users are over 40 and need it readable. */
 h1 {
   font-size: 1.75rem;
   font-weight: 700;
@@ -304,6 +308,7 @@ code {
   color: var(--guide-heading);
 }
 
+/* The three callout boxes have the same shape and differ only in colour. */
 .guide-note,
 .guide-warning,
 .guide-tip {

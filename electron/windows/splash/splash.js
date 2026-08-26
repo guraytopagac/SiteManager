@@ -1,3 +1,4 @@
+// Splash renderer. It has splashAPI and nothing else, and no access to Node.
 const versionEl = document.getElementById("version");
 const statusEl = document.getElementById("status");
 const statusTextEl = document.getElementById("status-text");
@@ -13,7 +14,9 @@ const restartPrompt = document.getElementById("restart-prompt");
 const restartNowBtn = document.getElementById("restart-now");
 const restartLaterBtn = document.getElementById("restart-later");
 
+// Kept, so the status can go back to it while there is no download speed yet.
 const DEFAULT_PROGRESS_STATUS = progressStatus.textContent;
+// Sent by the main process in the query string, so it is there on the first paint.
 const currentVersion = new URLSearchParams(window.location.search).get("v") || "";
 
 versionEl.textContent = currentVersion ? "v" + currentVersion : "v—";
@@ -29,6 +32,7 @@ function formatEta(seconds) {
   return Math.ceil(seconds / 60) + " dk kaldı";
 }
 
+// splashAPI is missing only if the preload failed. The splash then stays as it is.
 if (window.splashAPI) {
   window.splashAPI.onStatus(({ text, isError }) => {
     statusEl.classList.toggle("splash-status-error", Boolean(isError));
@@ -36,6 +40,7 @@ if (window.splashAPI) {
     statusTextEl.textContent = text;
   });
 
+  // An update hides the status line and shows the progress bar instead.
   window.splashAPI.onUpdateAvailable(({ version }) => {
     updateBadgeText.textContent = currentVersion ? "v" + currentVersion + " → v" + version : "v" + version;
     updateBadge.classList.add("splash-visible");
@@ -61,6 +66,7 @@ if (window.splashAPI) {
     restartNowBtn.focus();
   });
 
+  // The choice is sent once. If the window is closed instead, the main process reads that as a no.
   let choiceSent = false;
   const sendChoice = (restart) => {
     if (choiceSent) return;
@@ -73,6 +79,7 @@ if (window.splashAPI) {
   restartNowBtn.addEventListener("click", () => sendChoice(true));
   restartLaterBtn.addEventListener("click", () => sendChoice(false));
 
+  // The fade out. Its length must match CLOSE_FADE_MS in the splash window module.
   window.splashAPI.onClosing(() => {
     document.body.classList.add("splash-closing");
   });

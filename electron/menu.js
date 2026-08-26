@@ -1,3 +1,4 @@
+// Menu layout and triggers only. The real work lives in the module that owns it.
 const path = require("path");
 const { Menu, dialog, app, shell } = require("electron");
 const { runOnDemandUpdateFlow } = require("./autoUpdater");
@@ -9,6 +10,7 @@ const { openGuide, toggleGuideTheme } = require("./windows/guide");
 const ICON_PATH = path.join(__dirname, "../assets/icon.ico");
 const BUG_REPORT_SUBJECT = "Mavikent Site Yönetimi - Hata Bildirimi";
 
+// Called once by windows/main, the only place the menu is installed.
 function buildMenu(mainWindow, isDev) {
   const template = [
     {
@@ -27,6 +29,7 @@ function buildMenu(mainWindow, isDev) {
           },
         },
         {
+          // Restore has no IPC channel, because it restarts the app. The menu is the only way in.
           label: "Yedekten Geri Yükle",
           accelerator: "Ctrl+Shift+R",
           async click() {
@@ -46,6 +49,7 @@ function buildMenu(mainWindow, isDev) {
       label: "Görünüm",
       submenu: [
         {
+          // The main window keeps its own theme. The guide window has to be switched separately.
           label: "Tema Değiştir",
           accelerator: "Ctrl+Shift+T",
           click() {
@@ -78,6 +82,7 @@ function buildMenu(mainWindow, isDev) {
             await openGuide(mainWindow);
           },
         },
+        // Hidden in dev. An unpackaged build never calls the network and would wrongly say "up to date".
         ...(isDev
           ? []
           : [

@@ -1,13 +1,14 @@
+// Dues rules. Nothing here is ever deleted. A payment is cancelled with an audit row, and the
+// due is worked out again from the payments that are still active.
 const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
-const { TR_NOW_SQL } = require("../shared/trTime");
+const { TR_NOW_SQL, createdPeriodSql, toPeriod } = require("../shared/trTime");
 
 const COLUMN_LABELS = {
   amount: "Ödeme tutarı",
   payment_method: "Ödeme yöntemi",
   payment_date: "Ödeme tarihi",
-  note: "Not",
   cancel_reason: "İptal nedeni",
   due_amount: "Aidat tutarı",
   paid_amount: "Ödenen tutar",
@@ -15,12 +16,26 @@ const COLUMN_LABELS = {
 
 const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
 
+// Money is compared in whole cents, so a floating point remainder cannot move a limit.
+function roundCents(value) {
+  return Math.round(value * 100);
+}
+
+// The debt left is rounded down and the payment to the nearest cent, so a remainder can never
+// break the paid_amount <= due_amount CHECK.
+function floorCents(value) {
+  return Math.floor(Number((value * 100).toFixed(6)));
+}
+
+// Same rule as the status CHECK on the dues table. Change one, change the other.
 function calcDueStatus(dueAmount, paidAmount) {
   if (paidAmount >= dueAmount) return "paid";
   if (paidAmount > 0) return "partial";
   return "unpaid";
 }
 
+// LEFT JOIN with COALESCE, because the dues row may not exist yet. An apartment is left out of
+// the months before it was created.
 function getDuesForMonth(payload) {
   const { buildingId, year, month } = payload;
   try {
@@ -37,10 +52,10 @@ function getDuesForMonth(payload) {
          FROM apartments a
          LEFT JOIN dues d ON d.apartment_id = a.id AND d.year = ? AND d.month = ?
          LEFT JOIN residents r ON r.apartment_id = a.id AND r.is_active = 1
-         WHERE a.building_id = ? AND a.is_active = 1
+         WHERE a.building_id = ? AND a.is_active = 1 AND ${createdPeriodSql("a.")} <= ?
          ORDER BY a.apartment_no ASC`,
       )
-      .all(year, month, buildingId);
+      .all(year, month, buildingId, toPeriod(year, month));
 
     return { success: true, data: monthlyDuesData };
   } catch (err) {
@@ -49,17 +64,25 @@ function getDuesForMonth(payload) {
   }
 }
 
+// Saves the payment, writes the matching income row, and updates the due, all in one transaction.
 function recordPayment(payload) {
   const { apartmentId, buildingId, year, month, paymentData } = payload;
   try {
     const apartment = getDb()
       .prepare(
-        `SELECT id, apartment_no, due_amount, building_id
+        `SELECT id, apartment_no, due_amount, building_id, ${createdPeriodSql()} AS createdPeriod
          FROM apartments WHERE id = ? AND building_id = ? AND is_active = 1`,
       )
       .get(apartmentId, buildingId);
     if (!apartment) return { success: false, message: "Daire bulunamadı veya bu işlem için yetkiniz yok." };
 
+    // No payment for a month in which the apartment did not exist yet.
+    if (toPeriod(year, month) < apartment.createdPeriod) {
+      return { success: false, message: "Daire bu dönemde henüz kayıtlı değildi, ödeme alınamaz." };
+    }
+
+    // Accrues only this apartment and month, not the whole history of the building. The amount is
+    // copied here too, so that rule lives in two places.
     getDb()
       .prepare(`INSERT OR IGNORE INTO dues (apartment_id, year, month, due_amount) VALUES (?, ?, ?, ?)`)
       .run(apartmentId, year, month, apartment.due_amount);
@@ -68,9 +91,17 @@ function recordPayment(payload) {
       .prepare(`SELECT id, due_amount, paid_amount FROM dues WHERE apartment_id = ? AND year = ? AND month = ?`)
       .get(apartmentId, year, month);
 
-    const remaining = parseFloat((due.due_amount - due.paid_amount).toFixed(2));
-    if (paymentData.amount > remaining)
-      return { success: false, message: `Fazla ödeme yapılamaz. Kalan borç: ${remaining}₺` };
+    const remainingCents = floorCents(due.due_amount - due.paid_amount);
+    const amountCents = roundCents(paymentData.amount);
+    // The renderer has no limit of its own. It shows the amount this branch returns.
+    if (amountCents > remainingCents) {
+      return {
+        success: false,
+        code: "OVERPAYMENT",
+        remaining: remainingCents / 100,
+        message: "Kalan borçtan fazla ödeme yapılamaz.",
+      };
+    }
 
     const { amount, payment_method, payment_date, note, collected_by } = paymentData;
 
@@ -82,6 +113,7 @@ function recordPayment(payload) {
         )
         .run(due.id, amount, payment_method, payment_date, note || null, collected_by);
 
+      // The matching income row. This is the only place a dues income is written.
       getDb()
         .prepare(
           `INSERT INTO incomes (amount, date, description, category, building_id, due_payment_id, created_at, updated_at)
@@ -89,7 +121,7 @@ function recordPayment(payload) {
         )
         .run(amount, payment_date, `Aidat Ödemesi - Daire ${apartment.apartment_no}`, apartment.building_id, paymentId);
 
-      const newPaidAmount = parseFloat((due.paid_amount + amount).toFixed(2));
+      const newPaidAmount = (roundCents(due.paid_amount) + amountCents) / 100;
       getDb()
         .prepare(`UPDATE dues SET paid_amount = ?, status = ?, updated_at = ${TR_NOW_SQL} WHERE id = ?`)
         .run(newPaidAmount, calcDueStatus(due.due_amount, newPaidAmount), due.id);
@@ -102,12 +134,13 @@ function recordPayment(payload) {
   }
 }
 
+// Cancels a payment by writing an audit row that can never change. The payment row stays.
 function cancelPayment(payload) {
   const { paymentId, buildingId, userId, reason } = payload;
   try {
     const payment = getDb()
       .prepare(
-        `SELECT dp.id, dp.due_id, dp.amount
+        `SELECT dp.id, dp.due_id, dp.amount, d.due_amount
          FROM due_payments dp
          JOIN dues d ON dp.due_id = d.id
          JOIN apartments a ON d.apartment_id = a.id
@@ -136,6 +169,8 @@ function cancelPayment(payload) {
         )
         .run(reason, userId, paymentId);
 
+      // paid_amount is summed again from the active payments instead of being subtracted, so running
+      // this twice cannot break it.
       const { total: activePaidTotal } = getDb()
         .prepare(
           `SELECT COALESCE(SUM(dp.amount), 0) AS total
@@ -146,11 +181,10 @@ function cancelPayment(payload) {
         )
         .get(payment.due_id);
 
-      const { due_amount } = getDb().prepare(`SELECT due_amount FROM dues WHERE id = ?`).get(payment.due_id);
-      const newPaidAmount = parseFloat(Number(activePaidTotal).toFixed(2));
+      const newPaidAmount = roundCents(activePaidTotal) / 100;
       getDb()
         .prepare(`UPDATE dues SET paid_amount = ?, status = ?, updated_at = ${TR_NOW_SQL} WHERE id = ?`)
-        .run(newPaidAmount, calcDueStatus(due_amount, newPaidAmount), payment.due_id);
+        .run(newPaidAmount, calcDueStatus(payment.due_amount, newPaidAmount), payment.due_id);
     })();
 
     return { success: true, message: "Ödeme başarıyla iptal edildi." };
@@ -176,7 +210,7 @@ function getPaymentHistory(payload) {
          LEFT JOIN payment_cancellations pc ON pc.payment_id = dp.id
          LEFT JOIN users cu ON cu.id = pc.cancelled_by
          WHERE dp.due_id = ? AND a.building_id = ?
-         ORDER BY dp.created_at DESC`,
+         ORDER BY dp.created_at DESC, dp.id DESC`,
       )
       .all(dueId, buildingId);
     return { success: true, data };

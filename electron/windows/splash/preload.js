@@ -1,3 +1,5 @@
+// Small splash bridge. It exposes the splash:* channels only. They live here, not in
+// ipc/channels.js, which belongs to the main window.
 const { contextBridge, ipcRenderer } = require("electron");
 
 function safeOn(channel, listener) {

@@ -1,11 +1,14 @@
+// The only bridge between the renderer and Node. A new feature needs a new channel here.
 const { contextBridge, ipcRenderer } = require("electron");
 const { CHANNELS: CH, EVENT_CHANNELS, INVOKE_CHANNELS } = require("./ipc/channels");
 
+// Request and answer. Only invoke channels pass, and the payload is sent on unchanged.
 function safeInvoke(channel, payload) {
   if (!INVOKE_CHANNELS.has(channel)) throw new Error(`Blocked IPC channel: ${channel}`);
   return ipcRenderer.invoke(channel, payload);
 }
 
+// Only event channels pass. Returns an unsubscribe function for useEffect cleanup.
 function safeOn(channel, callback) {
   if (!EVENT_CHANNELS.has(channel)) throw new Error(`Blocked IPC channel: ${channel}`);
   if (typeof callback !== "function") throw new TypeError("safeOn: callback must be a function");
@@ -14,6 +17,7 @@ function safeOn(channel, callback) {
   return () => ipcRenderer.removeListener(channel, wrapper);
 }
 
+// window.electronAPI. Every method takes no argument or one plain object.
 contextBridge.exposeInMainWorld("electronAPI", {
   // Apartment
   addApartment: (payload) => safeInvoke(CH.APARTMENT.ADD, payload),
