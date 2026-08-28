@@ -20,12 +20,9 @@ const base = (t) => ({
 
 const fire = (build) => Swal.fire(build(theme()));
 
-const isPasswordInput = (type) => type === "password";
+const HTML_ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 
-const STATIC_BACKDROP = {
-  showClass: { popup: "swal2-show", backdrop: "" },
-  hideClass: { popup: "swal2-hide", backdrop: "" },
-};
+const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => HTML_ESCAPES[char]);
 
 const bodyOf = (body) => {
   if (!body) return {};
@@ -69,6 +66,8 @@ const COPY_LABEL_IDLE = "Kodu Kopyala";
 const COPY_LABEL_DONE = "✓ Kopyalandı";
 const COPY_RESET_DELAY = 2000;
 
+const CODE_DIALOG_WIDTH = "37em";
+
 const CODE_LINE = `<code id="${CODE_ELEMENT_ID}" class="swal-code"></code>`;
 const COPY_LINE = `
   <div class="swal-copy-row">
@@ -85,13 +84,15 @@ const copyToClipboard = async (value) => {
   }
 };
 
-const codeDialog = ({ title, code, html, confirmButtonText, staticBackdrop = false, width }) => {
+const codeDialog = ({ title, code, html }) => {
   let resetTimer = null;
 
   return fire((t) => ({
     ...base(t),
-    ...(staticBackdrop ? { ...STATIC_BACKDROP, allowOutsideClick: false } : {}),
-    ...(width ? { width } : {}),
+    allowOutsideClick: false,
+    showClass: { popup: "swal2-show", backdrop: "" },
+    hideClass: { popup: "swal2-hide", backdrop: "" },
+    width: CODE_DIALOG_WIDTH,
     icon: "success",
     title,
     html,
@@ -126,18 +127,18 @@ const codeDialog = ({ title, code, html, confirmButtonText, staticBackdrop = fal
       });
     },
     willClose: () => clearTimeout(resetTimer),
-    confirmButtonText,
+    confirmButtonText: "Anladım",
     confirmButtonColor: t.confirm,
   }));
 };
 
 export const showAlert = {
-  toast: (title, text, { icon = "success" } = {}) =>
+  toast: (title, body) =>
     fire((t) => ({
       ...base(t),
-      icon,
+      ...bodyOf(body),
+      icon: "success",
       title,
-      text,
       timer: 4000,
       timerProgressBar: true,
       showConfirmButton: false,
@@ -180,12 +181,11 @@ export const showAlert = {
     inputLabel,
     inputPlaceholder,
     inputValue = "",
+    inputAttributes,
     confirmButtonText = "Tamam",
     cancelText = "Vazgeç",
     validate,
   }) => {
-    const shouldTrim = !isPasswordInput(input);
-
     const { value } = await fire((t) => ({
       ...base(t),
       title,
@@ -194,6 +194,7 @@ export const showAlert = {
       inputLabel,
       inputPlaceholder,
       inputValue,
+      inputAttributes,
       showCancelButton: true,
       reverseButtons: true,
       confirmButtonText,
@@ -201,7 +202,7 @@ export const showAlert = {
       confirmButtonColor: t.confirm,
       cancelButtonColor: t.cancel,
       preConfirm: (raw) => {
-        const val = shouldTrim ? raw?.trim() : raw;
+        const val = input === "password" ? raw : raw?.trim();
         const message = validate?.(val);
         if (message) {
           Swal.showValidationMessage(message);
@@ -219,6 +220,7 @@ export const showAlert = {
       input: "textarea",
       inputLabel: "İptal Nedeni",
       inputPlaceholder: "Lütfen iptal nedenini yazın...",
+      inputAttributes: { maxlength: 300 },
       confirmButtonText: "Evet, İptal Etmek İstiyorum",
       cancelText: "Geri Dön",
       validate: (val) => (!val ? "İptal nedeni zorunludur." : null),
@@ -239,16 +241,13 @@ export const showAlert = {
       title: "Hesap Devredildi",
       code,
       html: `
-Hesap <b>${managerName}</b> adına devredildi ve geçici bir şifre üretildi.<br /><br />
+        Hesap <b>${escapeHtml(managerName)}</b> adına devredildi ve geçici bir şifre üretildi.<br /><br />
         <b>Geçici şifre:</b><br />
         ${CODE_LINE}
         ${COPY_LINE}<br />
         <p class="swal-note">Bu şifreyi yeni yöneticiye iletin. Bu bilgisayardan giriş yaptıktan sonra profil sayfasından kendi şifresini belirlemelidir.</p>
         <p class="swal-warning">Bu şifre bir daha gösterilmeyecek.</p>
       `,
-      confirmButtonText: "Anladım",
-      staticBackdrop: true,
-      width: "37em",
     }),
 
   transferredRecoveryCode: (code) =>
@@ -256,15 +255,12 @@ Hesap <b>${managerName}</b> adına devredildi ve geçici bir şifre üretildi.<b
       title: "Yeni Kurtarma Kodu",
       code,
       html: `
-Devir sırasında yeni bir kurtarma kodu üretildi, önceki kod geçersiz oldu.<br /><br />
+        Devir sırasında yeni bir kurtarma kodu üretildi, önceki kod geçersiz oldu.<br /><br />
         ${CODE_LINE}
         ${COPY_LINE}<br />
         <p class="swal-note">Bu kodu da yeni yöneticiye iletin. Şifre unutulduğunda giriş ekranından bu kodla sıfırlama yapılır.</p>
         <p class="swal-warning">Bu kod bir daha gösterilmeyecek.</p>
       `,
-      confirmButtonText: "Anladım",
-      staticBackdrop: true,
-      width: "37em",
     }),
 
   regeneratedCode: (code) =>
@@ -277,6 +273,5 @@ Devir sırasında yeni bir kurtarma kodu üretildi, önceki kod geçersiz oldu.<
         Güvenli bir yerde saklayın; şifrenizi unutursanız giriş ekranından bu kodla
         sıfırlayabilirsiniz.
       `,
-      confirmButtonText: "Anladım",
     }),
 };

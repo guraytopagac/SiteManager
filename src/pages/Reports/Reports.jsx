@@ -15,11 +15,44 @@ import {
   getMonthOptions,
   clampMonth,
 } from "@/utils/date";
-import { formatCurrency } from "@/utils/currency";
+import { formatCurrency, formatSignedCurrency } from "@/utils/currency";
 
 const DUE_STATUS_LABELS = { paid: "Ödendi", partial: "Kısmi", unpaid: "Ödenmedi" };
 
 const fmt = formatCurrency;
+
+const PDF_TEXT_MAP = {
+  ç: "c",
+  Ç: "C",
+  ğ: "g",
+  Ğ: "G",
+  ı: "i",
+  İ: "I",
+  ö: "o",
+  Ö: "O",
+  ş: "s",
+  Ş: "S",
+  ü: "u",
+  Ü: "U",
+  "₺": "TL",
+  "—": "-",
+  "–": "-",
+  "’": "'",
+  "‘": "'",
+  "“": '"',
+  "”": '"',
+  "…": "...",
+};
+
+const PDF_MAPPED_CHARS = /[çÇğĞıİöÖşŞüÜ₺—–’‘“”…]/g;
+const PDF_UNSUPPORTED_CHARS = /[^\n\x20-\xFF]/g;
+
+const toPdfText = (value) =>
+  String(value ?? "")
+    .replace(PDF_MAPPED_CHARS, (char) => PDF_TEXT_MAP[char])
+    .replace(PDF_UNSUPPORTED_CHARS, "?");
+
+const toPdfRow = (cells) => cells.map(toPdfText);
 
 function buildFinanceRows(data) {
   return [
@@ -103,23 +136,23 @@ function Reports() {
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(15);
-    doc.text(title, pageW / 2, 18, { align: "center" });
+    doc.text(toPdfText(title), pageW / 2, 18, { align: "center" });
     doc.setDrawColor(180, 180, 180);
     doc.line(14, 22, pageW - 14, 22);
 
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text("Ozet", 14, 30);
+    doc.text(toPdfText("Özet"), 14, 30);
     autoTable(doc, {
       startY: 33,
-      head: [["Toplam Gelir", "Toplam Gider", "Net Kasa", "Aidat Tahsilat"]],
+      head: [toPdfRow(["Toplam Gelir", "Toplam Gider", "Net Kasa", "Aidat Tahsilat"])],
       body: [
-        [
+        toPdfRow([
           fmt(reportData.totalIncome),
           fmt(reportData.totalExpense),
           fmt(reportData.totalIncome - reportData.totalExpense),
           collectionRate === null ? "—" : `%${collectionRate}`,
-        ],
+        ]),
       ],
       styles: { fontSize: 9, halign: "center" },
       headStyles: { fillColor: [37, 99, 235] },
@@ -128,19 +161,21 @@ function Reports() {
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
-    doc.text("Gelir / Gider Detayi", 14, doc.lastAutoTable.finalY + 10);
+    doc.text(toPdfText("Gelir / Gider Detayı"), 14, doc.lastAutoTable.finalY + 10);
 
-    const pdfFinanceRows = financeRows.map((r) => [
-      r.date,
-      r.rowType === "income" ? "Gelir" : "Gider",
-      r.description,
-      r.rowType === "income" ? fmt(r.amount) : `-${fmt(r.amount)}`,
-    ]);
+    const pdfFinanceRows = financeRows.map((r) =>
+      toPdfRow([
+        r.date,
+        r.rowType === "income" ? "Gelir" : "Gider",
+        r.description,
+        formatSignedCurrency(r.rowType === "income" ? r.amount : -r.amount),
+      ]),
+    );
 
     autoTable(doc, {
       startY: doc.lastAutoTable.finalY + 13,
-      head: [["Tarih", "Tur", "Aciklama", "Tutar"]],
-      body: pdfFinanceRows.length > 0 ? pdfFinanceRows : [["—", "—", "Bu ay icin kayit bulunamadi.", "—"]],
+      head: [toPdfRow(["Tarih", "Tür", "Açıklama", "Tutar"])],
+      body: pdfFinanceRows.length > 0 ? pdfFinanceRows : [toPdfRow(["—", "—", "Bu ay için kayıt bulunamadı.", "—"])],
       styles: { fontSize: 8.5 },
       headStyles: { fillColor: [37, 99, 235] },
       columnStyles: { 3: { halign: "right" } },
@@ -150,23 +185,25 @@ function Reports() {
     doc.addPage();
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
-    doc.text("Aidat Tahsilat Durumu", 14, 18);
+    doc.text(toPdfText("Aidat Tahsilat Durumu"), 14, 18);
 
     autoTable(doc, {
       startY: 22,
-      head: [["Daire No", "Kat", "Tip", "Sakin", "Aidat", "Odenen", "Durum"]],
+      head: [toPdfRow(["Daire No", "Kat", "Tip", "Sakin", "Aidat", "Ödenen", "Durum"])],
       body:
         reportData.dues.length > 0
-          ? reportData.dues.map((d) => [
-              d.apartment_no,
-              d.floor,
-              d.type,
-              d.resident_name || "—",
-              fmt(d.due_amount),
-              fmt(d.paid_amount),
-              DUE_STATUS_LABELS[d.status] || d.status,
-            ])
-          : [["—", "—", "—", "Bu ay icin aidat kaydı bulunamadı.", "—", "—", "—"]],
+          ? reportData.dues.map((d) =>
+              toPdfRow([
+                d.apartment_no,
+                d.floor,
+                d.type,
+                d.resident_name || "—",
+                fmt(d.due_amount),
+                fmt(d.paid_amount),
+                DUE_STATUS_LABELS[d.status] || d.status,
+              ]),
+            )
+          : [toPdfRow(["—", "—", "—", "Bu ay için aidat kaydı bulunamadı.", "—", "—", "—"])],
       styles: { fontSize: 8 },
       headStyles: { fillColor: [37, 99, 235] },
       columnStyles: { 4: { halign: "right" }, 5: { halign: "right" } },
@@ -313,8 +350,7 @@ function Reports() {
                       </td>
                       <td>{r.description}</td>
                       <td className={`amount-cell amount-${r.rowType}`}>
-                        {r.rowType === "income" ? "+" : "-"}
-                        {fmt(r.amount)}
+                        {formatSignedCurrency(r.rowType === "income" ? r.amount : -r.amount)}
                       </td>
                     </tr>
                   ))

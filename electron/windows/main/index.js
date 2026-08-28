@@ -7,7 +7,7 @@ const { buildMenu } = require("../../menu");
 // Called here on purpose. serve() registers a custom scheme, which only works before the app is
 // ready. That is why main.js requires this file at the top.
 const loadAppFiles = serve({ directory: path.join(__dirname, "../../../dist") });
-const ICON_PATH = path.join(__dirname, "../../../assets/icon.ico");
+const ICON_PATH = path.join(__dirname, "../../../assets/app-icon.ico");
 const DEV_SERVER_URL = "http://localhost:5173/";
 
 let mainWindow = null;

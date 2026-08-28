@@ -81,7 +81,7 @@
 .period-all-btn.active {
   background: var(--button-color);
   border-color: var(--button-color);
-  color: var(--button-text, #ffffff);
+  color: var(--button-text);
 }
 
 .filter-tabs {

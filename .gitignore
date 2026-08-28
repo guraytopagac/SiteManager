@@ -1,49 +1,32 @@
 # Logs
-logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
 # Dependency directories
 node_modules/
 
-# Vite build output
+# Build output
 dist/
-dist-ssr/
-
-# Electron build outputs
 dist_electron/
-out/
-release/
-releases/
+
+# Installer artifacts copied out of dist_electron/
 *.exe
 *.blockmap
 
-# Local databases
-*.db
-*.db-*
-*.db.bak
-*.sqlite
+# Local databases. Covers database.db, its -wal/-shm files and the restore .bak copy
+*.db*
+
 # Electron cache
 .cache/
 
 # Local env files
-*.local
-preview
+.env
+.env.*
 
 # MCP config
 .mcp.json
 
-# Editor directories and files
+# Editor and OS files
 .vscode/*
 !.vscode/extensions.json
 .idea/
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+desktop.ini

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { FiSun, FiMoon } from "react-icons/fi";
-import { useTheme } from "../../hooks/useTheme.js";
-import { showAlert } from "../../utils/alert.js";
-import { getCurrentYear } from "../../utils/date.js";
-import { hasUnseenReleaseNotes, markReleaseNotesSeen, renderReleaseNotesHtml } from "../../utils/releaseNotes.js";
+import { useTheme } from "@/hooks/useTheme";
+import { showAlert } from "@/utils/alert";
+import { getCurrentYear } from "@/utils/date";
+import { hasUnseenReleaseNotes, markReleaseNotesSeen, renderReleaseNotesHtml } from "@/utils/releaseNotes";
 import "./Footer.css";
 
 const CURRENT_YEAR = getCurrentYear();

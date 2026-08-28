@@ -1,11 +1,17 @@
 const LOCALE = "tr-TR";
 const SUFFIX = " ₺";
-const FRACTION_OPTIONS = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
 const EMPTY = "—";
 
-export function formatCurrency(value) {
-  if (value === null || value === undefined || value === "") return EMPTY;
-  const amount = Number(value);
+const FORMATTER = new Intl.NumberFormat(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+export const formatCurrency = (value) => {
+  const input = String(value ?? "").trim();
+  const amount = input === "" ? NaN : Number(input);
   if (!Number.isFinite(amount)) return EMPTY;
-  return amount.toLocaleString(LOCALE, FRACTION_OPTIONS) + SUFFIX;
-}
+  return FORMATTER.format(amount || 0) + SUFFIX;
+};
+
+export const formatSignedCurrency = (value) => {
+  const text = formatCurrency(value);
+  return Number(value) > 0 ? `+${text}` : text;
+};

@@ -115,7 +115,7 @@
   padding: 24px 0 calc(var(--footer-height) + 24px);
   background:
     var(--recover-scrim),
-    var(--recover-page-bg) url("../../../assets/backgrounds/login/dark.jpg") center / cover no-repeat;
+    var(--recover-page-bg) url("../../../assets/backgrounds/login/login-dark-bg.jpg") center / cover no-repeat;
   color: var(--recover-text);
 
   --pw-track: var(--recover-track);
@@ -152,7 +152,7 @@
   pointer-events: none;
   background:
     var(--recover-scrim),
-    var(--recover-page-bg) url("../../../assets/backgrounds/login/light.jpg") center / cover no-repeat;
+    var(--recover-page-bg) url("../../../assets/backgrounds/login/login-light-bg.jpg") center / cover no-repeat;
   opacity: 0;
   transition: opacity 0.3s ease;
   z-index: 0;

@@ -148,7 +148,7 @@
 .profile-container .btn-primary {
   border: none;
   background: var(--button-color);
-  color: var(--button-text, white);
+  color: var(--button-text);
 }
 
 .profile-container .btn-primary:hover:not(:disabled) {

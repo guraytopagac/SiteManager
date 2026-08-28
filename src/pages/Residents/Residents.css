@@ -71,7 +71,7 @@
 
 .resident-table th {
   background: var(--button-color);
-  color: var(--button-text, #ffffff);
+  color: var(--button-text);
   font-size: 0.95rem;
   font-weight: 600;
   padding: 16px;
@@ -130,7 +130,7 @@
   border: none;
   border-radius: 8px;
   background: var(--button-color);
-  color: var(--button-text, #ffffff);
+  color: var(--button-text);
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;

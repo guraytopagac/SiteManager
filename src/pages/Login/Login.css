@@ -79,7 +79,7 @@
   padding: 24px 0 calc(var(--footer-height) + 24px);
   background:
     var(--login-scrim),
-    var(--login-page-bg) url("../../../assets/backgrounds/login/dark.jpg") center / cover no-repeat;
+    var(--login-page-bg) url("../../../assets/backgrounds/login/login-dark-bg.jpg") center / cover no-repeat;
   color: var(--login-text);
 }
 
@@ -90,7 +90,7 @@
   pointer-events: none;
   background:
     var(--login-scrim),
-    var(--login-page-bg) url("../../../assets/backgrounds/login/light.jpg") center / cover no-repeat;
+    var(--login-page-bg) url("../../../assets/backgrounds/login/login-light-bg.jpg") center / cover no-repeat;
   opacity: 0;
   transition: opacity 0.3s ease;
   z-index: 0;

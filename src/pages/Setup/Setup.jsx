@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import logoImgWebp from "../../../assets/logo.webp";
+import logoImgWebp from "../../../assets/app-logo.webp";
 import "./Setup.css";
 import FormField from "@/components/FormField/FormField";
 import PageLoader from "@/components/PageLoader/PageLoader";
@@ -50,7 +50,7 @@ function Setup() {
   useEffect(() => () => clearTimeout(copyResetTimer.current), []);
 
   if (isSetupNeeded === null && !result) {
-    return <PageLoader message="Yükleniyor..." fullscreen />;
+    return <PageLoader message="Yükleniyor..." />;
   }
 
   if (!isSetupNeeded && !result) {

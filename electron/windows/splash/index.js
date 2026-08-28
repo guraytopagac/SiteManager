@@ -3,7 +3,7 @@
 const path = require("path");
 const { app, BrowserWindow } = require("electron");
 
-const ICON_PATH = path.join(__dirname, "../../../assets/icon.ico");
+const ICON_PATH = path.join(__dirname, "../../../assets/app-icon.ico");
 const DEV_LINGER_MS = 800;
 const MAIN_WINDOW_READY_TIMEOUT_MS = 15000;
 const SPLASH_READY_TIMEOUT_MS = 1000;

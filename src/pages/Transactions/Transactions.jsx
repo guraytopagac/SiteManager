@@ -14,7 +14,7 @@ import {
   getMonthOptions,
   clampMonth,
 } from "@/utils/date";
-import { formatCurrency } from "@/utils/currency";
+import { formatSignedCurrency } from "@/utils/currency";
 
 const TYPE_LABELS = { income: "Gelir", expense: "Gider" };
 
@@ -185,18 +185,15 @@ function Transactions() {
       <div className="transactions-summary">
         <div className="summary-card income">
           <span className="summary-label">Toplam Gelir</span>
-          <span className="summary-amount">+{formatCurrency(totals.totalIncome)}</span>
+          <span className="summary-amount">{formatSignedCurrency(totals.totalIncome)}</span>
         </div>
         <div className="summary-card expense">
           <span className="summary-label">Toplam Gider</span>
-          <span className="summary-amount">-{formatCurrency(totals.totalExpense)}</span>
+          <span className="summary-amount">{formatSignedCurrency(-totals.totalExpense)}</span>
         </div>
         <div className={`summary-card net ${totals.net >= 0 ? "positive" : "negative"}`}>
           <span className="summary-label">Net</span>
-          <span className="summary-amount">
-            {totals.net >= 0 ? "+" : ""}
-            {formatCurrency(totals.net)}
-          </span>
+          <span className="summary-amount">{formatSignedCurrency(totals.net)}</span>
         </div>
       </div>
 
@@ -231,8 +228,7 @@ function Transactions() {
                   )}
                 </td>
                 <td className={`amount-cell amount-${t.type} ${t.is_cancelled ? "amount-cancelled" : ""}`}>
-                  {t.type === "income" ? "+" : "-"}
-                  {formatCurrency(t.amount)}
+                  {formatSignedCurrency(t.type === "income" ? t.amount : -t.amount)}
                 </td>
                 <td className="action-cell-tx">
                   {t.is_cancelled ? (

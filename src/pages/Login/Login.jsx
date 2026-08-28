@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Login.css";
-import logoImgWebp from "../../../assets/logo.webp";
+import logoImgWebp from "../../../assets/app-logo.webp";
 import { setCurrentUser } from "@/hooks/useCurrentUser";
 import CapsLockIndicator from "@/components/CapsLockIndicator/CapsLockIndicator";
 import { FiUser, FiLock, FiEye, FiEyeOff, FiAlertCircle, FiArrowRight } from "react-icons/fi";

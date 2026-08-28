@@ -4,7 +4,7 @@ const path = require("path");
 const { app, BrowserWindow, screen, shell } = require("electron");
 const { SUPPORT_EMAIL } = require("../../errorReporting");
 
-const ICON_PATH = path.join(__dirname, "../../../assets/icon.ico");
+const ICON_PATH = path.join(__dirname, "../../../assets/app-icon.ico");
 const BACKGROUND_COLORS = { light: "#f5f7fa", dark: "#16161f" };
 
 let guideWin = null;

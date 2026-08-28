@@ -3,10 +3,10 @@ import { HashRouter as Router, Routes, Route, Navigate, Outlet } from "react-rou
 import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary.jsx";
 import Footer from "./components/Footer/Footer.jsx";
 import PageLoader from "./components/PageLoader/PageLoader.jsx";
-import { useCurrentUser } from "./hooks/useCurrentUser.js";
-import { useCurrentBuilding } from "./hooks/useCurrentBuilding.js";
-import { useNeedsSetup } from "./hooks/useNeedsSetup.js";
 import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute.jsx";
+import { useCurrentBuilding } from "./hooks/useCurrentBuilding.js";
+import { useCurrentUser } from "./hooks/useCurrentUser.js";
+import { useNeedsSetup } from "./hooks/useNeedsSetup.js";
 
 const Setup = lazy(() => import("./pages/Setup/Setup.jsx"));
 const Login = lazy(() => import("./pages/Login/Login.jsx"));
@@ -30,7 +30,7 @@ function StartupRedirect() {
     return <Navigate to="/select-building" replace />;
   }
 
-  if (needsSetup === null) return <PageLoader message="Yükleniyor..." fullscreen />;
+  if (needsSetup === null) return <PageLoader message="Yükleniyor..." />;
   return <Navigate to={needsSetup ? "/setup" : "/login"} replace />;
 }
 
@@ -44,65 +44,37 @@ function RequireBuilding() {
 
 function App() {
   return (
-    <div className="app-wrapper">
-      <Router>
-        <ErrorBoundary>
-          <Suspense fallback={<PageLoader message="Sayfa yükleniyor..." />}>
-            <Routes>
-              <Route
-                path="/setup"
-                element={
-                  <ProtectedRoute guestOnly>
-                    <Setup />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/login"
-                element={
-                  <ProtectedRoute guestOnly>
-                    <Login />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/recover"
-                element={
-                  <ProtectedRoute guestOnly>
-                    <Recover />
-                  </ProtectedRoute>
-                }
-              />
+    <Router>
+      <ErrorBoundary>
+        <Suspense fallback={<PageLoader message="Sayfa yükleniyor..." />}>
+          <Routes>
+            <Route element={<ProtectedRoute guestOnly />}>
+              <Route path="/setup" element={<Setup />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/recover" element={<Recover />} />
+            </Route>
 
-              {/* Authenticated routes */}
-              <Route
-                element={
-                  <ProtectedRoute>
-                    <Outlet />
-                  </ProtectedRoute>
-                }
-              >
-                <Route path="/select-building" element={<SelectBuilding />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route element={<RequireBuilding />}>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/add-apartment" element={<AddApartment />} />
-                  <Route path="/apartments" element={<Apartments />} />
-                  <Route path="/residents" element={<Residents />} />
-                  <Route path="/add-income" element={<AddIncome />} />
-                  <Route path="/add-expense" element={<AddExpense />} />
-                  <Route path="/transactions" element={<Transactions />} />
-                  <Route path="/reports" element={<Reports />} />
-                </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/select-building" element={<SelectBuilding />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route element={<RequireBuilding />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/add-apartment" element={<AddApartment />} />
+                <Route path="/apartments" element={<Apartments />} />
+                <Route path="/residents" element={<Residents />} />
+                <Route path="/add-income" element={<AddIncome />} />
+                <Route path="/add-expense" element={<AddExpense />} />
+                <Route path="/transactions" element={<Transactions />} />
+                <Route path="/reports" element={<Reports />} />
               </Route>
+            </Route>
 
-              <Route path="*" element={<StartupRedirect />} />
-            </Routes>
-          </Suspense>
-        </ErrorBoundary>
-        <Footer />
-      </Router>
-    </div>
+            <Route path="*" element={<StartupRedirect />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
+      <Footer />
+    </Router>
   );
 }
 

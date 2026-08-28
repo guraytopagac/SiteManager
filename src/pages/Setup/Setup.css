@@ -82,7 +82,7 @@
   align-items: safe center;
   justify-content: center;
   padding: 24px 0 calc(var(--footer-height) + 24px);
-  background: var(--setup-page-bg) url("../../../assets/backgrounds/setup/dark.jpg") center / cover no-repeat;
+  background: var(--setup-page-bg) url("../../../assets/backgrounds/setup/setup-dark-bg.jpg") center / cover no-repeat;
   color: var(--setup-text);
 
   --pw-track: var(--setup-track);
@@ -121,7 +121,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: url("../../../assets/backgrounds/setup/light.jpg") center / cover no-repeat;
+  background: url("../../../assets/backgrounds/setup/setup-light-bg.jpg") center / cover no-repeat;
   opacity: 0;
   transition: opacity 0.3s ease;
   z-index: 0;

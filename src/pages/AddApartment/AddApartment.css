@@ -127,7 +127,7 @@
 .add-apartment-container .btn-primary {
   border: none;
   background: var(--button-color);
-  color: var(--button-text, #ffffff);
+  color: var(--button-text);
 }
 
 .add-apartment-container .btn-primary:hover {

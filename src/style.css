@@ -30,14 +30,11 @@
   --button-text: #ffffff;
   --accent-tint: rgba(20, 184, 166, 0.12);
 
-  --swal-copy-bg: #4f6ef7;
-  --swal-copy-bg-done: #16a34a;
-  --swal-copy-ink: #ffffff;
   --swal-popup-border: #1e3350;
-
+  --swal-backdrop: rgba(3, 8, 18, 0.55);
+  --swal-shadow: rgba(0, 0, 0, 0.45);
+  --swal-copy-copied: #16a34a;
   --swal-warning-bg: rgba(248, 113, 113, 0.12);
-  --swal-warning-border: #f87171;
-  --swal-warning-text: #fca5a5;
 
   --success: #34d399;
   --danger: #f87171;
@@ -94,16 +91,17 @@
 
   --button-color: #4f6ef7;
   --button-hover: #3b57e8;
-  --button-text: #ffffff;
   --accent-tint: rgba(79, 110, 247, 0.08);
+
+  --swal-popup-border: #cbd5e1;
+  --swal-backdrop: rgba(15, 23, 42, 0.35);
+  --swal-shadow: rgba(15, 23, 42, 0.22);
+  --swal-copy-copied: #15803d;
+  --swal-warning-bg: rgba(220, 38, 38, 0.1);
 
   --success: #16a34a;
   --danger: #dc2626;
   --warning: #d97706;
-  --swal-warning-bg: rgba(248, 113, 113, 0.12);
-  --swal-warning-border: #f87171;
-  --swal-warning-text: #b91c1c;
-  --swal-popup-border: #cbd5e1;
   --color-success-bg: #dcfce7;
   --color-success-text: #15803d;
   --color-warning-bg: #fef3c7;
@@ -111,9 +109,7 @@
   --color-danger-bg: #fee2e2;
   --color-danger-text: #b91c1c;
 
-  --stat-balance: #059669;
   --stat-collection: #2563eb;
-  --stat-overdue: #dc2626;
 
   --income-color: #15803d;
   --income-bg: #dcfce7;
@@ -132,6 +128,8 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) transparent;
 }
 
 body {
@@ -188,7 +186,7 @@ a:hover {
 
 button {
   background: var(--button-color);
-  color: #fff;
+  color: var(--button-text);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -218,7 +216,9 @@ textarea {
   font-family: inherit;
   font-size: inherit;
   outline: none;
-  transition: border-color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 input:focus,
@@ -238,12 +238,6 @@ textarea::placeholder {
   outline-offset: 2px;
 }
 
-button:focus-visible,
-a:focus-visible {
-  outline: 2px solid var(--border-focus);
-  outline-offset: 2px;
-}
-
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
@@ -253,11 +247,6 @@ textarea:focus-visible {
 ::selection {
   background: var(--accent-selection);
   color: var(--text-color);
-}
-
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-default) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -310,12 +299,12 @@ textarea:focus-visible {
 }
 
 .swal-copy-button {
-  background: var(--swal-copy-bg);
+  background: var(--button-color);
   border: none;
   border-radius: 6px;
-  color: var(--swal-copy-ink);
+  color: var(--button-text);
   cursor: pointer;
-  font-size: 0.95rem;
+  font-size: 1rem;
   padding: 0.5em 1.1em;
 }
 
@@ -324,11 +313,11 @@ textarea:focus-visible {
 }
 
 .swal-copy-button.is-copied {
-  background: var(--swal-copy-bg-done);
+  background: var(--swal-copy-copied);
 }
 
 .swal-copy-note {
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
 .swal-copy-note.is-error {
@@ -344,16 +333,16 @@ textarea:focus-visible {
 }
 
 .swal2-container.swal2-backdrop-show {
-  background: rgba(3, 8, 18, 0.55);
+  background: var(--swal-backdrop);
 }
 
 .swal2-popup:not(.toast-popup) {
   border: 2px solid var(--swal-popup-border);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 24px 70px var(--swal-shadow);
 }
 
 .swal-note {
-  font-size: 0.95rem;
+  font-size: 1rem;
   line-height: 1.5;
   margin: 0.8em 0 0;
   text-align: left;
@@ -361,10 +350,10 @@ textarea:focus-visible {
 
 .swal-warning {
   background: var(--swal-warning-bg);
-  border-left: 3px solid var(--swal-warning-border);
+  border-left: 3px solid var(--danger);
   border-radius: 0 8px 8px 0;
-  color: var(--swal-warning-text);
-  font-size: 0.95rem;
+  color: var(--color-danger-text);
+  font-size: 1rem;
   line-height: 1.5;
   margin: 0.9em 0 0;
   padding: 0.7em 0.9em;

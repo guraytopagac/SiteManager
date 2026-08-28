@@ -8,10 +8,6 @@
   animation: page-loader-fade 0.25s ease-out;
 }
 
-.page-loader--fullscreen {
-  min-height: 100vh;
-}
-
 .page-loader-spinner {
   width: 42px;
   height: 42px;

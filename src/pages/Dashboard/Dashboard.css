@@ -251,7 +251,7 @@
 
 .dashboard-container .button {
   background-color: var(--button-color);
-  color: var(--button-text, #ffffff);
+  color: var(--button-text);
   border: none;
   padding: 10px 20px;
   border-radius: 5px;

@@ -3,10 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
 import "./style.css";
 
-const root = document.getElementById("root");
-if (!root) throw new Error("Uygulama başlatılamadı.");
-
-createRoot(root).render(
+createRoot(document.getElementById("root")).render(
   <StrictMode>
     <App />
   </StrictMode>,

@@ -103,7 +103,7 @@
 
 .apartment-table th {
   background: var(--button-color);
-  color: var(--button-text, #ffffff);
+  color: var(--button-text);
   font-size: 0.95rem;
   font-weight: 600;
   padding: 16px;
@@ -198,7 +198,7 @@
 
 .collect-btn {
   background: var(--button-color);
-  color: var(--button-text, #ffffff);
+  color: var(--button-text);
   border: 1px solid transparent;
   border-radius: 7px;
   padding: 7px 14px;
@@ -504,7 +504,7 @@
 
 .cancel-btn:hover {
   background: var(--danger);
-  color: var(--button-text, #ffffff);
+  color: var(--button-text);
 }
 
 .apartments-container .return-link {
@@ -519,7 +519,7 @@
   border: none;
   border-radius: 8px;
   background: var(--button-color);
-  color: var(--button-text, #ffffff);
+  color: var(--button-text);
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
