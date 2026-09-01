@@ -9,6 +9,10 @@
   text-align: center;
 }
 
+.error-boundary-icon {
+  color: var(--danger);
+}
+
 .error-boundary-title {
   margin: 0;
   font-size: 1.4rem;
@@ -22,34 +26,10 @@
   color: var(--text-secondary);
 }
 
-.error-boundary-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.error-boundary-actions button {
+.error-boundary button {
   min-width: 140px;
+  margin-top: 16px;
   padding: 10px 20px;
-  font-size: 0.95rem;
-  font-weight: 500;
-}
-
-.error-boundary-secondary {
-  background: transparent;
-  color: var(--text-color);
-  border: 1px solid var(--border-default);
-}
-
-.error-boundary-secondary:hover:not(:disabled) {
-  background: var(--card-background-1);
-  opacity: 1;
-}
-
-.error-boundary-copy {
-  margin-top: 12px;
-  padding: 8px 16px;
   font-size: 1rem;
+  font-weight: 500;
 }

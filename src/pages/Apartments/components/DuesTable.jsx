@@ -1,10 +1,6 @@
 import { STATUS_LABELS } from "../constants";
 import { formatCurrency } from "@/utils/currency";
 
-/**
- * Renders the dues table. `onStatusClick` makes the status badge open the payment
- * modal; `renderRowActions` fills the actions column (collect/edit/delete).
- */
 function DuesTable({ dues, onStatusClick, renderRowActions }) {
   const COLUMN_COUNT = 9;
 
@@ -37,9 +33,7 @@ function DuesTable({ dues, onStatusClick, renderRowActions }) {
               <td>{due.floor}</td>
               <td>{due.type}</td>
               <td>{due.square_meters}</td>
-              <td className="resident-cell">
-                {due.resident_name || <span className="resident-empty">—</span>}
-              </td>
+              <td className="resident-cell">{due.resident_name || <span className="resident-empty">—</span>}</td>
               <td>{formatCurrency(due.due_amount)}</td>
               <td>{formatCurrency(due.paid_amount)}</td>
               <td>

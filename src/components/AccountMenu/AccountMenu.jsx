@@ -1,30 +1,46 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiChevronDown, FiLogOut, FiRepeat, FiUser } from "react-icons/fi";
-import { useCurrentUser, clearCurrentUser } from "@/hooks/useCurrentUser";
+import { useSession, clearSession } from "@/hooks/session";
 import { showAlert } from "@/utils/alert";
 import "./AccountMenu.css";
 
+function MenuItem({ icon: Icon, label, danger, onClick }) {
+  return (
+    <button
+      type="button"
+      className={`account-menu-item${danger ? " account-menu-item--danger" : ""}`}
+      onClick={onClick}
+    >
+      <Icon size={17} />
+      <span>{label}</span>
+    </button>
+  );
+}
+
 function AccountMenu() {
   const navigate = useNavigate();
-  const user = useCurrentUser();
+  const session = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef(null);
+  const triggerRef = useRef(null);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    const handlePointerDown = (e) => {
+    const handleMouseDown = (e) => {
       if (!wrapperRef.current?.contains(e.target)) setIsOpen(false);
     };
     const handleKeyDown = (e) => {
-      if (e.key === "Escape") setIsOpen(false);
+      if (e.key !== "Escape") return;
+      setIsOpen(false);
+      triggerRef.current?.focus();
     };
 
-    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("mousedown", handleMouseDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("mousedown", handleMouseDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen]);
@@ -33,63 +49,46 @@ function AccountMenu() {
     setIsOpen(false);
     const confirmed = await showAlert.confirm("Çıkış Yap", "Oturumu kapatmak istiyor musunuz?", "Vazgeç", "Evet, Çık");
     if (!confirmed) return;
-    clearCurrentUser();
+    clearSession();
     navigate("/", { replace: true });
   };
 
-  const closeMenuAndNavigate = (path, state) => {
+  const closeMenuAndNavigate = (path, options) => {
     setIsOpen(false);
-    navigate(path, state);
+    navigate(path, options);
   };
 
-  const label = user?.managerName || user?.username || "Hesabım";
+  const label = session.managerName;
 
   return (
     <div className="account-menu" ref={wrapperRef}>
       <button
         type="button"
         className="account-menu-trigger"
+        ref={triggerRef}
         onClick={() => setIsOpen((open) => !open)}
-        aria-haspopup="menu"
+        aria-haspopup="true"
         aria-expanded={isOpen}
       >
         <span className="account-menu-avatar">
           <FiUser size={16} />
         </span>
-        <span className="account-menu-label">{label}</span>
+        <span className="account-menu-label" title={label}>
+          {label}
+        </span>
         <FiChevronDown className={`account-menu-caret${isOpen ? " account-menu-caret--open" : ""}`} size={16} />
       </button>
 
       {isOpen && (
-        <div className="account-menu-panel" role="menu">
-          <button
-            type="button"
-            className="account-menu-item"
-            role="menuitem"
-            onClick={() => closeMenuAndNavigate("/profile")}
-          >
-            <FiUser size={17} />
-            <span>Profilim</span>
-          </button>
-          <button
-            type="button"
-            className="account-menu-item"
-            role="menuitem"
+        <div className="account-menu-panel">
+          <MenuItem icon={FiUser} label="Profilim" onClick={() => closeMenuAndNavigate("/profile")} />
+          <MenuItem
+            icon={FiRepeat}
+            label="Bina Değiştir"
             onClick={() => closeMenuAndNavigate("/select-building", { state: { manual: true } })}
-          >
-            <FiRepeat size={17} />
-            <span>Bina Değiştir</span>
-          </button>
+          />
           <div className="account-menu-divider" />
-          <button
-            type="button"
-            className="account-menu-item account-menu-item--danger"
-            role="menuitem"
-            onClick={handleLogout}
-          >
-            <FiLogOut size={17} />
-            <span>Çıkış Yap</span>
-          </button>
+          <MenuItem icon={FiLogOut} label="Çıkış Yap" danger onClick={handleLogout} />
         </div>
       )}
     </div>

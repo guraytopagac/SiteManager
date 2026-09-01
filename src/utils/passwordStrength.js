@@ -1,23 +1,17 @@
 const COMMON_WORDS = [
   "sifre",
-  "şifre",
   "parola",
   "deneme",
   "kullanici",
-  "kullanıcı",
   "password",
   "admin",
   "mavikent",
   "yonetim",
-  "yönetim",
   "yonetici",
-  "yönetici",
   "apartman",
   "galatasaray",
   "fenerbahce",
-  "fenerbahçe",
   "besiktas",
-  "beşiktaş",
   "trabzonspor",
   "cimbom",
   "istanbul",
@@ -26,12 +20,10 @@ const COMMON_WORDS = [
   "antalya",
   "trabzon",
   "turkiye",
-  "türkiye",
   "mehmet",
   "mustafa",
   "ahmet",
   "huseyin",
-  "hüseyin",
   "ibrahim",
   "zeynep",
   "murat",
@@ -45,6 +37,8 @@ const SEQUENCES = ["abcdefghijklmnopqrstuvwxyz", "0123456789", "qwertyuiop", "as
 
 const YEAR_PATTERN = /(19|20)\d{2}/g;
 
+const TR_LETTERS = { ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u" };
+
 export const MIN_PASSWORD_LENGTH = 8;
 
 const STRENGTH = [
@@ -55,6 +49,8 @@ const STRENGTH = [
   { label: "İyi", variant: "good" },
   { label: "Güçlü", variant: "strong" },
 ];
+
+const MAX_SCORE = STRENGTH.length - 1;
 
 function collapseRepeats(password) {
   return password.replace(/(.)\1{4,}/gu, "$1$1");
@@ -85,8 +81,15 @@ function longestSequenceLength(password) {
   return longest;
 }
 
+function foldToLetters(password) {
+  return password
+    .toLowerCase()
+    .replace(/[çğıöşü]/g, (letter) => TR_LETTERS[letter])
+    .replace(/[^a-z]/g, "");
+}
+
 function findCommonWords(password) {
-  const letters = password.toLowerCase().replace(/[^a-zçğıöşü]/g, "");
+  const letters = foldToLetters(password);
   const hits = [];
   for (const word of COMMON_WORDS) {
     const occurrences = letters.split(word).length - 1;
@@ -109,7 +112,7 @@ function periodLength(password) {
   return password.length;
 }
 
-export function scorePassword(password) {
+function scorePassword(password) {
   if (!password) return { score: 0, isPredictable: false, isPatterned: false };
 
   let pool = 0;
@@ -143,7 +146,19 @@ export function scorePassword(password) {
   };
 }
 
-export function buildPasswordRules({ password, confirmPassword, strength }) {
+function buildMeter(length, score) {
+  return {
+    variant: STRENGTH[score].variant,
+    label:
+      length > 0 && length < MIN_PASSWORD_LENGTH
+        ? `${MIN_PASSWORD_LENGTH - length} karakter daha`
+        : STRENGTH[score].label,
+    score,
+    max: MAX_SCORE,
+  };
+}
+
+function buildRules(password, confirmPassword, strength) {
   const isPasswordEmpty = password.length === 0;
   return [
     {
@@ -173,12 +188,10 @@ export function buildPasswordRules({ password, confirmPassword, strength }) {
   ];
 }
 
-export function buildStrengthMeter(password, strength) {
+export function evaluatePassword(password, confirmPassword) {
+  const strength = scorePassword(password);
   return {
-    variant: STRENGTH[strength.score].variant,
-    label:
-      password.length > 0 && password.length < MIN_PASSWORD_LENGTH
-        ? `${MIN_PASSWORD_LENGTH - password.length} karakter daha`
-        : STRENGTH[strength.score].label,
+    meter: buildMeter(password.length, strength.score),
+    rules: buildRules(password, confirmPassword, strength),
   };
 }

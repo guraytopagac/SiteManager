@@ -68,7 +68,6 @@
   );
 }
 
-/* ─── Full-screen background ───────────────────────────────────────────────── */
 .login-page-bg {
   position: fixed;
   inset: 0;
@@ -81,6 +80,14 @@
     var(--login-scrim),
     var(--login-page-bg) url("../../../assets/backgrounds/login/login-dark-bg.jpg") center / cover no-repeat;
   color: var(--login-text);
+
+  --af-bg: var(--login-field-bg);
+  --af-border: var(--login-input-border);
+  --af-text: var(--login-text);
+  --af-muted: var(--login-tertiary);
+  --af-accent: var(--login-accent);
+  --af-focus-ring: var(--login-focus-ring);
+  --af-focus-glow: var(--login-focus-glow);
 }
 
 .login-page-bg::before {
@@ -165,122 +172,6 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-}
-
-.login-form input {
-  text-align: left;
-  width: 100%;
-  padding: 27px 18px 9px;
-  font-size: 1.16rem;
-  background: var(--login-field-bg);
-  border: 1px solid var(--login-input-border);
-  border-radius: 11px;
-  color: var(--login-text);
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.login-form input::placeholder {
-  color: transparent;
-  transition: color 0.16s ease;
-}
-
-.login-form input:focus::placeholder {
-  color: var(--login-tertiary);
-}
-
-.login-form input:focus {
-  outline: none;
-  border-color: var(--login-accent);
-  box-shadow:
-    0 0 0 3px var(--login-focus-ring),
-    0 0 18px var(--login-focus-glow);
-}
-
-.login-field {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  text-align: left;
-}
-
-.login-input-wrapper {
-  position: relative;
-}
-
-.login-float-label {
-  position: absolute;
-  left: 46px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1.16rem;
-  font-weight: 500;
-  color: var(--login-tertiary);
-  pointer-events: none;
-  transform-origin: left center;
-  transition:
-    top 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-    font-size 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-    color 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.login-form input:focus ~ .login-float-label,
-.login-form input:not(:placeholder-shown) ~ .login-float-label {
-  top: 9px;
-  transform: translateY(0);
-  font-size: 0.96rem;
-  font-weight: 600;
-  color: var(--login-accent);
-}
-
-.login-icon {
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: block;
-  color: var(--login-tertiary);
-  pointer-events: none;
-}
-
-input.login-input,
-input.login-password-input {
-  padding-left: 46px;
-}
-
-.login-password-input {
-  padding-right: 52px !important;
-}
-
-.login-password-toggle {
-  position: absolute;
-  right: 1px;
-  top: 1px;
-  bottom: 1px;
-  width: 46px;
-  margin-top: 0;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  color: var(--login-tertiary);
-  border: none;
-  border-left: 1px solid var(--login-input-border);
-  border-radius: 0 10px 10px 0;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.login-toggle-icon {
-  display: block;
-}
-
-.login-password-toggle:hover:not(:disabled) {
-  background: transparent;
-  color: var(--login-accent);
 }
 
 .login-btn {
@@ -458,6 +349,6 @@ input.login-password-input {
   }
 
   .login-spinner {
-    animation-duration: 2s;
+    animation-duration: 2s !important;
   }
 }

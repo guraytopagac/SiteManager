@@ -84,7 +84,6 @@
   );
 }
 
-/* ─── Full-screen background ───────────────────────────────────────────────── */
 .sb-page {
   position: fixed;
   inset: 0;
@@ -116,7 +115,6 @@
   opacity: 1;
 }
 
-/* ─── Kabuk ────────────────────────────────────────────────────────────────── */
 .sb-shell {
   position: relative;
   z-index: 1;
@@ -148,7 +146,6 @@
   }
 }
 
-/* ─── Bantlar ──────────────────────────────────────────────────────────────── */
 .sb-band {
   padding: 26px 0;
 }
@@ -171,7 +168,6 @@
   flex: 1;
 }
 
-/* ─── Başlık bandı ─────────────────────────────────────────────────────────── */
 .sb-context {
   display: flex;
   align-items: flex-start;
@@ -210,7 +206,6 @@
   flex-shrink: 0;
 }
 
-/* ─── Liste ────────────────────────────────────────────────────────────────── */
 .sb-band-title {
   display: flex;
   align-items: baseline;
@@ -334,7 +329,6 @@
   flex-shrink: 0;
 }
 
-/* ─── Yeni bina hücresi ────────────────────────────────────────────────────── */
 .sb-item--add {
   justify-content: center;
   border-style: dashed;
@@ -358,7 +352,6 @@
   font-weight: 650;
 }
 
-/* ─── Bina oluşturma alanı ─────────────────────────────────────────────────── */
 .sb-item--create {
   flex-direction: column;
   align-items: stretch;
@@ -416,7 +409,6 @@
   text-align: left;
 }
 
-/* ─── Boş durum ────────────────────────────────────────────────────────────── */
 .sb-empty {
   display: flex;
   flex-direction: column;
@@ -475,7 +467,6 @@
   line-height: 1.55;
 }
 
-/* ─── Butonlar ─────────────────────────────────────────────────────────────── */
 .sb-btn {
   position: relative;
   overflow: hidden;
@@ -586,7 +577,6 @@
   color: var(--sb-danger);
 }
 
-/* ─── Durum satırı ─────────────────────────────────────────────────────────── */
 .sb-status {
   display: flex;
   align-items: center;
@@ -618,7 +608,6 @@
   flex: 1;
 }
 
-/* ─── Yükleniyor ───────────────────────────────────────────────────────────── */
 .sb-skeleton {
   height: 124px;
   border: 1px solid var(--sb-border);
@@ -642,7 +631,6 @@
   }
 }
 
-/* ─── Silinen binalar ──────────────────────────────────────────────────────── */
 .sb-deleted-head {
   display: flex;
   align-items: center;

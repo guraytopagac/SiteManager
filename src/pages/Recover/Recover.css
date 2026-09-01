@@ -104,7 +104,6 @@
   );
 }
 
-/* ─── Full-screen background ───────────────────────────────────────────────── */
 .recover-page-bg {
   position: fixed;
   inset: 0;
@@ -128,17 +127,13 @@
   --pw-valid-color: var(--recover-primary);
   --pw-valid-bg: var(--recover-primary-soft);
 
-  --ff-bg: var(--recover-surface-raised);
-  --ff-border: var(--recover-border-strong);
-  --ff-text: var(--recover-text);
-  --ff-icon: var(--recover-tertiary);
-  --ff-placeholder: var(--recover-tertiary);
-  --ff-hint: var(--recover-tertiary);
-  --ff-label: var(--recover-tertiary);
-  --ff-label-active: var(--recover-primary);
-  --ff-focus-border: var(--recover-primary);
-  --ff-focus-ring: var(--recover-focus-ring);
-  --ff-focus-glow: var(--recover-focus-glow);
+  --af-bg: var(--recover-surface-raised);
+  --af-border: var(--recover-border-strong);
+  --af-text: var(--recover-text);
+  --af-muted: var(--recover-tertiary);
+  --af-accent: var(--recover-primary);
+  --af-focus-ring: var(--recover-focus-ring);
+  --af-focus-glow: var(--recover-focus-glow);
 }
 
 .recover-page-bg .pw-rules {
@@ -162,7 +157,6 @@
   opacity: 1;
 }
 
-/* ─── Card ─────────────────────────────────────────────────────────────────── */
 .recover-container {
   position: relative;
   z-index: 1;
@@ -208,7 +202,6 @@
   }
 }
 
-/* ─── Bands ────────────────────────────────────────────────────────────────── */
 .recover-band {
   padding: 26px 0;
 }
@@ -225,7 +218,6 @@
   padding-bottom: 0;
 }
 
-/* ─── Context ──────────────────────────────────────────────────────────────── */
 .recover-eyebrow {
   display: block;
   color: var(--recover-primary);
@@ -263,7 +255,6 @@
   color: var(--recover-success);
 }
 
-/* ─── Step rail ────────────────────────────────────────────────────────────── */
 .recover-rail {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -329,7 +320,6 @@
   background: var(--recover-primary);
 }
 
-/* ─── Task heading ─────────────────────────────────────────────────────────── */
 .recover-task-title {
   margin: 0 0 10px;
   color: var(--recover-heading);
@@ -348,14 +338,12 @@
   font-size: 1.05rem;
 }
 
-/* ─── Fields ───────────────────────────────────────────────────────────────── */
 .recover-fields {
   display: flex;
   flex-direction: column;
   gap: 22px;
 }
 
-/* ─── Recovery code ────────────────────────────────────────────────────────── */
 .recover-code-wrapper {
   position: relative;
   display: flex;
@@ -416,7 +404,6 @@
   font-size: 1.02rem;
 }
 
-/* ─── Status ───────────────────────────────────────────────────────────────── */
 .recover-status {
   display: flex;
   align-items: center;
@@ -460,7 +447,6 @@
   color: var(--recover-surface);
 }
 
-/* ─── Actions ──────────────────────────────────────────────────────────────── */
 .recover-actions {
   display: flex;
   align-items: stretch;
@@ -598,7 +584,6 @@
   }
 }
 
-/* ─── Note ─────────────────────────────────────────────────────────────────── */
 .recover-note {
   display: flex;
   align-items: flex-start;
@@ -638,7 +623,6 @@
   line-height: 1.55;
 }
 
-/* ─── Result ───────────────────────────────────────────────────────────────── */
 .recover-code-surface {
   display: flex;
   flex-direction: column;
@@ -708,6 +692,6 @@
   }
 
   .recover-spinner {
-    animation-duration: 2s;
+    animation-duration: 2s !important;
   }
 }

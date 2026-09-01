@@ -18,7 +18,6 @@
 }
 
 .page-loader-text {
-  margin: 0;
   font-size: 1rem;
   color: var(--text-secondary);
 }
@@ -44,6 +43,6 @@
   }
 
   .page-loader-spinner {
-    animation-duration: 2.4s;
+    animation-duration: 2.4s !important;
   }
 }

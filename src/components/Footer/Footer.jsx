@@ -1,17 +1,15 @@
 import { useEffect, useState } from "react";
 import { FiSun, FiMoon } from "react-icons/fi";
-import { useTheme } from "@/hooks/useTheme";
+import { toggleTheme, useTheme } from "@/hooks/useTheme";
 import { showAlert } from "@/utils/alert";
 import { getCurrentYear } from "@/utils/date";
 import { hasUnseenReleaseNotes, markReleaseNotesSeen, renderReleaseNotesHtml } from "@/utils/releaseNotes";
 import "./Footer.css";
 
-const CURRENT_YEAR = getCurrentYear();
-
 function Footer() {
   const [version, setVersion] = useState(null);
   const [hasUnseen, setHasUnseen] = useState(false);
-  const { theme, toggleTheme } = useTheme();
+  const theme = useTheme();
 
   useEffect(() => {
     window.electronAPI
@@ -26,12 +24,12 @@ function Footer() {
   const showReleaseNotes = () => {
     markReleaseNotesSeen(version);
     setHasUnseen(false);
-    return showAlert.releaseNotes(renderReleaseNotesHtml(version));
+    showAlert.releaseNotes(renderReleaseNotesHtml(version));
   };
 
   return (
     <footer className="footer" aria-label="Uygulama alt bilgisi">
-      <span className="footer-copyright">© {CURRENT_YEAR} Güray Topağaç</span>
+      <span className="footer-copyright">© {getCurrentYear()} Güray Topağaç</span>
       <span className="footer-title">Mavikent Site Yönetimi</span>
       <div className="footer-right">
         <button

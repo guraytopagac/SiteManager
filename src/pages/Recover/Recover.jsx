@@ -1,23 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Recover.css";
-import FormField from "@/components/FormField/FormField";
+import AuthField from "@/components/AuthField/AuthField";
 import PasswordStrength from "@/components/PasswordStrength/PasswordStrength";
 import { MIN_PASSWORD_LENGTH } from "@/utils/passwordStrength";
-import {
-  FiAlertCircle,
-  FiArrowLeft,
-  FiArrowRight,
-  FiCheck,
-  FiCopy,
-  FiInfo,
-  FiLock,
-} from "react-icons/fi";
+import { FiAlertCircle, FiArrowLeft, FiArrowRight, FiCheck, FiCopy, FiInfo, FiLock } from "react-icons/fi";
 
 const RECOVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const RECOVERY_LENGTH = 16;
 const RECOVERY_GROUP_SIZE = 4;
 const EXCLUDED_HINT = "Kurtarma kodunda I, O, 0 ve 1 karakterleri bulunmaz.";
+const ERROR_ID = "recover-error";
 const CODE_PLACEHOLDER = "ABCD-EFGH-JKLP-QRST";
 const COPY_FEEDBACK_MS = 5000;
 
@@ -42,11 +35,15 @@ function hasExcludedCharacter(input) {
   return /[IO01]/.test(input.toUpperCase());
 }
 
-function StatusMessage({ variant, message }) {
+function StatusMessage({ variant, message, id }) {
   if (!message) return null;
 
   return (
-    <div className={`recover-status recover-status--${variant}`} role={variant === "error" ? "alert" : undefined}>
+    <div
+      className={`recover-status recover-status--${variant}`}
+      id={id}
+      role={variant === "error" ? "alert" : undefined}
+    >
       <span className="recover-status-icon" aria-hidden="true">
         {variant === "error" ? <FiAlertCircle size={16} /> : <FiCheck size={16} strokeWidth={2.5} />}
       </span>
@@ -338,7 +335,7 @@ function Recover() {
               </p>
 
               <div className="recover-fields">
-                <FormField
+                <AuthField
                   id="recover-password"
                   label="Yeni Şifre"
                   icon={FiLock}
@@ -351,8 +348,9 @@ function Recover() {
                     setPassword(e.target.value);
                     setError("");
                   }}
+                  errorId={error ? ERROR_ID : undefined}
                 />
-                <FormField
+                <AuthField
                   id="recover-confirm"
                   label="Yeni Şifre (Tekrar)"
                   icon={FiLock}
@@ -364,6 +362,7 @@ function Recover() {
                     setConfirmPassword(e.target.value);
                     setError("");
                   }}
+                  errorId={error ? ERROR_ID : undefined}
                 />
               </div>
             </div>
@@ -371,7 +370,7 @@ function Recover() {
             <div className="recover-band">
               <PasswordStrength password={password} confirmPassword={confirmPassword} />
 
-              <StatusMessage variant="error" message={error} />
+              <StatusMessage variant="error" message={error} id={ERROR_ID} />
             </div>
 
             <div className="recover-band recover-actions">

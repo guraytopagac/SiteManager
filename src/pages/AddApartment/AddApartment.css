@@ -6,7 +6,6 @@
   color: var(--text-color);
 }
 
-/* ---- Cards ---- */
 .form-card {
   background: var(--card-background-1);
   border: 1px solid var(--border-default);
@@ -33,7 +32,6 @@
   font-weight: 700;
 }
 
-/* ---- Grid + fields ---- */
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -96,7 +94,6 @@
   box-shadow: 0 0 0 3px var(--accent-tint);
 }
 
-/* ---- Actions ---- */
 .form-actions {
   display: flex;
   justify-content: center;

@@ -3,12 +3,6 @@
   flex-shrink: 0;
 }
 
-.account-menu-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 16px;
-}
-
 .account-menu-trigger {
   display: inline-flex;
   align-items: center;
@@ -70,6 +64,14 @@
   border-radius: 12px;
   background: var(--card-background-1);
   box-shadow: 0 12px 32px var(--card-shadow);
+  animation: account-menu-panel-in 0.14s ease;
+}
+
+@keyframes account-menu-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 
 .account-menu-item {

@@ -1,12 +1,9 @@
 import { lazy, Suspense } from "react";
 import { HashRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
-import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary.jsx";
-import Footer from "./components/Footer/Footer.jsx";
-import PageLoader from "./components/PageLoader/PageLoader.jsx";
-import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute.jsx";
-import { useCurrentBuilding } from "./hooks/useCurrentBuilding.js";
-import { useCurrentUser } from "./hooks/useCurrentUser.js";
-import { useNeedsSetup } from "./hooks/useNeedsSetup.js";
+import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary";
+import Footer from "./components/Footer/Footer";
+import PageLoader from "./components/PageLoader/PageLoader";
+import { needsSetup, useCurrentBuilding, useSession } from "./hooks/session";
 
 const Setup = lazy(() => import("./pages/Setup/Setup.jsx"));
 const Login = lazy(() => import("./pages/Login/Login.jsx"));
@@ -23,15 +20,29 @@ const Reports = lazy(() => import("./pages/Reports/Reports.jsx"));
 const SelectBuilding = lazy(() => import("./pages/SelectBuilding/SelectBuilding.jsx"));
 
 function StartupRedirect() {
-  const currentUser = useCurrentUser();
-  const needsSetup = useNeedsSetup();
+  const session = useSession();
 
-  if (currentUser) {
+  if (session) {
     return <Navigate to="/select-building" replace />;
   }
 
-  if (needsSetup === null) return <PageLoader message="Yükleniyor..." />;
-  return <Navigate to={needsSetup ? "/setup" : "/login"} replace />;
+  return <Navigate to={needsSetup() ? "/setup" : "/login"} replace />;
+}
+
+function RequireGuest() {
+  const session = useSession();
+  if (session) {
+    return <Navigate to="/select-building" replace />;
+  }
+  return <Outlet />;
+}
+
+function RequireAuth() {
+  const session = useSession();
+  if (!session) {
+    return <Navigate to="/" replace />;
+  }
+  return <Outlet />;
 }
 
 function RequireBuilding() {
@@ -46,15 +57,15 @@ function App() {
   return (
     <Router>
       <ErrorBoundary>
-        <Suspense fallback={<PageLoader message="Sayfa yükleniyor..." />}>
+        <Suspense fallback={<PageLoader />}>
           <Routes>
-            <Route element={<ProtectedRoute guestOnly />}>
+            <Route element={<RequireGuest />}>
               <Route path="/setup" element={<Setup />} />
               <Route path="/login" element={<Login />} />
               <Route path="/recover" element={<Recover />} />
             </Route>
 
-            <Route element={<ProtectedRoute />}>
+            <Route element={<RequireAuth />}>
               <Route path="/select-building" element={<SelectBuilding />} />
               <Route path="/profile" element={<Profile />} />
               <Route element={<RequireBuilding />}>

@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
 import "./Apartments.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
+import { useSession, useCurrentBuilding } from "@/hooks/session";
 import { showAlert } from "@/utils/alert";
 import { formatCurrency } from "@/utils/currency";
 import { getCurrentYear, getCurrentMonth, getYearOptions, clampMonth } from "@/utils/date";
@@ -18,7 +17,7 @@ import BulkUpdateModal from "./components/BulkUpdateModal";
 
 function Apartments() {
   const navigate = useNavigate();
-  const currentUser = useCurrentUser();
+  const session = useSession();
   const building = useCurrentBuilding();
 
   const [selectedYear, setSelectedYear] = useState(() => getCurrentYear());
@@ -172,7 +171,7 @@ function Apartments() {
           due={selectedDue}
           year={selectedYear}
           month={selectedMonth}
-          currentUser={currentUser}
+          session={session}
           building={building}
           onClose={() => setSelectedApartmentId(null)}
           onPaymentSaved={handlePaymentSaved}

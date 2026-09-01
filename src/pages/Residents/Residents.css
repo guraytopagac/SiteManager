@@ -123,7 +123,6 @@
   margin-top: 30px;
 }
 
-/* Buttons */
 .residents-container .button {
   min-width: 140px;
   padding: 12px 24px;
@@ -175,7 +174,6 @@
   font-size: 1.2rem;
 }
 
-/* Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -278,7 +276,6 @@
   resize: vertical;
 }
 
-/* History list */
 .history-empty {
   font-size: 0.85rem;
   opacity: 0.5;

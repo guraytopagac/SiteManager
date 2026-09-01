@@ -1,48 +1,22 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Login.css";
 import logoImgWebp from "../../../assets/app-logo.webp";
-import { setCurrentUser } from "@/hooks/useCurrentUser";
-import CapsLockIndicator from "@/components/CapsLockIndicator/CapsLockIndicator";
-import { FiUser, FiLock, FiEye, FiEyeOff, FiAlertCircle, FiArrowRight } from "react-icons/fi";
+import { savedUsername, setSession } from "@/hooks/session";
+import AuthField from "@/components/AuthField/AuthField";
+import { FiUser, FiLock, FiAlertCircle, FiArrowRight } from "react-icons/fi";
 
 const ERROR_ID = "login-error";
 
 function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [username, setUsername] = useState(location.state?.username ?? "");
+  const initialUsername = location.state?.username ?? savedUsername() ?? "";
+  const [username, setUsername] = useState(initialUsername);
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const usernameRef = useRef(null);
   const passwordRef = useRef(null);
-
-  useEffect(() => {
-    if (location.state?.username) {
-      passwordRef.current?.focus();
-      return;
-    }
-    let isMounted = true;
-    window.electronAPI
-      .getSetupState()
-      .then((state) => {
-        if (!isMounted) return;
-        if (state?.success && state.username) {
-          setUsername(state.username);
-          passwordRef.current?.focus();
-        } else {
-          usernameRef.current?.focus();
-        }
-      })
-      .catch(() => {
-        if (isMounted) usernameRef.current?.focus();
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, [location.state?.username]);
 
   const clearError = () => setError("");
 
@@ -61,7 +35,7 @@ function Login() {
       });
 
       if (success) {
-        setCurrentUser(user);
+        setSession(user);
         navigate("/select-building", { replace: true });
         return;
       }
@@ -97,70 +71,39 @@ function Login() {
         </header>
 
         <form className="login-form" onSubmit={handleLoginSubmit}>
-          <div className="login-field">
-            <div className="login-input-wrapper">
-              <FiUser className="login-icon" size={20} />
-              <input
-                id="login-username"
-                ref={usernameRef}
-                className="login-input"
-                type="text"
-                placeholder="Kullanıcı adınızı girin"
-                autoComplete="username"
-                spellCheck={false}
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  clearError();
-                }}
-                aria-invalid={error ? true : undefined}
-                aria-describedby={error ? ERROR_ID : undefined}
-                required
-              />
-              <label className="login-float-label" htmlFor="login-username">
-                Kullanıcı Adı
-              </label>
-            </div>
-          </div>
+          <AuthField
+            id="login-username"
+            label="Kullanıcı Adı"
+            icon={FiUser}
+            placeholder="Kullanıcı adınızı girin"
+            autoComplete="username"
+            autoFocus={!initialUsername}
+            spellCheck={false}
+            value={username}
+            onChange={(e) => {
+              setUsername(e.target.value);
+              clearError();
+            }}
+            errorId={error ? ERROR_ID : undefined}
+          />
 
-          <div className="login-field">
-            <div className="login-input-wrapper">
-              <FiLock className="login-icon" size={20} />
-              <input
-                id="login-password"
-                ref={passwordRef}
-                className="login-password-input"
-                type={showPassword ? "text" : "password"}
-                placeholder="Şifrenizi girin"
-                autoComplete="current-password"
-                spellCheck={false}
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  clearError();
-                }}
-                aria-invalid={error ? true : undefined}
-                aria-describedby={error ? ERROR_ID : undefined}
-                required
-              />
-              <label className="login-float-label" htmlFor="login-password">
-                Şifre
-              </label>
-              <CapsLockIndicator />
-              <button
-                type="button"
-                className="login-password-toggle"
-                onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
-              >
-                {showPassword ? (
-                  <FiEyeOff className="login-toggle-icon" size={20} />
-                ) : (
-                  <FiEye className="login-toggle-icon" size={20} />
-                )}
-              </button>
-            </div>
-          </div>
+          <AuthField
+            id="login-password"
+            ref={passwordRef}
+            label="Şifre"
+            icon={FiLock}
+            type="password"
+            placeholder="Şifrenizi girin"
+            autoComplete="current-password"
+            autoFocus={Boolean(initialUsername)}
+            spellCheck={false}
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              clearError();
+            }}
+            errorId={error ? ERROR_ID : undefined}
+          />
 
           {error && (
             <div className="login-error" id={ERROR_ID} role="alert">

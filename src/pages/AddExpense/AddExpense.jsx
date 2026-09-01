@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AddExpense.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
-import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
+import { useCurrentBuilding } from "@/hooks/session";
 import { showAlert } from "@/utils/alert";
 import { getToday } from "@/utils/date";
 

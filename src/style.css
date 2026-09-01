@@ -36,6 +36,9 @@
   --swal-copy-copied: #16a34a;
   --swal-warning-bg: rgba(248, 113, 113, 0.12);
 
+  --release-badge-bg: var(--accent-tint);
+  --release-badge-text: var(--button-color);
+
   --success: #34d399;
   --danger: #f87171;
   --warning: #fbbf24;
@@ -98,6 +101,9 @@
   --swal-shadow: rgba(15, 23, 42, 0.22);
   --swal-copy-copied: #15803d;
   --swal-warning-bg: rgba(220, 38, 38, 0.1);
+
+  --release-badge-bg: var(--button-color);
+  --release-badge-text: var(--button-text);
 
   --success: #16a34a;
   --danger: #dc2626;
@@ -163,6 +169,12 @@ body {
   border: 1px solid var(--border-default);
   border-radius: 20px;
   box-shadow: 0 10px 32px var(--page-shadow);
+}
+
+.account-menu-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
 }
 
 h1,
@@ -358,6 +370,62 @@ textarea:focus-visible {
   margin: 0.9em 0 0;
   padding: 0.7em 0.9em;
   text-align: left;
+}
+
+.release-notes {
+  text-align: left;
+  max-height: 55vh;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+
+.release-note:not(:first-child) {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--footer-border);
+}
+
+.release-note-version {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.release-note-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--release-badge-bg);
+  color: var(--release-badge-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+
+.release-note-date {
+  flex-shrink: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.release-note-list {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.release-note-list li {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
 }
 
 @media (prefers-reduced-motion: reduce) {

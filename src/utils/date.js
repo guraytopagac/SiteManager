@@ -1,8 +1,9 @@
 const LOCALE = "tr-TR";
 const TR_OFFSET_MS = 3 * 3600 * 1000;
 const EMPTY = "—";
+const YEAR_OPTION_COUNT = 5;
 
-export const MONTHS = [
+const MONTHS = [
   "Ocak",
   "Şubat",
   "Mart",
@@ -17,56 +18,50 @@ export const MONTHS = [
   "Aralık",
 ];
 
+const DATE_FORMATTER = new Intl.DateTimeFormat(LOCALE, { day: "numeric", month: "long", year: "numeric" });
+
 const nowInTr = () => new Date(Date.now() + TR_OFFSET_MS);
 
-const parse = (value) => {
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? null : { date: value, hasTime: true };
-  }
+const toDate = (value) => {
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
   if (value === null || value === undefined || value === "") return null;
   const text = String(value).trim().replace(" ", "T");
-  const hasTime = text.includes("T");
-  const date = new Date(hasTime ? text : `${text}T00:00:00`);
-  return Number.isNaN(date.getTime()) ? null : { date, hasTime };
+  const date = new Date(text.includes("T") ? text : `${text}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const format = (value, options) => {
-  const parsed = parse(value);
-  return parsed ? parsed.date.toLocaleDateString(LOCALE, options) : EMPTY;
+const monthLimit = (year) => {
+  const today = getToday();
+  const currentYear = Number(today.slice(0, 4));
+  if (Number(year) < currentYear) return MONTHS.length;
+  return Number(year) === currentYear ? Number(today.slice(5, 7)) : 0;
 };
-
-const TIME_OPTIONS = { hour: "2-digit", minute: "2-digit" };
-const SHORT_DATE_OPTIONS = { day: "2-digit", month: "2-digit", year: "numeric" };
 
 export const getToday = () => nowInTr().toISOString().slice(0, 10);
 export const getCurrentYear = () => Number(getToday().slice(0, 4));
 export const getCurrentMonth = () => Number(getToday().slice(5, 7));
-export const formatDate = (value) => format(value, { day: "numeric", month: "long", year: "numeric" });
-export const formatDateShort = (value) => format(value, SHORT_DATE_OPTIONS);
 
-export const formatDateTime = (value) => {
-  const parsed = parse(value);
-  if (!parsed) return EMPTY;
-  const day = parsed.date.toLocaleDateString(LOCALE, SHORT_DATE_OPTIONS);
-  if (!parsed.hasTime) return day;
-  return `${day} ${parsed.date.toLocaleTimeString(LOCALE, TIME_OPTIONS)}`;
+export const formatDate = (value) => {
+  const date = toDate(value);
+  return date ? DATE_FORMATTER.format(date) : EMPTY;
 };
 
 export const formatMonthYear = (year, month) => {
   const name = MONTHS[Number(month) - 1];
-  return name ? `${name} ${year}` : EMPTY;
+  const text = String(year ?? "").trim();
+  if (!name || text === "" || !Number.isInteger(Number(text))) return EMPTY;
+  return `${name} ${text}`;
 };
-
-const YEAR_OPTION_COUNT = 5;
 
 export const getYearOptions = () => {
   const current = getCurrentYear();
   return Array.from({ length: YEAR_OPTION_COUNT }, (_, i) => current - i);
 };
 
-export const getMonthOptions = (year) => {
-  const limit = Number(year) === getCurrentYear() ? getCurrentMonth() : MONTHS.length;
-  return MONTHS.slice(0, limit).map((name, index) => ({ value: index + 1, label: name }));
-};
+export const getMonthOptions = (year) =>
+  MONTHS.slice(0, monthLimit(year)).map((name, index) => ({ value: index + 1, label: name }));
 
-export const clampMonth = (year, month) => Math.min(month, getMonthOptions(year).length);
+export const clampMonth = (year, month) => {
+  const limit = monthLimit(year);
+  return limit > 0 ? Math.min(month, limit) : 1;
+};

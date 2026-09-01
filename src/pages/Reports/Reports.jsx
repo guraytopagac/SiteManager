@@ -4,7 +4,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import "./Reports.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
-import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
+import { useCurrentBuilding } from "@/hooks/session";
 import { showAlert } from "@/utils/alert";
 import {
   formatMonthYear,

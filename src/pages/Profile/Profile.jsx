@@ -2,10 +2,9 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Profile.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
-import { useCurrentUser, setCurrentUser, clearCurrentUser } from "@/hooks/useCurrentUser";
-import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
+import { useSession, setSession, clearSession, useCurrentBuilding } from "@/hooks/session";
 import { showAlert } from "@/utils/alert";
-import { formatDateTime } from "@/utils/date";
+import { formatDate } from "@/utils/date";
 
 function validatePasswordForm(oldPassword, newPassword, confirmPassword) {
   if (!oldPassword) return "Mevcut şifrenizi girmelisiniz.";
@@ -23,7 +22,7 @@ function validateEmail(value) {
 
 function Profile() {
   const navigate = useNavigate();
-  const currentUser = useCurrentUser();
+  const session = useSession();
   const building = useCurrentBuilding();
 
   const [oldPassword, setOldPassword] = useState("");
@@ -50,7 +49,7 @@ function Profile() {
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    if (!currentUser) return;
+    if (!session) return;
 
     const error = validatePasswordForm(oldPassword, newPassword, confirmPassword);
     if (error) {
@@ -60,7 +59,7 @@ function Profile() {
 
     setIsSubmitting(true);
     try {
-      const response = await window.electronAPI.changePassword({ userId: currentUser.id, oldPassword, newPassword });
+      const response = await window.electronAPI.changePassword({ userId: session.id, oldPassword, newPassword });
       if (response.success) {
         showAlert.toast("Başarılı!", response.message);
         setOldPassword("");
@@ -76,22 +75,22 @@ function Profile() {
   };
 
   const handleUpdateEmail = async () => {
-    if (!currentUser) return;
+    if (!session) return;
 
     const email = await showAlert.prompt({
       title: "E-posta Adresi",
       text: "Hesabınıza isteğe bağlı bir e-posta adresi ekleyebilir veya mevcut adresi boş bırakarak kaldırabilirsiniz.",
       inputLabel: "E-posta (isteğe bağlı)",
       inputPlaceholder: "ornek@site.com",
-      inputValue: currentUser.email || "",
+      inputValue: session.email || "",
       confirmButtonText: "Kaydet",
       validate: validateEmail,
     });
     if (email === null) return;
 
-    const res = await window.electronAPI.updateEmail({ userId: currentUser.id, email });
+    const res = await window.electronAPI.updateEmail({ userId: session.id, email });
     if (res.success) {
-      setCurrentUser({ ...currentUser, email: res.email });
+      setSession({ ...session, email: res.email });
       showAlert.toast("Güncellendi", res.message);
     } else {
       showAlert.error("Hata", res.message);
@@ -132,7 +131,7 @@ function Profile() {
     });
     if (!password) return;
 
-    const res = await window.electronAPI.transferAccount({ userId: currentUser.id, password, newPerson });
+    const res = await window.electronAPI.transferAccount({ userId: session.id, password, newPerson });
     if (!res.success) {
       showAlert.error("Hata", res.message);
       return;
@@ -140,7 +139,7 @@ function Profile() {
 
     await showAlert.temporaryPassword({ managerName: newPerson, code: res.temporaryPassword });
     await showAlert.transferredRecoveryCode(res.recoveryCode);
-    clearCurrentUser();
+    clearSession();
     navigate("/", { replace: true });
   };
 
@@ -157,18 +156,18 @@ function Profile() {
         <div className="info-grid">
           <div className="info-item">
             <span className="info-label">Ad Soyad</span>
-            <span className="info-value">{currentUser?.managerName || "—"}</span>
+            <span className="info-value">{session?.managerName || "—"}</span>
           </div>
           <div className="info-item">
             <span className="info-label">Giriş Kullanıcı Adı</span>
-            <span className="info-value">{currentUser?.username}</span>
+            <span className="info-value">{session?.username}</span>
           </div>
           <div className="info-item">
             <span className="info-label">E-posta</span>
             <span className="info-value info-value-editable">
-              {currentUser?.email || "—"}
+              {session?.email || "—"}
               <button className="btn-secondary btn-xs" onClick={handleUpdateEmail}>
-                {currentUser?.email ? "Düzenle" : "Ekle"}
+                {session?.email ? "Düzenle" : "Ekle"}
               </button>
             </span>
           </div>
@@ -180,7 +179,7 @@ function Profile() {
           )}
           <div className="info-item">
             <span className="info-label">Son Giriş</span>
-            <span className="info-value">{formatDateTime(currentUser?.lastLogin)}</span>
+            <span className="info-value">{formatDate(session?.lastLogin)}</span>
           </div>
         </div>
       </div>

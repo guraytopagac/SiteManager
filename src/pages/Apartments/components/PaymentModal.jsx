@@ -4,7 +4,7 @@ import { getToday, formatMonthYear, formatDate } from "@/utils/date";
 import { formatCurrency } from "@/utils/currency";
 import { PAYMENT_METHOD_LABELS } from "../constants";
 
-function PaymentModal({ due, year, month, currentUser, building, onClose, onPaymentSaved }) {
+function PaymentModal({ due, year, month, session, building, onClose, onPaymentSaved }) {
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [paymentDate, setPaymentDate] = useState(() => getToday());
@@ -57,7 +57,7 @@ function PaymentModal({ due, year, month, currentUser, building, onClose, onPaym
         payment_method: paymentMethod,
         payment_date: paymentDate,
         note: note || null,
-        collected_by: currentUser.id,
+        collected_by: session.id,
       },
     });
     setIsSubmitting(false);
@@ -83,7 +83,12 @@ function PaymentModal({ due, year, month, currentUser, building, onClose, onPaym
 
     if (!reason) return;
 
-    const res = await window.electronAPI.cancelPayment({ paymentId, buildingId: building.id, userId: currentUser.id, reason });
+    const res = await window.electronAPI.cancelPayment({
+      paymentId,
+      buildingId: building.id,
+      userId: session.id,
+      reason,
+    });
     if (res.success) {
       showAlert.toast("İptal Edildi", res.message);
       onPaymentSaved();
@@ -101,9 +106,7 @@ function PaymentModal({ due, year, month, currentUser, building, onClose, onPaym
       <div className="modal-box" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div>
-            <p className="modal-subtitle">
-              {formatMonthYear(due.year, due.month)}
-            </p>
+            <p className="modal-subtitle">{formatMonthYear(due.year, due.month)}</p>
             <h3 className="modal-title">Daire {due.apartment_no}</h3>
           </div>
           <button className="modal-close-btn" onClick={onClose}>
@@ -154,7 +157,13 @@ function PaymentModal({ due, year, month, currentUser, building, onClose, onPaym
             </div>
             <div className="form-row">
               <label>Ödeme Tarihi</label>
-              <input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} required max={getToday()} />
+              <input
+                type="date"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+                required
+                max={getToday()}
+              />
             </div>
             <div className="form-row">
               <label>Açıklama / Not</label>
@@ -193,7 +202,8 @@ function PaymentModal({ due, year, month, currentUser, building, onClose, onPaym
                     {p.note && <span> · {p.note}</span>}
                     {p.cancel_reason && (
                       <span className="cancel-reason">
-                        {" "}· İptal: {p.cancel_reason}
+                        {" "}
+                        · İptal: {p.cancel_reason}
                         {p.cancelled_by_username && ` (${p.cancelled_by_username})`}
                       </span>
                     )}

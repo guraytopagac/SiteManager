@@ -2,22 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import logoImgWebp from "../../../assets/app-logo.webp";
 import "./Setup.css";
-import FormField from "@/components/FormField/FormField";
-import PageLoader from "@/components/PageLoader/PageLoader";
+import AuthField from "@/components/AuthField/AuthField";
 import PasswordStrength from "@/components/PasswordStrength/PasswordStrength";
-import { useNeedsSetup } from "@/hooks/useNeedsSetup";
+import { markSetupComplete, needsSetup } from "@/hooks/session";
 import { MIN_PASSWORD_LENGTH } from "@/utils/passwordStrength";
-import {
-  FiCheck,
-  FiCopy,
-  FiLock,
-  FiUser,
-  FiAlertCircle,
-  FiArrowRight,
-  FiArrowLeft,
-  FiLogIn,
-} from "react-icons/fi";
+import { FiCheck, FiCopy, FiLock, FiUser, FiAlertCircle, FiArrowRight, FiArrowLeft, FiLogIn } from "react-icons/fi";
 
+const ERROR_ID = "setup-error";
 const USERNAME_RE = /^[A-Za-z0-9_]{3,}$/;
 const COPY_FEEDBACK_MS = 5000;
 const TOTAL_STEPS = 2;
@@ -45,15 +36,10 @@ function Setup() {
   const [result, setResult] = useState(null);
   const [isCopied, setIsCopied] = useState(false);
   const copyResetTimer = useRef(null);
-  const isSetupNeeded = useNeedsSetup();
 
   useEffect(() => () => clearTimeout(copyResetTimer.current), []);
 
-  if (isSetupNeeded === null && !result) {
-    return <PageLoader message="Yükleniyor..." />;
-  }
-
-  if (!isSetupNeeded && !result) {
+  if (!needsSetup() && !result) {
     return <Navigate to="/login" replace />;
   }
 
@@ -70,9 +56,7 @@ function Setup() {
       return;
     }
     if (step === 1 && !USERNAME_RE.test(username.trim())) {
-      setError(
-        "Kullanıcı adı en az 3 karakter olmalı, yalnızca İngilizce harf, rakam ve alt çizgi içermelidir."
-      );
+      setError("Kullanıcı adı en az 3 karakter olmalı, yalnızca İngilizce harf, rakam ve alt çizgi içermelidir.");
       return;
     }
     setError("");
@@ -107,6 +91,7 @@ function Setup() {
     }
 
     setIsSubmitting(false);
+    markSetupComplete(trimmedUsername);
     setResult({ code: res.recoveryCode, username: trimmedUsername });
   };
 
@@ -266,7 +251,7 @@ function Setup() {
           <form key={step} className="setup-form" onSubmit={handleFormSubmit}>
             {step === 1 && (
               <>
-                <FormField
+                <AuthField
                   id="setup-name"
                   label="Ad Soyad"
                   icon={FiUser}
@@ -278,10 +263,11 @@ function Setup() {
                     setManagerName(e.target.value);
                     setError("");
                   }}
+                  errorId={error ? ERROR_ID : undefined}
                   hint="Uygulama size bu adla hitap eder."
                 />
 
-                <FormField
+                <AuthField
                   id="setup-username"
                   label="Kullanıcı Adı"
                   icon={FiLogIn}
@@ -293,6 +279,7 @@ function Setup() {
                     setUsername(e.target.value);
                     setError("");
                   }}
+                  errorId={error ? ERROR_ID : undefined}
                   hint="Hesabınızın giriş adıdır, giriş ekranında otomatik dolar. En az 3 karakter olmalıdır, Türkçe karakter ve boşluk içeremez."
                 />
               </>
@@ -300,7 +287,7 @@ function Setup() {
 
             {step === 2 && (
               <>
-                <FormField
+                <AuthField
                   id="setup-password"
                   label="Şifre"
                   icon={FiLock}
@@ -313,9 +300,10 @@ function Setup() {
                     setPassword(e.target.value);
                     setError("");
                   }}
+                  errorId={error ? ERROR_ID : undefined}
                 />
 
-                <FormField
+                <AuthField
                   id="setup-password-confirm"
                   label="Şifre Tekrar"
                   icon={FiLock}
@@ -327,6 +315,7 @@ function Setup() {
                     setConfirmPassword(e.target.value);
                     setError("");
                   }}
+                  errorId={error ? ERROR_ID : undefined}
                 />
 
                 <PasswordStrength password={password} confirmPassword={confirmPassword} />
@@ -334,7 +323,7 @@ function Setup() {
             )}
 
             {error && (
-              <div className="setup-error" role="alert">
+              <div className="setup-error" id={ERROR_ID} role="alert">
                 <FiAlertCircle className="setup-error-icon" size={15} />
                 {error}
               </div>

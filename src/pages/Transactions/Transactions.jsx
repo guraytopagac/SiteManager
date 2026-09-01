@@ -2,8 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Transactions.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useCurrentBuilding } from "@/hooks/useCurrentBuilding";
+import { useSession, useCurrentBuilding } from "@/hooks/session";
 import { showAlert } from "@/utils/alert";
 import {
   formatDate,
@@ -37,7 +36,7 @@ const FILTERS = [
 
 function Transactions() {
   const navigate = useNavigate();
-  const currentUser = useCurrentUser();
+  const session = useSession();
   const building = useCurrentBuilding();
 
   const [transactions, setTransactions] = useState([]);
@@ -115,7 +114,7 @@ function Transactions() {
       if (!reason) return;
 
       const fn = t.type === "income" ? window.electronAPI.cancelIncome : window.electronAPI.cancelExpense;
-      const res = await fn({ id: t.id, buildingId: building.id, userId: currentUser.id, reason });
+      const res = await fn({ id: t.id, buildingId: building.id, userId: session.id, reason });
       if (res.success) {
         showAlert.toast("İptal Edildi", res.message);
         fetchTransactions();
@@ -123,7 +122,7 @@ function Transactions() {
         showAlert.error("Hata", res.message);
       }
     },
-    [building, currentUser, fetchTransactions],
+    [building, session, fetchTransactions],
   );
 
   const filtered = useMemo(

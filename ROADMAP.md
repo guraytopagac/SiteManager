@@ -89,7 +89,7 @@
 
 - **Kural:** `CLAUDE.md` §11, gövde/etiket/giriş alanı/buton/tablo metni için alt sınırı 1rem koyar. Rozet metinleri ve floating-label'ın küçülmüş hâli bu sınırdan muaftır.
 - **Ölçüm komutu:** `grep -rEc "font-size:\s*0\.[0-9]+rem" src --include=*.css | grep -v ":0$" | sort -t: -k2 -rn`
-- **Muaf olanlar (düzeltme gerekmez):** `CapsLockIndicator.css` (rozet), `FormField.css` ve `Login.css` (floated etiket). Bu üçünde çıkan tek sonuçlar belgeli istisnalardır.
+- **Muaf olanlar (düzeltme gerekmez):** `AuthField.css` (floated etiket ve Caps Lock rozeti) ile `style.css` (sürüm rozeti). İkisinde çıkan sonuçlar belgeli istisnalardır.
 - **Gerçek borç:** Kalan sayfa CSS dosyaları. Yoğunlukları yukarıdaki komutla ölçülür, sayı buraya yazılmaz.
 - **Kural:** **Toplu sweep yapma.** Yoğun tablo sayfalarında satır yüksekliği ve sütun genişliği değişir, her sayfa iki temada gözle doğrulanmalıdır. Bir sayfaya dokunulduğunda o sayfa yükseltilir.
 
@@ -97,7 +97,7 @@
 
 - **Kanıt:** `Login.css`, `Setup.css` ve `Recover.css` sırasıyla `--login-*`, `--setup-*` ve `--recover-*` setlerini tanımlar, `style.css`'teki global token'lardan bağımsızdır.
 - **Sonuç:** Global accent rengi değişirse bu üç ekran eski renkte kalır.
-- **Durum:** Ayrılık tümüyle borç değil: üçünün de tam ekran düzeni ve kendi arka plan görseli var. Ayrıca form alanları zaten paylaşılan `FormField` bileşenindedir ve rengini `--ff-*` sözleşmesiyle alır, yani alan görünümü tek kaynaktan gelir. Kalan ayrılık kart, arka plan ve buton token'larındadır.
+- **Durum:** Ayrılık tümüyle borç değil: üçünün de tam ekran düzeni ve kendi arka plan görseli var. Ayrıca form alanları zaten paylaşılan `AuthField` bileşenindedir ve rengini `--af-*` sözleşmesiyle alır, yani alan görünümü tek kaynaktan gelir. Kalan ayrılık kart, arka plan ve buton token'larındadır.
 - **Öneri:** En azından `Login` ve `Recover` tek sete indirilebilir (kardeş ekranlar, aynı değerler). Birleştirmede `CLAUDE.md` §11 kuralı korunmalı: geometri kurala literal yazılır, değişken yalnızca renk taşır.
 - **Doğrulama:** `grep -rn "^\s*--\(login\|setup\|recover\)-" src/pages/*/[LSR]*.css | wc -l`
 

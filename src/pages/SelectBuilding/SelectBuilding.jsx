@@ -2,8 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./SelectBuilding.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { setCurrentBuilding, clearCurrentBuilding, useCurrentBuilding } from "@/hooks/useCurrentBuilding";
+import { useSession, setCurrentBuilding, clearCurrentBuilding, useCurrentBuilding } from "@/hooks/session";
 import { showAlert } from "@/utils/alert";
 import { FiHome, FiPlus, FiAlertCircle } from "react-icons/fi";
 
@@ -21,7 +20,7 @@ function validateName(value) {
 function SelectBuilding() {
   const navigate = useNavigate();
   const location = useLocation();
-  const currentUser = useCurrentUser();
+  const session = useSession();
   const selectedBuilding = useCurrentBuilding();
   const [stayOnPage, setStayOnPage] = useState(Boolean(location.state?.manual));
   const skipAutoEnter = stayOnPage;
@@ -51,13 +50,13 @@ function SelectBuilding() {
   }, [renamingId]);
 
   useEffect(() => {
-    if (!currentUser?.id) return;
+    if (!session?.id) return;
     let isMounted = true;
 
     (async () => {
       setLoading(true);
       setError(false);
-      const res = await window.electronAPI.listBuildings({ ownerId: currentUser.id });
+      const res = await window.electronAPI.listBuildings({ ownerId: session.id });
       if (!isMounted) return;
       if (res.success) {
         const activeBuildings = res.data.filter((b) => b.is_active === 1);
@@ -83,7 +82,7 @@ function SelectBuilding() {
     return () => {
       isMounted = false;
     };
-  }, [currentUser?.id, reloadToken, skipAutoEnter, navigate]);
+  }, [session?.id, reloadToken, skipAutoEnter, navigate]);
 
   const enterBuilding = useCallback(
     (building) => {
@@ -117,7 +116,7 @@ function SelectBuilding() {
 
       setIsSaving(true);
       const res = await window.electronAPI.createBuilding({
-        ownerId: currentUser.id,
+        ownerId: session.id,
         name,
       });
       setIsSaving(false);
@@ -130,7 +129,7 @@ function SelectBuilding() {
       setReloadToken((token) => token + 1);
       showAlert.toast(`"${name}" binası oluşturuldu.`, "Girmek için karta tıklayın.");
     },
-    [newName, currentUser, closeCreate],
+    [newName, session, closeCreate],
   );
 
   const startRename = (building) => {
@@ -161,7 +160,7 @@ function SelectBuilding() {
     setIsRenaming(true);
     const res = await window.electronAPI.renameBuilding({
       buildingId: building.id,
-      ownerId: currentUser.id,
+      ownerId: session.id,
       name,
     });
     setIsRenaming(false);
@@ -188,7 +187,7 @@ function SelectBuilding() {
 
     const res = await window.electronAPI.removeBuilding({
       buildingId: building.id,
-      ownerId: currentUser.id,
+      ownerId: session.id,
     });
     if (res.success) {
       if (selectedBuilding?.id === building.id) {
@@ -220,7 +219,7 @@ function SelectBuilding() {
 
     const res = await window.electronAPI.updateBuildingStatus({
       buildingId: building.id,
-      ownerId: currentUser.id,
+      ownerId: session.id,
       isActive: willActivate,
     });
     if (res.success) {

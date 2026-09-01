@@ -1,21 +1,22 @@
 import { useEffect, useState } from "react";
 import "./PageLoader.css";
 
-function PageLoader({ message = "Yükleniyor...", delay = 150 }) {
-  const [visible, setVisible] = useState(delay === 0);
+const DELAY_MS = 150;
+
+function PageLoader() {
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (delay === 0) return undefined;
-    const timer = setTimeout(() => setVisible(true), delay);
+    const timer = setTimeout(() => setVisible(true), DELAY_MS);
     return () => clearTimeout(timer);
-  }, [delay]);
+  }, []);
 
   if (!visible) return null;
 
   return (
-    <div className="page-loader" role="status" aria-live="polite">
+    <div className="page-loader" role="status">
       <div className="page-loader-spinner" aria-hidden="true" />
-      <p className="page-loader-text">{message}</p>
+      <p className="page-loader-text">Sayfa yükleniyor...</p>
     </div>
   );
 }

@@ -95,17 +95,13 @@
   --pw-valid-color: var(--setup-accent);
   --pw-valid-bg: var(--setup-rule-tint);
 
-  --ff-bg: var(--setup-field-bg);
-  --ff-border: var(--setup-input-border);
-  --ff-text: var(--setup-text);
-  --ff-icon: var(--setup-tertiary);
-  --ff-placeholder: var(--setup-tertiary);
-  --ff-hint: var(--setup-tertiary);
-  --ff-label: var(--setup-tertiary);
-  --ff-label-active: var(--setup-accent);
-  --ff-focus-border: var(--setup-accent);
-  --ff-focus-ring: var(--setup-focus-ring);
-  --ff-focus-glow: var(--setup-focus-glow);
+  --af-bg: var(--setup-field-bg);
+  --af-border: var(--setup-input-border);
+  --af-text: var(--setup-text);
+  --af-muted: var(--setup-tertiary);
+  --af-accent: var(--setup-accent);
+  --af-focus-ring: var(--setup-focus-ring);
+  --af-focus-glow: var(--setup-focus-glow);
 }
 
 .setup-page-bg .pw-strength {

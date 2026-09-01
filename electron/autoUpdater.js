@@ -11,8 +11,10 @@ autoUpdater.autoInstallOnAppQuit = false;
 const CHECK_TIMEOUT_MS = 20000;
 const DOWNLOAD_STALL_TIMEOUT_MS = 60000;
 
-const CHECK_TIMED_OUT_MESSAGE = `No response from the update server within ${CHECK_TIMEOUT_MS / 1000}s (offline or slow connection); skipping the update check and booting the app.`;
-const DOWNLOAD_STALLED_MESSAGE = `Update download made no progress for ${DOWNLOAD_STALL_TIMEOUT_MS / 1000}s (connection likely dropped); skipping the update and booting the app.`;
+// Facts only. What follows a timeout differs per flow, so the consequence is written
+// where it happens instead of being baked into these strings.
+const CHECK_TIMED_OUT_MESSAGE = `No response from the update server within ${CHECK_TIMEOUT_MS / 1000}s.`;
+const DOWNLOAD_STALLED_MESSAGE = `Update download made no progress for ${DOWNLOAD_STALL_TIMEOUT_MS / 1000}s.`;
 
 let isUpdateFlowActive = false;
 
@@ -34,7 +36,10 @@ function runStartupUpdateFlow() {
       resolve();
     };
 
-    const skipUpdate = () => {
+    // Every give-up path lands here, so this is where the outcome gets logged. The error
+    // path passes no reason, because it has already logged the error object itself.
+    const skipUpdate = (reason) => {
+      if (reason) console.warn(`[Updater] ${reason} Skipping the update and continuing startup.`);
       setSplashStatus("Güncelleme kontrol edilemedi, atlanıyor", true);
       setSplashProgress(1, { mode: "error" });
       continueStartup();
@@ -43,10 +48,7 @@ function runStartupUpdateFlow() {
     // Restarted on every sign of progress, and gives up after ms of silence.
     const waitForProgress = (ms, giveUpReason) => {
       clearTimeout(idleTimeout);
-      idleTimeout = setTimeout(() => {
-        console.warn(`[Updater] ${giveUpReason}`);
-        skipUpdate();
-      }, ms);
+      idleTimeout = setTimeout(() => skipUpdate(giveUpReason), ms);
     };
 
     const onError = (err) => {
