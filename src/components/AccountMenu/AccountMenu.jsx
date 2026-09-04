@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiChevronDown, FiLogOut, FiRepeat, FiUser } from "react-icons/fi";
-import { useSession, clearSession } from "@/hooks/session";
+import { useSession, clearSession } from "@/hooks/useSession";
 import { showAlert } from "@/utils/alert";
 import "./AccountMenu.css";
 

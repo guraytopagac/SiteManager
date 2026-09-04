@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AddApartment.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
-import { useCurrentBuilding } from "@/hooks/session";
+import { useCurrentBuilding } from "@/hooks/useSession";
 import { APARTMENT_TYPES } from "@/pages/Apartments/constants";
 import { showAlert } from "@/utils/alert";
 

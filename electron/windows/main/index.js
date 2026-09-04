@@ -31,7 +31,7 @@ function createMainWindow(isDev) {
     icon: ICON_PATH,
     show: false,
     webPreferences: {
-      preload: path.join(__dirname, "../../preload.js"),
+      preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
       // sandbox is off for one reason only. The preload needs CommonJS require.

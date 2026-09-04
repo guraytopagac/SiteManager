@@ -3,7 +3,7 @@ import { HashRouter as Router, Routes, Route, Navigate, Outlet } from "react-rou
 import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary";
 import Footer from "./components/Footer/Footer";
 import PageLoader from "./components/PageLoader/PageLoader";
-import { needsSetup, useCurrentBuilding, useSession } from "./hooks/session";
+import { needsSetup, useCurrentBuilding, useSession } from "./hooks/useSession";
 
 const Setup = lazy(() => import("./pages/Setup/Setup.jsx"));
 const Login = lazy(() => import("./pages/Login/Login.jsx"));

@@ -1,6 +1,6 @@
 // The only bridge between the renderer and Node. A new feature needs a new channel here.
 const { contextBridge, ipcRenderer } = require("electron");
-const { CHANNELS: CH, EVENT_CHANNELS, INVOKE_CHANNELS } = require("./ipc/channels");
+const { CHANNELS: CH, EVENT_CHANNELS, INVOKE_CHANNELS } = require("../../ipc/channels");
 
 // Request and answer. Only invoke channels pass, and the payload is sent on unchanged.
 function safeInvoke(channel, payload) {

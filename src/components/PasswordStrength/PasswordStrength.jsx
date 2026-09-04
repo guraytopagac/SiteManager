@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { FiCheck, FiMinus, FiX } from "react-icons/fi";
-import { evaluatePassword } from "@/utils/passwordStrength";
+import { evaluatePassword } from "@/utils/passwordPolicy";
 import "./PasswordStrength.css";
 
 const RULE_ICONS = { valid: FiCheck, pending: FiMinus, failed: FiX };

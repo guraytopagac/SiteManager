@@ -32,7 +32,7 @@
 - **Neden önemli:** better-sqlite3 senkrondur (`CLAUDE.md` §14), yani büyük sonuç kümesi hem main process'i hem render'ı bloklar. Sayfa varsayılan olarak tek ay çektiği için risk bugün düşüktür, ama "Tüm Zamanlar" seçeneği 2-3 yıllık veride bu yolu açar.
 - **Öneri:** `LIMIT/OFFSET` ya da keyset sayfalama. Sorgu üreteci filtreyle birlikte tek yerde kurulmalı, değerler her zaman parametreli kalmalı.
 - **Karar gerekiyor:** Sayfa boyutu ve arayüzün nasıl gezineceği (sayfa numaraları mı, "daha fazla yükle" mi). IPC payload'ı değişeceği için `CLAUDE.md` §3 gereği önce onay alınmalıdır.
-- **Dosya:** `electron/modules/financial/service.js`, `electron/modules/financial/handlers.js`, `electron/preload.js`, `src/pages/Transactions/Transactions.jsx`
+- **Dosya:** `electron/modules/financial/service.js`, `electron/modules/financial/handlers.js`, `electron/windows/main/preload.js`, `src/pages/Transactions/Transactions.jsx`
 - **Doğrulama:** `grep -n "LIMIT" electron/modules/financial/service.js` (çıktı boş)
 
 ### S2. Sorgu planları hiç denetlenmedi 🟡
@@ -53,6 +53,15 @@
 - **Durum:** Bu **bilinçli bir çift yazımdır** ve `CLAUDE.md` §7.2'de belgelidir. CHECK son savunma hattı olduğu için sapma sessiz kalmaz, DB ihlal fırlatır. Yani risk düşüktür, ama sapma ancak çalışma zamanında görünür.
 - **Öneri:** Dokunulmayabilir. Ele alınacaksa yol, `status` kolonunu tümden kaldırıp okuma sorgularında `CASE` ile türetmektir. Bu her okuma sorgusunu ve `COALESCE(d.status, 'unpaid')` desenini yeniden yazmayı gerektirir, kazancı bir kolonluk depolamadır. Karşılığı düşük.
 - **Doğrulama:** `grep -n "calcDueStatus" electron/modules/dues/service.js` ve `grep -n "status = CASE" database/schema/05_dues.sql`
+
+---
+
+### R2. `Apartments` klasörü sayfa yapısı kuralını ihlal ediyor 🟡
+
+- **Kanıt:** `constants.js`, `useDues.js` ve `components/` altındaki altı bileşen dosyası. Diğer on iki sayfa klasörünün her biri tam iki dosyadır.
+- **Sonuç:** `CLAUDE.md` §4 sayfa klasörünün `<Sayfa>.jsx` + `<Sayfa>.css` olmasını şart koşar. Bu klasör kuralın tek istisnasıdır ve örnek alınırsa kural pratikte ölür. §9'un `constants.js` göndermesi de taşıma tamamlanana kadar bu klasöre bağlıdır.
+- **Öneri:** Altı bileşen, `constants.js` ve `useDues.js` `Apartments.jsx` içine dosya-yerel olarak taşınır. İşin gerçek yükü taşımak değil, taşıma sonrası sayfayı okunur tutmaktır: sayfa bugün de en büyük dosyalardan biridir, bu yüzden taşıma sırasında ölü prop ve tekrar eden modal iskeletleri de sadeleştirilmelidir. Bir parçanın ikinci bir **sayfa** tüketicisi çıkarsa yeri `src/components/`, bir hook'un ikinci tüketicisi çıkarsa `src/hooks/`'tur.
+- **Doğrulama:** `find src/pages -type f | grep -v -E "\.(jsx|css)$"` çıktısı boş olmalıdır.
 
 ---
 
@@ -89,17 +98,9 @@
 
 - **Kural:** `CLAUDE.md` §11, gövde/etiket/giriş alanı/buton/tablo metni için alt sınırı 1rem koyar. Rozet metinleri ve floating-label'ın küçülmüş hâli bu sınırdan muaftır.
 - **Ölçüm komutu:** `grep -rEc "font-size:\s*0\.[0-9]+rem" src --include=*.css | grep -v ":0$" | sort -t: -k2 -rn`
-- **Muaf olanlar (düzeltme gerekmez):** `AuthField.css` (floated etiket ve Caps Lock rozeti) ile `style.css` (sürüm rozeti). İkisinde çıkan sonuçlar belgeli istisnalardır.
+- **Muaf olanlar (düzeltme gerekmez):** `AuthField.css` (floated etiket ve Caps Lock rozeti) ile `global.css` (sürüm rozeti). İkisinde çıkan sonuçlar belgeli istisnalardır.
 - **Gerçek borç:** Kalan sayfa CSS dosyaları. Yoğunlukları yukarıdaki komutla ölçülür, sayı buraya yazılmaz.
 - **Kural:** **Toplu sweep yapma.** Yoğun tablo sayfalarında satır yüksekliği ve sütun genişliği değişir, her sayfa iki temada gözle doğrulanmalıdır. Bir sayfaya dokunulduğunda o sayfa yükseltilir.
-
-### U2. Giriş ekranları kendi tema değişken setlerini taşıyor 🟡
-
-- **Kanıt:** `Login.css`, `Setup.css` ve `Recover.css` sırasıyla `--login-*`, `--setup-*` ve `--recover-*` setlerini tanımlar, `style.css`'teki global token'lardan bağımsızdır.
-- **Sonuç:** Global accent rengi değişirse bu üç ekran eski renkte kalır.
-- **Durum:** Ayrılık tümüyle borç değil: üçünün de tam ekran düzeni ve kendi arka plan görseli var. Ayrıca form alanları zaten paylaşılan `AuthField` bileşenindedir ve rengini `--af-*` sözleşmesiyle alır, yani alan görünümü tek kaynaktan gelir. Kalan ayrılık kart, arka plan ve buton token'larındadır.
-- **Öneri:** En azından `Login` ve `Recover` tek sete indirilebilir (kardeş ekranlar, aynı değerler). Birleştirmede `CLAUDE.md` §11 kuralı korunmalı: geometri kurala literal yazılır, değişken yalnızca renk taşır.
-- **Doğrulama:** `grep -rn "^\s*--\(login\|setup\|recover\)-" src/pages/*/[LSR]*.css | wc -l`
 
 ---
 

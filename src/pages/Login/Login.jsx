@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Login.css";
 import logoImgWebp from "../../../assets/app-logo.webp";
-import { savedUsername, setSession } from "@/hooks/session";
+import { savedUsername, setSession } from "@/hooks/useSession";
 import AuthField from "@/components/AuthField/AuthField";
 import { FiUser, FiLock, FiAlertCircle, FiArrowRight } from "react-icons/fi";
 
@@ -11,28 +11,27 @@ const ERROR_ID = "login-error";
 function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const initialUsername = location.state?.username ?? savedUsername() ?? "";
+  const [initialUsername] = useState(() => location.state?.username ?? savedUsername() ?? "");
   const [username, setUsername] = useState(initialUsername);
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const passwordRef = useRef(null);
+  const focusPassword = Boolean(initialUsername);
 
-  const clearError = () => setError("");
+  const handleFieldChange = (setValue) => (e) => {
+    setValue(e.target.value);
+    setError("");
+  };
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
-
-    const trimmedUsername = username.trim();
 
     setIsSubmitting(true);
     setError("");
 
     try {
-      const { success, user, message } = await window.electronAPI.login({
-        username: trimmedUsername,
-        password,
-      });
+      const { success, user, message } = await window.electronAPI.login({ username, password });
 
       if (success) {
         setSession(user);
@@ -51,8 +50,8 @@ function Login() {
   };
 
   return (
-    <div className="login-page-bg">
-      <div className="login-container">
+    <div className="auth-page">
+      <div className="auth-card login-container">
         <header className="login-header">
           <img
             className="login-logo"
@@ -77,13 +76,10 @@ function Login() {
             icon={FiUser}
             placeholder="Kullanıcı adınızı girin"
             autoComplete="username"
-            autoFocus={!initialUsername}
+            autoFocus={!focusPassword}
             spellCheck={false}
             value={username}
-            onChange={(e) => {
-              setUsername(e.target.value);
-              clearError();
-            }}
+            onChange={handleFieldChange(setUsername)}
             errorId={error ? ERROR_ID : undefined}
           />
 
@@ -95,13 +91,10 @@ function Login() {
             type="password"
             placeholder="Şifrenizi girin"
             autoComplete="current-password"
-            autoFocus={Boolean(initialUsername)}
+            autoFocus={focusPassword}
             spellCheck={false}
             value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              clearError();
-            }}
+            onChange={handleFieldChange(setPassword)}
             errorId={error ? ERROR_ID : undefined}
           />
 
@@ -112,10 +105,10 @@ function Login() {
             </div>
           )}
 
-          <button type="submit" id="loginButton" className="login-btn" disabled={isSubmitting}>
+          <button type="submit" className="login-btn auth-btn auth-shine" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
-                <span className="login-spinner" aria-hidden="true" />
+                <span className="auth-spinner" aria-hidden="true" />
                 Giriş yapılıyor...
               </>
             ) : (

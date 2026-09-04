@@ -63,7 +63,7 @@
   border: 1px solid var(--border-default);
   border-radius: 12px;
   background: var(--card-background-1);
-  box-shadow: 0 12px 32px var(--card-shadow);
+  box-shadow: 0 12px 32px var(--shadow-soft);
   animation: account-menu-panel-in 0.14s ease;
 }
 

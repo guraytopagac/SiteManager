@@ -1,6 +1,6 @@
 // Auth IPC entry points. Passwords are never trimmed, because a space may be part of the password.
 const { CHANNELS: CH } = require("../../ipc/channels");
-const { createHandle } = require("../../ipc/handler");
+const { createHandle } = require("../../ipc/createHandle");
 const { fail, isValidEmail, noValidation, validateId, validatePayload } = require("../shared/validate");
 const authService = require("./service");
 

@@ -1,7 +1,7 @@
 // Resident IPC entry points. Every field except the apartment link is optional, so the checks
 // come from a table instead of one if block per field.
 const { CHANNELS: CH } = require("../../ipc/channels");
-const { createHandle } = require("../../ipc/handler");
+const { createHandle } = require("../../ipc/createHandle");
 const { fail, isValidDate, isValidEmail, validateBuildingScope, validateId } = require("../shared/validate");
 const residentService = require("./service");
 
@@ -97,6 +97,16 @@ function validateResidentDates(payload) {
   );
 }
 
+// The only required resident field. The building list sums it, so it may never be null, and the
+// range matches the CHECK on the column.
+function validateHouseholdSize(payload) {
+  const value = payload.household_size;
+  if (!Number.isInteger(value) || value < 1 || value > 20) {
+    return fail("Dairede yaşayan kişi sayısı 1 ile 20 arasında bir tam sayı olmalıdır.");
+  }
+  return null;
+}
+
 // Trims first, so it can be chained after a scope validator. Runs on both add and update.
 function validateResidentFields(payload) {
   normalizeResidentData(payload);
@@ -106,7 +116,7 @@ function validateResidentFields(payload) {
     if (error) return error;
   }
 
-  return validateResidentDates(payload);
+  return validateHouseholdSize(payload) ?? validateResidentDates(payload);
 }
 
 // Only moveOutResident may write that date, so the update channel says no instead of quietly

@@ -18,7 +18,7 @@
   border-radius: 14px;
   padding: 24px;
   margin-bottom: 16px;
-  box-shadow: 0 4px 12px var(--card-shadow);
+  box-shadow: 0 4px 12px var(--shadow-soft);
 }
 
 .profile-section-title {

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
 import "./Apartments.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
-import { useSession, useCurrentBuilding } from "@/hooks/session";
+import { useSession, useCurrentBuilding } from "@/hooks/useSession";
 import { showAlert } from "@/utils/alert";
 import { formatCurrency } from "@/utils/currency";
 import { getCurrentYear, getCurrentMonth, getYearOptions, clampMonth } from "@/utils/date";

@@ -12,6 +12,9 @@ CREATE TABLE IF NOT EXISTS residents (
   email TEXT CHECK(email IS NULL OR (email LIKE '%@%.%' AND length(email) BETWEEN 5 AND 254)),
   national_id TEXT CHECK(national_id IS NULL OR (length(national_id) = 11 AND national_id NOT GLOB '*[^0-9]*')),
   resident_type TEXT CHECK(resident_type IS NULL OR resident_type IN ('owner', 'tenant')),
+  -- How many people live in the apartment. Required, unlike the fields above, because the
+  -- building list sums it. One resident row still stands for one apartment.
+  household_size INTEGER NOT NULL DEFAULT 1 CHECK(typeof(household_size) = 'integer' AND household_size BETWEEN 1 AND 20),
   move_in_date TEXT CHECK(move_in_date IS NULL OR (
     date(move_in_date) IS NOT NULL AND
     move_in_date >= '2000-01-01' AND

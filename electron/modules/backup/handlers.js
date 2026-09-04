@@ -1,6 +1,6 @@
 // The only backup IPC entry point. Restore has none, because it restarts the app.
 const { CHANNELS: CH } = require("../../ipc/channels");
-const { createHandle } = require("../../ipc/handler");
+const { createHandle } = require("../../ipc/createHandle");
 const { getMainWindow } = require("../../windows/main");
 const { noValidation } = require("../shared/validate");
 const backupService = require("./service");

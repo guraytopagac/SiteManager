@@ -1,6 +1,6 @@
 // Financial IPC entry points, for income and expense entered by hand.
 const { CHANNELS: CH } = require("../../ipc/channels");
-const { createHandle } = require("../../ipc/handler");
+const { createHandle } = require("../../ipc/createHandle");
 const { trToday } = require("../shared/trTime");
 const {
   fail,

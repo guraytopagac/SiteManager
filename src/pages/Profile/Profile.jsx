@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Profile.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
-import { useSession, setSession, clearSession, useCurrentBuilding } from "@/hooks/session";
+import { useSession, setSession, clearSession, useCurrentBuilding } from "@/hooks/useSession";
 import { showAlert } from "@/utils/alert";
 import { formatDate } from "@/utils/date";
 

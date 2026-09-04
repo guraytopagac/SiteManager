@@ -1,41 +1,156 @@
-import { useState, useEffect, cloneElement } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
-import { useCurrentBuilding } from "@/hooks/session";
-import { showAlert } from "@/utils/alert";
+import { useCurrentBuilding } from "@/hooks/useSession";
 import { formatCurrency } from "@/utils/currency";
 import { formatMonthYear, getCurrentYear, getCurrentMonth } from "@/utils/date";
 import {
-  FiDollarSign,
-  FiTrendingUp,
-  FiClock,
-  FiHome,
-  FiEye,
-  FiUsers,
-  FiArrowUpCircle,
+  FiAlertTriangle,
   FiArrowDownCircle,
-  FiList,
+  FiArrowUpCircle,
+  FiChevronRight,
+  FiClock,
+  FiDollarSign,
+  FiEye,
   FiFileText,
-  FiUser,
+  FiHome,
+  FiList,
+  FiPlus,
+  FiRefreshCw,
+  FiTrendingUp,
+  FiUsers,
 } from "react-icons/fi";
 
-const ICONS = {
-  cash: <FiDollarSign />,
-  trend: <FiTrendingUp />,
-  clock: <FiClock />,
-  buildingAdd: <FiHome />,
-  eye: <FiEye />,
-  users: <FiUsers />,
-  incomeArrow: <FiArrowUpCircle />,
-  expenseArrow: <FiArrowDownCircle />,
-  list: <FiList />,
-  document: <FiFileText />,
-  user: <FiUser />,
-};
+function ActionTile({ icon, label, tone, onClick }) {
+  const markClass = tone ? `db-action-mark db-action-mark--${tone}` : "db-action-mark";
 
-function Icon({ name }) {
-  return <span className="icon">{cloneElement(ICONS[name], { className: "icon-svg" })}</span>;
+  return (
+    <button className="db-action" type="button" onClick={onClick}>
+      <span className={markClass} aria-hidden="true">
+        {icon}
+      </span>
+      <span className="db-action-title">{label}</span>
+      <span className="db-action-go" aria-hidden="true">
+        <FiChevronRight />
+      </span>
+    </button>
+  );
+}
+
+function MetricTile({ className, icon, label, ariaLabel, onOpen, children }) {
+  return (
+    <button className={className} type="button" onClick={onOpen} aria-label={ariaLabel}>
+      <span className="db-metric-label">
+        <span className="db-metric-mark" aria-hidden="true">
+          {icon}
+        </span>
+        {label}
+        <span className="db-metric-go" aria-hidden="true">
+          <FiChevronRight />
+        </span>
+      </span>
+      {children}
+    </button>
+  );
+}
+
+function StatusSkeleton() {
+  return (
+    <div className="db-metrics">
+      {[0, 1, 2].map((index) => (
+        <div className="db-metric db-metric--static" key={index}>
+          <div className="db-bar db-bar--label" />
+          <div className="db-bar db-bar--value" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StatusError({ onRetry }) {
+  return (
+    <div className="db-state" role="alert">
+      <span className="db-state-mark" aria-hidden="true">
+        <FiAlertTriangle />
+      </span>
+      <span className="db-state-text">
+        <span className="db-state-title">Bina durumu okunamadı</span>
+        <span className="db-state-body">Aşağıdaki işlemleri kullanmaya devam edebilirsiniz.</span>
+      </span>
+      <button className="db-retry" type="button" onClick={onRetry}>
+        <FiRefreshCw />
+        Yeniden Dene
+      </button>
+    </div>
+  );
+}
+
+function StatusEmpty({ onAdd }) {
+  return (
+    <div className="db-state">
+      <span className="db-state-mark db-state-mark--accent" aria-hidden="true">
+        <FiHome />
+      </span>
+      <span className="db-state-text">
+        <span className="db-state-title">Bu bina henüz boş</span>
+        <span className="db-state-body">
+          Aidat takibi daire ekledikten sonra başlar. Gelir ve gider kaydını şimdi de girebilirsiniz.
+        </span>
+      </span>
+      <button className="db-retry" type="button" onClick={onAdd}>
+        <FiPlus />
+        Yeni Daire Ekle
+      </button>
+    </div>
+  );
+}
+
+function StatusMetrics({ stats, navigate }) {
+  const hasRate = stats.collections !== null;
+
+  return (
+    <div className="db-metrics">
+      <MetricTile
+        className="db-metric db-metric--cash"
+        icon={<FiDollarSign />}
+        label="Kasa"
+        ariaLabel="Kasa, işlem geçmişini aç"
+        onOpen={() => navigate("/transactions")}
+      >
+        <span className="db-metric-value">{formatCurrency(stats.cash)}</span>
+      </MetricTile>
+
+      <MetricTile
+        className="db-metric"
+        icon={<FiTrendingUp />}
+        label="Tahsilat"
+        ariaLabel="Tahsilat, aidat listesini aç"
+        onOpen={() => navigate("/apartments")}
+      >
+        <span className={hasRate ? "db-metric-value" : "db-metric-value db-metric-value--blank"}>
+          {hasRate ? `%${stats.collections}` : "—"}
+        </span>
+        {hasRate ? (
+          <span className="db-meter" aria-hidden="true">
+            <span style={{ width: `${stats.collections}%` }} />
+          </span>
+        ) : (
+          <span className="db-metric-meta">Bu ay için tahakkuk yok</span>
+        )}
+      </MetricTile>
+
+      <MetricTile
+        className={stats.delays > 0 ? "db-metric db-metric--delay" : "db-metric"}
+        icon={<FiClock />}
+        label="Gecikme"
+        ariaLabel="Gecikme, aidat listesini aç"
+        onOpen={() => navigate("/apartments")}
+      >
+        <span className="db-metric-value">{formatCurrency(stats.delays)}</span>
+      </MetricTile>
+    </div>
+  );
 }
 
 function Dashboard() {
@@ -45,6 +160,8 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
+  const period = formatMonthYear(getCurrentYear(), getCurrentMonth());
+  const isEmptyBook = stats.collections === null && stats.cash === 0 && stats.delays === 0;
 
   useEffect(() => {
     if (!building?.id) return;
@@ -59,7 +176,6 @@ function Dashboard() {
         setStats(res.data);
       } else {
         setError(true);
-        showAlert.error("Veriler Yüklenemedi", res.message || "İstatistikler alınırken bir hata oluştu.");
       }
       setLoading(false);
     })();
@@ -69,126 +185,71 @@ function Dashboard() {
     };
   }, [building?.id, reloadToken]);
 
-  if (loading) {
-    return (
-      <div className="dashboard-container">
-        <div className="loading">İstatistikler yükleniyor...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="dashboard-container">
-        <div className="loading">
-          İstatistikler yüklenemedi.{" "}
-          <button className="button" onClick={() => setReloadToken((t) => t + 1)}>
-            Yeniden Dene
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="dashboard-container">
-      <div className="dashboard-building-row">
-        <h1 className="dashboard-building">{building?.name}</h1>
-        <AccountMenu />
-      </div>
+      <header className="db-band">
+        <div className="db-context">
+          <div className="db-identity">
+            <span className="db-eyebrow">Seçili Bina</span>
+            <h1 className="db-title">{building?.name}</h1>
+            <p className="db-subtitle">{period}</p>
+          </div>
+          <AccountMenu />
+        </div>
+      </header>
 
-      <div className="stat-grid">
-        <div className="stat-card stat-card-kasa">
-          <div className="stat-card-text">
-            <h3>Kasa</h3>
-            <p>{formatCurrency(stats.cash)}</p>
-            <span className="stat-card-period">Tüm zamanlar</span>
-          </div>
-          <div className="stat-icon-badge">
-            <Icon name="cash" />
-          </div>
-        </div>
-        <div className="stat-card stat-card-tahsilat">
-          <div className="stat-card-text">
-            <h3>Tahsilat</h3>
-            <p>{stats.collections === null ? "—" : `${stats.collections}%`}</p>
-            <span className="stat-card-period">{formatMonthYear(getCurrentYear(), getCurrentMonth())}</span>
-          </div>
-          <div className="stat-icon-badge">
-            <Icon name="trend" />
-          </div>
-        </div>
-        <div className="stat-card stat-card-gecikme">
-          <div className="stat-card-text">
-            <h3>Gecikme</h3>
-            <p>{formatCurrency(stats.delays)}</p>
-            <span className="stat-card-period">Geçmiş aylar</span>
-          </div>
-          <div className="stat-icon-badge">
-            <Icon name="clock" />
-          </div>
-        </div>
-      </div>
+      <section className="db-band" aria-label="Bina durumu">
+        {loading && <StatusSkeleton />}
+        {!loading && error && <StatusError onRetry={() => setReloadToken((t) => t + 1)} />}
+        {!loading && !error && isEmptyBook && <StatusEmpty onAdd={() => navigate("/add-apartment")} />}
+        {!loading && !error && !isEmptyBook && <StatusMetrics stats={stats} navigate={navigate} />}
+      </section>
 
-      <div className="category-group">
-        <h2 className="section-header">Daire İşlemleri</h2>
-        <div className="action-grid">
-          <button className="action-card action-card-green" onClick={() => navigate("/add-apartment")}>
-            <span className="action-icon-badge action-icon-badge-green">
-              <Icon name="buildingAdd" />
-            </span>
-            <span>Yeni Daire Ekle</span>
-          </button>
-          <button className="action-card action-card-blue" onClick={() => navigate("/apartments")}>
-            <span className="action-icon-badge action-icon-badge-blue">
-              <Icon name="eye" />
-            </span>
-            <span>Daireler ve Aidat</span>
-          </button>
-          <button className="action-card action-card-blue" onClick={() => navigate("/residents")}>
-            <span className="action-icon-badge action-icon-badge-blue">
-              <Icon name="users" />
-            </span>
-            <span>Sakinleri Yönet</span>
-          </button>
+      <section className="db-band" aria-label="İşlemler">
+        <div className="db-group">
+          <div className="db-group-label">
+            Daire İşlemleri
+            <span className="db-group-hint">Daire ve sakin kayıtları</span>
+          </div>
+          <div className="db-actions">
+            <ActionTile icon={<FiEye />} label="Daireler ve Aidat" onClick={() => navigate("/apartments")} />
+            <ActionTile icon={<FiUsers />} label="Sakinleri Yönet" onClick={() => navigate("/residents")} />
+            <ActionTile icon={<FiHome />} label="Yeni Daire Ekle" onClick={() => navigate("/add-apartment")} />
+          </div>
         </div>
-      </div>
 
-      <div className="category-group">
-        <h2 className="section-header">Finansal İşlemler</h2>
-        <div className="action-grid">
-          <button className="action-card action-card-green" onClick={() => navigate("/add-income")}>
-            <span className="action-icon-badge action-icon-badge-green">
-              <Icon name="incomeArrow" />
-            </span>
-            <span>Gelir Ekle</span>
-          </button>
-          <button className="action-card action-card-red" onClick={() => navigate("/add-expense")}>
-            <span className="action-icon-badge action-icon-badge-red">
-              <Icon name="expenseArrow" />
-            </span>
-            <span>Gider Ekle</span>
-          </button>
-          <button className="action-card action-card-blue" onClick={() => navigate("/transactions")}>
-            <span className="action-icon-badge action-icon-badge-blue">
-              <Icon name="list" />
-            </span>
-            <span>İşlem Geçmişi</span>
-          </button>
+        <div className="db-group">
+          <div className="db-group-label">
+            Finansal İşlemler
+            <span className="db-group-hint">Kasa hareketleri</span>
+          </div>
+          <div className="db-actions">
+            <ActionTile
+              icon={<FiArrowUpCircle />}
+              label="Gelir Ekle"
+              tone="positive"
+              onClick={() => navigate("/add-income")}
+            />
+            <ActionTile
+              icon={<FiArrowDownCircle />}
+              label="Gider Ekle"
+              tone="negative"
+              onClick={() => navigate("/add-expense")}
+            />
+            <ActionTile icon={<FiList />} label="İşlem Geçmişi" onClick={() => navigate("/transactions")} />
+          </div>
         </div>
-      </div>
 
-      <div className="category-group">
-        <h2 className="section-header">Çeşitli</h2>
-        <div className="action-grid">
-          <button className="action-card action-card-blue" onClick={() => navigate("/reports")}>
-            <span className="action-icon-badge action-icon-badge-blue">
-              <Icon name="document" />
-            </span>
-            <span>Raporlar</span>
-          </button>
+        <div className="db-group">
+          <div className="db-group-label">
+            Raporlama
+            <span className="db-group-hint">Dönem çıktıları</span>
+          </div>
+          <div className="db-actions">
+            <ActionTile icon={<FiFileText />} label="Raporlar" onClick={() => navigate("/reports")} />
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

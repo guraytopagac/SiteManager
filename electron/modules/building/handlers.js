@@ -1,6 +1,6 @@
 // Building IPC entry points. Data here is kept apart by ownerId, not by buildingId.
 const { CHANNELS: CH } = require("../../ipc/channels");
-const { createHandle } = require("../../ipc/handler");
+const { createHandle } = require("../../ipc/createHandle");
 const { fail, validateBuildingScope, validateId, validatePayload } = require("../shared/validate");
 const buildingService = require("./service");
 

@@ -2,7 +2,7 @@
 const fs = require("fs");
 const { dialog } = require("electron");
 const { CHANNELS: CH } = require("../../ipc/channels");
-const { createHandle } = require("../../ipc/handler");
+const { createHandle } = require("../../ipc/createHandle");
 const { getMainWindow } = require("../../windows/main");
 const { fail, validateBuildingScope, validatePayload, validatePeriod } = require("../shared/validate");
 const reportService = require("./service");

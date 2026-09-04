@@ -1,6 +1,6 @@
 // Dues IPC entry points. Every channel that takes a period rejects a future one.
 const { CHANNELS: CH } = require("../../ipc/channels");
-const { createHandle } = require("../../ipc/handler");
+const { createHandle } = require("../../ipc/createHandle");
 const {
   fail,
   isValidDate,

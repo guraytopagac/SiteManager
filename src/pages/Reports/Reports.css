@@ -86,7 +86,7 @@
 }
 
 .button-pdf {
-  background: var(--expense-color);
+  background: var(--amount-negative);
   color: white;
 }
 .button-pdf:hover {
@@ -141,16 +141,16 @@
 }
 
 .summary-card.income .summary-amount {
-  color: var(--income-color);
+  color: var(--amount-positive);
 }
 .summary-card.expense .summary-amount {
-  color: var(--expense-color);
+  color: var(--amount-negative);
 }
 .summary-card.positive .summary-amount {
-  color: var(--income-color);
+  color: var(--amount-positive);
 }
 .summary-card.negative .summary-amount {
-  color: var(--expense-color);
+  color: var(--amount-negative);
 }
 .summary-card.collection .summary-amount {
   color: var(--button-color);
@@ -270,11 +270,11 @@
 }
 
 .amount-income {
-  color: var(--income-color);
+  color: var(--amount-positive);
 }
 
 .amount-expense {
-  color: var(--expense-color);
+  color: var(--amount-negative);
 }
 
 .type-badge {
@@ -286,13 +286,13 @@
 }
 
 .type-income {
-  background: var(--income-bg);
-  color: var(--income-text);
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
 }
 
 .type-expense {
-  background: var(--expense-bg);
-  color: var(--expense-text);
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
 }
 
 .reports-divider {

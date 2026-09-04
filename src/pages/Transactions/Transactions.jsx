@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Transactions.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
-import { useSession, useCurrentBuilding } from "@/hooks/session";
+import { useSession, useCurrentBuilding } from "@/hooks/useSession";
 import { showAlert } from "@/utils/alert";
 import {
   formatDate,

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Residents.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
-import { useCurrentBuilding } from "@/hooks/session";
+import { useCurrentBuilding } from "@/hooks/useSession";
 import { showAlert } from "@/utils/alert";
 import { formatDate, getToday } from "@/utils/date";
 
@@ -17,6 +17,7 @@ const EMPTY_FORM = {
   email: "",
   national_id: "",
   resident_type: "",
+  household_size: "1",
   move_in_date: "",
   notes: "",
 };
@@ -31,6 +32,7 @@ function ResidentFormModal({ apartment, building, onClose, onSaved }) {
           email: apartment.email || "",
           national_id: apartment.national_id || "",
           resident_type: apartment.resident_type || "",
+          household_size: String(apartment.household_size || 1),
           move_in_date: apartment.move_in_date || "",
           notes: apartment.notes || "",
         }
@@ -44,16 +46,17 @@ function ResidentFormModal({ apartment, building, onClose, onSaved }) {
     setIsSubmitting(true);
 
     try {
+      const residentData = { ...form, household_size: Number(form.household_size) };
       const res = isEdit
         ? await window.electronAPI.updateResident({
             residentId: apartment.resident_id,
             buildingId: building.id,
-            ...form,
+            ...residentData,
           })
         : await window.electronAPI.addResident({
             apartmentId: apartment.apartment_id,
             buildingId: building.id,
-            ...form,
+            ...residentData,
           });
 
       if (res.success) {
@@ -119,6 +122,17 @@ function ResidentFormModal({ apartment, building, onClose, onSaved }) {
               <option value="tenant">Kiracı</option>
               <option value="owner">Malik</option>
             </select>
+          </div>
+          <div className="form-row">
+            <label>Dairede Yaşayan Kişi Sayısı</label>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={20}
+              value={form.household_size}
+              onChange={set("household_size")}
+            />
           </div>
           <div className="form-row">
             <label>Giriş Tarihi</label>
@@ -264,6 +278,7 @@ function HistoryModal({ apartment, building, onClose }) {
               <li key={r.id} className={`resident-history-item ${r.is_active ? "active" : ""}`}>
                 <span className="rh-name">{r.full_name || "—"}</span>
                 {r.resident_type && <span className="rh-type">{RESIDENT_TYPE_LABELS[r.resident_type]}</span>}
+                <span className="rh-type">{r.household_size} kişi</span>
                 <span className="rh-dates">
                   {formatDate(r.move_in_date)} → {r.move_out_date ? formatDate(r.move_out_date) : "…"}
                 </span>
@@ -369,6 +384,7 @@ function Residents() {
             <th>Daire No</th>
             <th>Sakin</th>
             <th>Tür</th>
+            <th>Kişi</th>
             <th>Telefon</th>
             <th>Giriş</th>
             <th>İşlemler</th>
@@ -377,7 +393,7 @@ function Residents() {
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={6} className="table-empty-cell">
+              <td colSpan={7} className="table-empty-cell">
                 Kayıtlı daire bulunamadı.
               </td>
             </tr>
@@ -387,6 +403,7 @@ function Residents() {
                 <td>{r.apartment_no}</td>
                 <td>{r.full_name || <span className="resident-empty">— Boş —</span>}</td>
                 <td>{r.resident_type ? RESIDENT_TYPE_LABELS[r.resident_type] : "—"}</td>
+                <td>{r.resident_id ? r.household_size : "—"}</td>
                 <td>{r.phone || "—"}</td>
                 <td>{formatDate(r.move_in_date)}</td>
                 <td className="action-cell">

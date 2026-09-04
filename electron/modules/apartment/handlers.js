@@ -1,6 +1,6 @@
 // Apartment IPC entry points. Validation only, the SQL is in service.js.
 const { CHANNELS: CH } = require("../../ipc/channels");
-const { createHandle } = require("../../ipc/handler");
+const { createHandle } = require("../../ipc/createHandle");
 const { fail, validateBuildingScope, validateId } = require("../shared/validate");
 const apartmentService = require("./service");
 

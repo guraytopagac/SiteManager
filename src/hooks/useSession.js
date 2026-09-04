@@ -2,11 +2,11 @@ import { useSyncExternalStore } from "react";
 
 const SESSION_KEY = "session";
 const NO_SESSION = { user: null, building: null };
-const NO_ACCOUNT = { needsSetup: false, username: null };
+const ASSUME_SETUP_DONE = { needsSetup: false, username: null };
 
 const listeners = new Set();
 let sessionState = restoreState();
-let accountState = NO_ACCOUNT;
+let accountState = ASSUME_SETUP_DONE;
 
 function restoreState() {
   try {
@@ -57,9 +57,9 @@ export function clearSession() {
 export async function loadAccountState() {
   try {
     const res = await window.electronAPI.getSetupState();
-    accountState = res?.success ? { needsSetup: res.needsSetup, username: res.username } : NO_ACCOUNT;
+    accountState = res?.success ? { needsSetup: res.needsSetup, username: res.username } : ASSUME_SETUP_DONE;
   } catch {
-    accountState = NO_ACCOUNT;
+    accountState = ASSUME_SETUP_DONE;
   }
 }
 

@@ -1,179 +1,11 @@
-:root {
-  --recover-surface: rgba(15, 26, 43, 0.94);
-  --recover-surface-raised: rgba(11, 20, 34, 0.85);
-  --recover-card-border: rgba(56, 165, 247, 0.24);
-  --recover-border: rgba(255, 255, 255, 0.09);
-  --recover-border-strong: rgba(255, 255, 255, 0.16);
-  --recover-code-border: rgba(56, 165, 247, 0.34);
-  --recover-code-surface: rgba(9, 17, 30, 0.92);
-  --recover-code-text: #e6f0fb;
-
-  --recover-text: #e6f6f2;
-  --recover-heading: #ffffff;
-  --recover-secondary: rgba(230, 246, 242, 0.78);
-  --recover-tertiary: rgba(230, 246, 242, 0.55);
-
-  --recover-primary: #38a5f7;
-  --recover-primary-hover: #7cc4fb;
-  --recover-primary-soft: rgba(56, 165, 247, 0.16);
-  --recover-primary-text: #ffffff;
-
-  --recover-success: #1fd75b;
-  --recover-success-soft: rgba(31, 215, 91, 0.16);
-  --recover-success-border: rgba(31, 215, 91, 0.45);
-
-  --recover-danger: #fca5a5;
-  --recover-danger-soft: rgba(248, 113, 113, 0.12);
-  --recover-danger-border: rgba(248, 113, 113, 0.35);
-  --recover-danger-icon-text: #2e1717;
-
-  --recover-btn-bg: linear-gradient(135deg, #29c1fb 0%, #1240f0 100%);
-  --recover-btn-bg-hover: linear-gradient(135deg, #45cdff 0%, #2a55f5 100%);
-  --recover-btn-glow: rgba(56, 165, 247, 0.18);
-  --recover-btn-glow-hover: rgba(56, 165, 247, 0.4);
-  --recover-btn-shadow-active: rgba(56, 165, 247, 0.25);
-  --recover-focus-ring: rgba(56, 165, 247, 0.16);
-  --recover-focus-glow: rgba(56, 165, 247, 0.28);
-  --recover-card-ring: rgba(56, 165, 247, 0.1);
-  --recover-card-glow: rgba(37, 130, 240, 0.16);
-  --recover-card-shadow-mid: rgba(0, 0, 0, 0.35);
-  --recover-card-shadow-deep: rgba(0, 0, 0, 0.55);
-  --recover-page-bg: #0a1220;
-  --recover-idle: rgba(255, 255, 255, 0.08);
-  --recover-track: rgba(255, 255, 255, 0.1);
-
-  --recover-scrim: radial-gradient(
-    ellipse 60% 65% at 50% 50%,
-    rgba(7, 14, 26, 0.92) 0%,
-    rgba(7, 14, 26, 0.72) 45%,
-    rgba(7, 14, 26, 0.3) 75%,
-    rgba(7, 14, 26, 0.12) 100%
-  );
-}
-
-[data-theme="light"] {
-  --recover-surface: #ffffff;
-  --recover-surface-raised: #e9eefb;
-  --recover-card-border: rgba(15, 33, 69, 0.16);
-  --recover-border: rgba(15, 33, 69, 0.14);
-  --recover-border-strong: rgba(29, 78, 216, 0.3);
-  --recover-code-border: rgba(29, 78, 216, 0.3);
-  --recover-code-surface: #e9eef7;
-  --recover-code-text: #1b2c4a;
-
-  --recover-text: #1e3357;
-  --recover-heading: #0f2145;
-  --recover-secondary: rgba(30, 51, 87, 0.86);
-  --recover-tertiary: rgba(30, 51, 87, 0.62);
-
-  --recover-primary: #1d4ed8;
-  --recover-primary-hover: #16358f;
-  --recover-primary-soft: rgba(29, 78, 216, 0.12);
-  --recover-primary-text: #ffffff;
-
-  --recover-success: #15803d;
-  --recover-success-soft: rgba(21, 128, 61, 0.12);
-  --recover-success-border: rgba(21, 128, 61, 0.45);
-
-  --recover-danger: #b91c1c;
-  --recover-danger-soft: rgba(185, 28, 28, 0.08);
-  --recover-danger-border: rgba(185, 28, 28, 0.35);
-  --recover-danger-icon-text: #ffffff;
-
-  --recover-btn-bg: linear-gradient(135deg, #29c1fb 0%, #1240f0 100%);
-  --recover-btn-bg-hover: linear-gradient(135deg, #17b4f5 0%, #0d33d9 100%);
-  --recover-btn-glow: rgba(29, 78, 216, 0.22);
-  --recover-btn-glow-hover: rgba(29, 78, 216, 0.28);
-  --recover-btn-shadow-active: rgba(29, 78, 216, 0.2);
-  --recover-focus-ring: rgba(29, 78, 216, 0.16);
-  --recover-focus-glow: rgba(29, 78, 216, 0.18);
-  --recover-card-ring: rgba(15, 33, 69, 0.08);
-  --recover-card-glow: rgba(15, 33, 69, 0.05);
-  --recover-card-shadow-mid: rgba(15, 33, 69, 0.12);
-  --recover-card-shadow-deep: rgba(15, 33, 69, 0.2);
-  --recover-page-bg: #d3deee;
-  --recover-idle: rgba(15, 33, 69, 0.08);
-  --recover-track: rgba(12, 42, 48, 0.24);
-
-  --recover-scrim: radial-gradient(
-    ellipse 60% 65% at 50% 50%,
-    rgba(211, 222, 238, 0.92) 0%,
-    rgba(211, 222, 238, 0.72) 45%,
-    rgba(211, 222, 238, 0.3) 75%,
-    rgba(211, 222, 238, 0.1) 100%
-  );
-}
-
-.recover-page-bg {
-  position: fixed;
-  inset: 0;
-  overflow-y: auto;
-  display: flex;
-  align-items: safe center;
-  justify-content: center;
-  padding: 24px 0 calc(var(--footer-height) + 24px);
-  background:
-    var(--recover-scrim),
-    var(--recover-page-bg) url("../../../assets/backgrounds/login/login-dark-bg.jpg") center / cover no-repeat;
-  color: var(--recover-text);
-
-  --pw-track: var(--recover-track);
-  --pw-neutral-bg: var(--recover-idle);
-  --pw-neutral-color: var(--recover-secondary);
-  --pw-chip-bg: var(--recover-idle);
-  --pw-chip-color: var(--recover-secondary);
-  --pw-pending-color: var(--recover-tertiary);
-  --pw-icon-color: var(--recover-secondary);
-  --pw-valid-color: var(--recover-primary);
-  --pw-valid-bg: var(--recover-primary-soft);
-
-  --af-bg: var(--recover-surface-raised);
-  --af-border: var(--recover-border-strong);
-  --af-text: var(--recover-text);
-  --af-muted: var(--recover-tertiary);
-  --af-accent: var(--recover-primary);
-  --af-focus-ring: var(--recover-focus-ring);
-  --af-focus-glow: var(--recover-focus-glow);
-}
-
-.recover-page-bg .pw-rules {
-  margin-top: 16px;
-}
-
-.recover-page-bg::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    var(--recover-scrim),
-    var(--recover-page-bg) url("../../../assets/backgrounds/login/login-light-bg.jpg") center / cover no-repeat;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 0;
-}
-
-[data-theme="light"] .recover-page-bg::before {
-  opacity: 1;
-}
-
 .recover-container {
-  position: relative;
-  z-index: 1;
   width: 660px;
-  max-width: calc(100vw - 48px);
   padding: 36px 48px 40px;
-  border-radius: 22px;
-  background: var(--recover-surface);
-  border: 1px solid var(--recover-card-border);
-  box-shadow:
-    0 0 0 1px var(--recover-card-ring),
-    0 0 60px var(--recover-card-glow),
-    0 8px 20px var(--recover-card-shadow-mid),
-    0 28px 60px var(--recover-card-shadow-deep);
   text-align: left;
-  color: var(--recover-text);
-  animation: recoverCardIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.recover-container .pw-rules {
+  margin-top: 16px;
 }
 
 .recover-step {
@@ -191,23 +23,12 @@
   }
 }
 
-@keyframes recoverCardIn {
-  from {
-    opacity: 0;
-    transform: translateY(16px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
 .recover-band {
   padding: 26px 0;
 }
 
 .recover-band + .recover-band {
-  border-top: 1px solid var(--recover-border);
+  border-top: 1px solid var(--auth-border);
 }
 
 .recover-band--context {
@@ -220,7 +41,7 @@
 
 .recover-eyebrow {
   display: block;
-  color: var(--recover-primary);
+  color: var(--auth-accent);
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -229,7 +50,7 @@
 
 .recover-title {
   margin: 14px 0 0;
-  color: var(--recover-heading);
+  color: var(--auth-heading);
   font-size: 1.9rem;
   font-weight: 750;
   line-height: 1.14;
@@ -250,9 +71,9 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: var(--recover-success-soft);
-  border: 1px solid var(--recover-success-border);
-  color: var(--recover-success);
+  background: var(--success-soft);
+  border: 1px solid var(--success-border);
+  color: var(--success);
 }
 
 .recover-rail {
@@ -269,7 +90,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  color: var(--recover-tertiary);
+  color: var(--auth-tertiary);
   font-size: 1.08rem;
   font-weight: 650;
 }
@@ -279,62 +100,54 @@
   place-items: center;
   width: 36px;
   height: 36px;
-  border: 1px solid var(--recover-border-strong);
+  border: 1px solid var(--auth-border-strong);
   border-radius: 10px;
   font-size: 1.05rem;
   font-weight: 700;
 }
 
 .recover-rail li.is-active {
-  color: var(--recover-heading);
-}
-
-[data-theme="light"] .recover-rail li.is-active {
-  color: var(--recover-text);
+  color: var(--auth-title);
 }
 
 .recover-rail li.is-active .recover-rail-no {
-  border-color: var(--recover-primary);
-  background: var(--recover-primary);
-  color: var(--recover-primary-text);
+  border-color: var(--auth-accent);
+  background: var(--auth-accent);
+  color: var(--auth-on-accent);
 }
 
 .recover-rail li.is-done {
-  color: var(--recover-primary);
+  color: var(--auth-accent);
 }
 
 .recover-rail li.is-done .recover-rail-no {
-  border-color: var(--recover-primary);
-  background: var(--recover-primary-soft);
-  color: var(--recover-primary);
+  border-color: var(--auth-accent);
+  background: var(--auth-accent-soft);
+  color: var(--auth-accent);
 }
 
 .recover-rail li.recover-rail-line {
   display: block;
   height: 2px;
   border-radius: 999px;
-  background: var(--recover-border-strong);
+  background: var(--auth-border-strong);
 }
 
 .recover-rail li.recover-rail-line.is-filled {
-  background: var(--recover-primary);
+  background: var(--auth-accent);
 }
 
 .recover-task-title {
   margin: 0 0 10px;
-  color: var(--recover-heading);
+  color: var(--auth-title);
   font-size: 1.35rem;
   font-weight: 650;
   line-height: 1.25;
 }
 
-[data-theme="light"] .recover-task-title {
-  color: var(--recover-text);
-}
-
 .recover-task-note {
   margin: 0 0 24px;
-  color: var(--recover-secondary);
+  color: var(--auth-secondary);
   font-size: 1.05rem;
 }
 
@@ -355,13 +168,13 @@
   margin-bottom: 12px;
   font-size: 1rem;
   font-weight: 600;
-  color: var(--recover-secondary);
+  color: var(--auth-secondary);
 }
 
 .recover-code-count {
   position: absolute;
   right: 20px;
-  color: var(--recover-primary);
+  color: var(--auth-accent);
   font-size: 1rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -372,10 +185,10 @@
   width: 100%;
   min-height: 60px;
   padding: 13px 74px 13px 20px;
-  border: 1px solid var(--recover-code-border);
+  border: 1px solid var(--auth-accent-border);
   border-radius: 12px;
-  background: var(--recover-code-surface);
-  color: var(--recover-code-text);
+  background: var(--auth-code-surface);
+  color: var(--auth-code-text);
   font-family: "Consolas", "Courier New", monospace;
   font-size: 1.4rem;
   font-weight: 700;
@@ -386,21 +199,21 @@
 }
 
 .recover-code-input::placeholder {
-  color: var(--recover-tertiary);
+  color: var(--auth-tertiary);
   letter-spacing: 0.12em;
 }
 
 .recover-code-input:focus {
   outline: none;
-  border-color: var(--recover-primary);
+  border-color: var(--auth-accent);
   box-shadow:
-    0 0 0 3px var(--recover-focus-ring),
-    0 0 18px var(--recover-focus-glow);
+    0 0 0 3px var(--auth-accent-soft),
+    0 0 18px var(--auth-focus-glow);
 }
 
 .recover-code-hint {
   margin: 12px 0 0;
-  color: var(--recover-tertiary);
+  color: var(--auth-tertiary);
   font-size: 1.02rem;
 }
 
@@ -411,9 +224,9 @@
   width: 100%;
   margin-top: 20px;
   padding: 11px 14px;
-  border: 1px solid var(--recover-border);
+  border: 1px solid var(--danger-border);
   border-radius: 12px;
-  background: var(--recover-surface-raised);
+  background: var(--danger-soft);
   font-size: 1.05rem;
   line-height: 1.4;
 }
@@ -425,26 +238,8 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-}
-
-.recover-status--error {
-  border-color: var(--recover-danger-border);
-  background: var(--recover-danger-soft);
-}
-
-.recover-status--error .recover-status-icon {
-  background: var(--recover-danger);
-  color: var(--recover-danger-icon-text);
-}
-
-.recover-status--success {
-  border-color: var(--recover-success-border);
-  background: var(--recover-success-soft);
-}
-
-.recover-status--success .recover-status-icon {
-  background: var(--recover-success);
-  color: var(--recover-surface);
+  background: var(--color-danger-text);
+  color: var(--auth-danger-ink);
 }
 
 .recover-actions {
@@ -458,79 +253,16 @@
 }
 
 .recover-btn {
-  position: relative;
-  overflow: hidden;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   gap: 10px;
   min-height: 56px;
   padding: 0 26px;
-  border: none;
-  border-radius: 12px;
-  color: #ffffff;
-  background: var(--recover-btn-bg);
-  box-shadow: 0 3px 16px var(--recover-btn-glow);
   font-size: 1.12rem;
   font-weight: 650;
-  transition:
-    box-shadow 0.18s ease,
-    transform 0.18s ease,
-    filter 0.18s ease;
 }
 
 .recover-btn-icon {
   display: block;
   flex-shrink: 0;
-}
-
-.recover-btn::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -60%;
-  width: 45%;
-  pointer-events: none;
-  transform: skewX(-20deg);
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.45) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  opacity: 0;
-}
-
-.recover-btn:hover:not(:disabled) {
-  background: var(--recover-btn-bg-hover);
-  filter: brightness(1.08);
-  box-shadow: 0 6px 22px var(--recover-btn-glow-hover);
-  transform: translateY(-1px);
-}
-
-@keyframes recoverBtnShine {
-  from {
-    left: -60%;
-  }
-  to {
-    left: 115%;
-  }
-}
-
-.recover-btn:hover:not(:disabled)::before {
-  opacity: 1;
-  animation: recoverBtnShine 0.75s ease-out;
-}
-
-.recover-btn:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px var(--recover-btn-shadow-active);
-}
-
-.recover-btn:disabled {
-  opacity: 0.62;
-  cursor: default;
 }
 
 .recover-btn--block {
@@ -544,10 +276,10 @@
   gap: 9px;
   min-height: 56px;
   padding: 0 22px;
-  border: 1px solid var(--recover-border-strong);
+  border: 1px solid var(--auth-border-strong);
   border-radius: 12px;
   background: transparent;
-  color: var(--recover-text);
+  color: var(--auth-text);
   font-size: 1.12rem;
   font-weight: 650;
   cursor: pointer;
@@ -558,30 +290,14 @@
 }
 
 .recover-btn-secondary:hover:not(:disabled) {
-  border-color: var(--recover-primary);
-  background: var(--recover-primary-soft);
-  color: var(--recover-primary);
+  border-color: var(--auth-accent);
+  background: var(--auth-accent-soft);
+  color: var(--auth-accent);
 }
 
 .recover-btn-secondary:disabled {
-  opacity: 0.62;
+  opacity: 0.65;
   cursor: default;
-}
-
-.recover-spinner {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  border-top-color: #ffffff;
-  border-radius: 50%;
-  animation: recover-spin 0.7s linear infinite;
-}
-
-@keyframes recover-spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .recover-note {
@@ -589,9 +305,9 @@
   align-items: flex-start;
   gap: 14px;
   padding: 18px 20px;
-  border: 1px solid var(--recover-border);
+  border: 1px solid var(--auth-border);
   border-radius: 12px;
-  background: var(--recover-surface-raised);
+  background: var(--auth-surface-raised);
 }
 
 .recover-note-icon {
@@ -601,24 +317,20 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--recover-primary-soft);
-  color: var(--recover-primary);
+  background: var(--auth-accent-soft);
+  color: var(--auth-accent);
 }
 
 .recover-note-title {
   margin: 0;
-  color: var(--recover-heading);
+  color: var(--auth-title);
   font-size: 1.08rem;
   font-weight: 650;
 }
 
-[data-theme="light"] .recover-note-title {
-  color: var(--recover-text);
-}
-
 .recover-note-body {
   margin: 6px 0 0;
-  color: var(--recover-secondary);
+  color: var(--auth-secondary);
   font-size: 1.05rem;
   line-height: 1.55;
 }
@@ -629,20 +341,20 @@
   align-items: center;
   gap: 16px;
   padding: 28px;
-  border: 1px solid var(--recover-code-border);
+  border: 1px solid var(--auth-accent-border);
   border-radius: 16px;
-  background: var(--recover-code-surface);
-  box-shadow: 0 5px 22px var(--recover-card-shadow-mid);
+  background: var(--auth-code-surface);
+  box-shadow: 0 5px 22px var(--shadow-soft);
 }
 
 .recover-code-surface-label {
-  color: var(--recover-secondary);
+  color: var(--auth-secondary);
   font-size: 1.05rem;
   font-weight: 650;
 }
 
 .recover-code-surface-value {
-  color: var(--recover-code-text);
+  color: var(--auth-code-text);
   font-family: "Consolas", "Courier New", monospace;
   font-size: 1.4rem;
   font-weight: 700;
@@ -655,43 +367,8 @@
   text-align: left;
 }
 
-.recover-credential {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin: 20px 0 0;
-  color: var(--recover-secondary);
-  font-size: 1.08rem;
-}
-
-.recover-credential strong {
-  color: var(--recover-heading);
-  font-weight: 700;
-}
-
-[data-theme="light"] .recover-credential strong {
-  color: var(--recover-text);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .recover-container {
-    animation: none;
-  }
-
   .recover-step {
     animation: none;
-  }
-
-  .recover-btn:hover:not(:disabled) {
-    transform: none;
-  }
-
-  .recover-btn:hover:not(:disabled)::before {
-    animation: none;
-    opacity: 0;
-  }
-
-  .recover-spinner {
-    animation-duration: 2s !important;
   }
 }

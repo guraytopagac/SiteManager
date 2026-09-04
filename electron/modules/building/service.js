@@ -13,13 +13,23 @@ const NOT_FOUND_MESSAGE = "Bina bulunamadı veya bu işlem için yetkiniz yok.";
 
 const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
 
+// The two counts are subqueries rather than a second round trip, because the picker draws one
+// meta line per building and a per-building call would be one IPC hop each. Both are scoped to
+// active apartments, so the numbers match what the apartment and resident screens list.
+// person_count sums household_size instead of counting rows, because one resident row stands for
+// a whole household.
 function listBuildings(payload) {
   try {
     const data = getDb()
       .prepare(
-        `SELECT id, name, is_active
-         FROM buildings WHERE owner_id = ? AND is_removed = 0
-         ORDER BY is_active DESC, name COLLATE NOCASE ASC`,
+        `SELECT b.id, b.name, b.is_active,
+                (SELECT COUNT(*) FROM apartments a
+                  WHERE a.building_id = b.id AND a.is_active = 1) AS apartment_count,
+                (SELECT COALESCE(SUM(r.household_size), 0) FROM residents r
+                  JOIN apartments a ON a.id = r.apartment_id
+                  WHERE a.building_id = b.id AND a.is_active = 1 AND r.is_active = 1) AS person_count
+         FROM buildings b WHERE b.owner_id = ? AND b.is_removed = 0
+         ORDER BY b.is_active DESC, b.name COLLATE NOCASE ASC`,
       )
       .all(payload.ownerId);
     return { success: true, data };

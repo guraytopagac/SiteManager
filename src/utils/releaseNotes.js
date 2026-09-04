@@ -4,6 +4,19 @@ const RELEASE_NOTES_SEEN_KEY = "releaseNotesSeenVersion";
 
 const RELEASE_NOTES = [
   {
+    version: "1.7.0",
+    date: "2026-09-04",
+    title: "Yenilenen pano, kişi sayısı ve ortak oturum ekranları",
+    changes: [
+      'Sakin kaydına "Dairede Yaşayan Kişi Sayısı" alanı eklendi. Bina listesindeki kişi sayısı artık bu değerden toplanıyor.',
+      "Pano yeniden tasarlandı. Kasa, tahsilat ve gecikme tek bir yüzeyde toplandı, üçüne de tıklayarak ilgili listeye geçebilirsiniz.",
+      "Panodaki ölçülemeyen durumlar artık sıfır yerine açıklamayla gösteriliyor. Defter tamamen boşken pano doğrudan daire eklemeye yönlendiriyor.",
+      "Giriş, kurulum, şifre kurtarma ve bina seçim ekranları ortak bir görsel dile alındı.",
+      "Bina seçim kartları yenilendi. Daire ve kişi sayısı satırda görünüyor, yeniden adlandırma ve silme düğmeleri her zaman açıkta duruyor.",
+      'Kurulum ve şifre kurtarma ekranlarındaki "Kodu Kopyala" düğmesi artık kopyalandığını bildiriyor.',
+    ],
+  },
+  {
     version: "1.6.0",
     date: "2026-08-03",
     title: "Tek hesap, çoklu bina ve aidat tahakkuku",
@@ -27,18 +40,6 @@ const RELEASE_NOTES = [
       "Yeni şifrenizi girerken tekrar alanı, göster/gizle düğmesi ve güç göstergesi eşlik ediyor.",
       "Şifre alanlarında Caps Lock açıkken uyarı beliriyor.",
       "Giriş, kurulum ve kurtarma ekranları yenilendi; yazılar büyütülerek okunabilirlik artırıldı.",
-    ],
-  },
-  {
-    version: "1.4.0",
-    date: "2026-07-18",
-    title: "Sürüm notları penceresi ve arayüz iyileştirmeleri",
-    changes: [
-      "Alt bardan sürüm notlarına ulaşabilir, yeni sürümde gelen değişiklikleri görebilirsiniz.",
-      "Kurulum ekranı açık temada yenilendi; şifre kuralları artık bekleyen ve hatalı durumu ayrı gösteriyor.",
-      "Giriş yapmışken giriş ekranına geri dönülmesi engellendi.",
-      "Küçük ekranlarda uygulama penceresi ekrana sığacak şekilde açılıyor.",
-      "Tarih ve saat gösterimi ile uyarı pencerelerinde iyileştirmeler yapıldı.",
     ],
   },
 ];

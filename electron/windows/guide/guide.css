@@ -11,24 +11,17 @@
 :root {
   --guide-bg: #f5f7fa;
   --guide-surface: #ffffff;
-  --guide-surface-hover: #f8fafc;
   --guide-heading: #1a1a2e;
   --guide-text-body: #374151;
   --guide-text-muted: #64748b;
   --guide-subheading: #2d3748;
   --guide-border: #e2e8f0;
-  --guide-border-soft: #f1f5f9;
   --guide-subtle-bg: #f1f5f9;
-  --guide-subtle-text: #475569;
-  --guide-code-bg: #eef2f7;
-  --guide-code-text: #1e293b;
   --guide-kbd-border: #cbd5e1;
   --guide-accent: #6c8ebf;
   --guide-accent-soft: rgba(108, 142, 191, 0.12);
   --guide-focus: #2563eb;
   --guide-badge-bg: #eff6ff;
-  --guide-badge-text: #2563eb;
-  --guide-note-bg: #eff6ff;
   --guide-note-border: #3b82f6;
   --guide-note-text: #1e40af;
   --guide-warning-bg: #fff7ed;
@@ -43,15 +36,11 @@
   --guide-sidebar-border: #2a2a4a;
   --guide-sidebar-muted: #7a86a0;
   --guide-input-bg: rgba(18, 18, 32, 0.6);
-  --guide-input-bg-focus: rgba(20, 20, 38, 0.6);
   --guide-input-border: #3a3a5c;
   --guide-input-text: #eef1f8;
   --guide-step-bg: #1a1a2e;
-  --guide-step-text: #ffffff;
-  --guide-scroll-thumb: #cbd5e1;
-  --guide-scroll-thumb-hover: #94a3b8;
-  --guide-sidebar-scroll-thumb: #3a3a5c;
-  --guide-sidebar-scroll-thumb-hover: #52527a;
+  --guide-thumb-hover: #94a3b8;
+  --guide-sidebar-thumb-hover: #52527a;
   --guide-shadow: rgba(26, 26, 46, 0.25);
 }
 
@@ -59,47 +48,26 @@
 [data-theme="dark"] {
   --guide-bg: #16161f;
   --guide-surface: #1e1e2a;
-  --guide-surface-hover: #24243a;
   --guide-heading: #eef1f8;
   --guide-text-body: #c3cad6;
   --guide-text-muted: #8b95a7;
   --guide-subheading: #dbe3f0;
   --guide-border: #2e2e42;
-  --guide-border-soft: #262636;
   --guide-subtle-bg: #24243a;
-  --guide-subtle-text: #9aa5b8;
-  --guide-code-bg: #24243a;
-  --guide-code-text: #dbe3f0;
   --guide-kbd-border: #3a3a5c;
   --guide-accent: #8aa9d6;
   --guide-accent-soft: rgba(138, 169, 214, 0.16);
   --guide-focus: #7aa7ff;
   --guide-badge-bg: rgba(59, 130, 246, 0.16);
-  --guide-badge-text: #93c5fd;
-  --guide-note-bg: rgba(59, 130, 246, 0.12);
-  --guide-note-border: #3b82f6;
   --guide-note-text: #bfdbfe;
   --guide-warning-bg: rgba(249, 115, 22, 0.12);
-  --guide-warning-border: #f97316;
   --guide-warning-text: #fdba74;
   --guide-tip-bg: rgba(34, 197, 94, 0.12);
-  --guide-tip-border: #22c55e;
   --guide-tip-text: #86efac;
   --guide-sidebar-bg: #12121c;
-  --guide-sidebar-text: #c8d0e0;
-  --guide-sidebar-strong: #ffffff;
-  --guide-sidebar-border: #2a2a4a;
-  --guide-sidebar-muted: #7a86a0;
   --guide-input-bg: rgba(8, 8, 16, 0.6);
-  --guide-input-bg-focus: rgba(12, 12, 24, 0.6);
-  --guide-input-border: #3a3a5c;
-  --guide-input-text: #eef1f8;
   --guide-step-bg: #2f2f4a;
-  --guide-step-text: #ffffff;
-  --guide-scroll-thumb: #3a3a5c;
-  --guide-scroll-thumb-hover: #52527a;
-  --guide-sidebar-scroll-thumb: #3a3a5c;
-  --guide-sidebar-scroll-thumb-hover: #52527a;
+  --guide-thumb-hover: #52527a;
   --guide-shadow: rgba(0, 0, 0, 0.5);
 }
 
@@ -192,7 +160,7 @@ body {
 .guide-search-input:focus {
   outline: none;
   border-color: var(--guide-accent);
-  background: var(--guide-input-bg-focus);
+  background: var(--guide-input-bg);
 }
 .guide-search-empty {
   color: var(--guide-sidebar-muted);
@@ -216,7 +184,7 @@ body {
   margin-bottom: 12px;
   border-radius: 999px;
   background: var(--guide-badge-bg);
-  color: var(--guide-badge-text);
+  color: var(--guide-focus);
   font-size: 0.9rem;
   font-weight: 600;
 }
@@ -266,8 +234,8 @@ li {
   max-width: 66ch;
 }
 code {
-  background: var(--guide-code-bg);
-  color: var(--guide-code-text);
+  background: var(--guide-subtle-bg);
+  color: var(--guide-subheading);
   border-radius: 4px;
   padding: 1px 6px;
   font-family: monospace;
@@ -287,7 +255,7 @@ code {
 .guide-step-num {
   counter-increment: step;
   background: var(--guide-step-bg);
-  color: var(--guide-step-text);
+  color: var(--guide-sidebar-strong);
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -322,7 +290,7 @@ code {
   align-items: flex-start;
 }
 .guide-note {
-  background: var(--guide-note-bg);
+  background: var(--guide-badge-bg);
   border: 1px solid var(--guide-note-border);
   color: var(--guide-note-text);
 }
@@ -355,12 +323,12 @@ th {
   text-align: left;
   padding: 10px 14px;
   font-weight: 600;
-  color: var(--guide-subtle-text);
+  color: var(--guide-text-muted);
   border-bottom: 2px solid var(--guide-border);
 }
 td {
   padding: 10px 14px;
-  border-bottom: 1px solid var(--guide-border-soft);
+  border-bottom: 1px solid var(--guide-subtle-bg);
   color: var(--guide-text-body);
 }
 tr:last-child td {
@@ -373,7 +341,7 @@ kbd {
   padding: 2px 7px;
   font-family: monospace;
   font-size: 0.9rem;
-  color: var(--guide-code-text);
+  color: var(--guide-subheading);
 }
 
 .guide-faq-item {
@@ -409,7 +377,7 @@ kbd {
   transform: rotate(180deg);
 }
 .guide-faq-question:hover {
-  background: var(--guide-surface-hover);
+  background: var(--guide-subtle-bg);
 }
 .guide-faq-question:focus-visible {
   outline: 2px solid var(--guide-focus);
@@ -449,7 +417,7 @@ hr.guide-section-sep {
   border: none;
   border-radius: 50%;
   background: var(--guide-accent);
-  color: var(--guide-step-text);
+  color: var(--guide-sidebar-strong);
   font-size: 1.25rem;
   line-height: 1;
   cursor: pointer;
@@ -482,20 +450,20 @@ body::-webkit-scrollbar-track,
   background: transparent;
 }
 body::-webkit-scrollbar-thumb {
-  background: var(--guide-scroll-thumb);
+  background: var(--guide-kbd-border);
   border-radius: 999px;
   border: 2px solid var(--guide-bg);
 }
 body::-webkit-scrollbar-thumb:hover {
-  background: var(--guide-scroll-thumb-hover);
+  background: var(--guide-thumb-hover);
 }
 .guide-sidebar::-webkit-scrollbar-thumb {
-  background: var(--guide-sidebar-scroll-thumb);
+  background: var(--guide-input-border);
   border-radius: 999px;
   border: 2px solid var(--guide-sidebar-bg);
 }
 .guide-sidebar::-webkit-scrollbar-thumb:hover {
-  background: var(--guide-sidebar-scroll-thumb-hover);
+  background: var(--guide-sidebar-thumb-hover);
 }
 
 a:focus-visible {

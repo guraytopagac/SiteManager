@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Recover.css";
 import AuthField from "@/components/AuthField/AuthField";
 import PasswordStrength from "@/components/PasswordStrength/PasswordStrength";
-import { MIN_PASSWORD_LENGTH } from "@/utils/passwordStrength";
+import { useCopyFeedback } from "@/hooks/useCopyFeedback";
+import { MIN_PASSWORD_LENGTH } from "@/utils/passwordPolicy";
 import { FiAlertCircle, FiArrowLeft, FiArrowRight, FiCheck, FiCopy, FiInfo, FiLock } from "react-icons/fi";
 
 const RECOVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -11,8 +12,8 @@ const RECOVERY_LENGTH = 16;
 const RECOVERY_GROUP_SIZE = 4;
 const EXCLUDED_HINT = "Kurtarma kodunda I, O, 0 ve 1 karakterleri bulunmaz.";
 const ERROR_ID = "recover-error";
+const HINT_ID = "recover-code-hint";
 const CODE_PLACEHOLDER = "ABCD-EFGH-JKLP-QRST";
-const COPY_FEEDBACK_MS = 5000;
 
 function toRecoveryDigits(input) {
   return input
@@ -35,17 +36,13 @@ function hasExcludedCharacter(input) {
   return /[IO01]/.test(input.toUpperCase());
 }
 
-function StatusMessage({ variant, message, id }) {
+function ErrorNotice({ message, id }) {
   if (!message) return null;
 
   return (
-    <div
-      className={`recover-status recover-status--${variant}`}
-      id={id}
-      role={variant === "error" ? "alert" : undefined}
-    >
+    <div className="recover-status" id={id} role="alert">
       <span className="recover-status-icon" aria-hidden="true">
-        {variant === "error" ? <FiAlertCircle size={16} /> : <FiCheck size={16} strokeWidth={2.5} />}
+        <FiAlertCircle size={16} />
       </span>
       {message}
     </div>
@@ -62,13 +59,13 @@ function Recover() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [hint, setHint] = useState("");
   const [error, setError] = useState("");
-  const [result, setResult] = useState(null);
-  const [isCopied, setIsCopied] = useState(false);
-  const copyResetTimer = useRef(null);
+  const [renewedCredentials, setRenewedCredentials] = useState(null);
+  const { isCopied, copy } = useCopyFeedback();
 
-  useEffect(() => () => clearTimeout(copyResetTimer.current), []);
-
-  const isCodeComplete = recoveryDigits.length === RECOVERY_LENGTH;
+  const handleFieldChange = (setValue) => (e) => {
+    setValue(e.target.value);
+    setError("");
+  };
 
   const handleCodeChange = (e) => {
     const enteredCode = e.target.value;
@@ -79,7 +76,7 @@ function Recover() {
 
   const handleCodeSubmit = async (e) => {
     e.preventDefault();
-    if (!isCodeComplete) {
+    if (recoveryDigits.length !== RECOVERY_LENGTH) {
       setError(`Kurtarma kodu ${RECOVERY_LENGTH} karakter olmalıdır.`);
       return;
     }
@@ -87,23 +84,20 @@ function Recover() {
     setIsVerifying(true);
     setError("");
 
-    let verifyResult;
     try {
-      verifyResult = await window.electronAPI.verifyRecoveryCode({ recoveryCode: recoveryDigits });
+      const { success, message } = await window.electronAPI.verifyRecoveryCode({ recoveryCode: recoveryDigits });
+
+      if (success) {
+        setHint("");
+        setStep(2);
+      } else {
+        setError(message);
+      }
     } catch {
       setError("Kurtarma kodu doğrulanamadı. Lütfen tekrar deneyin.");
-      return;
-    } finally {
-      setIsVerifying(false);
     }
 
-    if (!verifyResult.success) {
-      setError(verifyResult.message || "Kurtarma kodu hatalı.");
-      return;
-    }
-
-    setHint("");
-    setStep(2);
+    setIsVerifying(false);
   };
 
   const handlePasswordSubmit = async (e) => {
@@ -121,48 +115,37 @@ function Recover() {
     setIsSubmitting(true);
     setError("");
 
-    let resetResult;
     try {
-      resetResult = await window.electronAPI.resetAccountPassword({
+      const { success, code, message, recoveryCode, username } = await window.electronAPI.resetAccountPassword({
         recoveryCode: recoveryDigits,
         newPassword: password,
       });
-    } catch {
-      setError("Şifre sıfırlanamadı. Lütfen tekrar deneyin.");
-      return;
-    } finally {
-      setIsSubmitting(false);
-    }
 
-    if (!resetResult.success) {
-      const failureMessage = resetResult.message || "Şifre sıfırlanamadı.";
-      if (resetResult.code === "INVALID_RECOVERY_CODE") {
-        setStep(1);
-        setError(failureMessage);
+      if (success) {
+        setRenewedCredentials({ recoveryCode, username });
         return;
       }
-      setError(failureMessage);
-      return;
+
+      if (code === "INVALID_RECOVERY_CODE") {
+        setStep(1);
+      }
+      setError(message);
+    } catch {
+      setError("Şifre sıfırlanamadı. Lütfen tekrar deneyin.");
     }
 
-    setResult({ code: resetResult.recoveryCode, username: resetResult.username });
+    setIsSubmitting(false);
   };
 
   const handleCopyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(result.code);
-      setIsCopied(true);
-      clearTimeout(copyResetTimer.current);
-      copyResetTimer.current = setTimeout(() => setIsCopied(false), COPY_FEEDBACK_MS);
-    } catch {
-      setError("Kod panoya kopyalanamadı. Kodu elle not alın.");
-    }
+    const copied = await copy(renewedCredentials.recoveryCode);
+    setError(copied ? "" : "Kod panoya kopyalanamadı. Kodu elle not alın.");
   };
 
-  if (result) {
+  if (renewedCredentials) {
     return (
-      <div className="recover-page-bg">
-        <div className="recover-container">
+      <div className="auth-page">
+        <div className="auth-card recover-container">
           <div className="recover-band recover-band--context">
             <span className="recover-eyebrow">Hesap Kurtarma</span>
             <h1 className="recover-title">Kurtarma Tamamlandı</h1>
@@ -198,21 +181,21 @@ function Recover() {
 
             <div className="recover-code-surface">
               <span className="recover-code-surface-label">Yeni kurtarma kodunuz</span>
-              <span className="recover-code-surface-value">{result.code}</span>
+              <span className="recover-code-surface-value">{renewedCredentials.recoveryCode}</span>
               <button type="button" className="recover-btn-secondary" onClick={handleCopyCode}>
                 <FiCopy size={18} />
                 <span className="recover-copy-label">{isCopied ? "Kopyalandı" : "Kodu Kopyala"}</span>
               </button>
             </div>
 
-            {error && <StatusMessage variant="error" message={error} />}
+            <ErrorNotice message={error} />
           </div>
 
           <div className="recover-band recover-step">
             <button
               type="button"
-              className="recover-btn recover-btn--block"
-              onClick={() => navigate("/login", { replace: true, state: { username: result.username } })}
+              className="recover-btn recover-btn--block auth-btn auth-shine"
+              onClick={() => navigate("/login", { replace: true, state: { username: renewedCredentials.username } })}
             >
               Giriş Ekranına Dön
               <FiArrowRight className="recover-btn-icon" size={18} strokeWidth={2.5} />
@@ -224,8 +207,8 @@ function Recover() {
   }
 
   return (
-    <div className="recover-page-bg">
-      <div className="recover-container">
+    <div className="auth-page">
+      <div className="auth-card recover-container">
         <div className="recover-band recover-band--context">
           <span className="recover-eyebrow">Hesap Kurtarma</span>
           <h1 className="recover-title">Hesabınıza yeniden erişin.</h1>
@@ -246,7 +229,7 @@ function Recover() {
         </ol>
 
         {step === 1 && (
-          <form key="step-1" className="recover-step" onSubmit={handleCodeSubmit}>
+          <form className="recover-step" onSubmit={handleCodeSubmit}>
             <div className="recover-band">
               <h2 className="recover-task-title">Kurtarma kodunuzu girin.</h2>
               <p className="recover-task-note">
@@ -268,7 +251,7 @@ function Recover() {
                   value={formatRecoveryCode(recoveryDigits)}
                   onChange={handleCodeChange}
                   aria-invalid={error ? true : undefined}
-                  aria-describedby="recover-code-hint"
+                  aria-describedby={`${HINT_ID} ${ERROR_ID}`}
                   required
                 />
                 <strong className="recover-code-count" aria-hidden="true">
@@ -276,28 +259,28 @@ function Recover() {
                 </strong>
               </div>
               {hint && (
-                <p className="recover-code-hint" id="recover-code-hint">
+                <p className="recover-code-hint" id={HINT_ID}>
                   {hint}
                 </p>
               )}
 
-              <StatusMessage variant="error" message={error} />
+              <ErrorNotice message={error} id={ERROR_ID} />
             </div>
 
             <div className="recover-band recover-actions">
               <button
                 type="button"
                 className="recover-btn-secondary"
-                onClick={() => navigate("/login")}
+                onClick={() => navigate("/login", { replace: true })}
                 disabled={isVerifying}
               >
                 <FiArrowLeft size={18} strokeWidth={2.5} />
                 Girişe dön
               </button>
-              <button type="submit" className="recover-btn" disabled={isVerifying}>
+              <button type="submit" className="recover-btn auth-btn auth-shine" disabled={isVerifying}>
                 {isVerifying ? (
                   <>
-                    <span className="recover-spinner" aria-hidden="true" />
+                    <span className="auth-spinner" aria-hidden="true" />
                     Doğrulanıyor...
                   </>
                 ) : (
@@ -327,7 +310,7 @@ function Recover() {
         )}
 
         {step === 2 && (
-          <form key="step-2" className="recover-step" onSubmit={handlePasswordSubmit}>
+          <form className="recover-step" onSubmit={handlePasswordSubmit}>
             <div className="recover-band">
               <h2 className="recover-task-title">Yeni şifrenizi belirleyin.</h2>
               <p className="recover-task-note">
@@ -344,10 +327,7 @@ function Recover() {
                   placeholder="Yeni şifrenizi girin"
                   value={password}
                   autoFocus
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setError("");
-                  }}
+                  onChange={handleFieldChange(setPassword)}
                   errorId={error ? ERROR_ID : undefined}
                 />
                 <AuthField
@@ -358,10 +338,7 @@ function Recover() {
                   autoComplete="new-password"
                   placeholder="Şifrenizi tekrar girin"
                   value={confirmPassword}
-                  onChange={(e) => {
-                    setConfirmPassword(e.target.value);
-                    setError("");
-                  }}
+                  onChange={handleFieldChange(setConfirmPassword)}
                   errorId={error ? ERROR_ID : undefined}
                 />
               </div>
@@ -370,7 +347,7 @@ function Recover() {
             <div className="recover-band">
               <PasswordStrength password={password} confirmPassword={confirmPassword} />
 
-              <StatusMessage variant="error" message={error} id={ERROR_ID} />
+              <ErrorNotice message={error} id={ERROR_ID} />
             </div>
 
             <div className="recover-band recover-actions">
@@ -386,10 +363,10 @@ function Recover() {
                 <FiArrowLeft size={18} strokeWidth={2.5} />
                 Geri
               </button>
-              <button type="submit" className="recover-btn" disabled={isSubmitting}>
+              <button type="submit" className="recover-btn auth-btn auth-shine" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
-                    <span className="recover-spinner" aria-hidden="true" />
+                    <span className="auth-spinner" aria-hidden="true" />
                     Sıfırlanıyor...
                   </>
                 ) : (

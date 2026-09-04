@@ -43,7 +43,7 @@ function getResidentsOverview(payload) {
       .prepare(
         `SELECT a.id AS apartment_id, a.apartment_no, a.floor, a.type,
                 r.id AS resident_id, r.full_name, r.phone, r.email, r.national_id,
-                r.resident_type, r.move_in_date, r.move_out_date, r.notes
+                r.resident_type, r.household_size, r.move_in_date, r.move_out_date, r.notes
          FROM apartments a
          LEFT JOIN residents r ON r.apartment_id = a.id AND r.is_active = 1
          WHERE a.building_id = ? AND a.is_active = 1
@@ -67,7 +67,7 @@ function getResidentHistory(payload) {
 
     const data = getDb()
       .prepare(
-        `SELECT id, full_name, resident_type, move_in_date, move_out_date, is_active
+        `SELECT id, full_name, resident_type, household_size, move_in_date, move_out_date, is_active
          FROM residents
          WHERE apartment_id = ?
          ORDER BY is_active DESC, move_in_date DESC, id DESC`,
@@ -95,8 +95,8 @@ function addResident(payload) {
 
     getDb()
       .prepare(
-        `INSERT INTO residents (apartment_id, full_name, phone, email, national_id, resident_type, move_in_date, move_out_date, notes, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
+        `INSERT INTO residents (apartment_id, full_name, phone, email, national_id, resident_type, household_size, move_in_date, move_out_date, notes, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
       )
       .run(
         apartmentId,
@@ -105,6 +105,7 @@ function addResident(payload) {
         payload.email,
         payload.national_id,
         payload.resident_type,
+        payload.household_size,
         payload.move_in_date,
         payload.move_out_date,
         payload.notes,
@@ -129,7 +130,7 @@ function updateResident(payload) {
     getDb()
       .prepare(
         `UPDATE residents SET full_name = ?, phone = ?, email = ?, national_id = ?, resident_type = ?,
-         move_in_date = ?, notes = ?, updated_at = ${TR_NOW_SQL} WHERE id = ?`,
+         household_size = ?, move_in_date = ?, notes = ?, updated_at = ${TR_NOW_SQL} WHERE id = ?`,
       )
       .run(
         payload.full_name,
@@ -137,6 +138,7 @@ function updateResident(payload) {
         payload.email,
         payload.national_id,
         payload.resident_type,
+        payload.household_size,
         payload.move_in_date,
         payload.notes,
         residentId,
