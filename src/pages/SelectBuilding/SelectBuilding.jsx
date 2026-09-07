@@ -51,6 +51,11 @@ function SelectBuilding() {
         if (!res.success) {
           setLoadFailed(true);
         } else {
+          if (res.data.length === 0) {
+            navigate("/new-building", { replace: true });
+            return;
+          }
+
           const active = res.data.filter((b) => b.is_active === 1);
 
           if (allowAutoEnter && active.length === 1) {
@@ -62,7 +67,8 @@ function SelectBuilding() {
           setBuildings(active);
           setDeleted(res.data.filter((b) => b.is_active === 0));
         }
-      } catch {
+      } catch (err) {
+        console.error("[SelectBuilding] listBuildings:", err);
         setLoadFailed(true);
       }
 
@@ -83,7 +89,7 @@ function SelectBuilding() {
   };
 
   const startEdit = (building) => {
-    setEditing({ building, name: building ? building.name : "" });
+    setEditing({ building, name: building.name });
     setEditError("");
   };
 
@@ -102,7 +108,7 @@ function SelectBuilding() {
       setEditError(nameError);
       return;
     }
-    if (renamedBuilding && trimmedName === renamedBuilding.name) {
+    if (trimmedName === renamedBuilding.name) {
       cancelEdit();
       return;
     }
@@ -110,34 +116,25 @@ function SelectBuilding() {
     setIsBusy(true);
 
     try {
-      const res = renamedBuilding
-        ? await window.electronAPI.renameBuilding({
-            buildingId: renamedBuilding.id,
-            ownerId,
-            name: trimmedName,
-          })
-        : await window.electronAPI.createBuilding({ ownerId, name: trimmedName });
+      const res = await window.electronAPI.renameBuilding({
+        buildingId: renamedBuilding.id,
+        ownerId,
+        name: trimmedName,
+      });
 
       if (res.success) {
-        if (renamedBuilding) {
-          if (selectedBuilding?.id === renamedBuilding.id) {
-            setCurrentBuilding({ id: renamedBuilding.id, name: trimmedName });
-          }
-          showAlert.toast(res.message);
-        } else {
-          showAlert.toast(`"${trimmedName}" binası oluşturuldu.`, "Girmek için karta tıklayın.");
+        if (selectedBuilding?.id === renamedBuilding.id) {
+          setCurrentBuilding({ id: renamedBuilding.id, name: trimmedName });
         }
+        showAlert.toast(res.message);
         cancelEdit();
         loadBuildings(false);
       } else {
         setEditError(res.message);
       }
-    } catch {
-      setEditError(
-        renamedBuilding
-          ? "Bina adı güncellenemedi. Lütfen tekrar deneyin."
-          : "Bina oluşturulamadı. Lütfen tekrar deneyin.",
-      );
+    } catch (err) {
+      console.error("[SelectBuilding] renameBuilding:", err);
+      setEditError("Bina adı güncellenemedi. Lütfen tekrar deneyin.");
     }
 
     setIsBusy(false);
@@ -164,7 +161,8 @@ function SelectBuilding() {
       } else {
         showAlert.error("Hata", res.message);
       }
-    } catch {
+    } catch (err) {
+      console.error("[SelectBuilding] removeBuilding:", err);
       showAlert.error("Hata", "Bina kalıcı olarak silinemedi. Lütfen tekrar deneyin.");
     }
   };
@@ -180,7 +178,7 @@ function SelectBuilding() {
         )
       : await showAlert.confirmDanger(
           "Binayı Sil",
-          `"${building.name}" bina listesinden kaldırılacak. Kayıtları silinmez, silinen binalar bölümünden geri getirebilirsiniz.`,
+          `"${building.name}" bina listesinden kaldırılacak. Silinen binalar bölümünden geri getirebilirsiniz.`,
           "Vazgeç",
           "Evet, Sil",
         );
@@ -202,7 +200,8 @@ function SelectBuilding() {
       } else {
         showAlert.error("Hata", res.message);
       }
-    } catch {
+    } catch (err) {
+      console.error("[SelectBuilding] updateBuildingStatus:", err);
       showAlert.error(
         "Hata",
         willActivate ? "Bina geri getirilemedi. Lütfen tekrar deneyin." : "Bina silinemedi. Lütfen tekrar deneyin.",
@@ -211,58 +210,50 @@ function SelectBuilding() {
   };
 
   const isLoaded = !loading && !loadFailed;
-  const isEmpty = isLoaded && buildings.length === 0 && deleted.length === 0;
-  const showList = isLoaded && !isEmpty;
   const showDeleted = isLoaded && deleted.length > 0;
-  const isCreating = editing?.building === null;
 
-  const renderNameForm = ({ showCancel = true } = {}) => {
-    const creating = editing.building === null;
+  const openWizard = () => navigate("/new-building", { state: { fromList: true } });
 
-    return (
-      <form className="sb-name-form" onSubmit={submitEdit}>
-        <div className="sb-name-row">
-          <input
-            className="sb-input"
-            value={editing.name}
-            maxLength={MAX_NAME_LENGTH}
-            placeholder={creating ? "Örn. Mavikent Sitesi A Blok" : undefined}
-            aria-label="Bina adı"
-            aria-invalid={editError ? true : undefined}
-            aria-describedby={editError ? ERROR_ID : undefined}
-            autoFocus
-            onChange={(e) => {
-              setEditing({ ...editing, name: e.target.value });
-              setEditError("");
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") cancelEdit();
-            }}
-          />
-          <button type="submit" className="sb-btn auth-btn auth-shine" disabled={isBusy}>
-            {isBusy ? (
-              <>
-                <span className="auth-spinner" aria-hidden="true" />
-                {creating ? "Oluşturuluyor..." : "Kaydediliyor..."}
-              </>
-            ) : (
-              <>{creating ? "Oluştur" : "Kaydet"}</>
-            )}
-          </button>
-          {showCancel && (
-            <button type="button" className="sb-btn-secondary" onClick={cancelEdit} disabled={isBusy}>
-              Vazgeç
-            </button>
+  const renderNameForm = () => (
+    <form className="sb-name-form" onSubmit={submitEdit}>
+      <div className="sb-name-row">
+        <input
+          className="sb-input"
+          value={editing.name}
+          maxLength={MAX_NAME_LENGTH}
+          aria-label="Bina adı"
+          aria-invalid={editError ? true : undefined}
+          aria-describedby={editError ? ERROR_ID : undefined}
+          autoFocus
+          onChange={(e) => {
+            setEditing({ ...editing, name: e.target.value });
+            setEditError("");
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") cancelEdit();
+          }}
+        />
+        <button type="submit" className="sb-btn auth-btn auth-shine" disabled={isBusy}>
+          {isBusy ? (
+            <>
+              <span className="auth-spinner" aria-hidden="true" />
+              Kaydediliyor...
+            </>
+          ) : (
+            <>Kaydet</>
           )}
-        </div>
-        {editError && (
-          <p className="sb-field-error" id={ERROR_ID} role="alert">
-            {editError}
-          </p>
-        )}
-      </form>
-    );
-  };
+        </button>
+        <button type="button" className="sb-btn-secondary" onClick={cancelEdit} disabled={isBusy}>
+          Vazgeç
+        </button>
+      </div>
+      {editError && (
+        <p className="sb-field-error" id={ERROR_ID} role="alert">
+          {editError}
+        </p>
+      )}
+    </form>
+  );
 
   return (
     <div className="auth-page">
@@ -271,12 +262,8 @@ function SelectBuilding() {
           <div className="sb-context">
             <div>
               <span className="sb-eyebrow">Mavikent Site Yönetimi</span>
-              <h1 className="sb-title">{isEmpty ? "Hoş Geldiniz" : "Bina Seçin"}</h1>
-              <p className="sb-subtitle">
-                {isEmpty
-                  ? "Başlamak için ilk binanızı oluşturun."
-                  : "Yönetmek istediğiniz binayı seçin. Tüm kayıtlar seçtiğiniz binaya işlenir."}
-              </p>
+              <h1 className="sb-title">Bina Seçin</h1>
+              <p className="sb-subtitle">Yönetmek istediğiniz binayı seçin. Tüm kayıtlar seçtiğiniz binaya işlenir.</p>
             </div>
             <AccountMenu />
           </div>
@@ -310,32 +297,7 @@ function SelectBuilding() {
           </section>
         )}
 
-        {isEmpty && (
-          <section className="sb-band sb-band--fill">
-            <div className="sb-empty">
-              <span className="sb-empty-mark">
-                <FiHome size={30} />
-              </span>
-              <h2 className="sb-empty-title">Henüz bir binanız yok</h2>
-              <p className="sb-empty-note">
-                Aidat takibi, gelir gider kaydı ve sakin yönetimi için önce bir bina oluşturun. Daha sonra istediğiniz
-                kadar bina ekleyebilirsiniz.
-              </p>
-              <div className="sb-empty-action">
-                {isCreating ? (
-                  renderNameForm({ showCancel: false })
-                ) : (
-                  <button type="button" className="sb-btn auth-btn auth-shine" onClick={() => startEdit(null)}>
-                    <FiPlus size={20} />
-                    İlk Binanızı Oluşturun
-                  </button>
-                )}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {showList && (
+        {isLoaded && (
           <section className="sb-band sb-band--fill">
             <h2 className="sb-band-title">
               Binalarınız
@@ -388,24 +350,15 @@ function SelectBuilding() {
                 ),
               )}
 
-              {isCreating ? (
-                <div className="sb-item sb-item--edit">
-                  <span className="sb-item-mark">
-                    <FiPlus size={22} />
-                  </span>
-                  {renderNameForm()}
-                </div>
-              ) : (
-                <button type="button" className="sb-item sb-item--add" onClick={() => startEdit(null)}>
-                  <span className="sb-item-mark">
-                    <FiPlus size={22} />
-                  </span>
-                  <span className="sb-item-body">
-                    <span className="sb-item-label">Yeni Bina Oluştur</span>
-                    <span className="sb-item-meta">Aynı hesapta istediğiniz kadar bina tutabilirsiniz</span>
-                  </span>
-                </button>
-              )}
+              <button type="button" className="sb-item sb-item--add" onClick={openWizard}>
+                <span className="sb-item-mark">
+                  <FiPlus size={22} />
+                </span>
+                <span className="sb-item-body">
+                  <span className="sb-item-label">Yeni Bina Oluştur</span>
+                  <span className="sb-item-meta">Aynı hesapta istediğiniz kadar bina tutabilirsiniz</span>
+                </span>
+              </button>
             </div>
           </section>
         )}

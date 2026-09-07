@@ -41,49 +41,6 @@
   margin-bottom: 16px;
 }
 
-.transactions-period select {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border-default);
-  background: var(--card-background-1);
-  color: var(--text-color);
-  font-family: inherit;
-  font-size: 1rem;
-  cursor: pointer;
-}
-
-.transactions-period select:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.period-all-btn {
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: 1px solid var(--border-default);
-  background: transparent;
-  color: var(--text-secondary);
-  font-family: inherit;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    border-color 0.2s,
-    color 0.2s,
-    background 0.2s;
-}
-
-.period-all-btn:hover {
-  border-color: var(--button-color);
-  color: var(--button-color);
-}
-
-.period-all-btn.active {
-  background: var(--button-color);
-  border-color: var(--button-color);
-  color: var(--button-text);
-}
-
 .filter-tabs {
   display: flex;
   gap: 6px;

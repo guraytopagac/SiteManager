@@ -27,7 +27,7 @@ function getReportData(payload) {
     const incomes = fetchByMonth("incomes", buildingId, start, end);
     const expenses = fetchByMonth("expenses", buildingId, start, end);
 
-    // Same LEFT JOIN and same month filter as getDuesForMonth.
+    // Same LEFT JOIN, same month filter and same ordering as getDuesForMonth.
     const dues = getDb()
       .prepare(
         `SELECT a.id AS apartment_id, a.apartment_no, a.floor, a.type, r.full_name AS resident_name,
@@ -38,7 +38,9 @@ function getReportData(payload) {
          LEFT JOIN dues d ON d.apartment_id = a.id AND d.year = ? AND d.month = ?
          LEFT JOIN residents r ON r.apartment_id = a.id AND r.is_active = 1
          WHERE a.building_id = ? AND a.is_active = 1 AND ${createdPeriodSql("a.")} <= ?
-         ORDER BY a.apartment_no ASC`,
+         ORDER BY (a.apartment_no GLOB '[0-9]*') DESC,
+                  CAST(a.apartment_no AS INTEGER) ASC,
+                  a.apartment_no COLLATE NOCASE ASC`,
       )
       .all(year, month, buildingId, toPeriod(year, month));
 

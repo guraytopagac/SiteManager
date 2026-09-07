@@ -44,7 +44,7 @@ function AddIncome() {
 
     setIsSubmitting(true);
     try {
-      const response = await window.electronAPI.addIncome({
+      const res = await window.electronAPI.addIncome({
         amount: parsedAmount,
         description: cleanDescription,
         category,
@@ -52,17 +52,18 @@ function AddIncome() {
         buildingId: buildingId,
       });
 
-      if (response.success) {
+      if (res.success) {
         setAmount("");
         setDescription("");
         setCategory("other");
         setDate(getToday());
-        showAlert.toast("Gelir Eklendi!", response.message);
+        showAlert.toast(res.message);
         navigate("/dashboard");
       } else {
-        showAlert.error("Hata Oluştu", response.message || "Gelir kaydedilemedi.");
+        showAlert.error("Hata Oluştu", res.message || "Gelir kaydedilemedi.");
       }
-    } catch {
+    } catch (err) {
+      console.error("[AddIncome] addIncome:", err);
       showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
     } finally {
       setIsSubmitting(false);

@@ -41,6 +41,8 @@ const CHANNELS = {
     RECORD_PAYMENT: "dues:record-payment",
     CANCEL_PAYMENT: "dues:cancel-payment",
     GET_PAYMENT_HISTORY: "dues:get-payment-history",
+    ATTACH_RECEIPT: "dues:attach-receipt",
+    OPEN_RECEIPT: "dues:open-receipt",
   },
 
   EVENTS: {

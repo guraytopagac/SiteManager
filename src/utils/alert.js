@@ -79,7 +79,8 @@ const copyToClipboard = async (value) => {
   try {
     await navigator.clipboard.writeText(value);
     return true;
-  } catch {
+  } catch (err) {
+    console.error("[alert] copyToClipboard:", err);
     return false;
   }
 };

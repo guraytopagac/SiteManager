@@ -19,6 +19,7 @@
 - **Durum:** Servis katmanı düzeltildi. `getResidentHistory` artık sahiplik kontrolünü dairenin aktifliğine bakmadan yapıyor, yani pasif dairenin sakin geçmişi **endpoint üzerinden erişilebilir**. Kalan eksik arayüzdedir.
 - **Kanıt:** `resident/service.js` → `getResidentsOverview` ve `dues/service.js` → `getDuesForMonth` sorgularının ikisi de `WHERE a.building_id = ? AND a.is_active = 1` filtreler. Pasif daireyi listeleyen hiçbir ekran yoktur.
 - **Sonuç:** Kullanıcı bir daireyi pasife aldıktan sonra onu hiçbir yerde göremez, dolayısıyla sakin geçmişine ulaşacak bir giriş noktası da yoktur. Veri durur, yol yoktur.
+- **Not (öncelik arttı):** `addApartment` bir dönem aynı numaralı pasif satırı diriltiyordu ve bu, farkında olmadan tek geri dönüş yolunu oluşturuyordu. O yol kaldırıldı (`003_apartment_no_unique_active.sql`), çünkü diriltilen satır eski `dues`, ödeme ve sakin geçmişini yeni daireye taşıyordu. Artık pasif daireye giden hiçbir yol yoktur, yani bu maddenin arayüz tarafı tek erişim noktasıdır.
 - **Karar gerekiyor:** Pasif daireler nerede görünecek. Seçenekler: Daireler sayfasında "Pasif daireleri göster" anahtarı, ya da ayrı bir arşiv bölümü (binaların arşiv bölümüyle aynı desen). İkisi de yeni UI ve muhtemelen `getResidentsOverview`'a bir bayrak demektir, yani `CLAUDE.md` §3 gereği önce onay alınmalıdır.
 - **Doğrulama:** `grep -rn "is_active = 1" electron/modules/resident/service.js electron/modules/dues/service.js`
 
@@ -53,15 +54,6 @@
 - **Durum:** Bu **bilinçli bir çift yazımdır** ve `CLAUDE.md` §7.2'de belgelidir. CHECK son savunma hattı olduğu için sapma sessiz kalmaz, DB ihlal fırlatır. Yani risk düşüktür, ama sapma ancak çalışma zamanında görünür.
 - **Öneri:** Dokunulmayabilir. Ele alınacaksa yol, `status` kolonunu tümden kaldırıp okuma sorgularında `CASE` ile türetmektir. Bu her okuma sorgusunu ve `COALESCE(d.status, 'unpaid')` desenini yeniden yazmayı gerektirir, kazancı bir kolonluk depolamadır. Karşılığı düşük.
 - **Doğrulama:** `grep -n "calcDueStatus" electron/modules/dues/service.js` ve `grep -n "status = CASE" database/schema/05_dues.sql`
-
----
-
-### R2. `Apartments` klasörü sayfa yapısı kuralını ihlal ediyor 🟡
-
-- **Kanıt:** `constants.js`, `useDues.js` ve `components/` altındaki altı bileşen dosyası. Diğer on iki sayfa klasörünün her biri tam iki dosyadır.
-- **Sonuç:** `CLAUDE.md` §4 sayfa klasörünün `<Sayfa>.jsx` + `<Sayfa>.css` olmasını şart koşar. Bu klasör kuralın tek istisnasıdır ve örnek alınırsa kural pratikte ölür. §9'un `constants.js` göndermesi de taşıma tamamlanana kadar bu klasöre bağlıdır.
-- **Öneri:** Altı bileşen, `constants.js` ve `useDues.js` `Apartments.jsx` içine dosya-yerel olarak taşınır. İşin gerçek yükü taşımak değil, taşıma sonrası sayfayı okunur tutmaktır: sayfa bugün de en büyük dosyalardan biridir, bu yüzden taşıma sırasında ölü prop ve tekrar eden modal iskeletleri de sadeleştirilmelidir. Bir parçanın ikinci bir **sayfa** tüketicisi çıkarsa yeri `src/components/`, bir hook'un ikinci tüketicisi çıkarsa `src/hooks/`'tur.
-- **Doğrulama:** `find src/pages -type f | grep -v -E "\.(jsx|css)$"` çıktısı boş olmalıdır.
 
 ---
 

@@ -355,15 +355,15 @@
         </div>
         <h3>Daire Düzenleme / Silme</h3>
         <p>
-          Daire listesinde her satırın sağındaki kalem simgesi daire bilgilerini <strong>düzenlemenizi</strong>, çöp
-          kutusu simgesi daireyi <strong>pasife almanızı</strong> sağlar.
+          Daire listesinde her satırın sağındaki üç nokta düğmesi <strong>Düzenle</strong> ve <strong>Sil</strong>
+          seçeneklerini açar.
         </p>
         <div class="guide-note">
           <span class="guide-note-icon">ℹ</span>
           <div>
-            Silme işlemi kalıcı değildir. Uygulama bu verileri daima korur; daire yalnızca
-            <strong>pasif</strong> hale getirilir. Pasif daireye ödeme alınamaz ve aidat listelerinde görünmez, ancak
-            tüm geçmiş kayıtları ve sakin bilgileri korunur.
+            Silinen daire aidat listelerinde ve raporlarda görünmez, ödeme de alınamaz. Aidat, ödeme ve sakin kayıtları
+            veritabanında korunur, ancak uygulama içinden erişilemez. Aynı daire numarasını yeniden ekleyebilirsiniz, bu
+            tamamen yeni ve boş bir daire oluşturur ve eski kayıtları geri getirmez.
           </div>
         </div>
         <h3>Toplu Aidat Güncelleme</h3>
@@ -397,7 +397,7 @@
             </tr>
             <tr>
               <td><strong>Çıkış</strong></td>
-              <td>Sakine çıkış tarihi girer. Onay verdiğinizde sakin pasifleşir ve geçmiş kaydı olarak korunur.</td>
+              <td>Sakine çıkış tarihi girer. Çıkan sakin dairenin geçmiş kaydı olarak korunur.</td>
             </tr>
             <tr>
               <td><strong>Geçmiş</strong></td>
@@ -415,9 +415,10 @@
         <div class="guide-note">
           <span class="guide-note-icon">ℹ</span>
           <div>
-            Çıkış tarihi <strong>bugün veya geçmiş</strong> bir tarihse sakin hemen pasifleşir.
-            <strong>Gelecek</strong> bir çıkış tarihi sakini aktif bırakır (henüz taşınmadığı için); tarih geçtikten
-            sonra pasifleşir.
+            Çıkış tarihi <strong>bugün veya geçmiş</strong> bir tarihse sakin hemen geçmiş kaydına düşer.
+            <strong>Gelecek</strong> bir çıkış tarihi sakini aktif bırakır, çünkü henüz taşınmamıştır. Uygulama bu
+            tarihi kendiliğinden takip etmez. Gün geldiğinde <strong>Çıkış</strong> işlemini bugünün tarihiyle
+            tekrarlayın, sakin ancak o zaman geçmiş kaydına düşer.
           </div>
         </div>
 
@@ -446,13 +447,31 @@
           </div>
           <div class="guide-step">
             <div class="guide-step-num">2</div>
-            <div class="guide-step-body">Ödeme tutarını, yöntemini ve tarihini girin.</div>
+            <div class="guide-step-body">
+              Ödeme tutarını, yöntemini ve tarihini girin. İsterseniz <strong>Dosya Seç</strong> ile dekont ekleyin.
+            </div>
           </div>
           <div class="guide-step">
             <div class="guide-step-num">3</div>
             <div class="guide-step-body"><strong>Kaydet</strong>'e tıklayın.</div>
           </div>
         </div>
+        <h3>Dekont</h3>
+        <p>
+          Bir ödemeye banka dekontu veya dekont fotoğrafı eklenebilir. Dosya PDF, JPG, PNG veya WEBP biçiminde ve en
+          fazla 5 MB olmalıdır. Dekont, ödeme kaydedilirken eklenebileceği gibi ödeme geçmişindeki
+          <strong>Dekont Ekle</strong> butonuyla sonradan da eklenebilir.
+        </p>
+        <p>
+          Eklenen dekont <strong>Dekontu Aç</strong> butonuyla bilgisayarınızın varsayılan uygulamasında açılır.
+          <strong>Değiştir</strong> butonu eski dekontun yerine yenisini koyar. Dekont dosyaları veritabanında saklanır,
+          dolayısıyla aldığınız yedek dekontları da kapsar.
+        </p>
+        <div class="guide-note">
+          <span class="guide-note-icon">ℹ</span>
+          <div>İptal edilmiş bir ödemenin dekontu görüntülenebilir, ancak değiştirilemez.</div>
+        </div>
+
         <h3>Ödeme İptali</h3>
         <p>
           Kaydedilen bir ödemeyi iptal etmek için ödeme geçmişinden ilgili kaydı seçin ve
@@ -483,8 +502,8 @@
         <div class="guide-warning">
           <span class="guide-warning-icon">⚠</span>
           <div>
-            Gelir ve gider kayıtları <strong>silinemez</strong>. Hatalı kayıt, İşlem Geçmişi ekranından iptal edilerek
-            pasif hale getirilir.
+            Gelir ve gider kayıtları <strong>silinemez</strong>. Hatalı kayıt, İşlem Geçmişi ekranından
+            <strong>iptal edilir</strong>. İptal edilen kayıt listede üzeri çizili olarak kalır ve toplamlara girmez.
           </div>
         </div>
 

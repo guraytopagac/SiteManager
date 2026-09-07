@@ -85,15 +85,16 @@ function Recover() {
     setError("");
 
     try {
-      const { success, message } = await window.electronAPI.verifyRecoveryCode({ recoveryCode: recoveryDigits });
+      const res = await window.electronAPI.verifyRecoveryCode({ recoveryCode: recoveryDigits });
 
-      if (success) {
+      if (res.success) {
         setHint("");
         setStep(2);
       } else {
-        setError(message);
+        setError(res.message);
       }
-    } catch {
+    } catch (err) {
+      console.error("[Recover] verifyRecoveryCode:", err);
       setError("Kurtarma kodu doğrulanamadı. Lütfen tekrar deneyin.");
     }
 
@@ -116,21 +117,22 @@ function Recover() {
     setError("");
 
     try {
-      const { success, code, message, recoveryCode, username } = await window.electronAPI.resetAccountPassword({
+      const res = await window.electronAPI.resetAccountPassword({
         recoveryCode: recoveryDigits,
         newPassword: password,
       });
 
-      if (success) {
-        setRenewedCredentials({ recoveryCode, username });
+      if (res.success) {
+        setRenewedCredentials({ recoveryCode: res.recoveryCode, username: res.username });
         return;
       }
 
-      if (code === "INVALID_RECOVERY_CODE") {
+      if (res.code === "INVALID_RECOVERY_CODE") {
         setStep(1);
       }
-      setError(message);
-    } catch {
+      setError(res.message);
+    } catch (err) {
+      console.error("[Recover] resetAccountPassword:", err);
       setError("Şifre sıfırlanamadı. Lütfen tekrar deneyin.");
     }
 

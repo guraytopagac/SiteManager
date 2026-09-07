@@ -19,11 +19,15 @@ function ensureMonthlyDues(buildingId) {
 
   // The recursive CTE lists the months. The amount is copied from apartments.due_amount, and the
   // join keeps an apartment out of the months before it existed.
+  // The seed is cast to INTEGER because better-sqlite3 binds every JS number as REAL, and SQLite's
+  // / operator only divides as integers when both sides already are. Without the cast the year came
+  // out as 2026.6666666666667, the INTEGER affinity could not convert it, and every later
+  // `WHERE year = ?` missed the row.
   getDb()
     .prepare(
       `INSERT OR IGNORE INTO dues (apartment_id, year, month, due_amount)
      WITH RECURSIVE periods(period) AS (
-       SELECT ?
+       SELECT CAST(? AS INTEGER)
        UNION ALL
        SELECT period + 1 FROM periods WHERE period + 1 <= ?
      )

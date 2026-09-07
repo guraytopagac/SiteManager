@@ -2,17 +2,10 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Transactions.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
+import PeriodSelector from "@/components/PeriodSelector/PeriodSelector";
 import { useSession, useCurrentBuilding } from "@/hooks/useSession";
 import { showAlert } from "@/utils/alert";
-import {
-  formatDate,
-  formatMonthYear,
-  getCurrentYear,
-  getCurrentMonth,
-  getYearOptions,
-  getMonthOptions,
-  clampMonth,
-} from "@/utils/date";
+import { formatDate, formatMonthYear, getCurrentYear, getCurrentMonth, clampMonth } from "@/utils/date";
 import { formatSignedCurrency } from "@/utils/currency";
 
 const TYPE_LABELS = { income: "Gelir", expense: "Gider" };
@@ -42,7 +35,6 @@ function Transactions() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
-  const [showAllTime, setShowAllTime] = useState(false);
   const [year, setYear] = useState(() => getCurrentYear());
   const [month, setMonth] = useState(() => getCurrentMonth());
   const [totals, setTotals] = useState({ totalIncome: 0, totalExpense: 0, net: 0 });
@@ -58,22 +50,23 @@ function Transactions() {
       return;
     }
     try {
-      const response = await window.electronAPI.getTransactions({
+      const res = await window.electronAPI.getTransactions({
         buildingId: building.id,
-        period: showAllTime ? null : { year, month },
+        period: { year, month },
       });
-      if (response.success) {
-        setTransactions(response.data);
-        setTotals(response.totals);
+      if (res.success) {
+        setTransactions(res.data);
+        setTotals(res.totals);
       } else {
-        showAlert.error("Hata", response.message || "İşlem geçmişi alınamadı.");
+        showAlert.error("Hata", res.message || "İşlem geçmişi alınamadı.");
       }
-    } catch {
+    } catch (err) {
+      console.error("[Transactions] getTransactions:", err);
       showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
     } finally {
       setLoading(false);
     }
-  }, [building, navigate, showAllTime, year, month]);
+  }, [building, navigate, year, month]);
 
   useEffect(() => {
     let isMounted = true;
@@ -85,18 +78,19 @@ function Transactions() {
       }
       setLoading(true);
       try {
-        const response = await window.electronAPI.getTransactions({
+        const res = await window.electronAPI.getTransactions({
           buildingId: building.id,
-          period: showAllTime ? null : { year, month },
+          period: { year, month },
         });
         if (!isMounted) return;
-        if (response.success) {
-          setTransactions(response.data);
-          setTotals(response.totals);
+        if (res.success) {
+          setTransactions(res.data);
+          setTotals(res.totals);
         } else {
-          showAlert.error("Hata", response.message || "İşlem geçmişi alınamadı.");
+          showAlert.error("Hata", res.message || "İşlem geçmişi alınamadı.");
         }
-      } catch {
+      } catch (err) {
+        console.error("[Transactions] getTransactions:", err);
         if (isMounted) showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
       } finally {
         if (isMounted) setLoading(false);
@@ -106,20 +100,27 @@ function Transactions() {
     return () => {
       isMounted = false;
     };
-  }, [building, navigate, showAllTime, year, month]);
+  }, [building, navigate, year, month]);
 
   const handleCancel = useCallback(
     async (t) => {
       const reason = await showAlert.cancelReason(`${t.type === "income" ? "Geliri" : "Gideri"} İptal Et`);
       if (!reason) return;
 
-      const fn = t.type === "income" ? window.electronAPI.cancelIncome : window.electronAPI.cancelExpense;
-      const res = await fn({ id: t.id, buildingId: building.id, userId: session.id, reason });
-      if (res.success) {
-        showAlert.toast("İptal Edildi", res.message);
-        fetchTransactions();
-      } else {
-        showAlert.error("Hata", res.message);
+      const cancelTransaction =
+        t.type === "income" ? window.electronAPI.cancelIncome : window.electronAPI.cancelExpense;
+
+      try {
+        const res = await cancelTransaction({ id: t.id, buildingId: building.id, userId: session.id, reason });
+        if (res.success) {
+          showAlert.toast(res.message);
+          fetchTransactions();
+        } else {
+          showAlert.error("Hata", res.message);
+        }
+      } catch (err) {
+        console.error("[Transactions] cancelTransaction:", err);
+        showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
       }
     },
     [building, session, fetchTransactions],
@@ -141,9 +142,7 @@ function Transactions() {
       <div className="transactions-header">
         <div className="transactions-title-group">
           <h2>İşlem Geçmişi</h2>
-          <span className="transactions-period-label">
-            {showAllTime ? "Tüm zamanlar" : formatMonthYear(year, month)}
-          </span>
+          <span className="transactions-period-label">{formatMonthYear(year, month)}</span>
         </div>
         <div className="filter-tabs">
           {FILTERS.map((f) => (
@@ -159,26 +158,7 @@ function Transactions() {
       </div>
 
       <div className="transactions-period">
-        <select value={year} onChange={(e) => handleYearChange(Number(e.target.value))} disabled={showAllTime}>
-          {getYearOptions().map((y) => (
-            <option key={y} value={y}>
-              {y}
-            </option>
-          ))}
-        </select>
-        <select value={month} onChange={(e) => setMonth(Number(e.target.value))} disabled={showAllTime}>
-          {getMonthOptions(year).map((m) => (
-            <option key={m.value} value={m.value}>
-              {m.label}
-            </option>
-          ))}
-        </select>
-        <button
-          className={showAllTime ? "period-all-btn active" : "period-all-btn"}
-          onClick={() => setShowAllTime((v) => !v)}
-        >
-          Tüm Zamanlar
-        </button>
+        <PeriodSelector year={year} month={month} onYearChange={handleYearChange} onMonthChange={setMonth} />
       </div>
 
       <div className="transactions-summary">

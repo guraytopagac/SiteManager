@@ -6,6 +6,7 @@ import "./Reports.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useCurrentBuilding } from "@/hooks/useSession";
 import { showAlert } from "@/utils/alert";
+import { DUES_STATUS_LABELS } from "@/utils/constants";
 import {
   formatMonthYear,
   formatDate,
@@ -16,8 +17,6 @@ import {
   clampMonth,
 } from "@/utils/date";
 import { formatCurrency, formatSignedCurrency } from "@/utils/currency";
-
-const DUE_STATUS_LABELS = { paid: "Ödendi", partial: "Kısmi", unpaid: "Ödenmedi" };
 
 const fmt = formatCurrency;
 
@@ -89,20 +88,21 @@ function Reports() {
       }
       setLoading(true);
       try {
-        const response = await window.electronAPI.getReportData({
+        const res = await window.electronAPI.getReportData({
           buildingId: building.id,
           year: selectedYear,
           month: selectedMonth,
         });
         if (!isMountedRef.current) return;
-        if (response.success) {
-          setReportData(response.data);
+        if (res.success) {
+          setReportData(res.data);
           setLoadedPeriod({ year: selectedYear, month: selectedMonth });
           setActiveTab("finance");
         } else {
-          showAlert.error("Hata", response.message || "Rapor verileri alınamadı.");
+          showAlert.error("Hata", res.message || "Rapor verileri alınamadı.");
         }
-      } catch {
+      } catch (err) {
+        console.error("[Reports] getReportData:", err);
         if (isMountedRef.current) showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
       } finally {
         if (isMountedRef.current) setLoading(false);
@@ -200,7 +200,7 @@ function Reports() {
                 d.resident_name || "—",
                 fmt(d.due_amount),
                 fmt(d.paid_amount),
-                DUE_STATUS_LABELS[d.status] || d.status,
+                DUES_STATUS_LABELS[d.status],
               ]),
             )
           : [toPdfRow(["—", "—", "—", "Bu ay için aidat kaydı bulunamadı.", "—", "—", "—"])],
@@ -218,15 +218,15 @@ function Reports() {
       const buffer = buildPdf();
       const period = loadedPeriod ?? { year, month };
       const filename = `rapor_${period.year}_${String(period.month).padStart(2, "0")}.pdf`;
-      const response = await window.electronAPI.saveReportFile({ filename, buffer: new Uint8Array(buffer) });
-      if (response.success) {
-        showAlert.toast("Kaydedildi", response.message);
-      } else if (!response.cancelled) {
-        showAlert.error("Hata", response.message);
+      const res = await window.electronAPI.saveReportFile({ filename, buffer: new Uint8Array(buffer) });
+      if (res.success) {
+        showAlert.toast("Rapor Kaydedildi", res.message);
+      } else if (!res.cancelled) {
+        showAlert.error("Hata", res.message);
       }
     } catch (err) {
+      console.error("[Reports] saveReportFile:", err);
       showAlert.error("Hata", "PDF oluşturulurken bir hata oluştu.");
-      console.error(err);
     }
   };
 
@@ -389,9 +389,7 @@ function Reports() {
                       <td className="amount-cell">{fmt(d.due_amount)}</td>
                       <td className="amount-cell">{fmt(d.paid_amount)}</td>
                       <td>
-                        <span className={`status-badge status-${d.status}`}>
-                          {DUE_STATUS_LABELS[d.status] || d.status}
-                        </span>
+                        <span className={`status-badge status-${d.status}`}>{DUES_STATUS_LABELS[d.status]}</span>
                       </td>
                     </tr>
                   ))

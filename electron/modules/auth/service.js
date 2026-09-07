@@ -158,7 +158,7 @@ function changePassword(payload) {
          updated_at = ${TR_NOW_SQL} WHERE id = ?`,
       )
       .run(newPasswordHash, userId);
-    return { success: true, message: "Şifre başarıyla değiştirildi." };
+    return { success: true, message: "Şifreniz değiştirildi." };
   } catch (err) {
     console.error("[auth.service] changePassword:", err);
     return { success: false, message: "Şifre güncellenemedi." };

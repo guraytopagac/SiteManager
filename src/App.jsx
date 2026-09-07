@@ -18,6 +18,7 @@ const Transactions = lazy(() => import("./pages/Transactions/Transactions.jsx"))
 const Profile = lazy(() => import("./pages/Profile/Profile.jsx"));
 const Reports = lazy(() => import("./pages/Reports/Reports.jsx"));
 const SelectBuilding = lazy(() => import("./pages/SelectBuilding/SelectBuilding.jsx"));
+const NewBuilding = lazy(() => import("./pages/NewBuilding/NewBuilding.jsx"));
 
 function StartupRedirect() {
   const session = useSession();
@@ -67,6 +68,7 @@ function App() {
 
             <Route element={<RequireAuth />}>
               <Route path="/select-building" element={<SelectBuilding />} />
+              <Route path="/new-building" element={<NewBuilding />} />
               <Route path="/profile" element={<Profile />} />
               <Route element={<RequireBuilding />}>
                 <Route path="/dashboard" element={<Dashboard />} />

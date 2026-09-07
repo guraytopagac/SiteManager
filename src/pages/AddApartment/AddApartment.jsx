@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import "./AddApartment.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useCurrentBuilding } from "@/hooks/useSession";
-import { APARTMENT_TYPES } from "@/pages/Apartments/constants";
 import { showAlert } from "@/utils/alert";
+import { APARTMENT_TYPES } from "@/utils/constants";
 
 const INITIAL_DATA = {
   apartment_no: "",
@@ -13,6 +13,15 @@ const INITIAL_DATA = {
   square_meters: "",
   due_amount: "",
 };
+
+async function submitApartment(payload) {
+  try {
+    return await window.electronAPI.addApartment(payload);
+  } catch (err) {
+    console.error("[AddApartment] addApartment:", err);
+    return { success: false, message: "Beklenmedik bir hata oluştu." };
+  }
+}
 
 function AddApartment() {
   const navigate = useNavigate();
@@ -36,7 +45,7 @@ function AddApartment() {
     }
 
     setSubmitting(true);
-    const response = await window.electronAPI.addApartment({
+    const res = await submitApartment({
       ...apartmentData,
       floor: apartmentData.floor !== "" ? Number(apartmentData.floor) : null,
       square_meters: apartmentData.square_meters !== "" ? Number(apartmentData.square_meters) : null,
@@ -45,15 +54,15 @@ function AddApartment() {
     });
     setSubmitting(false);
 
-    if (response.success) {
-      const addAnother = await showAlert.confirm("Başarılı!", response.message, "Ana Sayfaya Dön", "Başka Daire Ekle");
+    if (res.success) {
+      const addAnother = await showAlert.confirm("Başarılı!", res.message, "Ana Sayfaya Dön", "Başka Daire Ekle");
       if (addAnother) {
         setApartmentData(INITIAL_DATA);
       } else {
         navigate("/dashboard");
       }
     } else {
-      showAlert.error("Hata", response.message);
+      showAlert.error("Hata", res.message);
     }
   };
 

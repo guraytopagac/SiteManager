@@ -4,21 +4,15 @@ const { dialog } = require("electron");
 const { CHANNELS: CH } = require("../../ipc/channels");
 const { createHandle } = require("../../ipc/createHandle");
 const { getMainWindow } = require("../../windows/main");
-const { fail, validateBuildingScope, validatePayload, validatePeriod } = require("../shared/validate");
+const { fail, isValidFileName, validateBuildingScope, validatePayload, validatePeriod } = require("../shared/validate");
 const reportService = require("./service");
 
 const FUTURE_PERIOD_MESSAGE = "Gelecek bir dönem için rapor alınamaz.";
-const MAX_FILENAME_LENGTH = 150;
-// Path separators and the characters Windows does not allow in a file name.
-const INVALID_FILENAME_RE = /[\\/:*?"<>|]/;
 
 // The renderer builds the PDF and sends it here as a Uint8Array.
 function validateSaveFileFields(payload) {
   const { filename, buffer } = payload;
-  if (typeof filename !== "string" || !filename || filename.length > MAX_FILENAME_LENGTH) {
-    return fail("Geçersiz dosya adı.");
-  }
-  if (INVALID_FILENAME_RE.test(filename)) {
+  if (!isValidFileName(filename)) {
     return fail("Geçersiz dosya adı.");
   }
   if (!(buffer instanceof Uint8Array) || buffer.byteLength === 0) {
@@ -41,7 +35,7 @@ async function saveReportFile(payload) {
   if (canceled || !filePath) return { success: false, cancelled: true, message: "İptal edildi." };
 
   await fs.promises.writeFile(filePath, Buffer.from(buffer));
-  return { success: true, message: `Rapor kaydedildi: ${filePath}` };
+  return { success: true, message: filePath };
 }
 
 function registerReportHandlers(ipcMain) {

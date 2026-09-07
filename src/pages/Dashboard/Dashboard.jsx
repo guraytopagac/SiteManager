@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
@@ -19,8 +19,39 @@ import {
   FiPlus,
   FiRefreshCw,
   FiTrendingUp,
-  FiUsers,
 } from "react-icons/fi";
+
+const EMPTY_STATS = { cash: 0, collections: null, delays: 0 };
+
+function useDashboardStats(buildingId) {
+  const [stats, setStats] = useState(EMPTY_STATS);
+  const [status, setStatus] = useState("loading");
+
+  const load = useCallback(async () => {
+    setStatus("loading");
+
+    try {
+      const res = await window.electronAPI.getStats({ buildingId });
+      if (res.success) {
+        setStats(res.data);
+        setStatus("ready");
+      } else {
+        setStatus("error");
+      }
+    } catch (err) {
+      console.error("[Dashboard] getStats:", err);
+      setStatus("error");
+    }
+  }, [buildingId]);
+
+  useEffect(() => {
+    (async () => {
+      await load();
+    })();
+  }, [load]);
+
+  return { stats, status, reload: load };
+}
 
 function ActionTile({ icon, label, tone, onClick }) {
   const markClass = tone ? `db-action-mark db-action-mark--${tone}` : "db-action-mark";
@@ -122,7 +153,7 @@ function StatusMetrics({ stats, navigate }) {
       </MetricTile>
 
       <MetricTile
-        className="db-metric"
+        className="db-metric db-metric--rate"
         icon={<FiTrendingUp />}
         label="Tahsilat"
         ariaLabel="Tahsilat, aidat listesini aç"
@@ -141,7 +172,7 @@ function StatusMetrics({ stats, navigate }) {
       </MetricTile>
 
       <MetricTile
-        className={stats.delays > 0 ? "db-metric db-metric--delay" : "db-metric"}
+        className={stats.delays > 0 ? "db-metric db-metric--delay" : "db-metric db-metric--neutral"}
         icon={<FiClock />}
         label="Gecikme"
         ariaLabel="Gecikme, aidat listesini aç"
@@ -156,34 +187,9 @@ function StatusMetrics({ stats, navigate }) {
 function Dashboard() {
   const navigate = useNavigate();
   const building = useCurrentBuilding();
-  const [stats, setStats] = useState({ cash: 0, collections: null, delays: 0 });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [reloadToken, setReloadToken] = useState(0);
+  const { stats, status, reload } = useDashboardStats(building.id);
   const period = formatMonthYear(getCurrentYear(), getCurrentMonth());
   const isEmptyBook = stats.collections === null && stats.cash === 0 && stats.delays === 0;
-
-  useEffect(() => {
-    if (!building?.id) return;
-    let isMounted = true;
-
-    (async () => {
-      setLoading(true);
-      setError(false);
-      const res = await window.electronAPI.getStats({ buildingId: building.id });
-      if (!isMounted) return;
-      if (res.success) {
-        setStats(res.data);
-      } else {
-        setError(true);
-      }
-      setLoading(false);
-    })();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [building?.id, reloadToken]);
 
   return (
     <div className="dashboard-container">
@@ -191,7 +197,9 @@ function Dashboard() {
         <div className="db-context">
           <div className="db-identity">
             <span className="db-eyebrow">Seçili Bina</span>
-            <h1 className="db-title">{building?.name}</h1>
+            <h1 className="db-title" title={building.name}>
+              {building.name}
+            </h1>
             <p className="db-subtitle">{period}</p>
           </div>
           <AccountMenu />
@@ -199,30 +207,22 @@ function Dashboard() {
       </header>
 
       <section className="db-band" aria-label="Bina durumu">
-        {loading && <StatusSkeleton />}
-        {!loading && error && <StatusError onRetry={() => setReloadToken((t) => t + 1)} />}
-        {!loading && !error && isEmptyBook && <StatusEmpty onAdd={() => navigate("/add-apartment")} />}
-        {!loading && !error && !isEmptyBook && <StatusMetrics stats={stats} navigate={navigate} />}
+        {status === "loading" && <StatusSkeleton />}
+        {status === "error" && <StatusError onRetry={reload} />}
+        {status === "ready" && isEmptyBook && <StatusEmpty onAdd={() => navigate("/add-apartment")} />}
+        {status === "ready" && !isEmptyBook && <StatusMetrics stats={stats} navigate={navigate} />}
       </section>
 
       <section className="db-band" aria-label="İşlemler">
         <div className="db-group">
-          <div className="db-group-label">
-            Daire İşlemleri
-            <span className="db-group-hint">Daire ve sakin kayıtları</span>
-          </div>
+          <div className="db-group-label">Daire İşlemleri</div>
           <div className="db-actions">
             <ActionTile icon={<FiEye />} label="Daireler ve Aidat" onClick={() => navigate("/apartments")} />
-            <ActionTile icon={<FiUsers />} label="Sakinleri Yönet" onClick={() => navigate("/residents")} />
-            <ActionTile icon={<FiHome />} label="Yeni Daire Ekle" onClick={() => navigate("/add-apartment")} />
           </div>
         </div>
 
         <div className="db-group">
-          <div className="db-group-label">
-            Finansal İşlemler
-            <span className="db-group-hint">Kasa hareketleri</span>
-          </div>
+          <div className="db-group-label">Finansal İşlemler</div>
           <div className="db-actions">
             <ActionTile
               icon={<FiArrowUpCircle />}
@@ -241,10 +241,7 @@ function Dashboard() {
         </div>
 
         <div className="db-group">
-          <div className="db-group-label">
-            Raporlama
-            <span className="db-group-hint">Dönem çıktıları</span>
-          </div>
+          <div className="db-group-label">Raporlama</div>
           <div className="db-actions">
             <ActionTile icon={<FiFileText />} label="Raporlar" onClick={() => navigate("/reports")} />
           </div>

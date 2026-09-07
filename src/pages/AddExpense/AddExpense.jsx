@@ -44,7 +44,7 @@ function AddExpense() {
 
     setIsSubmitting(true);
     try {
-      const response = await window.electronAPI.addExpense({
+      const res = await window.electronAPI.addExpense({
         amount: parsedAmount,
         description: cleanDescription,
         category,
@@ -52,17 +52,18 @@ function AddExpense() {
         buildingId: buildingId,
       });
 
-      if (response.success) {
+      if (res.success) {
         setAmount("");
         setDescription("");
         setCategory("other");
         setDate(getToday());
-        showAlert.toast("Gider Eklendi!", response.message || "Gider kaydı başarıyla oluşturuldu.");
+        showAlert.toast(res.message);
         navigate("/dashboard");
       } else {
-        showAlert.error("Hata Oluştu", response.message || "Gider kaydedilemedi.");
+        showAlert.error("Hata Oluştu", res.message || "Gider kaydedilemedi.");
       }
-    } catch {
+    } catch (err) {
+      console.error("[AddExpense] addExpense:", err);
       showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
     } finally {
       setIsSubmitting(false);

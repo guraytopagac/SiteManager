@@ -1,5 +1,8 @@
 // Dues rules. Nothing here is ever deleted. A payment is cancelled with an audit row, and the
 // due is worked out again from the payments that are still active.
+const fs = require("fs");
+const path = require("path");
+const { app, shell } = require("electron");
 const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
@@ -36,6 +39,9 @@ function calcDueStatus(dueAmount, paidAmount) {
 
 // LEFT JOIN with COALESCE, because the dues row may not exist yet. An apartment is left out of
 // the months before it was created.
+// apartment_no is TEXT, so a plain sort puts "10" before "2". The GLOB keeps digit-led numbers
+// ahead of names like "B2", the CAST orders them by their numeric prefix and the collated column
+// breaks ties, which yields 1, 2, 3, 3A, 10, 20, A1, B2.
 function getDuesForMonth(payload) {
   const { buildingId, year, month } = payload;
   try {
@@ -53,7 +59,9 @@ function getDuesForMonth(payload) {
          LEFT JOIN dues d ON d.apartment_id = a.id AND d.year = ? AND d.month = ?
          LEFT JOIN residents r ON r.apartment_id = a.id AND r.is_active = 1
          WHERE a.building_id = ? AND a.is_active = 1 AND ${createdPeriodSql("a.")} <= ?
-         ORDER BY a.apartment_no ASC`,
+         ORDER BY (a.apartment_no GLOB '[0-9]*') DESC,
+                  CAST(a.apartment_no AS INTEGER) ASC,
+                  a.apartment_no COLLATE NOCASE ASC`,
       )
       .all(year, month, buildingId, toPeriod(year, month));
 
@@ -103,15 +111,27 @@ function recordPayment(payload) {
       };
     }
 
-    const { amount, payment_method, payment_date, note, collected_by } = paymentData;
+    const { amount, payment_method, payment_date, note, collector_name, collected_by, receipt } = paymentData;
 
     getDb().transaction(() => {
       const { lastInsertRowid: paymentId } = getDb()
         .prepare(
-          `INSERT INTO due_payments (due_id, amount, payment_method, payment_date, note, collected_by, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ${TR_NOW_SQL})`,
+          `INSERT INTO due_payments
+             (due_id, amount, payment_method, payment_date, note, collector_name, receipt_name, receipt_blob,
+              collected_by, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ${TR_NOW_SQL})`,
         )
-        .run(due.id, amount, payment_method, payment_date, note || null, collected_by);
+        .run(
+          due.id,
+          amount,
+          payment_method,
+          payment_date,
+          note || null,
+          collector_name || null,
+          receipt?.name ?? null,
+          receipt ? Buffer.from(receipt.data) : null,
+          collected_by,
+        );
 
       // The matching income row. This is the only place a dues income is written.
       getDb()
@@ -127,7 +147,7 @@ function recordPayment(payload) {
         .run(newPaidAmount, calcDueStatus(due.due_amount, newPaidAmount), due.id);
     })();
 
-    return { success: true, message: "Ödeme başarıyla kaydedildi." };
+    return { success: true, message: "Ödeme kaydedildi." };
   } catch (err) {
     console.error("[dues.service] recordPayment:", err);
     return { success: false, message: resolveDbError(err, "Ödeme kaydetme") };
@@ -187,7 +207,7 @@ function cancelPayment(payload) {
         .run(newPaidAmount, calcDueStatus(payment.due_amount, newPaidAmount), payment.due_id);
     })();
 
-    return { success: true, message: "Ödeme başarıyla iptal edildi." };
+    return { success: true, message: "Ödeme iptal edildi." };
   } catch (err) {
     console.error("[dues.service] cancelPayment:", err);
     return { success: false, message: resolveDbError(err, "Ödeme iptali") };
@@ -200,15 +220,14 @@ function getPaymentHistory(payload) {
     const data = getDb()
       .prepare(
         `SELECT dp.id, dp.amount, dp.payment_method, dp.payment_date, dp.note, dp.created_at,
-                u.username AS collected_by_username,
-                pc.cancel_reason, pc.cancelled_at,
-                cu.username AS cancelled_by_username
+                dp.receipt_name,
+                COALESCE(dp.collector_name, u.manager_name) AS collector_name,
+                pc.cancel_reason, pc.cancelled_at
          FROM due_payments dp
          JOIN users u ON dp.collected_by = u.id
          JOIN dues d ON dp.due_id = d.id
          JOIN apartments a ON d.apartment_id = a.id
          LEFT JOIN payment_cancellations pc ON pc.payment_id = dp.id
-         LEFT JOIN users cu ON cu.id = pc.cancelled_by
          WHERE dp.due_id = ? AND a.building_id = ?
          ORDER BY dp.created_at DESC, dp.id DESC`,
       )
@@ -220,4 +239,73 @@ function getPaymentHistory(payload) {
   }
 }
 
-module.exports = { getDuesForMonth, recordPayment, cancelPayment, getPaymentHistory };
+// Puts a receipt on a payment that was recorded without one, or replaces the one it has. Reading
+// stays open on a cancelled payment, writing does not.
+function attachReceipt(payload) {
+  const { paymentId, buildingId, receipt } = payload;
+  try {
+    const payment = getDb()
+      .prepare(
+        `SELECT dp.id, pc.id AS cancellation_id
+         FROM due_payments dp
+         JOIN dues d ON dp.due_id = d.id
+         JOIN apartments a ON d.apartment_id = a.id
+         LEFT JOIN payment_cancellations pc ON pc.payment_id = dp.id
+         WHERE dp.id = ? AND a.building_id = ?`,
+      )
+      .get(paymentId, buildingId);
+    if (!payment) return { success: false, message: "Ödeme kaydı bulunamadı." };
+    if (payment.cancellation_id) {
+      return { success: false, message: "İptal edilmiş bir ödemenin dekontu değiştirilemez." };
+    }
+
+    getDb()
+      .prepare(`UPDATE due_payments SET receipt_name = ?, receipt_blob = ? WHERE id = ?`)
+      .run(receipt.name, Buffer.from(receipt.data), paymentId);
+
+    return { success: true, message: "Dekont kaydedildi." };
+  } catch (err) {
+    console.error("[dues.service] attachReceipt:", err);
+    return { success: false, message: resolveDbError(err, "Dekont kaydetme") };
+  }
+}
+
+// The renderer cannot open a file, so the blob is written to a temp file and handed to the shell.
+// Only the extension of the stored name is reused: a name built here keeps the stored one out of
+// the path, and the payment id keeps two receipts with the same file name apart.
+async function openReceipt(payload) {
+  const { paymentId, buildingId } = payload;
+  try {
+    const payment = getDb()
+      .prepare(
+        `SELECT dp.receipt_name, dp.receipt_blob
+         FROM due_payments dp
+         JOIN dues d ON dp.due_id = d.id
+         JOIN apartments a ON d.apartment_id = a.id
+         WHERE dp.id = ? AND a.building_id = ?`,
+      )
+      .get(paymentId, buildingId);
+    if (!payment) return { success: false, message: "Ödeme kaydı bulunamadı." };
+    if (!payment.receipt_blob) return { success: false, message: "Bu ödemeye ait dekont yok." };
+
+    // The extension is safe to trust: a schema CHECK keeps receipt_name to the accepted list.
+    const extension = payment.receipt_name.split(".").pop().toLowerCase();
+    const filePath = path.join(app.getPath("temp"), `mavikent-dekont-${paymentId}.${extension}`);
+    await fs.promises.writeFile(filePath, payment.receipt_blob);
+
+    // openPath resolves with an error string instead of rejecting.
+    const openError = await shell.openPath(filePath);
+    if (openError) {
+      console.error("[dues.service] openReceipt:", openError);
+      return { success: false, message: "Dekont dosyası açılamadı." };
+    }
+
+    // Nothing to report: the file itself opening is the result the user sees.
+    return { success: true };
+  } catch (err) {
+    console.error("[dues.service] openReceipt:", err);
+    return { success: false, message: "Dekont açılamadı." };
+  }
+}
+
+module.exports = { getDuesForMonth, recordPayment, cancelPayment, getPaymentHistory, attachReceipt, openReceipt };

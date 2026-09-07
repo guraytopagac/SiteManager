@@ -4,6 +4,20 @@ const RELEASE_NOTES_SEEN_KEY = "releaseNotesSeenVersion";
 
 const RELEASE_NOTES = [
   {
+    version: "1.8.0",
+    date: "2026-09-08",
+    title: "Bina kurulum sihirbazı, dekontlu tahsilat ve yenilenen daire listesi",
+    changes: [
+      "Yeni bina oluşturma iki adımlı bir sihirbaza taşındı. İkinci adımda kat ve daire düzeninin önizlemesi görünüyor, bina daireleriyle birlikte tek adımda kuruluyor.",
+      "Daireler ve Aidat sayfası yeniden tasarlandı. Durum süzgeçleri, daire ve sakin araması, sayfalama ve tahsilat özeti eklendi.",
+      "Aidat tahsilatına dekont eklenebiliyor. PDF, JPG, PNG ve WEBP dosyaları 5 MB'a kadar kabul ediliyor, dekont sonradan da eklenip değiştirilebiliyor ve varsayılan uygulamada açılıyor.",
+      'Ödeme kaydına "Tahsil Eden" alanı eklendi. Aidatı başkası topladığında ödeme geçmişinde o kişinin adı görünüyor.',
+      "Silinen dairenin numarası yeniden kullanılabiliyor. Aynı numarayla eklenen daire artık silinen dairenin aidat ve sakin geçmişini devralmıyor.",
+      "Daireler ve İşlemler sayfaları ortak bir dönem seçicisi kullanıyor.",
+      "Tahsilat, daire düzenleme, toplu aidat ve sakin pencereleri ortak bir görsel dile alındı.",
+    ],
+  },
+  {
     version: "1.7.0",
     date: "2026-09-04",
     title: "Yenilenen pano, kişi sayısı ve ortak oturum ekranları",
@@ -29,17 +43,6 @@ const RELEASE_NOTES = [
       "Daireler ve aidat tek sayfada birleştirildi. Tahsilat satırdaki düğmeyle tek adımda yapılıyor.",
       "Sağ üstteki hesap menüsü ile Profil, bina değiştirme ve çıkış her sayfadan erişilebilir.",
       "Para tutarları uygulamanın tamamında kuruşlu tek biçimde gösteriliyor.",
-    ],
-  },
-  {
-    version: "1.5.0",
-    date: "2026-07-20",
-    title: "Şifre kurtarma ekranı ve giriş güvenliği",
-    changes: [
-      "Şifrenizi unuttuysanız artık ayrı bir kurtarma ekranından iki adımda sıfırlayabilirsiniz.",
-      "Yeni şifrenizi girerken tekrar alanı, göster/gizle düğmesi ve güç göstergesi eşlik ediyor.",
-      "Şifre alanlarında Caps Lock açıkken uyarı beliriyor.",
-      "Giriş, kurulum ve kurtarma ekranları yenilendi; yazılar büyütülerek okunabilirlik artırıldı.",
     ],
   },
 ];

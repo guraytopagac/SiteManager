@@ -31,16 +31,17 @@ function Login() {
     setError("");
 
     try {
-      const { success, user, message } = await window.electronAPI.login({ username, password });
+      const res = await window.electronAPI.login({ username, password });
 
-      if (success) {
-        setSession(user);
+      if (res.success) {
+        setSession(res.user);
         navigate("/select-building", { replace: true });
         return;
       }
 
-      setError(message);
-    } catch {
+      setError(res.message);
+    } catch (err) {
+      console.error("[Login] login:", err);
       setError("Giriş yapılamadı. Lütfen tekrar deneyin.");
     }
 

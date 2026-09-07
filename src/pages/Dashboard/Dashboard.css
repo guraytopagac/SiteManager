@@ -25,7 +25,6 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
-  flex-wrap: wrap;
 }
 
 .db-identity {
@@ -42,7 +41,12 @@
 }
 
 .db-title {
+  display: -webkit-box;
+  overflow: hidden;
   margin: 8px 0 0;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
   color: var(--text-color);
   font-size: 1.9rem;
   font-weight: 750;
@@ -149,6 +153,16 @@
   color: var(--amount-positive);
 }
 
+.db-metric--rate .db-metric-mark {
+  background: var(--accent-tint);
+  color: var(--button-color);
+}
+
+.db-metric--neutral .db-metric-mark {
+  background: var(--border-default);
+  color: var(--text-secondary);
+}
+
 .db-metric--delay .db-metric-mark {
   background: color-mix(in srgb, var(--amount-negative) 20%, transparent);
   color: var(--amount-negative);
@@ -169,11 +183,15 @@
   color: var(--amount-positive);
 }
 
+.db-metric--rate .db-metric-value {
+  color: var(--button-color);
+}
+
 .db-metric--delay .db-metric-value {
   color: var(--amount-negative);
 }
 
-.db-metric-value--blank {
+.db-metric-value.db-metric-value--blank {
   color: var(--text-secondary);
 }
 
@@ -311,7 +329,7 @@
 .db-group {
   display: grid;
   grid-template-columns: 190px minmax(0, 1fr);
-  align-items: start;
+  align-items: center;
   gap: 24px;
   padding: 16px 0;
 }
@@ -330,17 +348,9 @@
 
 .db-group-label {
   color: var(--text-color);
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.db-group-hint {
-  display: block;
-  margin-top: 4px;
-  color: var(--text-secondary);
-  font-size: 1rem;
-  font-weight: 400;
+  font-size: 1.25rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
 }
 
 .db-actions {

@@ -38,7 +38,7 @@ function insertRecord(table, payload, label) {
        VALUES (?, ?, ?, ?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
     )
     .run(payload.amount, payload.date, payload.description, payload.category, payload.buildingId);
-  return { success: true, id: result.lastInsertRowid, message: `${label} başarıyla eklendi.` };
+  return { success: true, id: result.lastInsertRowid, message: `${label} eklendi.` };
 }
 
 // Soft cancel. An income tied to a dues payment can only be cancelled through cancelPayment.
@@ -63,7 +63,7 @@ function cancelRecord(table, payload, label) {
     )
     .run(reason, userId, id, buildingId);
 
-  return { success: true, message: `${label} başarıyla iptal edildi.` };
+  return { success: true, message: `${label} iptal edildi.` };
 }
 
 // Income and expense in one list, newest first. A null period means all time. The totals skip

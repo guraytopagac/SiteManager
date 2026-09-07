@@ -1,5 +1,9 @@
--- Single payments against a due. Cancelling adds a payment_cancellations row instead of deleting.
-CREATE TABLE IF NOT EXISTS due_payments (
+-- A payment can now carry a receipt file. The name and the blob are added together, so the table
+-- is rebuilt: SQLite cannot add the table level CHECK that binds the two columns with ALTER TABLE.
+-- The order below is the one SQLite documents for this kind of change. The new table is built under
+-- a temporary name and the old one is dropped before the rename, so ALTER TABLE never rewrites the
+-- due_payments references that payment_cancellations and incomes hold.
+CREATE TABLE new_due_payments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   due_id INTEGER NOT NULL,
   collected_by INTEGER NOT NULL,
@@ -11,12 +15,6 @@ CREATE TABLE IF NOT EXISTS due_payments (
     payment_date <= '2100-12-31'
   ),
   note TEXT CHECK(note IS NULL OR (length(trim(note)) > 0 AND length(note) <= 500)),
-  -- Who physically collected the payment. collected_by stays the account that recorded the row,
-  -- so this is filled only when the money was taken by someone other than the account owner.
-  collector_name TEXT CHECK(
-    collector_name IS NULL OR (length(trim(collector_name)) > 0 AND length(collector_name) <= 60)
-  ),
-  -- Receipt file of the payment. The name carries the extension, so no separate mime column.
   receipt_name TEXT CHECK(
     receipt_name IS NULL OR (
       length(trim(receipt_name)) > 0 AND
@@ -32,7 +30,6 @@ CREATE TABLE IF NOT EXISTS due_payments (
   ),
   receipt_blob BLOB CHECK(receipt_blob IS NULL OR length(receipt_blob) <= 5242880),
   created_at TEXT NOT NULL DEFAULT (datetime('now', '+3 hours')),
-  -- The two receipt fields are either both NULL or both filled.
   CHECK(
     (receipt_name IS NULL AND receipt_blob IS NULL) OR
     (receipt_name IS NOT NULL AND receipt_blob IS NOT NULL)
@@ -40,6 +37,16 @@ CREATE TABLE IF NOT EXISTS due_payments (
   FOREIGN KEY(due_id) REFERENCES dues(id) ON DELETE RESTRICT,
   FOREIGN KEY(collected_by) REFERENCES users(id) ON DELETE RESTRICT
 );
+
+INSERT INTO new_due_payments (id, due_id, collected_by, amount, payment_method, payment_date, note, created_at)
+  SELECT id, due_id, collected_by, amount, payment_method, payment_date, note, created_at FROM due_payments;
+
+-- The delete guard has to go first, or dropping the old table is refused.
+DROP TRIGGER IF EXISTS trg_due_payments_no_delete;
+DROP INDEX IF EXISTS idx_due_payments_due_id;
+DROP TABLE due_payments;
+
+ALTER TABLE new_due_payments RENAME TO due_payments;
 
 CREATE INDEX IF NOT EXISTS idx_due_payments_due_id ON due_payments(due_id);
 

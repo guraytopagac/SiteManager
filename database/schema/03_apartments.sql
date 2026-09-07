@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS apartments (
   FOREIGN KEY(building_id) REFERENCES buildings(id) ON DELETE RESTRICT
 );
 
--- Covers inactive rows too, which is why addApartment reuses a matching inactive apartment.
+-- Partial, so a deleted apartment keeps its number in the table without blocking a new one.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_apartments_building_no
-  ON apartments(building_id, apartment_no COLLATE NOCASE);
+  ON apartments(building_id, apartment_no COLLATE NOCASE)
+  WHERE is_active = 1;

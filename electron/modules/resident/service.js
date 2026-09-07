@@ -20,7 +20,7 @@ function findOwnedApartment(apartmentId, buildingId) {
 // Writing also needs the apartment to be active.
 function findOwnedActiveApartment(apartmentId, buildingId) {
   return getDb()
-    .prepare(`SELECT id FROM apartments WHERE id = ? AND building_id = ? AND is_active = 1`)
+    .prepare(`SELECT id, apartment_no FROM apartments WHERE id = ? AND building_id = ? AND is_active = 1`)
     .get(apartmentId, buildingId);
 }
 
@@ -28,14 +28,15 @@ function findOwnedActiveApartment(apartmentId, buildingId) {
 function findOwnedResident(residentId, buildingId) {
   return getDb()
     .prepare(
-      `SELECT r.id, r.is_active FROM residents r
+      `SELECT r.id, r.is_active, a.apartment_no FROM residents r
        JOIN apartments a ON a.id = r.apartment_id
        WHERE r.id = ? AND a.building_id = ?`,
     )
     .get(residentId, buildingId);
 }
 
-// LEFT JOIN, so an apartment with no resident still shows up.
+// LEFT JOIN, so an apartment with no resident still shows up. Same numeric apartment_no ordering
+// as getDuesForMonth.
 function getResidentsOverview(payload) {
   const { buildingId } = payload;
   try {
@@ -47,7 +48,9 @@ function getResidentsOverview(payload) {
          FROM apartments a
          LEFT JOIN residents r ON r.apartment_id = a.id AND r.is_active = 1
          WHERE a.building_id = ? AND a.is_active = 1
-         ORDER BY a.apartment_no ASC`,
+         ORDER BY (a.apartment_no GLOB '[0-9]*') DESC,
+                  CAST(a.apartment_no AS INTEGER) ASC,
+                  a.apartment_no COLLATE NOCASE ASC`,
       )
       .all(buildingId);
 
@@ -84,8 +87,8 @@ function getResidentHistory(payload) {
 function addResident(payload) {
   const { apartmentId, buildingId } = payload;
   try {
-    if (!findOwnedActiveApartment(apartmentId, buildingId))
-      return { success: false, message: APARTMENT_NOT_FOUND_MESSAGE };
+    const apartment = findOwnedActiveApartment(apartmentId, buildingId);
+    if (!apartment) return { success: false, message: APARTMENT_NOT_FOUND_MESSAGE };
 
     const existingActiveResident = getDb()
       .prepare(`SELECT id FROM residents WHERE apartment_id = ? AND is_active = 1`)
@@ -111,7 +114,7 @@ function addResident(payload) {
         payload.notes,
       );
 
-    return { success: true, message: "Sakin eklendi." };
+    return { success: true, message: `Daire ${apartment.apartment_no} için sakin eklendi.` };
   } catch (err) {
     console.error("[resident.service] addResident:", err);
     return { success: false, message: resolveDbError(err, "Sakin ekleme") };
@@ -144,7 +147,7 @@ function updateResident(payload) {
         residentId,
       );
 
-    return { success: true, message: "Sakin bilgileri güncellendi." };
+    return { success: true, message: `Daire ${resident.apartment_no} sakini güncellendi.` };
   } catch (err) {
     console.error("[resident.service] updateResident:", err);
     return { success: false, message: resolveDbError(err, "Sakin güncelleme") };
@@ -168,8 +171,8 @@ function moveOutResident(payload) {
       success: true,
       message:
         moveOutDate > trToday()
-          ? "Çıkış tarihi kaydedildi. Sakin bu tarihe kadar aktif kalmaya devam edecek."
-          : "Sakin çıkışı kaydedildi.",
+          ? "Çıkış tarihi kaydedildi. Sakin o tarihe kadar aktif kalacak."
+          : `Daire ${resident.apartment_no} sakini çıkış yaptı.`,
     };
   } catch (err) {
     console.error("[resident.service] moveOutResident:", err);

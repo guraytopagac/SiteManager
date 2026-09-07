@@ -11,7 +11,8 @@ export function useCopyFeedback() {
   const copy = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
-    } catch {
+    } catch (err) {
+      console.error("[useCopyFeedback] copy:", err);
       return false;
     }
     setIsCopied(true);

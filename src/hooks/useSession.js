@@ -11,7 +11,8 @@ let accountState = ASSUME_SETUP_DONE;
 function restoreState() {
   try {
     return JSON.parse(sessionStorage.getItem(SESSION_KEY)) || NO_SESSION;
-  } catch {
+  } catch (err) {
+    console.error("[useSession] restoreState:", err);
     return NO_SESSION;
   }
 }
@@ -58,7 +59,8 @@ export async function loadAccountState() {
   try {
     const res = await window.electronAPI.getSetupState();
     accountState = res?.success ? { needsSetup: res.needsSetup, username: res.username } : ASSUME_SETUP_DONE;
-  } catch {
+  } catch (err) {
+    console.error("[useSession] getSetupState:", err);
     accountState = ASSUME_SETUP_DONE;
   }
 }

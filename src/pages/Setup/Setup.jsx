@@ -86,7 +86,8 @@ function Setup() {
         password,
         managerName: trimmedManagerName,
       });
-    } catch {
+    } catch (err) {
+      console.error("[Setup] completeSetup:", err);
       setError("Hesap oluşturulamadı. Lütfen tekrar deneyin.");
       return;
     } finally {
@@ -117,8 +118,6 @@ function Setup() {
   };
 
   const isDone = Boolean(createdAccount);
-  const currentStep = isDone ? TOTAL_STEPS + 1 : step;
-  const displayStep = Math.min(currentStep, TOTAL_STEPS);
 
   return (
     <div className="setup-page-bg">
@@ -134,18 +133,18 @@ function Setup() {
 
           <div className="setup-progress">
             <span className="setup-progress-text">
-              Adım {displayStep} / {TOTAL_STEPS}
+              Adım {step} / {TOTAL_STEPS}
             </span>
             <span className="setup-progress-track">
-              <span className="setup-progress-fill" style={{ width: `${(displayStep / TOTAL_STEPS) * 100}%` }} />
+              <span className="setup-progress-fill" style={{ width: `${(step / TOTAL_STEPS) * 100}%` }} />
             </span>
           </div>
 
           <ol className="setup-overview" aria-label="Kurulum adımları">
             {SETUP_STEPS.map((item, i) => {
               const stepNumber = i + 1;
-              const isStepActive = currentStep === stepNumber;
-              const isStepDone = currentStep > stepNumber;
+              const isStepActive = !isDone && step === stepNumber;
+              const isStepDone = isDone || step > stepNumber;
               return (
                 <li
                   key={item.title}
@@ -228,7 +227,7 @@ function Setup() {
                       setError("");
                     }}
                     errorId={error ? ERROR_ID : undefined}
-                    hint="Uygulama size bu adla hitap eder. 2 ile 60 karakter arasında olmalıdır."
+                    hint="Adınızı ve soyadınızı yazın, uygulama size bu adla hitap eder."
                   />
 
                   <AuthField
@@ -244,7 +243,7 @@ function Setup() {
                       setError("");
                     }}
                     errorId={error ? ERROR_ID : undefined}
-                    hint="Hesabınızın giriş adıdır, giriş ekranında otomatik dolar. 3 ile 30 karakter arasında olmalıdır, Türkçe karakter ve boşluk içeremez."
+                    hint="Giriş ekranında kullanacağınız adı belirleyin."
                   />
                 </>
               )}

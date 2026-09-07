@@ -2,6 +2,12 @@
 // only the messages that read the same everywhere. Field wording stays in the domain.
 const { currentPeriod, toPeriod } = require("./trTime");
 
+// Same list as the schema CHECK and APARTMENT_TYPES in src/utils/constants.js.
+const APARTMENT_TYPES = ["0+1", "1+1", "2+1", "3+1", "4+1"];
+
+// Path separators and the characters Windows does not allow in a file name.
+const FILE_NAME_RE = /[\\/:*?"<>|]/;
+
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -12,6 +18,7 @@ const MIN_DATE = "2000-01-01";
 const MAX_DATE = "2100-12-31";
 const MIN_EMAIL_LENGTH = 5;
 const MAX_EMAIL_LENGTH = 254;
+const MAX_FILE_NAME_LENGTH = 150;
 
 // Every validator returns an error object like this, or null.
 function fail(message) {
@@ -37,6 +44,19 @@ function validateId(value, label) {
 // Used by six domains. Each one chains its own id check after this.
 function validateBuildingScope(payload) {
   return validatePayload(payload) ?? validateId(payload.buildingId, "bina ID");
+}
+
+// Used by apartment and building with the same sentence, because a building can be created
+// together with its apartments.
+function validateApartmentType(value) {
+  return APARTMENT_TYPES.includes(value) ? null : fail("Geçersiz daire tipi.");
+}
+
+function validateDueAmount(value) {
+  if (!Number.isFinite(value) || value <= 0 || value > 50000) {
+    return fail("Aidat tutarı 0'dan büyük olmalı ve 50.000₺'yi geçmemelidir.");
+  }
+  return null;
 }
 
 // Used by dues and financial with the same sentence, so it lives here.
@@ -79,20 +99,30 @@ function isValidMonth(value) {
   return Number.isInteger(value) && value >= 1 && value <= 12;
 }
 
+// Used by report for the saved PDF and by dues for the payment receipt.
+function isValidFileName(value) {
+  if (typeof value !== "string" || !value || value.length > MAX_FILE_NAME_LENGTH) return false;
+  return !FILE_NAME_RE.test(value);
+}
+
 function isValidEmail(value) {
   if (typeof value !== "string" || value.length < MIN_EMAIL_LENGTH || value.length > MAX_EMAIL_LENGTH) return false;
   return EMAIL_RE.test(value);
 }
 
 module.exports = {
+  APARTMENT_TYPES,
   fail,
   isValidDate,
   isValidEmail,
+  isValidFileName,
   isValidMonth,
   isValidYear,
   noValidation,
+  validateApartmentType,
   validateBuildingScope,
   validateCancelReason,
+  validateDueAmount,
   validateId,
   validatePayload,
   validatePeriod,

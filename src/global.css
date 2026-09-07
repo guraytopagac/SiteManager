@@ -237,7 +237,7 @@ body {
   border: 1px solid var(--border-default);
   border-radius: 20px;
   box-shadow: 0 10px 32px var(--shadow-deep);
-  animation: pageShellIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: pageShellIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 @keyframes pageShellIn {

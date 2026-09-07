@@ -1,8 +1,19 @@
 // Building IPC entry points. Data here is kept apart by ownerId, not by buildingId.
 const { CHANNELS: CH } = require("../../ipc/channels");
 const { createHandle } = require("../../ipc/createHandle");
-const { fail, validateBuildingScope, validateId, validatePayload } = require("../shared/validate");
+const {
+  fail,
+  validateApartmentType,
+  validateBuildingScope,
+  validateDueAmount,
+  validateId,
+  validatePayload,
+} = require("../shared/validate");
 const buildingService = require("./service");
+
+// A floor never goes past the -2..99 CHECK on apartments, because the lowest one here is 0.
+const MAX_FLOORS = 30;
+const MAX_PER_FLOOR = 20;
 
 function validateOwnerScope(payload) {
   return validatePayload(payload) ?? validateId(payload.ownerId, "hesap ID");
@@ -26,6 +37,28 @@ function validateBuildingName(payload) {
   return null;
 }
 
+// The layout is optional. When it is there the building is created together with its apartments,
+// so the limits here have to match the ones apartment handlers enforce.
+function validateLayout(payload) {
+  const { layout } = payload;
+  if (layout == null) {
+    return null;
+  }
+  if (typeof layout !== "object" || Array.isArray(layout)) {
+    return fail("Geçersiz daire düzeni.");
+  }
+  if (!Number.isInteger(layout.floors) || layout.floors < 1 || layout.floors > MAX_FLOORS) {
+    return fail(`Kat sayısı 1 ile ${MAX_FLOORS} arasında olmalıdır.`);
+  }
+  if (!Number.isInteger(layout.perFloor) || layout.perFloor < 1 || layout.perFloor > MAX_PER_FLOOR) {
+    return fail(`Kat başına daire sayısı 1 ile ${MAX_PER_FLOOR} arasında olmalıdır.`);
+  }
+  if (typeof layout.groundFloor !== "boolean") {
+    return fail("Geçersiz zemin kat bilgisi.");
+  }
+  return validateApartmentType(layout.type) ?? validateDueAmount(layout.dueAmount);
+}
+
 function validateStatus(payload) {
   return typeof payload.isActive === "boolean" ? null : fail("Geçersiz durum değeri.");
 }
@@ -36,7 +69,7 @@ function registerBuildingHandlers(ipcMain) {
   handle(CH.BUILDING.LIST, validateOwnerScope, buildingService.listBuildings);
   handle(
     CH.BUILDING.CREATE,
-    (payload) => validateOwnerScope(payload) ?? validateBuildingName(payload),
+    (payload) => validateOwnerScope(payload) ?? validateBuildingName(payload) ?? validateLayout(payload),
     buildingService.createBuilding,
   );
   handle(

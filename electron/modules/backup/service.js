@@ -61,7 +61,7 @@ async function runBackup(mainWindow, { silent = false } = {}) {
     if (!silent) {
       await showMessage(mainWindow, { type: "info", title: "Yedekleme", message: BACKUP_OK_MESSAGE });
     }
-    return { success: true, message: BACKUP_OK_MESSAGE };
+    return { success: true, message: filePath };
   } catch (err) {
     console.error("[backup.service] runBackup:", err);
     if (!silent) {

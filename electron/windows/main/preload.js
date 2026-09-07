@@ -54,6 +54,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   recordPayment: (payload) => safeInvoke(CH.DUES.RECORD_PAYMENT, payload),
   cancelPayment: (payload) => safeInvoke(CH.DUES.CANCEL_PAYMENT, payload),
   getPaymentHistory: (payload) => safeInvoke(CH.DUES.GET_PAYMENT_HISTORY, payload),
+  attachReceipt: (payload) => safeInvoke(CH.DUES.ATTACH_RECEIPT, payload),
+  openReceipt: (payload) => safeInvoke(CH.DUES.OPEN_RECEIPT, payload),
 
   // Events
   onToggleTheme: (callback) => safeOn(CH.EVENTS.TOGGLE_THEME, callback),

@@ -58,22 +58,55 @@ function duplicateNameMessage(duplicate) {
     : "Bu isimde silinmiş bir binanız var. Silinen binalar bölümünden geri getirebilir ya da farklı bir isim seçebilirsiniz.";
 }
 
+// Numbering runs bottom up and is plain 1..N, so the number stays short enough for the
+// apartment_no CHECK no matter how many floors there are.
+function layoutRows(layout) {
+  const rows = [];
+  const firstFloor = layout.groundFloor ? 0 : 1;
+
+  for (let step = 0; step < layout.floors; step += 1) {
+    for (let index = 0; index < layout.perFloor; index += 1) {
+      rows.push({ apartmentNo: String(rows.length + 1), floor: firstFloor + step });
+    }
+  }
+  return rows;
+}
+
+// The layout is optional. When it is there the apartments are written in the same transaction as
+// the building, so a half created building with no apartments cannot be left behind.
 function createBuilding(payload) {
-  const { ownerId, name } = payload;
+  const { ownerId, name, layout } = payload;
   try {
-    const owner = getDb().prepare(`SELECT id FROM users WHERE id = ? AND is_active = 1`).get(ownerId);
+    const db = getDb();
+
+    const owner = db.prepare(`SELECT id FROM users WHERE id = ? AND is_active = 1`).get(ownerId);
     if (!owner) return { success: false, message: "Hesap bulunamadı." };
 
     const duplicate = findDuplicateName(ownerId, name);
     if (duplicate) return { success: false, message: duplicateNameMessage(duplicate) };
 
-    const result = getDb()
-      .prepare(
-        `INSERT INTO buildings (owner_id, name, created_at, updated_at)
-         VALUES (?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
-      )
-      .run(ownerId, name);
-    return { success: true, message: "Bina oluşturuldu.", id: result.lastInsertRowid };
+    const rows = layout ? layoutRows(layout) : [];
+
+    const buildingId = db.transaction(() => {
+      const result = db
+        .prepare(
+          `INSERT INTO buildings (owner_id, name, created_at, updated_at)
+           VALUES (?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
+        )
+        .run(ownerId, name);
+
+      const insertApartment = db.prepare(
+        `INSERT INTO apartments (building_id, apartment_no, floor, type, due_amount, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
+      );
+      for (const row of rows) {
+        insertApartment.run(result.lastInsertRowid, row.apartmentNo, row.floor, layout.type, layout.dueAmount);
+      }
+
+      return result.lastInsertRowid;
+    })();
+
+    return { success: true, message: "Bina oluşturuldu.", id: buildingId, apartmentCount: rows.length };
   } catch (err) {
     console.error("[building.service] createBuilding:", err);
     return { success: false, message: resolveDbError(err, "Bina oluşturma") };
