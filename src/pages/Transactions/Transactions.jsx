@@ -4,7 +4,7 @@ import "./Transactions.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import PeriodSelector from "@/components/PeriodSelector/PeriodSelector";
 import { useSession, useCurrentBuilding } from "@/hooks/useSession";
-import { showAlert } from "@/utils/alert";
+import { showDialog } from "@/utils/dialog";
 import { formatDate, formatMonthYear, getCurrentYear, getCurrentMonth, clampMonth } from "@/utils/date";
 import { formatSignedCurrency } from "@/utils/currency";
 
@@ -58,11 +58,11 @@ function Transactions() {
         setTransactions(res.data);
         setTotals(res.totals);
       } else {
-        showAlert.error("Hata", res.message || "İşlem geçmişi alınamadı.");
+        showDialog.error("Hata", res.message || "İşlem geçmişi alınamadı.");
       }
     } catch (err) {
       console.error("[Transactions] getTransactions:", err);
-      showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
+      showDialog.error("Hata", "Beklenmedik bir hata oluştu.");
     } finally {
       setLoading(false);
     }
@@ -87,11 +87,11 @@ function Transactions() {
           setTransactions(res.data);
           setTotals(res.totals);
         } else {
-          showAlert.error("Hata", res.message || "İşlem geçmişi alınamadı.");
+          showDialog.error("Hata", res.message || "İşlem geçmişi alınamadı.");
         }
       } catch (err) {
         console.error("[Transactions] getTransactions:", err);
-        if (isMounted) showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
+        if (isMounted) showDialog.error("Hata", "Beklenmedik bir hata oluştu.");
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -104,7 +104,7 @@ function Transactions() {
 
   const handleCancel = useCallback(
     async (t) => {
-      const reason = await showAlert.cancelReason(`${t.type === "income" ? "Geliri" : "Gideri"} İptal Et`);
+      const reason = await showDialog.cancelReason(`${t.type === "income" ? "Geliri" : "Gideri"} İptal Et`);
       if (!reason) return;
 
       const cancelTransaction =
@@ -113,14 +113,14 @@ function Transactions() {
       try {
         const res = await cancelTransaction({ id: t.id, buildingId: building.id, userId: session.id, reason });
         if (res.success) {
-          showAlert.toast(res.message);
+          showDialog.toast(res.message);
           fetchTransactions();
         } else {
-          showAlert.error("Hata", res.message);
+          showDialog.error("Hata", res.message);
         }
       } catch (err) {
         console.error("[Transactions] cancelTransaction:", err);
-        showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
+        showDialog.error("Hata", "Beklenmedik bir hata oluştu.");
       }
     },
     [building, session, fetchTransactions],

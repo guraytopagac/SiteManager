@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { FiX } from "react-icons/fi";
 import "./ResidentsModals.css";
-import { showAlert } from "@/utils/alert";
+import { showDialog } from "@/utils/dialog";
 import { RESIDENT_TYPE_LABELS } from "@/utils/constants";
 import { formatDate } from "@/utils/date";
 
@@ -22,11 +22,11 @@ function HistoryModal({ apartment, building, onClose }) {
         if (res.success) {
           setHistory(res.data);
         } else {
-          showAlert.error("Hata", res.message || "Sakin geçmişi alınamadı.");
+          showDialog.error("Hata", res.message || "Sakin geçmişi alınamadı.");
         }
       } catch (err) {
         console.error("[HistoryModal] getResidentHistory:", err);
-        if (isMounted) showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
+        if (isMounted) showDialog.error("Hata", "Beklenmedik bir hata oluştu.");
       } finally {
         if (isMounted) setLoading(false);
       }

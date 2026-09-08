@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { FiSun, FiMoon } from "react-icons/fi";
 import { toggleTheme, useTheme } from "@/hooks/useTheme";
-import { showAlert } from "@/utils/alert";
+import { showDialog } from "@/utils/dialog";
 import { getCurrentYear } from "@/utils/date";
 import { hasUnseenReleaseNotes, markReleaseNotesSeen, renderReleaseNotesHtml } from "@/utils/releaseNotes";
 import "./Footer.css";
@@ -24,7 +24,7 @@ function Footer() {
   const showReleaseNotes = () => {
     markReleaseNotesSeen(version);
     setHasUnseen(false);
-    showAlert.releaseNotes(renderReleaseNotesHtml(version));
+    showDialog.releaseNotes(renderReleaseNotesHtml(version));
   };
 
   return (

@@ -1,15 +1,14 @@
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
-import "./ApartmentsModals.css";
-import { showAlert } from "@/utils/alert";
+import "./BuildingViewModals.css";
+import { showDialog } from "@/utils/dialog";
 import { APARTMENT_TYPES } from "@/utils/constants";
 
 function EditModal({ apartment, building, onClose, onSaved }) {
   const [apartmentNo, setApartmentNo] = useState(apartment.apartment_no || "");
-  const [floor, setFloor] = useState(apartment.floor ?? "");
+  const [floor, setFloor] = useState(apartment.floor);
   const [type, setType] = useState(apartment.type || "1+1");
   const [squareMeters, setSquareMeters] = useState(apartment.square_meters ?? "");
-  const [dueAmount, setDueAmount] = useState(apartment.due_amount ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -21,21 +20,20 @@ function EditModal({ apartment, building, onClose, onSaved }) {
         id: apartment.apartment_id,
         buildingId: building.id,
         apartment_no: apartmentNo,
-        floor: floor !== "" ? Number(floor) : null,
+        floor: Number(floor),
         type,
         square_meters: squareMeters ? Number(squareMeters) : null,
-        due_amount: Number(dueAmount),
       });
 
       if (res.success) {
-        showAlert.toast(res.message);
+        showDialog.toast(res.message);
         onSaved();
       } else {
-        showAlert.error("Hata", res.message);
+        showDialog.error("Hata", res.message);
       }
     } catch (err) {
       console.error("[EditModal] updateApartment:", err);
-      showAlert.error("Hata", "Daire güncellenemedi.");
+      showDialog.error("Hata", "Daire güncellenemedi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -47,16 +45,16 @@ function EditModal({ apartment, building, onClose, onSaved }) {
   };
 
   return (
-    <div className="ap-md-overlay" onClick={handleClose}>
-      <form className="ap-md-box ap-md-box--sm" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
-        <div className="ap-md-head">
-          <div className="ap-md-identity">
-            <h2 className="ap-md-title">Daireyi Düzenle</h2>
-            <span className="ap-md-scope">Daire {apartment.apartment_no}</span>
+    <div className="bv-md-overlay" onClick={handleClose}>
+      <form className="bv-md-box" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
+        <div className="bv-md-head">
+          <div className="bv-md-identity">
+            <h2 className="bv-md-title">Daireyi Düzenle</h2>
+            <span className="bv-md-scope">Daire {apartment.apartment_no}</span>
           </div>
           <button
             type="button"
-            className="ap-md-close"
+            className="bv-md-close"
             onClick={handleClose}
             disabled={isSubmitting}
             aria-label="Kapat"
@@ -65,9 +63,9 @@ function EditModal({ apartment, building, onClose, onSaved }) {
           </button>
         </div>
 
-        <div className="ap-md-body">
-          <div className="ap-md-form-grid">
-            <div className="ap-md-field">
+        <div className="bv-md-body">
+          <div className="bv-md-form-grid">
+            <div className="bv-md-field">
               <label htmlFor="edit-apartment-no">Daire No</label>
               <input
                 id="edit-apartment-no"
@@ -79,7 +77,8 @@ function EditModal({ apartment, building, onClose, onSaved }) {
                 autoFocus
               />
             </div>
-            <div className="ap-md-field">
+
+            <div className="bv-md-field">
               <label htmlFor="edit-floor">Kat</label>
               <input
                 id="edit-floor"
@@ -92,7 +91,8 @@ function EditModal({ apartment, building, onClose, onSaved }) {
                 required
               />
             </div>
-            <div className="ap-md-field">
+
+            <div className="bv-md-field">
               <label htmlFor="edit-type">Tip</label>
               <select id="edit-type" value={type} onChange={(e) => setType(e.target.value)}>
                 {APARTMENT_TYPES.map((apartmentType) => (
@@ -102,9 +102,10 @@ function EditModal({ apartment, building, onClose, onSaved }) {
                 ))}
               </select>
             </div>
-            <div className="ap-md-field">
+
+            <div className="bv-md-field">
               <label htmlFor="edit-square-meters">
-                Alan (m²) <span className="ap-md-optional">isteğe bağlı</span>
+                Alan (m²) <span className="bv-md-optional">isteğe bağlı</span>
               </label>
               <input
                 id="edit-square-meters"
@@ -116,26 +117,13 @@ function EditModal({ apartment, building, onClose, onSaved }) {
                 onChange={(e) => setSquareMeters(e.target.value)}
               />
             </div>
-            <div className="ap-md-field ap-md-field--wide">
-              <label htmlFor="edit-due-amount">Aylık Aidat (₺)</label>
-              <input
-                id="edit-due-amount"
-                type="number"
-                min="0.01"
-                max="50000"
-                step="0.01"
-                value={dueAmount}
-                onChange={(e) => setDueAmount(e.target.value)}
-                required
-              />
-              <p className="ap-md-note">
-                Yeni tutar <b>bu aydan itibaren</b> geçerli olur. Geçmiş aylar ve bu ay ödeme alınmış daireler eski
-                tutarda kalır.
-              </p>
-            </div>
+
+            <p className="bv-md-note bv-md-field--wide">
+              Aidat tutarı bu formda değişmez, <b>Aidat Takibi</b> sayfasından güncellenir.
+            </p>
           </div>
 
-          <button type="submit" className="ap-md-btn-solid ap-md-submit" disabled={isSubmitting}>
+          <button type="submit" className="bv-md-btn-solid bv-md-submit" disabled={isSubmitting}>
             {isSubmitting ? "Kaydediliyor..." : "Kaydet"}
           </button>
         </div>

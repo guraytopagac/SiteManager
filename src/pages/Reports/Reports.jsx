@@ -5,7 +5,7 @@ import autoTable from "jspdf-autotable";
 import "./Reports.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useCurrentBuilding } from "@/hooks/useSession";
-import { showAlert } from "@/utils/alert";
+import { showDialog } from "@/utils/dialog";
 import { DUES_STATUS_LABELS } from "@/utils/constants";
 import {
   formatMonthYear,
@@ -17,6 +17,7 @@ import {
   clampMonth,
 } from "@/utils/date";
 import { formatCurrency, formatSignedCurrency } from "@/utils/currency";
+import { floorLabel } from "@/utils/floorLabel";
 
 const fmt = formatCurrency;
 
@@ -99,11 +100,11 @@ function Reports() {
           setLoadedPeriod({ year: selectedYear, month: selectedMonth });
           setActiveTab("finance");
         } else {
-          showAlert.error("Hata", res.message || "Rapor verileri alınamadı.");
+          showDialog.error("Hata", res.message || "Rapor verileri alınamadı.");
         }
       } catch (err) {
         console.error("[Reports] getReportData:", err);
-        if (isMountedRef.current) showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
+        if (isMountedRef.current) showDialog.error("Hata", "Beklenmedik bir hata oluştu.");
       } finally {
         if (isMountedRef.current) setLoading(false);
       }
@@ -195,7 +196,7 @@ function Reports() {
           ? reportData.dues.map((d) =>
               toPdfRow([
                 d.apartment_no,
-                d.floor,
+                floorLabel(d.floor),
                 d.type,
                 d.resident_name || "—",
                 fmt(d.due_amount),
@@ -220,13 +221,13 @@ function Reports() {
       const filename = `rapor_${period.year}_${String(period.month).padStart(2, "0")}.pdf`;
       const res = await window.electronAPI.saveReportFile({ filename, buffer: new Uint8Array(buffer) });
       if (res.success) {
-        showAlert.toast("Rapor Kaydedildi", res.message);
+        showDialog.toast("Rapor Kaydedildi", res.message);
       } else if (!res.cancelled) {
-        showAlert.error("Hata", res.message);
+        showDialog.error("Hata", res.message);
       }
     } catch (err) {
       console.error("[Reports] saveReportFile:", err);
-      showAlert.error("Hata", "PDF oluşturulurken bir hata oluştu.");
+      showDialog.error("Hata", "PDF oluşturulurken bir hata oluştu.");
     }
   };
 
@@ -383,7 +384,7 @@ function Reports() {
                   reportData.dues.map((d) => (
                     <tr key={d.apartment_id}>
                       <td>{d.apartment_no}</td>
-                      <td>{d.floor}</td>
+                      <td>{floorLabel(d.floor)}</td>
                       <td>{d.type}</td>
                       <td>{d.resident_name || "—"}</td>
                       <td className="amount-cell">{fmt(d.due_amount)}</td>

@@ -13,7 +13,7 @@ const NODE_ONLY_MODULES = ["electron", "fs", "path", "better-sqlite3"].map((name
 
 const SWEETALERT = {
   name: "sweetalert2",
-  message: "Dialogs go through src/utils/alert.js.",
+  message: "Dialogs go through src/utils/dialog.js.",
 };
 
 function restrictedImports(paths) {
@@ -46,7 +46,7 @@ export default defineConfig([
     },
   },
   {
-    files: ["src/utils/alert.js"],
+    files: ["src/utils/dialog.js"],
     rules: {
       "no-restricted-imports": restrictedImports(NODE_ONLY_MODULES),
     },

@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { getCurrentYear, setLedgerStartYear } from "@/utils/date";
 
 const SESSION_KEY = "session";
 const NO_SESSION = { user: null, building: null };
@@ -58,7 +59,12 @@ export function clearSession() {
 export async function loadAccountState() {
   try {
     const res = await window.electronAPI.getSetupState();
-    accountState = res?.success ? { needsSetup: res.needsSetup, username: res.username } : ASSUME_SETUP_DONE;
+    if (res?.success) {
+      accountState = { needsSetup: res.needsSetup, username: res.username };
+      setLedgerStartYear(res.startYear);
+    } else {
+      accountState = ASSUME_SETUP_DONE;
+    }
   } catch (err) {
     console.error("[useSession] getSetupState:", err);
     accountState = ASSUME_SETUP_DONE;
@@ -67,6 +73,7 @@ export async function loadAccountState() {
 
 export function markSetupComplete(username) {
   accountState = { needsSetup: false, username };
+  setLedgerStartYear(getCurrentYear());
 }
 
 export const needsSetup = () => accountState.needsSetup;

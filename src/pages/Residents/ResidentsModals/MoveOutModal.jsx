@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./ResidentsModals.css";
-import { showAlert } from "@/utils/alert";
+import { showDialog } from "@/utils/dialog";
 import { getToday } from "@/utils/date";
 
 function MoveOutModal({ apartment, building, onClose, onSaved }) {
@@ -19,14 +19,14 @@ function MoveOutModal({ apartment, building, onClose, onSaved }) {
       });
 
       if (res.success) {
-        showAlert.toast(res.message);
+        showDialog.toast(res.message);
         onSaved();
       } else {
-        showAlert.error("Hata", res.message);
+        showDialog.error("Hata", res.message);
       }
     } catch (err) {
       console.error("[MoveOutModal] moveOutResident:", err);
-      showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
+      showDialog.error("Hata", "Beklenmedik bir hata oluştu.");
     } finally {
       setIsSubmitting(false);
     }

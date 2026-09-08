@@ -18,7 +18,8 @@ function validateOwnedApartmentScope(payload) {
 }
 
 // Trims first, so it can be chained after a scope validator. The limits match the CHECK
-// constraints on the apartments table one to one.
+// constraints on the apartments table one to one. The due amount is not checked here, because
+// only one of the two callers sends it.
 function validateApartmentFields(payload) {
   payload.apartment_no = typeof payload.apartment_no === "string" ? payload.apartment_no.trim() : "";
   if (!APARTMENT_NO_RE.test(payload.apartment_no)) {
@@ -26,21 +27,31 @@ function validateApartmentFields(payload) {
   }
 
   const { floor, square_meters: squareMeters } = payload;
-  if (floor != null && (!Number.isInteger(floor) || floor < -2 || floor > 99)) {
+  if (!Number.isInteger(floor) || floor < -2 || floor > 99) {
     return fail("Kat -2 ile 99 arasında olmalıdır.");
   }
   if (squareMeters != null && (!Number.isFinite(squareMeters) || squareMeters <= 0 || squareMeters > 1000)) {
     return fail("Metrekare 0'dan büyük olmalı ve 1000'i geçmemelidir.");
   }
 
-  return validateApartmentType(payload.type) ?? validateDueAmount(payload.due_amount);
+  return validateApartmentType(payload.type);
 }
 
-function validateBulkScope(payload) {
+function validateCurrentMonthScope(payload) {
   if (typeof payload.applyCurrentMonth !== "boolean") {
     return fail("Geçerlilik dönemi bilgisi eksik.");
   }
   return null;
+}
+
+// The amount belongs to the dues page. An update that leaves it out keeps the current one, so the
+// building view can edit an apartment without carrying an amount it does not show. Sending one
+// also means answering which period it starts from, the same question the bulk endpoint asks.
+function validateDueAmountChange(payload) {
+  if (payload.due_amount == null) {
+    return null;
+  }
+  return validateDueAmount(payload.due_amount) ?? validateCurrentMonthScope(payload);
 }
 
 function registerApartmentHandlers(ipcMain) {
@@ -48,18 +59,21 @@ function registerApartmentHandlers(ipcMain) {
 
   handle(
     CH.APARTMENT.ADD,
-    (payload) => validateBuildingScope(payload) ?? validateApartmentFields(payload),
+    (payload) =>
+      validateBuildingScope(payload) ?? validateApartmentFields(payload) ?? validateDueAmount(payload.due_amount),
     apartmentService.addApartment,
   );
   handle(
     CH.APARTMENT.UPDATE,
-    (payload) => validateOwnedApartmentScope(payload) ?? validateApartmentFields(payload),
+    (payload) =>
+      validateOwnedApartmentScope(payload) ?? validateApartmentFields(payload) ?? validateDueAmountChange(payload),
     apartmentService.updateApartment,
   );
   handle(CH.APARTMENT.DELETE, validateOwnedApartmentScope, apartmentService.deleteApartment);
   handle(
     CH.APARTMENT.BULK_UPDATE_DUE_AMOUNT,
-    (payload) => validateBuildingScope(payload) ?? validateDueAmount(payload.amount) ?? validateBulkScope(payload),
+    (payload) =>
+      validateBuildingScope(payload) ?? validateDueAmount(payload.amount) ?? validateCurrentMonthScope(payload),
     apartmentService.bulkUpdateDueAmount,
   );
 }

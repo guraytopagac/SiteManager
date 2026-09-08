@@ -1,0 +1,181 @@
+.bv-md-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--swal-backdrop);
+}
+
+.bv-md-box {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 460px;
+  max-height: calc(100vh - 60px);
+  border: 1px solid var(--border-default);
+  border-radius: 18px;
+  background: var(--card-background-1);
+  box-shadow: 0 24px 60px var(--shadow-deep);
+}
+
+.bv-md-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.bv-md-identity {
+  min-width: 0;
+}
+
+.bv-md-title {
+  margin: 0;
+  color: var(--text-color);
+  font-size: 1.45rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.bv-md-scope {
+  display: block;
+  margin-top: 6px;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bv-md-close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.bv-md-close svg {
+  width: 19px;
+  height: 19px;
+}
+
+.bv-md-close:hover:not(:disabled) {
+  border-color: var(--border-default);
+  color: var(--text-color);
+  opacity: 1;
+}
+
+.bv-md-close:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.bv-md-body {
+  overflow-y: auto;
+  padding: 22px 24px;
+}
+
+.bv-md-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.bv-md-field {
+  display: grid;
+  gap: 7px;
+}
+
+.bv-md-field--wide {
+  grid-column: 1 / -1;
+}
+
+.bv-md-field label {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.bv-md-optional {
+  color: var(--text-disabled);
+  font-weight: 500;
+}
+
+.bv-md-field input,
+.bv-md-field select {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 11px;
+  background: var(--background-color-1);
+  color: var(--text-color);
+  font: inherit;
+  font-size: 1rem;
+  outline: none;
+}
+
+.bv-md-field input:focus,
+.bv-md-field select:focus {
+  border-color: var(--button-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--button-color) 18%, transparent);
+}
+
+.bv-md-field input::placeholder {
+  color: var(--text-disabled);
+}
+
+.bv-md-note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.bv-md-note b {
+  color: var(--text-color);
+}
+
+.bv-md-btn-solid {
+  flex-shrink: 0;
+  height: 46px;
+  padding: 0 24px;
+  border: 1px solid var(--button-color);
+  border-radius: 11px;
+  background: var(--accent-tint);
+  color: var(--button-color);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.bv-md-btn-solid:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--button-color) 22%, transparent);
+  opacity: 1;
+}
+
+.bv-md-btn-solid:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.bv-md-submit {
+  width: 100%;
+  margin-top: 22px;
+}

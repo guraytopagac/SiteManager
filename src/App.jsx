@@ -9,8 +9,8 @@ const Setup = lazy(() => import("./pages/Setup/Setup.jsx"));
 const Login = lazy(() => import("./pages/Login/Login.jsx"));
 const Recover = lazy(() => import("./pages/Recover/Recover.jsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard/Dashboard.jsx"));
-const AddApartment = lazy(() => import("./pages/AddApartment/AddApartment.jsx"));
-const Apartments = lazy(() => import("./pages/Apartments/Apartments.jsx"));
+const BuildingView = lazy(() => import("./pages/BuildingView/BuildingView.jsx"));
+const Dues = lazy(() => import("./pages/Dues/Dues.jsx"));
 const Residents = lazy(() => import("./pages/Residents/Residents.jsx"));
 const AddIncome = lazy(() => import("./pages/AddIncome/AddIncome.jsx"));
 const AddExpense = lazy(() => import("./pages/AddExpense/AddExpense.jsx"));
@@ -72,8 +72,8 @@ function App() {
               <Route path="/profile" element={<Profile />} />
               <Route element={<RequireBuilding />}>
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/add-apartment" element={<AddApartment />} />
-                <Route path="/apartments" element={<Apartments />} />
+                <Route path="/building-view" element={<BuildingView />} />
+                <Route path="/dues" element={<Dues />} />
                 <Route path="/residents" element={<Residents />} />
                 <Route path="/add-income" element={<AddIncome />} />
                 <Route path="/add-expense" element={<AddExpense />} />

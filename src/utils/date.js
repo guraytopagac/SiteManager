@@ -1,7 +1,7 @@
 const LOCALE = "tr-TR";
 const TR_OFFSET_MS = 3 * 3600 * 1000;
 const EMPTY = "—";
-const YEAR_OPTION_COUNT = 5;
+const FALLBACK_YEAR_SPAN = 5;
 
 const MONTHS = [
   "Ocak",
@@ -19,6 +19,8 @@ const MONTHS = [
 ];
 
 const DATE_FORMATTER = new Intl.DateTimeFormat(LOCALE, { day: "numeric", month: "long", year: "numeric" });
+
+let ledgerStartYear = null;
 
 const nowInTr = () => new Date(Date.now() + TR_OFFSET_MS);
 
@@ -53,10 +55,17 @@ export const formatMonthYear = (year, month) => {
   return `${name} ${text}`;
 };
 
+export const setLedgerStartYear = (year) => {
+  ledgerStartYear = Number.isInteger(year) ? year : null;
+};
+
 export const getYearOptions = () => {
   const current = getCurrentYear();
-  return Array.from({ length: YEAR_OPTION_COUNT }, (_, i) => current - i);
+  const first = ledgerStartYear === null ? current - FALLBACK_YEAR_SPAN : Math.min(ledgerStartYear, current);
+  return Array.from({ length: current - first + 1 }, (_, i) => current - i);
 };
+
+export const getMinDate = () => (ledgerStartYear === null ? undefined : `${ledgerStartYear}-01-01`);
 
 export const getMonthOptions = (year) =>
   MONTHS.slice(0, monthLimit(year)).map((name, index) => ({ value: index + 1, label: name }));

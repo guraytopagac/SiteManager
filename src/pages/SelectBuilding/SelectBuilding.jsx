@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import "./SelectBuilding.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useSession, setCurrentBuilding, clearCurrentBuilding, useCurrentBuilding } from "@/hooks/useSession";
-import { showAlert } from "@/utils/alert";
+import { showDialog } from "@/utils/dialog";
 import { FiHome, FiPlus, FiAlertCircle, FiChevronRight, FiEdit2, FiTrash2 } from "react-icons/fi";
 
 const MAX_NAME_LENGTH = 60;
@@ -126,7 +126,7 @@ function SelectBuilding() {
         if (selectedBuilding?.id === renamedBuilding.id) {
           setCurrentBuilding({ id: renamedBuilding.id, name: trimmedName });
         }
-        showAlert.toast(res.message);
+        showDialog.toast(res.message);
         cancelEdit();
         loadBuildings(false);
       } else {
@@ -141,7 +141,7 @@ function SelectBuilding() {
   };
 
   const handleRemove = async (building) => {
-    const confirmed = await showAlert.confirmDanger(
+    const confirmed = await showDialog.confirmDanger(
       "Binayı Kalıcı Olarak Sil",
       `"${building.name}" listeden tamamen kaldırılacak ve bir daha geri getirilemeyecek.`,
       "Vazgeç",
@@ -157,26 +157,26 @@ function SelectBuilding() {
           clearCurrentBuilding();
         }
         loadBuildings(false);
-        showAlert.toast(res.message);
+        showDialog.toast(res.message);
       } else {
-        showAlert.error("Hata", res.message);
+        showDialog.error("Hata", res.message);
       }
     } catch (err) {
       console.error("[SelectBuilding] removeBuilding:", err);
-      showAlert.error("Hata", "Bina kalıcı olarak silinemedi. Lütfen tekrar deneyin.");
+      showDialog.error("Hata", "Bina kalıcı olarak silinemedi. Lütfen tekrar deneyin.");
     }
   };
 
   const handleToggleStatus = async (building) => {
     const willActivate = building.is_active === 0;
     const confirmed = willActivate
-      ? await showAlert.confirm(
+      ? await showDialog.confirm(
           "Binayı Geri Getir",
           `"${building.name}" yeniden bina listesine eklenecek.`,
           "Vazgeç",
           "Geri Getir",
         )
-      : await showAlert.confirmDanger(
+      : await showDialog.confirmDanger(
           "Binayı Sil",
           `"${building.name}" bina listesinden kaldırılacak. Silinen binalar bölümünden geri getirebilirsiniz.`,
           "Vazgeç",
@@ -196,13 +196,13 @@ function SelectBuilding() {
           clearCurrentBuilding();
         }
         loadBuildings(false);
-        showAlert.toast(res.message);
+        showDialog.toast(res.message);
       } else {
-        showAlert.error("Hata", res.message);
+        showDialog.error("Hata", res.message);
       }
     } catch (err) {
       console.error("[SelectBuilding] updateBuildingStatus:", err);
-      showAlert.error(
+      showDialog.error(
         "Hata",
         willActivate ? "Bina geri getirilemedi. Lütfen tekrar deneyin." : "Bina silinemedi. Lütfen tekrar deneyin.",
       );

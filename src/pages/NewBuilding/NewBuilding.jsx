@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import "./NewBuilding.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useSession, setCurrentBuilding } from "@/hooks/useSession";
-import { showAlert } from "@/utils/alert";
+import { showDialog } from "@/utils/dialog";
 import { APARTMENT_TYPES } from "@/utils/constants";
 import { FiHome, FiArrowLeft, FiArrowRight, FiCheck } from "react-icons/fi";
 
@@ -47,7 +47,7 @@ function toPreviewRow(floorIndex, perFloor, firstFloor) {
 
   return {
     key: floorIndex,
-    floorLabel: floor === 0 ? "Z" : floor,
+    floorTag: floor === 0 ? "Z" : floor,
     floorTitle: floor === 0 ? "Zemin kat" : `${floor}. kat`,
     units,
   };
@@ -122,7 +122,7 @@ function BuildingPreview({ name, notice, rows, cellCount }) {
                 ) : (
                   <div key={row.key} className="nb-level">
                     <span className="nb-floor" title={row.floorTitle}>
-                      {row.floorLabel}
+                      {row.floorTag}
                     </span>
                     <span className="nb-units">
                       {row.units.map((unit) => (
@@ -211,7 +211,7 @@ function NewBuilding() {
 
       if (res.success) {
         setCurrentBuilding({ id: res.id, name: buildingName });
-        showAlert.toast(
+        showDialog.toast(
           `"${buildingName}" binası oluşturuldu.`,
           res.apartmentCount > 0
             ? `${res.apartmentCount} daire eklendi. Aidat tutarını daire bazında değiştirebilirsiniz.`

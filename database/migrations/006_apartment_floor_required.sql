@@ -1,5 +1,7 @@
--- Apartments are only soft-deleted (is_active = 0), because dues rows point at them.
-CREATE TABLE IF NOT EXISTS apartments (
+-- Makes the floor mandatory. Every write path already sent one, so the nullable column only kept
+-- an unreachable branch alive in the UI. SQLite cannot ALTER a CHECK, so the table is rebuilt.
+
+CREATE TABLE apartments_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   building_id INTEGER NOT NULL,
   apartment_no TEXT NOT NULL CHECK(
@@ -17,7 +19,19 @@ CREATE TABLE IF NOT EXISTS apartments (
   FOREIGN KEY(building_id) REFERENCES buildings(id) ON DELETE RESTRICT
 );
 
--- Partial, so a deleted apartment keeps its number in the table without blocking a new one.
+-- A row without a floor becomes a ground floor row, so this cannot stop the app from opening.
+INSERT INTO apartments_new (
+  id, building_id, apartment_no, floor, type, square_meters, due_amount, is_active, created_at, updated_at
+)
+SELECT
+  id, building_id, apartment_no, COALESCE(floor, 0), type, square_meters, due_amount, is_active, created_at, updated_at
+FROM apartments;
+
+-- DROP TABLE also drops the partial unique index, so it is created again below.
+DROP TABLE apartments;
+
+ALTER TABLE apartments_new RENAME TO apartments;
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_apartments_building_no
   ON apartments(building_id, apartment_no COLLATE NOCASE)
   WHERE is_active = 1;

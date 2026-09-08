@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiChevronDown, FiLogOut, FiRepeat, FiUser } from "react-icons/fi";
 import { useSession, clearSession } from "@/hooks/useSession";
-import { showAlert } from "@/utils/alert";
+import { showDialog } from "@/utils/dialog";
 import "./AccountMenu.css";
 
 function MenuItem({ icon: Icon, label, danger, onClick }) {
@@ -47,7 +47,7 @@ function AccountMenu() {
 
   const handleLogout = async () => {
     setIsOpen(false);
-    const confirmed = await showAlert.confirm("Çıkış Yap", "Oturumu kapatmak istiyor musunuz?", "Vazgeç", "Evet, Çık");
+    const confirmed = await showDialog.confirm("Çıkış Yap", "Oturumu kapatmak istiyor musunuz?", "Vazgeç", "Evet, Çık");
     if (!confirmed) return;
     clearSession();
     navigate("/", { replace: true });

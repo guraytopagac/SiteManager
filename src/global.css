@@ -225,14 +225,14 @@ body {
 }
 
 .dashboard-container,
-.apartments-container,
+.dues-container,
 .residents-container,
 .transactions-container,
 .reports-container,
 .profile-container,
 .income-container,
 .expense-container,
-.add-apartment-container {
+.bv-container {
   background: linear-gradient(180deg, var(--page-surface-2), var(--page-surface-1));
   border: 1px solid var(--border-default);
   border-radius: 20px;

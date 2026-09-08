@@ -14,11 +14,13 @@ import {
   FiDollarSign,
   FiEye,
   FiFileText,
+  FiGrid,
   FiHome,
   FiList,
   FiPlus,
   FiRefreshCw,
   FiTrendingUp,
+  FiUsers,
 } from "react-icons/fi";
 
 const EMPTY_STATS = { cash: 0, collections: null, delays: 0 };
@@ -157,7 +159,7 @@ function StatusMetrics({ stats, navigate }) {
         icon={<FiTrendingUp />}
         label="Tahsilat"
         ariaLabel="Tahsilat, aidat listesini aç"
-        onOpen={() => navigate("/apartments")}
+        onOpen={() => navigate("/dues")}
       >
         <span className={hasRate ? "db-metric-value" : "db-metric-value db-metric-value--blank"}>
           {hasRate ? `%${stats.collections}` : "—"}
@@ -176,7 +178,7 @@ function StatusMetrics({ stats, navigate }) {
         icon={<FiClock />}
         label="Gecikme"
         ariaLabel="Gecikme, aidat listesini aç"
-        onOpen={() => navigate("/apartments")}
+        onOpen={() => navigate("/dues")}
       >
         <span className="db-metric-value">{formatCurrency(stats.delays)}</span>
       </MetricTile>
@@ -209,7 +211,9 @@ function Dashboard() {
       <section className="db-band" aria-label="Bina durumu">
         {status === "loading" && <StatusSkeleton />}
         {status === "error" && <StatusError onRetry={reload} />}
-        {status === "ready" && isEmptyBook && <StatusEmpty onAdd={() => navigate("/add-apartment")} />}
+        {status === "ready" && isEmptyBook && (
+          <StatusEmpty onAdd={() => navigate("/building-view", { state: { openAdd: true } })} />
+        )}
         {status === "ready" && !isEmptyBook && <StatusMetrics stats={stats} navigate={navigate} />}
       </section>
 
@@ -217,7 +221,9 @@ function Dashboard() {
         <div className="db-group">
           <div className="db-group-label">Daire İşlemleri</div>
           <div className="db-actions">
-            <ActionTile icon={<FiEye />} label="Daireler ve Aidat" onClick={() => navigate("/apartments")} />
+            <ActionTile icon={<FiEye />} label="Aidat Takibi" onClick={() => navigate("/dues")} />
+            <ActionTile icon={<FiGrid />} label="Bina Görünümü" onClick={() => navigate("/building-view")} />
+            <ActionTile icon={<FiUsers />} label="Sakinler" onClick={() => navigate("/residents")} />
           </div>
         </div>
 

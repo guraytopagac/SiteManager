@@ -1,56 +1,48 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiAlertTriangle,
   FiArrowLeft,
+  FiCalendar,
   FiChevronLeft,
   FiChevronRight,
   FiEdit2,
+  FiGrid,
   FiHome,
-  FiMoreVertical,
-  FiPlus,
   FiRefreshCw,
   FiSearch,
-  FiTrash2,
   FiTrendingUp,
   FiUsers,
 } from "react-icons/fi";
-import "./Apartments.css";
+import "./Dues.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import PeriodSelector from "@/components/PeriodSelector/PeriodSelector";
-import BulkUpdateModal from "./ApartmentsModals/BulkUpdateModal";
-import EditModal from "./ApartmentsModals/EditModal";
-import PaymentModal from "./ApartmentsModals/PaymentModal";
+import BulkUpdateModal from "./DuesModals/BulkUpdateModal";
+import PaymentModal from "./DuesModals/PaymentModal";
+import SingleUpdateModal from "./DuesModals/SingleUpdateModal";
 import { useSession, useCurrentBuilding } from "@/hooks/useSession";
-import { showAlert } from "@/utils/alert";
 import { DUES_STATUS_LABELS } from "@/utils/constants";
 import { formatCurrency } from "@/utils/currency";
-import { clampMonth, getCurrentMonth, getCurrentYear } from "@/utils/date";
+import { clampMonth, formatMonthYear, getCurrentMonth, getCurrentYear } from "@/utils/date";
+import { floorLabel } from "@/utils/floorLabel";
+import { searchKey } from "@/utils/searchKey";
 
 const PAGE_SIZE = 5;
 
 const COLUMNS = ["Daire", "Sakin", "Aidat", "Durum", "İşlemler"];
 
-function searchKey(value) {
-  return String(value ?? "").toLocaleLowerCase("tr");
-}
-
-function floorLabel(floor) {
-  if (floor == null) return "—";
-  return floor === 0 ? "Zemin" : `${floor}. kat`;
-}
-
 function UnitCell({ apartmentNo, floor }) {
   return (
-    <span className="ap-unit-cell">
-      <span className="ap-unit-tag">{apartmentNo}</span>
-      <span className="ap-unit-floor">{floorLabel(floor)}</span>
+    <span className="du-unit-cell">
+      <span className="du-unit-tag">{apartmentNo}</span>
+      <span className="du-unit-floor">{floorLabel(floor)}</span>
     </span>
   );
 }
 
 function useDues(buildingId, year, month) {
   const [dues, setDues] = useState([]);
+  const [start, setStart] = useState(null);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -61,11 +53,12 @@ function useDues(buildingId, year, month) {
       const res = await window.electronAPI.getDuesForMonth({ buildingId, year, month });
       if (res.success) {
         setDues(res.data);
+        setStart(res.start);
       } else {
         setErrorMessage(res.message || "Veriler alınamadı.");
       }
     } catch (err) {
-      console.error("[Apartments] getDuesForMonth:", err);
+      console.error("[Dues] getDuesForMonth:", err);
       setErrorMessage("Beklenmedik bir hata oluştu.");
     }
 
@@ -78,45 +71,7 @@ function useDues(buildingId, year, month) {
     })();
   }, [loadDues]);
 
-  return { dues, isFirstLoad, errorMessage, loadDues };
-}
-
-async function deleteApartmentFlow(due, buildingId, onDone) {
-  const confirmed = await showAlert.confirmDanger(
-    "Daireyi Sil",
-    { html: `<b>Daire ${due.apartment_no}</b> silinecek. Bu işlem geri alınamaz.` },
-    "Vazgeç",
-    "Evet, Sil",
-  );
-
-  if (!confirmed) return;
-
-  try {
-    let res = await window.electronAPI.deleteApartment({ id: due.apartment_id, buildingId });
-
-    if (res.code === "HAS_UNPAID_DUES") {
-      const forced = await showAlert.confirmDanger(
-        "Ödenmemiş Aidat Var",
-        { html: `<b>Daire ${due.apartment_no}</b> için <b>${formatCurrency(res.unpaidTotal)}</b> borç görünüyor.` },
-        "Vazgeç",
-        "Yine de Sil",
-      );
-
-      if (!forced) return;
-
-      res = await window.electronAPI.deleteApartment({ id: due.apartment_id, buildingId, force: true });
-    }
-
-    if (res.success) {
-      showAlert.toast(res.message);
-      onDone();
-    } else {
-      showAlert.error("Hata", res.message);
-    }
-  } catch (err) {
-    console.error("[Apartments] deleteApartment:", err);
-    showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
-  }
+  return { dues, start, isFirstLoad, errorMessage, loadDues };
 }
 
 function TableShell({ overlay, spacerCount = 0, children }) {
@@ -125,11 +80,11 @@ function TableShell({ overlay, spacerCount = 0, children }) {
 
   for (let index = 0; index < spacerCount; index += 1) {
     spacers.push(
-      <tr className="ap-row-spacer" aria-hidden="true" key={`spacer-${index}`}>
+      <tr className="du-row-spacer" aria-hidden="true" key={`spacer-${index}`}>
         <td colSpan={COLUMNS.length}>
-          <span className="ap-unit-cell">
-            <span className="ap-unit-tag">&nbsp;</span>
-            <span className="ap-unit-floor">&nbsp;</span>
+          <span className="du-unit-cell">
+            <span className="du-unit-tag">&nbsp;</span>
+            <span className="du-unit-floor">&nbsp;</span>
           </span>
         </td>
       </tr>,
@@ -137,8 +92,8 @@ function TableShell({ overlay, spacerCount = 0, children }) {
   }
 
   return (
-    <div className={isPlaceholder ? "ap-table-surface ap-table-placeholder" : "ap-table-surface"}>
-      <table className="ap-table" aria-hidden={isPlaceholder ? "true" : undefined}>
+    <div className={isPlaceholder ? "du-table-surface du-table-placeholder" : "du-table-surface"}>
+      <table className="du-table" aria-hidden={isPlaceholder ? "true" : undefined}>
         <thead>
           <tr>
             {COLUMNS.map((label) => (
@@ -156,31 +111,7 @@ function TableShell({ overlay, spacerCount = 0, children }) {
   );
 }
 
-function DuesRow({ due, onCollect, onEdit, onDelete }) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const wrapperRef = useRef(null);
-  const triggerRef = useRef(null);
-
-  useEffect(() => {
-    if (!isMenuOpen) return;
-
-    const handleMouseDown = (e) => {
-      if (!wrapperRef.current?.contains(e.target)) setIsMenuOpen(false);
-    };
-    const handleKeyDown = (e) => {
-      if (e.key !== "Escape") return;
-      setIsMenuOpen(false);
-      triggerRef.current?.focus();
-    };
-
-    document.addEventListener("mousedown", handleMouseDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handleMouseDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isMenuOpen]);
-
+function DuesRow({ due, onCollect }) {
   const paidPercent = due.due_amount > 0 ? Math.min(100, Math.round((due.paid_amount / due.due_amount) * 100)) : 0;
   const isPaid = due.status === "paid";
 
@@ -190,72 +121,33 @@ function DuesRow({ due, onCollect, onEdit, onDelete }) {
         <UnitCell apartmentNo={due.apartment_no} floor={due.floor} />
       </td>
       <td
-        className={due.resident_name ? "ap-resident" : "ap-resident ap-resident-empty"}
+        className={due.resident_name ? "du-resident" : "du-resident du-resident-empty"}
         title={due.resident_name || undefined}
       >
         {due.resident_name || "Sakin yok"}
       </td>
       <td>
-        <div className="ap-pay-cell">
-          <div className="ap-pay-amounts">
-            <span className="ap-pay-paid">{formatCurrency(due.paid_amount)}</span>
-            <span className="ap-pay-due">/ {formatCurrency(due.due_amount)}</span>
+        <div className="du-pay-cell">
+          <div className="du-pay-amounts">
+            <span className="du-pay-paid">{formatCurrency(due.paid_amount)}</span>
+            <span className="du-pay-due">/ {formatCurrency(due.due_amount)}</span>
           </div>
-          <div className={`ap-pay-track ap-pay-track--${due.status}`}>
+          <div className={`du-pay-track du-pay-track--${due.status}`}>
             <span style={{ width: `${paidPercent}%` }} />
           </div>
         </div>
       </td>
       <td>
-        <span className={`ap-status-chip ap-status-chip--${due.status}`}>{DUES_STATUS_LABELS[due.status]}</span>
+        <span className={`du-status-chip du-status-chip--${due.status}`}>{DUES_STATUS_LABELS[due.status]}</span>
       </td>
       <td>
-        <div className="ap-row-actions" ref={wrapperRef}>
-          <button
-            type="button"
-            className={isPaid ? "ap-primary-pill ap-primary-pill--ghost" : "ap-primary-pill"}
-            onClick={onCollect}
-          >
-            {isPaid ? "Detay" : "Tahsil Et"}
-          </button>
-          <button
-            type="button"
-            ref={triggerRef}
-            className="ap-kebab"
-            onClick={() => setIsMenuOpen((open) => !open)}
-            aria-haspopup="true"
-            aria-expanded={isMenuOpen}
-            aria-label={`Daire ${due.apartment_no} işlemleri`}
-          >
-            <FiMoreVertical />
-          </button>
-          {isMenuOpen && (
-            <div className="ap-kebab-menu">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  onEdit();
-                }}
-              >
-                <FiEdit2 />
-                Düzenle
-              </button>
-              <hr />
-              <button
-                type="button"
-                className="ap-kebab-menu-danger"
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  onDelete();
-                }}
-              >
-                <FiTrash2 />
-                Sil
-              </button>
-            </div>
-          )}
-        </div>
+        <button
+          type="button"
+          className={isPaid ? "du-primary-pill du-primary-pill--ghost" : "du-primary-pill"}
+          onClick={onCollect}
+        >
+          {isPaid ? "Detay" : "Tahsil Et"}
+        </button>
       </td>
     </tr>
   );
@@ -268,22 +160,22 @@ function SkeletonRows() {
     rows.push(
       <tr key={`skeleton-${index}`}>
         <td>
-          <span className="ap-unit-cell">
-            <span className="ap-unit-tag ap-skeleton">&nbsp;</span>
-            <span className="ap-unit-floor ap-skeleton ap-skeleton-floor" />
+          <span className="du-unit-cell">
+            <span className="du-unit-tag du-skeleton">&nbsp;</span>
+            <span className="du-unit-floor du-skeleton du-skeleton-floor" />
           </span>
         </td>
         <td>
-          <div className="ap-skeleton ap-skeleton-name" />
+          <div className="du-skeleton du-skeleton-name" />
         </td>
         <td>
-          <div className="ap-skeleton ap-skeleton-pay" />
+          <div className="du-skeleton du-skeleton-pay" />
         </td>
         <td>
-          <div className="ap-skeleton ap-skeleton-chip" />
+          <div className="du-skeleton du-skeleton-chip" />
         </td>
         <td>
-          <div className="ap-skeleton ap-skeleton-action" />
+          <div className="du-skeleton du-skeleton-action" />
         </td>
       </tr>,
     );
@@ -295,24 +187,24 @@ function SkeletonRows() {
 function Pager({ currentPage, pageCount, isActive, onChange }) {
   return (
     <div
-      className={isActive ? "ap-pagination" : "ap-pagination ap-pagination--idle"}
+      className={isActive ? "du-pagination" : "du-pagination du-pagination--idle"}
       aria-hidden={isActive ? undefined : "true"}
     >
       <button
         type="button"
-        className="ap-page-btn"
+        className="du-page-btn"
         onClick={() => onChange(Math.max(1, currentPage - 1))}
         disabled={currentPage === 1}
         aria-label="Önceki sayfa"
       >
         <FiChevronLeft />
       </button>
-      <span className="ap-page-info">
+      <span className="du-page-info">
         Sayfa {currentPage} / {pageCount}
       </span>
       <button
         type="button"
-        className="ap-page-btn"
+        className="du-page-btn"
         onClick={() => onChange(Math.min(pageCount, currentPage + 1))}
         disabled={currentPage === pageCount}
         aria-label="Sonraki sayfa"
@@ -327,19 +219,21 @@ function ListPlaceholder({ icon, tone, title, body, actionIcon, actionLabel, onA
   return (
     <TableShell
       overlay={
-        <div className="ap-placeholder-body">
-          <div className="ap-state" role={role}>
-            <span className={tone ? `ap-state-mark ap-state-mark--${tone}` : "ap-state-mark"} aria-hidden="true">
+        <div className="du-placeholder-body">
+          <div className="du-state" role={role}>
+            <span className={tone ? `du-state-mark du-state-mark--${tone}` : "du-state-mark"} aria-hidden="true">
               {icon}
             </span>
-            <span className="ap-state-text">
-              <span className="ap-state-title">{title}</span>
-              <span className="ap-state-body">{body}</span>
+            <span className="du-state-text">
+              <span className="du-state-title">{title}</span>
+              <span className="du-state-body">{body}</span>
             </span>
-            <button type="button" className="ap-state-action" onClick={onAction}>
-              {actionIcon}
-              {actionLabel}
-            </button>
+            {onAction && (
+              <button type="button" className="du-state-action" onClick={onAction}>
+                {actionIcon}
+                {actionLabel}
+              </button>
+            )}
           </div>
         </div>
       }
@@ -350,12 +244,42 @@ function ListPlaceholder({ icon, tone, title, body, actionIcon, actionLabel, onA
 
 function CardAction({ icon, label, onClick }) {
   return (
-    <button type="button" className="ap-card-action" onClick={onClick}>
-      <span className="ap-card-action-mark" aria-hidden="true">
+    <button type="button" className="du-card-action" onClick={onClick}>
+      <span className="du-card-action-mark" aria-hidden="true">
         {icon}
       </span>
-      <span className="ap-card-action-title">{label}</span>
+      <span className="du-card-action-title">{label}</span>
     </button>
+  );
+}
+
+function ActionsCard({ onBulkUpdate, onSingleUpdate }) {
+  return (
+    <section className="du-card du-actions" aria-label="İlgili işlemler">
+      <span className="du-card-title">İlgili İşlemler</span>
+      <div className="du-card-actions">
+        <CardAction icon={<FiRefreshCw />} label="Toplu Aidat Güncelle" onClick={onBulkUpdate} />
+        <CardAction icon={<FiEdit2 />} label="Daire Aidatı Güncelle" onClick={onSingleUpdate} />
+      </div>
+    </section>
+  );
+}
+
+function PagesCard({ onNavigate }) {
+  return (
+    <section className="du-card du-pages" aria-label="İlgili sayfalar">
+      <span className="du-card-title">İlgili Sayfalar</span>
+      <div className="du-shortcuts">
+        <button type="button" className="du-shortcut" onClick={() => onNavigate("/residents")}>
+          <FiUsers aria-hidden="true" />
+          Sakinler
+        </button>
+        <button type="button" className="du-shortcut" onClick={() => onNavigate("/building-view")}>
+          <FiGrid aria-hidden="true" />
+          Bina Görünümü
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -365,20 +289,20 @@ function CollectSummary({ dues, isFirstLoad, hasError }) {
   const collectionPercent = totalDue > 0 ? Math.round((totalPaid / totalDue) * 100) : null;
 
   return (
-    <section className="ap-card ap-collect" aria-label="Tahsilat oranı">
-      <div className="ap-collect-top">
-        <span className="ap-collect-label">
-          <span className="ap-collect-mark" aria-hidden="true">
+    <section className="du-card du-collect" aria-label="Tahsilat oranı">
+      <div className="du-collect-top">
+        <span className="du-collect-label">
+          <span className="du-collect-mark" aria-hidden="true">
             <FiTrendingUp />
           </span>
           Tahsilat
         </span>
         {isFirstLoad ? (
-          <span className="ap-collect-value ap-skeleton" aria-hidden="true" />
+          <span className="du-collect-value du-skeleton" aria-hidden="true" />
         ) : (
           <span
             className={
-              collectionPercent === null || hasError ? "ap-collect-value ap-collect-value--blank" : "ap-collect-value"
+              collectionPercent === null || hasError ? "du-collect-value du-collect-value--blank" : "du-collect-value"
             }
           >
             {collectionPercent === null || hasError ? "—" : `%${collectionPercent}`}
@@ -386,17 +310,17 @@ function CollectSummary({ dues, isFirstLoad, hasError }) {
         )}
       </div>
 
-      {isFirstLoad && <span className="ap-collect-meter ap-skeleton" aria-hidden="true" />}
+      {isFirstLoad && <span className="du-collect-meter du-skeleton" aria-hidden="true" />}
       {!isFirstLoad && !hasError && collectionPercent !== null && (
-        <span className="ap-collect-meter" aria-hidden="true">
+        <span className="du-collect-meter" aria-hidden="true">
           <span style={{ width: `${Math.min(collectionPercent, 100)}%` }} />
         </span>
       )}
 
       {isFirstLoad ? (
-        <span className="ap-collect-amounts ap-skeleton" aria-hidden="true" />
+        <span className="du-collect-amounts du-skeleton" aria-hidden="true" />
       ) : (
-        <span className="ap-collect-amounts">
+        <span className="du-collect-amounts">
           {hasError
             ? "Tahsilat oranı okunamadı"
             : collectionPercent === null
@@ -436,28 +360,28 @@ function DuesControlBar({
   );
 
   return (
-    <section className="ap-band ap-control-row" aria-label="Dönem, filtre ve arama">
+    <section className="du-band du-control-row" aria-label="Dönem, filtre ve arama">
       {FILTER_PILLS.map((pill) => {
         const isActive = statusFilter === pill.key;
-        const modifier = pill.key === "all" ? "" : ` ap-pill--${pill.key}`;
+        const modifier = pill.key === "all" ? "" : ` du-pill--${pill.key}`;
 
         return (
           <button
             key={pill.key}
             type="button"
-            className={`ap-pill${modifier}${isActive ? " ap-pill--active" : ""}`}
+            className={`du-pill${modifier}${isActive ? " du-pill--active" : ""}`}
             onClick={() => onFilterChange(pill.key)}
             disabled={isFirstLoad}
             aria-pressed={isActive}
           >
-            {pill.key !== "all" && <span className="ap-pill-dot" aria-hidden="true" />}
+            {pill.key !== "all" && <span className="du-pill-dot" aria-hidden="true" />}
             {pill.label}
-            {!isFirstLoad && <span className="ap-pill-count">{counts[pill.key]}</span>}
+            {!isFirstLoad && <span className="du-pill-count">{counts[pill.key]}</span>}
           </button>
         );
       })}
 
-      <label className="ap-search">
+      <label className="du-search">
         <FiSearch size={18} aria-hidden="true" />
         <input
           type="text"
@@ -479,7 +403,7 @@ function DuesControlBar({
   );
 }
 
-function Apartments() {
+function Dues() {
   const navigate = useNavigate();
   const session = useSession();
   const building = useCurrentBuilding();
@@ -491,10 +415,10 @@ function Apartments() {
   const [page, setPage] = useState(1);
   const [pageKey, setPageKey] = useState("");
   const [selectedApartmentId, setSelectedApartmentId] = useState(null);
-  const [editingApartment, setEditingApartment] = useState(null);
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
+  const [showSingleUpdate, setShowSingleUpdate] = useState(false);
 
-  const { dues, isFirstLoad, errorMessage, loadDues } = useDues(building.id, selectedYear, selectedMonth);
+  const { dues, start, isFirstLoad, errorMessage, loadDues } = useDues(building.id, selectedYear, selectedMonth);
 
   const handleYearChange = (year) => {
     setSelectedYear(year);
@@ -549,15 +473,26 @@ function Apartments() {
     }
 
     if (dues.length === 0) {
+      if (start) {
+        return (
+          <ListPlaceholder
+            icon={<FiCalendar />}
+            tone="muted"
+            title="Bu dönemde kayıtlı daire yok"
+            body={`Bu binanın aidat kayıtları ${formatMonthYear(start.year, start.month)} ayında başlıyor.`}
+          />
+        );
+      }
+
       return (
         <ListPlaceholder
           icon={<FiHome />}
           tone="accent"
           title="Bu binada henüz daire yok"
           body="Aidat takibi ilk daireyi ekledikten sonra başlar."
-          actionIcon={<FiPlus />}
-          actionLabel="Yeni Daire Ekle"
-          onAction={() => navigate("/add-apartment")}
+          actionIcon={<FiGrid />}
+          actionLabel="Bina Görünümü"
+          onAction={() => navigate("/building-view")}
         />
       );
     }
@@ -579,13 +514,7 @@ function Apartments() {
     return (
       <TableShell spacerCount={PAGE_SIZE - pagedDues.length}>
         {pagedDues.map((due) => (
-          <DuesRow
-            key={due.apartment_id}
-            due={due}
-            onCollect={() => setSelectedApartmentId(due.apartment_id)}
-            onEdit={() => setEditingApartment(due)}
-            onDelete={() => deleteApartmentFlow(due, building.id, loadDues)}
-          />
+          <DuesRow key={due.apartment_id} due={due} onCollect={() => setSelectedApartmentId(due.apartment_id)} />
         ))}
       </TableShell>
     );
@@ -594,19 +523,19 @@ function Apartments() {
   const isPagerActive = !isFirstLoad && !errorMessage && filteredDues.length > 0 && pageCount > 1;
 
   return (
-    <div className="apartments-container">
-      <header className="ap-band ap-context">
-        <div className="ap-context-top">
-          <button type="button" className="ap-back" onClick={() => navigate("/dashboard")}>
+    <div className="dues-container">
+      <header className="du-band du-context">
+        <div className="du-context-top">
+          <button type="button" className="du-back" onClick={() => navigate("/dashboard")}>
             <FiArrowLeft />
             Panoya Dön
           </button>
           <AccountMenu />
         </div>
 
-        <div className="ap-context-main">
-          <h1 className="ap-title">Daireler ve Aidat</h1>
-          <span className="ap-building" title={building.name}>
+        <div className="du-context-main">
+          <h1 className="du-title">Aidat Takibi</h1>
+          <span className="du-building" title={building.name}>
             {building.name}
           </span>
         </div>
@@ -625,25 +554,17 @@ function Apartments() {
         isFirstLoad={isFirstLoad}
       />
 
-      <section className="ap-band" aria-label="Daire listesi">
-        <div className="ap-list-split">
-          <div className="ap-list-main">{renderList()}</div>
+      <section className="du-band" aria-label="Daire listesi">
+        <div className="du-list-split">
+          <div className="du-list-main">{renderList()}</div>
 
-          <div className="ap-rail">
+          <div className="du-rail">
             <CollectSummary dues={dues} isFirstLoad={isFirstLoad} hasError={Boolean(errorMessage)} />
-
-            <aside className="ap-card" aria-label="İlgili işlemler">
-              <span className="ap-card-eyebrow">İlgili İşlemler</span>
-              <div className="ap-card-actions">
-                <CardAction icon={<FiHome />} label="Yeni Daire Ekle" onClick={() => navigate("/add-apartment")} />
-                <CardAction icon={<FiUsers />} label="Sakinleri Yönet" onClick={() => navigate("/residents")} />
-                <CardAction
-                  icon={<FiRefreshCw />}
-                  label="Toplu Aidat Güncelle"
-                  onClick={() => setShowBulkUpdate(true)}
-                />
-              </div>
-            </aside>
+            <ActionsCard
+              onBulkUpdate={() => setShowBulkUpdate(true)}
+              onSingleUpdate={() => setShowSingleUpdate(true)}
+            />
+            <PagesCard onNavigate={navigate} />
           </div>
 
           <Pager currentPage={currentPage} pageCount={pageCount} isActive={isPagerActive} onChange={setPage} />
@@ -662,18 +583,6 @@ function Apartments() {
         />
       )}
 
-      {editingApartment && (
-        <EditModal
-          apartment={editingApartment}
-          building={building}
-          onClose={() => setEditingApartment(null)}
-          onSaved={() => {
-            setEditingApartment(null);
-            loadDues();
-          }}
-        />
-      )}
-
       {showBulkUpdate && (
         <BulkUpdateModal
           building={building}
@@ -684,8 +593,20 @@ function Apartments() {
           }}
         />
       )}
+
+      {showSingleUpdate && (
+        <SingleUpdateModal
+          dues={dues}
+          building={building}
+          onClose={() => setShowSingleUpdate(false)}
+          onSaved={() => {
+            setShowSingleUpdate(false);
+            loadDues();
+          }}
+        />
+      )}
     </div>
   );
 }
 
-export default Apartments;
+export default Dues;

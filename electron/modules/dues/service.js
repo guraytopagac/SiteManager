@@ -6,6 +6,7 @@ const { app, shell } = require("electron");
 const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
+const { RESIDENT_NAME_FOR_PERIOD_SQL } = require("../shared/residentPeriod");
 const { TR_NOW_SQL, createdPeriodSql, toPeriod } = require("../shared/trTime");
 
 const COLUMN_LABELS = {
@@ -47,6 +48,10 @@ function getDuesForMonth(payload) {
   try {
     ensureMonthlyDues(buildingId);
 
+    const period = toPeriod(year, month);
+
+    // The resident subquery is the one asked for the month being viewed, not the one living there
+    // now, so a past month keeps naming whoever lived there then. Its two bindings come first.
     const monthlyDuesData = getDb()
       .prepare(
         `SELECT a.id AS apartment_id, a.apartment_no, a.floor, a.type, a.square_meters,
@@ -54,18 +59,27 @@ function getDuesForMonth(payload) {
                 COALESCE(d.due_amount, a.due_amount) AS due_amount,
                 COALESCE(d.paid_amount, 0) AS paid_amount,
                 COALESCE(d.status, 'unpaid') AS status,
-                r.full_name AS resident_name
+                ${RESIDENT_NAME_FOR_PERIOD_SQL} AS resident_name
          FROM apartments a
          LEFT JOIN dues d ON d.apartment_id = a.id AND d.year = ? AND d.month = ?
-         LEFT JOIN residents r ON r.apartment_id = a.id AND r.is_active = 1
          WHERE a.building_id = ? AND a.is_active = 1 AND ${createdPeriodSql("a.")} <= ?
          ORDER BY (a.apartment_no GLOB '[0-9]*') DESC,
                   CAST(a.apartment_no AS INTEGER) ASC,
                   a.apartment_no COLLATE NOCASE ASC`,
       )
-      .all(year, month, buildingId, toPeriod(year, month));
+      .all(period, period, year, month, buildingId, period);
 
-    return { success: true, data: monthlyDuesData };
+    // The building's earliest active apartment. Without it the renderer cannot tell "no apartments
+    // at all" from "no apartments yet in the month being viewed", since both come back as an empty list.
+    const start = getDb()
+      .prepare(
+        `SELECT CAST(strftime('%Y', MIN(created_at)) AS INTEGER) AS year,
+                CAST(strftime('%m', MIN(created_at)) AS INTEGER) AS month
+         FROM apartments WHERE building_id = ? AND is_active = 1`,
+      )
+      .get(buildingId);
+
+    return { success: true, data: monthlyDuesData, start: start.year === null ? null : start };
   } catch (err) {
     console.error("[dues.service] getDuesForMonth:", err);
     return { success: false, message: "Aidat verileri alınamadı." };

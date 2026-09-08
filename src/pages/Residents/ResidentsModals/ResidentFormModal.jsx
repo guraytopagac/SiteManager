@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./ResidentsModals.css";
-import { showAlert } from "@/utils/alert";
+import { showDialog } from "@/utils/dialog";
 
 const EMPTY_FORM = {
   full_name: "",
@@ -52,14 +52,14 @@ function ResidentFormModal({ apartment, building, onClose, onSaved }) {
           });
 
       if (res.success) {
-        showAlert.toast(res.message);
+        showDialog.toast(res.message);
         onSaved();
       } else {
-        showAlert.error("Hata", res.message);
+        showDialog.error("Hata", res.message);
       }
     } catch (err) {
       console.error("[ResidentFormModal] saveResident:", err);
-      showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
+      showDialog.error("Hata", "Beklenmedik bir hata oluştu.");
     } finally {
       setIsSubmitting(false);
     }

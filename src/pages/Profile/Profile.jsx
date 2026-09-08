@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./Profile.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useSession, setSession, clearSession, useCurrentBuilding } from "@/hooks/useSession";
-import { showAlert } from "@/utils/alert";
+import { showDialog } from "@/utils/dialog";
 import { formatDate } from "@/utils/date";
 
 function validatePasswordForm(oldPassword, newPassword, confirmPassword) {
@@ -41,14 +41,14 @@ function Profile() {
       const res = await window.electronAPI.runBackup();
       if (!res.cancelled) {
         if (res.success) {
-          showAlert.toast("Yedek Alındı", res.message);
+          showDialog.toast("Yedek Alındı", res.message);
         } else {
-          showAlert.error("Hata", res.message);
+          showDialog.error("Hata", res.message);
         }
       }
     } catch (err) {
       console.error("[Profile] runBackup:", err);
-      showAlert.error("Hata", "Yedek alınamadı.");
+      showDialog.error("Hata", "Yedek alınamadı.");
     }
 
     setBackupRunning(false);
@@ -60,7 +60,7 @@ function Profile() {
 
     const error = validatePasswordForm(oldPassword, newPassword, confirmPassword);
     if (error) {
-      showAlert.error("Geçersiz Giriş", error);
+      showDialog.error("Geçersiz Giriş", error);
       return;
     }
 
@@ -68,17 +68,17 @@ function Profile() {
     try {
       const res = await window.electronAPI.changePassword({ userId: session.id, oldPassword, newPassword });
       if (res.success) {
-        showAlert.toast(res.message);
+        showDialog.toast(res.message);
         setOldPassword("");
         setNewPassword("");
         setConfirmPassword("");
         oldPasswordRef.current?.focus();
       } else {
-        showAlert.error("Hata", res.message);
+        showDialog.error("Hata", res.message);
       }
     } catch (err) {
       console.error("[Profile] changePassword:", err);
-      showAlert.error("Hata", "Şifre değiştirilemedi.");
+      showDialog.error("Hata", "Şifre değiştirilemedi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -87,7 +87,7 @@ function Profile() {
   const handleUpdateEmail = async () => {
     if (!session) return;
 
-    const email = await showAlert.prompt({
+    const email = await showDialog.prompt({
       title: "E-posta Adresi",
       text: "Boş bırakırsanız kayıtlı adres kaldırılır.",
       inputLabel: "E-posta (isteğe bağlı)",
@@ -102,18 +102,18 @@ function Profile() {
       const res = await window.electronAPI.updateEmail({ userId: session.id, email });
       if (res.success) {
         setSession({ ...session, email: res.email });
-        showAlert.toast(res.message);
+        showDialog.toast(res.message);
       } else {
-        showAlert.error("Hata", res.message);
+        showDialog.error("Hata", res.message);
       }
     } catch (err) {
       console.error("[Profile] updateEmail:", err);
-      showAlert.error("Hata", "E-posta adresi güncellenemedi.");
+      showDialog.error("Hata", "E-posta adresi güncellenemedi.");
     }
   };
 
   const handleRegenerateRecovery = async () => {
-    const password = await showAlert.passwordPrompt({
+    const password = await showDialog.passwordPrompt({
       title: "Yeni Kurtarma Kodu Üret",
       text: "Yeni kod üretildiğinde eski kod geçersiz olur.",
       confirmButtonText: "Oluştur",
@@ -123,18 +123,18 @@ function Profile() {
     try {
       const res = await window.electronAPI.regenerateRecoveryCode({ password });
       if (res.success) {
-        await showAlert.regeneratedCode(res.recoveryCode);
+        await showDialog.regeneratedCode(res.recoveryCode);
       } else {
-        showAlert.error("Hata", res.message);
+        showDialog.error("Hata", res.message);
       }
     } catch (err) {
       console.error("[Profile] regenerateRecoveryCode:", err);
-      showAlert.error("Hata", "Yeni kurtarma kodu üretilemedi.");
+      showDialog.error("Hata", "Yeni kurtarma kodu üretilemedi.");
     }
   };
 
   const handleTransfer = async () => {
-    const newPerson = await showAlert.prompt({
+    const newPerson = await showDialog.prompt({
       title: "Hesabı Devret",
       text: "Devir sonrası şifreniz geçersiz olur ve oturumunuz kapanır.",
       inputLabel: "Yeni yöneticinin adı soyadı",
@@ -144,7 +144,7 @@ function Profile() {
     });
     if (!newPerson) return;
 
-    const password = await showAlert.passwordPrompt({
+    const password = await showDialog.passwordPrompt({
       title: "Devri Onayla",
       text: "Kimliğinizi doğrulamak için mevcut şifrenizi girin.",
       confirmButtonText: "Devret",
@@ -156,17 +156,17 @@ function Profile() {
       res = await window.electronAPI.transferAccount({ userId: session.id, password, newPerson });
     } catch (err) {
       console.error("[Profile] transferAccount:", err);
-      showAlert.error("Hata", "Hesap devredilemedi.");
+      showDialog.error("Hata", "Hesap devredilemedi.");
       return;
     }
 
     if (!res.success) {
-      showAlert.error("Hata", res.message);
+      showDialog.error("Hata", res.message);
       return;
     }
 
-    await showAlert.temporaryPassword({ managerName: newPerson, code: res.temporaryPassword });
-    await showAlert.transferredRecoveryCode(res.recoveryCode);
+    await showDialog.temporaryPassword({ managerName: newPerson, code: res.temporaryPassword });
+    await showDialog.transferredRecoveryCode(res.recoveryCode);
     clearSession();
     navigate("/", { replace: true });
   };

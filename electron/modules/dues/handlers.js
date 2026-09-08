@@ -14,7 +14,7 @@ const {
 const duesService = require("./service");
 
 // Same list as the schema CHECK and PAYMENT_METHOD_LABELS in
-// src/pages/Apartments/ApartmentsModals/PaymentModal.jsx.
+// src/pages/Dues/DuesModals/PaymentModal.jsx.
 const VALID_PAYMENT_METHODS = ["cash", "bank_transfer", "card", "other"];
 const FUTURE_PERIOD_MESSAGE = "Gelecek bir dönem için aidat işlemi yapılamaz.";
 

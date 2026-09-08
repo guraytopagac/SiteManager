@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
-import "./ApartmentsModals.css";
-import { showAlert } from "@/utils/alert";
+import "./DuesModals.css";
+import { showDialog } from "@/utils/dialog";
 import { formatCurrency } from "@/utils/currency";
 
 function BulkUpdateModal({ building, onClose, onSaved }) {
@@ -13,14 +13,14 @@ function BulkUpdateModal({ building, onClose, onSaved }) {
     e.preventDefault();
     const dueAmount = parseFloat(amount);
     if (!dueAmount || dueAmount <= 0) {
-      showAlert.warning("Geçersiz Tutar", "Lütfen geçerli bir aidat tutarı girin.");
+      showDialog.warning("Geçersiz Tutar", "Lütfen geçerli bir aidat tutarı girin.");
       return;
     }
 
     const periodNote = applyCurrentMonth
       ? "Yeni tutar, bu ay ödeme alınmamış dairelerin tahakkukuna da işlenecek."
       : "Yeni tutar gelecek ayın tahakkukunda geçerli olacak.";
-    const confirmed = await showAlert.confirm(
+    const confirmed = await showDialog.confirm(
       "Toplu Aidat Güncelleme",
       {
         html: `Tüm dairelerin aidat tutarı <b>${formatCurrency(dueAmount)}</b> olarak güncellenecek. ${periodNote}`,
@@ -40,14 +40,14 @@ function BulkUpdateModal({ building, onClose, onSaved }) {
       });
 
       if (res.success) {
-        showAlert.toast(res.message);
+        showDialog.toast(res.message);
         onSaved();
       } else {
-        showAlert.error("Hata", res.message);
+        showDialog.error("Hata", res.message);
       }
     } catch (err) {
       console.error("[BulkUpdateModal] bulkUpdateDueAmount:", err);
-      showAlert.error("Hata", "Aidat tutarları güncellenemedi.");
+      showDialog.error("Hata", "Aidat tutarları güncellenemedi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -59,18 +59,18 @@ function BulkUpdateModal({ building, onClose, onSaved }) {
   };
 
   return (
-    <div className="ap-md-overlay" onClick={handleClose}>
-      <form className="ap-md-box ap-md-box--sm" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
-        <div className="ap-md-head">
-          <div className="ap-md-identity">
-            <h2 className="ap-md-title">Toplu Aidat Güncelleme</h2>
-            <span className="ap-md-scope" title={building.name}>
+    <div className="du-md-overlay" onClick={handleClose}>
+      <form className="du-md-box du-md-box--sm" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
+        <div className="du-md-head">
+          <div className="du-md-identity">
+            <h2 className="du-md-title">Toplu Aidat Güncelleme</h2>
+            <span className="du-md-scope" title={building.name}>
               {building.name}
             </span>
           </div>
           <button
             type="button"
-            className="ap-md-close"
+            className="du-md-close"
             onClick={handleClose}
             disabled={isSubmitting}
             aria-label="Kapat"
@@ -79,13 +79,13 @@ function BulkUpdateModal({ building, onClose, onSaved }) {
           </button>
         </div>
 
-        <div className="ap-md-body">
-          <div className="ap-bulk-scope">
-            <span className="ap-bulk-legend" id="bulk-scope-label">
+        <div className="du-md-body du-md-stack">
+          <div className="du-scope">
+            <span className="du-scope-legend" id="bulk-scope-label">
               Geçerlilik Dönemi
             </span>
-            <div className="ap-bulk-cards" role="radiogroup" aria-labelledby="bulk-scope-label">
-              <label className={applyCurrentMonth ? "ap-bulk-card" : "ap-bulk-card ap-bulk-card--active"}>
+            <div className="du-scope-cards" role="radiogroup" aria-labelledby="bulk-scope-label">
+              <label className={applyCurrentMonth ? "du-scope-card" : "du-scope-card du-scope-card--active"}>
                 <input
                   type="radio"
                   name="bulk-scope"
@@ -95,7 +95,7 @@ function BulkUpdateModal({ building, onClose, onSaved }) {
                 <b>Gelecek ay</b>
                 <span>Bu ay dahil tahakkuk etmiş aylar değişmez.</span>
               </label>
-              <label className={applyCurrentMonth ? "ap-bulk-card ap-bulk-card--active" : "ap-bulk-card"}>
+              <label className={applyCurrentMonth ? "du-scope-card du-scope-card--active" : "du-scope-card"}>
                 <input
                   type="radio"
                   name="bulk-scope"
@@ -108,9 +108,9 @@ function BulkUpdateModal({ building, onClose, onSaved }) {
             </div>
           </div>
 
-          <div className="ap-md-field">
+          <div className="du-md-field">
             <label htmlFor="bulk-amount">Yeni Aidat Tutarı (₺)</label>
-            <div className="ap-bulk-row">
+            <div className="du-amount-row">
               <input
                 id="bulk-amount"
                 type="number"
@@ -123,7 +123,7 @@ function BulkUpdateModal({ building, onClose, onSaved }) {
                 required
                 autoFocus
               />
-              <button type="submit" className="ap-md-btn-solid ap-bulk-submit" disabled={isSubmitting}>
+              <button type="submit" className="du-md-btn-solid du-amount-submit" disabled={isSubmitting}>
                 {isSubmitting ? "Güncelleniyor..." : "Güncelle"}
               </button>
             </div>

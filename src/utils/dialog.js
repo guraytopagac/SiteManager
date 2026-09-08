@@ -133,7 +133,7 @@ const codeDialog = ({ title, code, html }) => {
   }));
 };
 
-export const showAlert = {
+export const showDialog = {
   toast: (title, body) =>
     fire((t) => ({
       ...base(t),
@@ -216,7 +216,7 @@ export const showAlert = {
   },
 
   cancelReason: (title) =>
-    showAlert.prompt({
+    showDialog.prompt({
       title,
       input: "textarea",
       inputLabel: "İptal Nedeni",
@@ -228,7 +228,7 @@ export const showAlert = {
     }),
 
   passwordPrompt: ({ title, text, confirmButtonText }) =>
-    showAlert.prompt({
+    showDialog.prompt({
       title,
       text,
       input: "password",

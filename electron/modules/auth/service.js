@@ -51,8 +51,16 @@ function normalizeRecoveryCode(input) {
 }
 
 // The one account row. No row means setup is not done yet.
+// startYear is the year the account row was written, which is also the first year that can hold
+// any data. The renderer uses it as the floor of every period selector.
 function findAccount() {
-  return getDb().prepare(`SELECT id, username, password_hash, recovery_hash FROM users ORDER BY id LIMIT 1`).get();
+  return getDb()
+    .prepare(
+      `SELECT id, username, password_hash, recovery_hash,
+              CAST(strftime('%Y', created_at) AS INTEGER) AS startYear
+       FROM users ORDER BY id LIMIT 1`,
+    )
+    .get();
 }
 
 // Used by reset and verify. It returns a code field, because the renderer checks that field.
@@ -250,7 +258,12 @@ function regenerateRecoveryCode(payload) {
 function getSetupState() {
   try {
     const account = findAccount();
-    return { success: true, needsSetup: !account, username: account?.username ?? null };
+    return {
+      success: true,
+      needsSetup: !account,
+      username: account?.username ?? null,
+      startYear: account?.startYear ?? null,
+    };
   } catch (err) {
     console.error("[auth.service] getSetupState:", err);
     return { success: false, message: "Kurulum durumu alınamadı." };

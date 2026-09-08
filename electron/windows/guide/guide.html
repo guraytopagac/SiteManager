@@ -332,31 +332,44 @@
         <h2 id="apartments">Daireler</h2>
         <h3>Daire Listeleme</h3>
         <p>
-          Kontrol Panelindeki <strong>Daireler ve Aidat</strong> kartı ile daire listesine gidin. Bu tek sayfada hem
-          dairelerin aidat durumunu görür hem de tüm daire işlemlerini (tahsilat, düzenleme, silme, toplu aidat)
-          yaparsınız. Sayfanın üstündeki ay ve yıl seçicisiyle görüntülediğiniz dönemi değiştirebilirsiniz.
+          Daire işlemleri iki sayfaya ayrılmıştır. Kontrol Panelindeki <strong>Aidat Takibi</strong> kartı aidat
+          listesini açar, orada dairelerin ödeme durumunu görür ve tahsilat yaparsınız.
+          <strong>Bina Görünümü</strong> kartı ise binanızı kat kat çizer, daire ekleme, düzenleme ve silme işlemleri
+          orada yapılır. Aidat tutarı bu sayfada değişmez, aidatla ilgili her şey <strong>Aidat Takibi</strong>
+          sayfasındadır. Her iki sayfanın üstündeki ay ve yıl seçicisiyle görüntülediğiniz dönemi değiştirebilirsiniz.
         </p>
         <h3>Yeni Daire Ekleme</h3>
         <div class="guide-steps">
           <div class="guide-step">
             <div class="guide-step-num">1</div>
-            <div class="guide-step-body"><strong>Yeni Daire Ekle</strong> sayfasına gidin.</div>
+            <div class="guide-step-body">
+              Kontrol Panelinden <strong>Bina Görünümü</strong> sayfasına gidin. Bina çiziminin sağ üst köşesindeki
+              <strong>Düzenleme Modu</strong> anahtarını açın. Anahtar açıkken her katın sonunda kesik çizgili bir
+              <strong>+</strong> kutusu görünür. Daireyi eklemek istediğiniz katın kutusuna tıklayın, kat bilgisi hazır
+              gelir. Binada henüz hiç daire yoksa çizim yerine <strong>Yeni Daire Ekle</strong> butonu görünür.
+            </div>
           </div>
           <div class="guide-step">
             <div class="guide-step-num">2</div>
             <div class="guide-step-body">
-              Daire numarası, kat, tip (0+1 / 1+1 / 2+1 / 3+1 / 4+1), metrekare ve aylık aidat tutarını girin.
+              Daire numarası, kat, tip (0+1 / 1+1 / 2+1 / 3+1 / 4+1), metrekare ve aylık aidat tutarını girin. Aidat
+              tutarı yalnızca ekleme sırasında burada sorulur, sonradan değiştirmek için
+              <strong>Aidat Takibi</strong> sayfası kullanılır.
             </div>
           </div>
           <div class="guide-step">
             <div class="guide-step-num">3</div>
-            <div class="guide-step-body"><strong>Kaydet</strong> butonuna tıklayın.</div>
+            <div class="guide-step-body"><strong>Daireyi Kaydet</strong> butonuna tıklayın.</div>
           </div>
         </div>
         <h3>Daire Düzenleme / Silme</h3>
         <p>
-          Daire listesinde her satırın sağındaki üç nokta düğmesi <strong>Düzenle</strong> ve <strong>Sil</strong>
-          seçeneklerini açar.
+          <strong>Bina Görünümü</strong> sayfasında binanın üzerindeki daire kutusuna tıklayın. Sağdaki panelde o
+          dairenin bilgileri açılır ve panelin altında <strong>Düzenle</strong> ile <strong>Sil</strong> butonları
+          bulunur. Bu iki buton her zaman kullanılabilir, <strong>Düzenleme Modu</strong> anahtarı yalnızca daire ekleme
+          kutularını gösterip gizler. <strong>Düzenle</strong> ile daire numarası, kat, tip ve metrekare değiştirilir,
+          aidat tutarı bu formda yer almaz. Kutuların rengi seçili ayın aidat durumunu gösterir: yeşil ödenmiş, sarı
+          kısmen ödenmiş, kırmızı ödenmemiş demektir.
         </p>
         <div class="guide-note">
           <span class="guide-note-icon">ℹ</span>
@@ -368,16 +381,48 @@
         </div>
         <h3>Toplu Aidat Güncelleme</h3>
         <p>
-          Daire listesinin altındaki <strong>Toplu Aidat Güncelle</strong> butonuyla tüm daireler için tek seferde yeni
-          bir aidat tutarı belirlenebilir. Bu işlem yalnızca dairelerin varsayılan aidatını değiştirir; yeni tutar
-          <strong>sonraki ay</strong> oluşturulan aidatlarda etkili olur, mevcut aydaki kayıtlara dokunulmaz.
+          Daire listesinin sağındaki <strong>Tahsilat</strong> kartının altındaki
+          <strong>Toplu Aidat Güncelle</strong> butonuyla tüm daireler için tek seferde yeni bir aidat tutarı
+          belirlenebilir. Modal, yeni tutarın ne zaman geçerli olacağını sorar:
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Seçenek</th>
+              <th>Sonuç</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Gelecek ay</strong></td>
+              <td>Varsayılan seçenektir. Bu ay dahil tahakkuk etmiş hiçbir ay değişmez.</td>
+            </tr>
+            <tr>
+              <td><strong>Bu ay</strong></td>
+              <td>
+                Yeni tutar içinde bulunulan aya da işlenir. Bu ay <em>ödeme alınmış</em> daireler eski tutarda kalır ve
+                kaç dairenin atlandığı size bildirilir.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p>Her iki durumda da geçmiş ayların aidat kayıtları hiçbir şekilde değişmez.</p>
+        <h3>Daire Aidatı Güncelleme</h3>
+        <p>
+          Tek bir dairenin aidatını değiştirmek için aynı kartın altındaki
+          <strong>Daire Aidatı Güncelle</strong> butonunu kullanın. Açılan pencerede daire numarasını ya da sakin adını
+          yazarak listeyi daraltabilir, ardından daireyi seçebilirsiniz. Listede her dairenin mevcut tutarı görünür.
+          Ardından toplu güncellemedeki gibi <strong>Gelecek ay</strong> ile <strong>Bu ay</strong> arasında seçim
+          yapın, yeni tutarı yazıp <strong>Güncelle</strong> deyin. Dairenin aidat tutarı her iki seçimde de
+          güncellenir, seçim yalnızca içinde bulunulan ayın tahakkukunu belirler. Geçmiş aylar hiçbir seçimde değişmez,
+          <strong>Bu ay</strong> seçildiğinde ödeme alınmış daire eski tutarında kalır ve bu durum size bildirilir.
         </p>
 
         <h2 id="residents">Sakinler</h2>
         <p>
-          Sakin yönetimi <strong>Sakinler</strong> sayfasında yapılır. Sayfa, dairelerinizi ve her dairenin aktif
-          sakinini listeler. Bir dairede birden fazla <strong>geçmiş</strong> sakin olabilir; yalnızca
-          <strong>aktif</strong> olan güncel kiracı/ev sahibidir.
+          Sakin yönetimi, Kontrol Panelindeki <strong>Sakinler</strong> kartından açılan sayfada yapılır. Sayfa,
+          dairelerinizi ve her dairenin aktif sakinini listeler. Bir dairede birden fazla <strong>geçmiş</strong> sakin
+          olabilir; yalnızca <strong>aktif</strong> olan güncel kiracı/ev sahibidir.
         </p>
         <table>
           <thead>
@@ -424,8 +469,8 @@
 
         <h2 id="dues">Aidat Yönetimi</h2>
         <p>
-          Aidat işlemleri <strong>Daireler ve Aidat</strong> sayfasında yapılır. Yıl ve ay seçildiğinde o aya ait tüm
-          aktif dairelerin aidat durumu listelenir. Listenin üstünde dönemin tahsilat özeti görünür.
+          Aidat işlemleri <strong>Aidat Takibi</strong> sayfasında yapılır. Yıl ve ay seçildiğinde o aya ait tüm aktif
+          dairelerin aidat durumu listelenir. Listenin üstünde dönemin tahsilat özeti görünür.
         </p>
         <div class="guide-note">
           <span class="guide-note-icon">ℹ</span>
@@ -713,7 +758,7 @@
           <summary class="guide-faq-question">Bir ödemeyi yanlışlıkla kaydettim, nasıl düzeltirim?</summary>
           <div class="guide-faq-answer">
             <p>
-              Daireler ve Aidat sayfasında ilgili dairenin ödeme geçmişini açın ve yanlış kaydın yanındaki
+              Aidat Takibi sayfasında ilgili dairenin ödeme geçmişini açın ve yanlış kaydın yanındaki
               <strong>İptal Et</strong> butonuna tıklayın. İptal sebebini girdikten sonra ödeme ve buna bağlı gelir
               kaydı otomatik olarak iptal edilir.
             </p>

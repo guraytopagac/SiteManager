@@ -29,10 +29,15 @@ function currentPeriod() {
   return toPeriod(year, month);
 }
 
-// The SQL version of toPeriod, for comparing periods inside a query.
+// The SQL version of toPeriod. The argument is a SQL date expression, not a value, so it is only
+// ever called with text this module or another module owns.
+function periodSql(expression) {
+  return `CAST(strftime('%Y', ${expression}) AS INTEGER) * 12 + CAST(strftime('%m', ${expression}) AS INTEGER)`;
+}
+
+// The period of a row's own created_at, for comparing periods inside a query.
 function createdPeriodSql(alias = "") {
-  const column = `${alias}created_at`;
-  return `CAST(strftime('%Y', ${column}) AS INTEGER) * 12 + CAST(strftime('%m', ${column}) AS INTEGER)`;
+  return periodSql(`${alias}created_at`);
 }
 
 // Start and end of a month, for date >= start AND date < end. The end day is not included.
@@ -44,4 +49,13 @@ function monthBounds(year, month) {
   return { start, end };
 }
 
-module.exports = { TR_NOW_SQL, createdPeriodSql, currentPeriod, monthBounds, toPeriod, trToday, trYearMonth };
+module.exports = {
+  TR_NOW_SQL,
+  createdPeriodSql,
+  currentPeriod,
+  monthBounds,
+  periodSql,
+  toPeriod,
+  trToday,
+  trYearMonth,
+};

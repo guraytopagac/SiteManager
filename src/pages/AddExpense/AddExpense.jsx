@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import "./AddExpense.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useCurrentBuilding } from "@/hooks/useSession";
-import { showAlert } from "@/utils/alert";
-import { getToday } from "@/utils/date";
+import { showDialog } from "@/utils/dialog";
+import { getMinDate, getToday } from "@/utils/date";
 
 function AddExpense() {
   const navigate = useNavigate();
@@ -23,22 +23,22 @@ function AddExpense() {
     const buildingId = building?.id;
 
     if (!buildingId) {
-      showAlert.error("Bina Seçilmedi", "Lütfen önce bir bina seçin.");
+      showDialog.error("Bina Seçilmedi", "Lütfen önce bir bina seçin.");
       return;
     }
 
     if (isNaN(parsedAmount) || !cleanDescription || !date) {
-      showAlert.warning("Uyarı", "Lütfen tüm alanları doldurun!");
+      showDialog.warning("Uyarı", "Lütfen tüm alanları doldurun!");
       return;
     }
 
     if (parsedAmount <= 0) {
-      showAlert.warning("Geçersiz Miktar", "Gider miktarı 0'dan büyük olmalıdır!");
+      showDialog.warning("Geçersiz Miktar", "Gider miktarı 0'dan büyük olmalıdır!");
       return;
     }
 
     if (date > getToday()) {
-      showAlert.warning("Geçersiz Tarih", "İleri bir tarih seçilemez.");
+      showDialog.warning("Geçersiz Tarih", "İleri bir tarih seçilemez.");
       return;
     }
 
@@ -57,14 +57,14 @@ function AddExpense() {
         setDescription("");
         setCategory("other");
         setDate(getToday());
-        showAlert.toast(res.message);
+        showDialog.toast(res.message);
         navigate("/dashboard");
       } else {
-        showAlert.error("Hata Oluştu", res.message || "Gider kaydedilemedi.");
+        showDialog.error("Hata Oluştu", res.message || "Gider kaydedilemedi.");
       }
     } catch (err) {
       console.error("[AddExpense] addExpense:", err);
-      showAlert.error("Hata", "Beklenmedik bir hata oluştu.");
+      showDialog.error("Hata", "Beklenmedik bir hata oluştu.");
     } finally {
       setIsSubmitting(false);
     }
@@ -112,6 +112,7 @@ function AddExpense() {
               type="date"
               id="expenseDate"
               value={date}
+              min={getMinDate()}
               max={getToday()}
               onChange={(e) => setDate(e.target.value)}
               required
