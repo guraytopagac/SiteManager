@@ -6,7 +6,7 @@ const { app, shell } = require("electron");
 const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
-const { RESIDENT_NAME_FOR_PERIOD_SQL } = require("../shared/residentPeriod");
+const { RESIDENT_NAME_FOR_PERIOD_SQL, periodCutoff } = require("../shared/residentPeriod");
 const { TR_NOW_SQL, createdPeriodSql, toPeriod } = require("../shared/trTime");
 
 const COLUMN_LABELS = {
@@ -49,6 +49,7 @@ function getDuesForMonth(payload) {
     ensureMonthlyDues(buildingId);
 
     const period = toPeriod(year, month);
+    const cutoff = periodCutoff(year, month);
 
     // The resident subquery is the one asked for the month being viewed, not the one living there
     // now, so a past month keeps naming whoever lived there then. Its two bindings come first.
@@ -67,7 +68,7 @@ function getDuesForMonth(payload) {
                   CAST(a.apartment_no AS INTEGER) ASC,
                   a.apartment_no COLLATE NOCASE ASC`,
       )
-      .all(period, period, year, month, buildingId, period);
+      .all(cutoff, cutoff, year, month, buildingId, period);
 
     // The building's earliest active apartment. Without it the renderer cannot tell "no apartments
     // at all" from "no apartments yet in the month being viewed", since both come back as an empty list.

@@ -2,6 +2,8 @@
 // removes it, and all five endpoints touch only rows with is_removed = 0.
 const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
+const { applyResidentSchedule } = require("../shared/residentSchedule");
+const { ACTIVE_OCCUPANT_ID_SQL } = require("../shared/residentPeriod");
 const { TR_NOW_SQL } = require("../shared/trTime");
 
 const COLUMN_LABELS = {
@@ -17,17 +19,22 @@ const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
 // meta line per building and a per-building call would be one IPC hop each. Both are scoped to
 // active apartments, so the numbers match what the apartment and resident screens list.
 // person_count sums household_size instead of counting rows, because one resident row stands for
-// a whole household.
+// a whole household. It joins the one occupant of each apartment rather than summing every active
+// row, since an apartment can hold an owner and a tenant at once and an owner who rented the flat
+// out keeps the occupancy flag for the months before the tenancy. SUM skips a household of unknown
+// size, so such a flat counts as occupied but adds nothing here.
 function listBuildings(payload) {
   try {
+    applyResidentSchedule();
+
     const data = getDb()
       .prepare(
         `SELECT b.id, b.name, b.is_active,
                 (SELECT COUNT(*) FROM apartments a
                   WHERE a.building_id = b.id AND a.is_active = 1) AS apartment_count,
-                (SELECT COALESCE(SUM(r.household_size), 0) FROM residents r
-                  JOIN apartments a ON a.id = r.apartment_id
-                  WHERE a.building_id = b.id AND a.is_active = 1 AND r.is_active = 1) AS person_count
+                (SELECT COALESCE(SUM(occ.household_size), 0) FROM apartments a
+                  JOIN residents occ ON occ.id = ${ACTIVE_OCCUPANT_ID_SQL}
+                  WHERE a.building_id = b.id AND a.is_active = 1) AS person_count
          FROM buildings b WHERE b.owner_id = ? AND b.is_removed = 0
          ORDER BY b.is_active DESC, b.name COLLATE NOCASE ASC`,
       )

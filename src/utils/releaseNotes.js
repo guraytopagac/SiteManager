@@ -4,6 +4,24 @@ const RELEASE_NOTES_SEEN_KEY = "releaseNotesSeenVersion";
 
 const RELEASE_NOTES = [
   {
+    version: "1.9.0",
+    date: "2026-09-11",
+    title: "Malik ve kiracı kayıtları, bina görünümü ve yenilenen gelir gider sayfası",
+    changes: [
+      "Sakinler sayfası yeniden tasarlandı. Daire listesine doluluk süzgeçleri, arama ve dönem seçicisi eklendi, seçilen dairenin bilgileri sağdaki panelde görünüyor.",
+      "Bir dairede malik ve kiracı kaydı birlikte tutulabiliyor. Dairede fiilen kimin oturduğu ayrıca işaretleniyor, yalnızca iletişim için girilmiş malik daireyi dolu göstermiyor.",
+      "Kiracı çıkışı ve malik devri tek adımda yapılıyor. Yerine gelen kişi aynı pencerede kaydediliyor, ileri tarihli devir planlanabiliyor, planlanan devir düzenlenebiliyor ya da iptal edilebiliyor.",
+      "Geçmiş bir ay görüntülendiğinde o ayda dairede kim oturuyorduysa o kişi gösteriliyor. Aidat listesi, sakin listesi ve raporlar aynı kurala uyuyor.",
+      "Sakin geçmişi yenilendi. Kayıtlar tarih sırasıyla listeleniyor ve karta tıklandığında o kişinin iletişim bilgileri açılıyor.",
+      "Telefon numarası yazılırken otomatik gruplanıyor. Dairede yaşayan kişi sayısı isteğe bağlı oldu ve bilinmiyorsa boş bırakılabiliyor.",
+      "Bina Görünümü sayfası eklendi. Daireler bina cephesi olarak çiziliyor, daire ekleme, düzenleme ve silme bu sayfada toplandı.",
+      "Aidat Takibi yenilendi. Daire aidatı tek tek ya da toplu güncelleniyor ve değişikliğin hangi aydan geçerli olacağı soruluyor.",
+      "Gelir ve gider işlemleri tek sayfada birleşti. Kayıt girişi pencereye taşındı, tür süzgeci, arama, sayfalama ve dönem net özeti eklendi.",
+      "İptal edilen gelir ve gider kayıtları listede işaretleniyor. Detay düğmesi iptal nedenini ve iptal tarihini gösteriyor.",
+      "Kayıt bulunmayan geçmiş aylarda listeler artık kayıtların başladığı aya yönlendiriyor.",
+    ],
+  },
+  {
     version: "1.8.0",
     date: "2026-09-08",
     title: "Bina kurulum sihirbazı, dekontlu tahsilat ve yenilenen daire listesi",
@@ -28,21 +46,6 @@ const RELEASE_NOTES = [
       "Giriş, kurulum, şifre kurtarma ve bina seçim ekranları ortak bir görsel dile alındı.",
       "Bina seçim kartları yenilendi. Daire ve kişi sayısı satırda görünüyor, yeniden adlandırma ve silme düğmeleri her zaman açıkta duruyor.",
       'Kurulum ve şifre kurtarma ekranlarındaki "Kodu Kopyala" düğmesi artık kopyalandığını bildiriyor.',
-    ],
-  },
-  {
-    version: "1.6.0",
-    date: "2026-08-03",
-    title: "Tek hesap, çoklu bina ve aidat tahakkuku",
-    changes: [
-      "Tek hesapla birden fazla bina yönetebilirsiniz. Giriş sonrası bina seçilir, tek bina varsa doğrudan panoya geçilir.",
-      "Binalar seçim ekranından yeniden adlandırılır, arşivlenir ve gerektiğinde kalıcı olarak silinir.",
-      "Aidatlar artık ödeme beklemeden her ay tahakkuk ediyor. Ödenmemiş geçmiş aylar da listede ve raporlarda görünüyor.",
-      "Yönetici ve site yöneticisi ayrımı kaldırıldı. Şifre değiştirme, kurtarma kodu ve hesap devri Profil sayfasında toplandı.",
-      "Yedek alma uygulama içine taşındı. Profil sayfasındaki düğmeyle menüye gitmeden yedek alabilirsiniz.",
-      "Daireler ve aidat tek sayfada birleştirildi. Tahsilat satırdaki düğmeyle tek adımda yapılıyor.",
-      "Sağ üstteki hesap menüsü ile Profil, bina değiştirme ve çıkış her sayfadan erişilebilir.",
-      "Para tutarları uygulamanın tamamında kuruşlu tek biçimde gösteriliyor.",
     ],
   },
 ];

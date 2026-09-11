@@ -1,0 +1,41 @@
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.pager-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  background: var(--background-color-1);
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+.pager-btn svg {
+  width: 19px;
+  height: 19px;
+}
+
+.pager-btn:hover:not(:disabled) {
+  border-color: var(--button-color);
+  color: var(--button-color);
+  opacity: 1;
+}
+
+.pager-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pager-info {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}

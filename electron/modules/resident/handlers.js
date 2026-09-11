@@ -1,43 +1,37 @@
-// Resident IPC entry points. Every field except the apartment link is optional, so the checks
-// come from a table instead of one if block per field.
+// Resident IPC entry points. Apart from the apartment link, the kind of record and the household
+// size, every field is optional, so those checks come from a table instead of one if block per
+// field.
 const { CHANNELS: CH } = require("../../ipc/channels");
 const { createHandle } = require("../../ipc/createHandle");
-const { fail, isValidDate, isValidEmail, validateBuildingScope, validateId } = require("../shared/validate");
+const {
+  fail,
+  isValidDate,
+  isValidEmail,
+  validateBuildingScope,
+  validateId,
+  validatePeriod,
+} = require("../shared/validate");
+const { trToday } = require("../shared/trTime");
 const residentService = require("./service");
 
 // Rules that only residents have. Shared limits such as date and email come from shared/validate.js.
-// RESIDENT_TYPES matches the schema CHECK and the select in src/pages/Residents/Residents.jsx.
+// RESIDENT_TYPES matches the schema CHECK and RESIDENT_TYPE_LABELS in src/utils/constants.js.
 const RESIDENT_TYPES = ["owner", "tenant"];
-const PHONE_RE = /^[0-9+()\- ]+$/;
+const PHONE_RE = /^[1-9][0-9]{9}$/;
 const NON_ASCII_RE = /[^\x20-\x7E]/;
 const NATIONAL_ID_RE = /^[0-9]{11}$/;
 
-const TRIMMED_FIELDS = [
-  "full_name",
-  "phone",
-  "email",
-  "national_id",
-  "resident_type",
-  "move_in_date",
-  "move_out_date",
-  "notes",
-];
+const TRIMMED_FIELDS = ["full_name", "phone", "email", "national_id", "resident_type", "move_out_date"];
 
 // Checked in order, and the first failure wins. Email appears twice, because the character check
 // and the format check need different messages.
 const OPTIONAL_TEXT_RULES = [
-  {
-    field: "resident_type",
-    invalid: "Geçersiz sakin türü.",
-    test: (value) => RESIDENT_TYPES.includes(value),
-    testMessage: "Geçersiz sakin türü.",
-  },
   { field: "full_name", invalid: "Geçersiz ad soyad.", max: 60, tooLong: "Ad soyad en fazla 60 karakter olabilir." },
   {
     field: "phone",
     invalid: "Geçersiz telefon numarası.",
-    test: (value) => value.length >= 10 && value.length <= 20 && PHONE_RE.test(value),
-    testMessage: "Telefon numarası 10 ile 20 karakter arasında olmalı ve yalnızca rakam ve +()- içerebilir.",
+    test: (value) => PHONE_RE.test(value),
+    testMessage: "Telefon numarası başında 0 olmadan 10 haneli olmalıdır (örn. 5455455555).",
   },
   {
     field: "email",
@@ -57,7 +51,6 @@ const OPTIONAL_TEXT_RULES = [
     test: (value) => NATIONAL_ID_RE.test(value),
     testMessage: "TC Kimlik No 11 haneli rakamdan oluşmalıdır.",
   },
-  { field: "notes", invalid: "Geçersiz not.", max: 500, tooLong: "Not en fazla 500 karakter olabilir." },
 ];
 
 // Trims, and turns an empty or missing value into null. The service then needs no fallback, and
@@ -82,25 +75,37 @@ function validateOptionalText(value, rule) {
   return null;
 }
 
-function validateResidentDate(value, invalidMessage) {
+// Only the add channel may carry this date with the other fields. The update channel rejects it
+// below, and the move-out channel has its own required check. A record added today starts today, so
+// an earlier date would close it before it opened.
+function validateOptionalMoveOutDate(payload) {
+  const value = payload.move_out_date;
   if (value == null) return null;
-  return isValidDate(value) ? null : fail(invalidMessage);
+  if (!isValidDate(value)) return fail("Geçersiz çıkış tarihi.");
+  return value < trToday() ? fail("Çıkış tarihi bugünden önce olamaz.") : null;
 }
 
-// The move-out date cannot be earlier than the move-in date, same as the CHECK on the table.
-function validateResidentDates(payload) {
-  const { move_in_date: moveIn, move_out_date: moveOut } = payload;
-  return (
-    validateResidentDate(moveIn, "Geçersiz giriş tarihi.") ??
-    validateResidentDate(moveOut, "Geçersiz çıkış tarihi.") ??
-    (moveIn != null && moveOut != null && moveOut < moveIn ? fail("Çıkış tarihi giriş tarihinden önce olamaz.") : null)
-  );
+// Which of the two records this is. Required, because an apartment holds one row of each kind and
+// this field is the only thing telling them apart.
+function validateResidentType(payload) {
+  return RESIDENT_TYPES.includes(payload.resident_type) ? null : fail("Geçersiz kayıt türü.");
 }
 
-// The only required resident field. The building list sums it, so it may never be null, and the
-// range matches the CHECK on the column.
+// Only an owner can be recorded without living in the flat, so only an owner has to answer this.
+// A tenant is always the occupant and the service writes the flag itself.
+function validateOccupancy(payload) {
+  if (payload.resident_type !== "owner") return null;
+  if (typeof payload.is_occupant !== "boolean") {
+    return fail("Malikin dairede oturup oturmadığı belirtilmelidir.");
+  }
+  return null;
+}
+
+// Optional, because the user may not know it. A null means unknown and the building list's sum
+// skips that row. A given value matches the range in the CHECK on the column.
 function validateHouseholdSize(payload) {
   const value = payload.household_size;
+  if (value == null) return null;
   if (!Number.isInteger(value) || value < 1 || value > 20) {
     return fail("Dairede yaşayan kişi sayısı 1 ile 20 arasında bir tam sayı olmalıdır.");
   }
@@ -111,12 +116,33 @@ function validateHouseholdSize(payload) {
 function validateResidentFields(payload) {
   normalizeResidentData(payload);
 
+  const typeError = validateResidentType(payload);
+  if (typeError) return typeError;
+
   for (const rule of OPTIONAL_TEXT_RULES) {
     const error = validateOptionalText(payload[rule.field], rule);
     if (error) return error;
   }
 
-  return validateHouseholdSize(payload) ?? validateResidentDates(payload);
+  return validateHouseholdSize(payload) ?? validateOccupancy(payload) ?? validateOptionalMoveOutDate(payload);
+}
+
+// The move-out channel may carry the record that replaces the one being closed, whether the exit is
+// dated today or ahead. The fields are the same ones the add channel takes, so they go through the
+// same validator: an optional payload still has to be a complete record once it is there.
+// resident_type comes along and the service checks it against the record being closed, which is what
+// keeps the validated role and the written role the same. A move-out date on the new record makes no
+// sense, so it is rejected rather than dropped, and its start date is not the caller's to send: the
+// service derives it from the transfer date.
+function validateNextResident(payload) {
+  const next = payload.next;
+  if (next == null) return null;
+  if (typeof next !== "object" || Array.isArray(next)) return fail("Yeni kayıt bilgileri geçersiz.");
+
+  const error = validateResidentFields(next);
+  if (error) return error;
+
+  return next.move_out_date == null ? null : fail("Yeni kayıt için çıkış tarihi girilemez.");
 }
 
 // Only moveOutResident may write that date, so the update channel says no instead of quietly
@@ -148,7 +174,12 @@ function validateMoveOutDate(payload) {
 function registerResidentHandlers(ipcMain) {
   const handle = createHandle(ipcMain, "resident");
 
-  handle(CH.RESIDENT.GET_OVERVIEW, validateBuildingScope, residentService.getResidentsOverview);
+  handle(
+    CH.RESIDENT.GET_OVERVIEW,
+    (payload) =>
+      validateBuildingScope(payload) ?? validatePeriod(payload, "Gelecek bir dönemin sakin listesi görüntülenemez."),
+    residentService.getResidentsOverview,
+  );
   handle(CH.RESIDENT.GET_HISTORY, validateApartmentScope, residentService.getResidentHistory);
   handle(
     CH.RESIDENT.ADD,
@@ -162,9 +193,15 @@ function registerResidentHandlers(ipcMain) {
   );
   handle(
     CH.RESIDENT.MOVE_OUT,
-    (payload) => validateResidentScope(payload) ?? validateMoveOutDate(payload),
+    (payload) => validateResidentScope(payload) ?? validateMoveOutDate(payload) ?? validateNextResident(payload),
     residentService.moveOutResident,
   );
+  handle(
+    CH.RESIDENT.UPDATE_MOVE_OUT,
+    (payload) => validateResidentScope(payload) ?? validateMoveOutDate(payload) ?? validateNextResident(payload),
+    residentService.updateScheduledMoveOut,
+  );
+  handle(CH.RESIDENT.CANCEL_MOVE_OUT, validateResidentScope, residentService.cancelScheduledMoveOut);
 }
 
 module.exports = registerResidentHandlers;

@@ -1,0 +1,27 @@
+.detail-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+}
+
+.detail-row + .detail-row {
+  border-top: 1px solid var(--border-default);
+}
+
+.detail-row dt {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.detail-row dd {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-color);
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: right;
+  overflow-wrap: break-word;
+}

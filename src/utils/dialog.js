@@ -14,11 +14,14 @@ const theme = () => {
 
 const base = (t) => ({
   heightAuto: false,
+  allowOutsideClick: false,
   background: t.background,
   color: t.text,
 });
 
 const fire = (build) => Swal.fire(build(theme()));
+
+export const isDialogOpen = () => Swal.isVisible();
 
 const HTML_ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 
@@ -90,7 +93,6 @@ const codeDialog = ({ title, code, html }) => {
 
   return fire((t) => ({
     ...base(t),
-    allowOutsideClick: false,
     showClass: { popup: "swal2-show", backdrop: "" },
     hideClass: { popup: "swal2-hide", backdrop: "" },
     width: CODE_DIALOG_WIDTH,
@@ -158,6 +160,18 @@ export const showDialog = {
   error: (title, body) => dismissDialog(title, body, "error"),
 
   warning: (title, body) => dismissDialog(title, body, "warning"),
+
+  cancelledRecord: ({ reason, date }) =>
+    dismissDialog(
+      "İptal Edilmiş Kayıt",
+      {
+        html: `
+        <p class="swal-note"><b>İptal nedeni:</b> ${escapeHtml(reason)}</p>
+        <p class="swal-note"><b>İptal tarihi:</b> ${escapeHtml(date)}</p>
+      `,
+      },
+      "info",
+    ),
 
   releaseNotes: (html) =>
     fire((t) => ({

@@ -4,13 +4,12 @@ import "./NewBuilding.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useSession, setCurrentBuilding } from "@/hooks/useSession";
 import { showDialog } from "@/utils/dialog";
-import { APARTMENT_TYPES } from "@/utils/constants";
+import { APARTMENT_TYPES, MAX_BUILDING_NAME_LENGTH, MAX_DUE_AMOUNT } from "@/utils/constants";
+import { floorLabel } from "@/utils/floorLabel";
 import { FiHome, FiArrowLeft, FiArrowRight, FiCheck } from "react-icons/fi";
 
-const MAX_NAME_LENGTH = 60;
 const MAX_FLOORS = 30;
 const MAX_PER_FLOOR = 20;
-const MAX_DUE_AMOUNT = 50000;
 const PREVIEW_FLOOR_LIMIT = 5;
 const PREVIEW_CELL_LIMIT = 4;
 
@@ -48,7 +47,7 @@ function toPreviewRow(floorIndex, perFloor, firstFloor) {
   return {
     key: floorIndex,
     floorTag: floor === 0 ? "Z" : floor,
-    floorTitle: floor === 0 ? "Zemin kat" : `${floor}. kat`,
+    floorTitle: floorLabel(floor),
     units,
   };
 }
@@ -71,8 +70,8 @@ function toPreviewFloors(floors, perFloor, groundFloor) {
 
 function validateName(value) {
   if (!value) return "Bina adı zorunludur.";
-  if (value.length < 2 || value.length > MAX_NAME_LENGTH) {
-    return `Bina adı 2 ile ${MAX_NAME_LENGTH} karakter arasında olmalıdır.`;
+  if (value.length < 2 || value.length > MAX_BUILDING_NAME_LENGTH) {
+    return `Bina adı 2 ile ${MAX_BUILDING_NAME_LENGTH} karakter arasında olmalıdır.`;
   }
   return null;
 }
@@ -280,7 +279,7 @@ function NewBuilding() {
                       id="nb-name"
                       className="nb-input nb-input--icon"
                       value={nameInput}
-                      maxLength={MAX_NAME_LENGTH}
+                      maxLength={MAX_BUILDING_NAME_LENGTH}
                       placeholder="Örn. Mavikent Sitesi A Blok"
                       autoFocus
                       onChange={(e) => {

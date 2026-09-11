@@ -68,6 +68,8 @@ const CHANNELS = {
     ADD: "resident:add",
     UPDATE: "resident:update",
     MOVE_OUT: "resident:move-out",
+    UPDATE_MOVE_OUT: "resident:update-move-out",
+    CANCEL_MOVE_OUT: "resident:cancel-move-out",
   },
 
   SYSTEM: {

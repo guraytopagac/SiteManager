@@ -230,14 +230,28 @@ body {
 .transactions-container,
 .reports-container,
 .profile-container,
-.income-container,
-.expense-container,
 .bv-container {
   background: linear-gradient(180deg, var(--page-surface-2), var(--page-surface-1));
   border: 1px solid var(--border-default);
   border-radius: 20px;
   box-shadow: 0 10px 32px var(--shadow-deep);
   animation: pageShellIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.page-band {
+  padding: 18px 0;
+}
+
+.page-band + .page-band {
+  border-top: 1px solid var(--border-default);
+}
+
+.page-band:first-child {
+  padding-top: 0;
+}
+
+.page-band:nth-last-child(1 of .page-band) {
+  padding-bottom: 0;
 }
 
 @keyframes pageShellIn {

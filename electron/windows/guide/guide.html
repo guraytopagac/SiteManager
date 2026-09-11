@@ -42,8 +42,7 @@
           <a href="#apartments">Daireler</a>
           <a href="#residents">Sakinler</a>
           <a href="#dues">Aidat Yönetimi</a>
-          <a href="#financial">Gelir / Gider</a>
-          <a href="#transactions">İşlem Geçmişi</a>
+          <a href="#financial">Gelir ve Gider</a>
           <a href="#reports">Raporlar</a>
 
           <div class="guide-section-label" role="heading" aria-level="2">Hesap ve Sistem</div>
@@ -421,8 +420,15 @@
         <h2 id="residents">Sakinler</h2>
         <p>
           Sakin yönetimi, Kontrol Panelindeki <strong>Sakinler</strong> kartından açılan sayfada yapılır. Sayfa,
-          dairelerinizi ve her dairenin aktif sakinini listeler. Bir dairede birden fazla <strong>geçmiş</strong> sakin
-          olabilir; yalnızca <strong>aktif</strong> olan güncel kiracı/ev sahibidir.
+          dairelerinizi, her dairede oturan kişiyi ve dairenin malikini listeler. Bir daire için aynı anda bir
+          <strong>malik</strong> ve bir <strong>kiracı</strong> kaydı tutulabilir. Ev sahibi dairesini kiraya verdiğinde
+          malikin iletişim bilgileri yerinde kalır, dairede kimin oturduğunu ise kiracı kaydı söyler. Her iki kaydın da
+          birden fazla <strong>geçmiş</strong> kaydı olabilir, güncel olan yalnızca aktif olandır.
+        </p>
+        <p>
+          Bir daireyi listeden seçtiğinizde sağdaki panel açılır. Panelin <strong>Kiracı</strong> ve
+          <strong>Malik</strong> sekmeleri iki kaydı ayrı ayrı gösterir. Sekme adının yanındaki nokta, o kaydın girilmiş
+          olduğunu belirtir.
         </p>
         <table>
           <thead>
@@ -433,37 +439,71 @@
           </thead>
           <tbody>
             <tr>
-              <td><strong>Sakin Ekle</strong></td>
-              <td>Dairede aktif sakin <em>yoksa</em> yeni sakin ekler. Aktif sakin varken önce çıkış yapılmalıdır.</td>
+              <td><strong>Kiracı Ekle</strong></td>
+              <td>
+                Dairede aktif kiracı <em>yoksa</em> yeni kiracı ekler. Aktif kiracı varken önce çıkış yapılmalıdır.
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Malik Ekle</strong></td>
+              <td>
+                Dairenin sahibini kaydeder. Malik dairede oturuyorsa formdaki <strong>Dairede oturuyor</strong>
+                anahtarını açın, dairede yaşayan kişi sayısı o zaman sorulur.
+              </td>
             </tr>
             <tr>
               <td><strong>Düzenle</strong></td>
-              <td>Aktif sakinin bilgilerini yerinde günceller.</td>
+              <td>Seçili sekmedeki kaydın bilgilerini yerinde günceller.</td>
             </tr>
             <tr>
-              <td><strong>Çıkış</strong></td>
-              <td>Sakine çıkış tarihi girer. Çıkan sakin dairenin geçmiş kaydı olarak korunur.</td>
+              <td><strong>Kiracı Çıkışı</strong></td>
+              <td>
+                Kiracıya çıkış tarihi girer ve isterseniz aynı pencerede yeni kiracıyı da kaydeder. Çıkan kiracı
+                dairenin geçmiş kaydı olarak korunur.
+              </td>
             </tr>
             <tr>
-              <td><strong>Geçmiş</strong></td>
-              <td>Bir dairenin tüm aktif ve geçmiş sakinlerini listeler.</td>
+              <td><strong>Malik Değiştir</strong></td>
+              <td>
+                Daire el değiştirdiğinde kullanılır. Devir tarihini alıp mevcut malik kaydını kapatır ve ikinci adımda
+                yeni malikin bilgilerini sorar. Bu adım atlanamaz, çünkü daire her zaman birinindir. Eski malik geçmiş
+                kaydı olarak korunur.
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Sakin Geçmişi</strong></td>
+              <td>Bir dairenin tüm aktif ve geçmiş kayıtlarını, malik ve kiracı ayrımıyla listeler.</td>
             </tr>
           </tbody>
         </table>
         <div class="guide-note">
           <span class="guide-note-icon">ℹ</span>
           <div>
-            <strong>Sakin değişimi</strong> iki açık adımdır. Önce mevcut sakin için <strong>Çıkış</strong>, ardından
-            <strong>Sakin Ekle</strong>. Böylece eski sakin geçmiş kaydı olarak saklanır.
+            <strong>Kiracı değişimi</strong> tek pencerede yapılır. <strong>Kiracı Çıkışı</strong> penceresinin birinci
+            adımı çıkış tarihini, ikinci adımı yeni kiracının bilgilerini alır ve ikisi birlikte kaydedilir. Yeni kiracı
+            henüz belli değilse <strong>Yeni Kiracısız Kaydet</strong> ile yalnızca çıkışı kaydedebilir, kiracıyı
+            sonradan <strong>Kiracı Ekle</strong> ile girebilirsiniz. Eski kiracı her durumda geçmiş kaydı olarak
+            saklanır, malik kaydı bu işlemlerden etkilenmez. Tarih <strong>ileri bir gün</strong> ise yeni kayıt sıraya
+            alınır: o güne kadar mevcut kişi görünmeye devam eder, gün gelince yeni kişi kendiliğinden devreye girer.
           </div>
         </div>
         <div class="guide-note">
           <span class="guide-note-icon">ℹ</span>
           <div>
-            Çıkış tarihi <strong>bugün veya geçmiş</strong> bir tarihse sakin hemen geçmiş kaydına düşer.
-            <strong>Gelecek</strong> bir çıkış tarihi sakini aktif bırakır, çünkü henüz taşınmamıştır. Uygulama bu
-            tarihi kendiliğinden takip etmez. Gün geldiğinde <strong>Çıkış</strong> işlemini bugünün tarihiyle
-            tekrarlayın, sakin ancak o zaman geçmiş kaydına düşer.
+            Bir dairenin <strong>dolu</strong> sayılması, dairede oturan kişiye bağlıdır. Yalnızca iletişim için
+            girilmiş, dairede oturmayan bir malik kaydı daireyi dolu göstermez ve bina kişi sayısına eklenmez.
+          </div>
+        </div>
+        <div class="guide-note">
+          <span class="guide-note-icon">ℹ</span>
+          <div>
+            Çıkış tarihi <strong>bugün veya geçmiş</strong> bir tarihse kayıt hemen geçmişe düşer.
+            <strong>Gelecek</strong> bir çıkış tarihi kaydı aktif bırakır, çünkü henüz taşınmamıştır. Gün geldiğinde
+            kayıt kendiliğinden geçmişe düşer ve varsa sırada bekleyen kişi devreye girer, ayrıca bir işlem yapmanız
+            gerekmez. Kayıt geçmişe düştüğü anda sakin listesinden ve daire panelinden de çıkar, kişinin bilgileri
+            <strong>Sakin Geçmişi</strong> penceresinde durmaya devam eder. Planlanan bir çıkış ya da devir varken daire
+            panelindeki <strong>Düzenle</strong> butonu tarihi ve sırada bekleyen kişinin bilgilerini değiştirmenizi
+            sağlar, aynı pencerede <strong>İptal Et</strong> ile planı tamamen kaldırabilirsiniz.
           </div>
         </div>
 
@@ -527,11 +567,17 @@
           <div>Aidat kaydı hiçbir zaman silinemez; yalnızca düzenlenebilir veya ödemeleri iptal edilebilir.</div>
         </div>
 
-        <h2 id="financial">Gelir / Gider</h2>
+        <h2 id="financial">Gelir ve Gider</h2>
+        <p>
+          Kasa hareketlerinin tamamı tek sayfadadır. Seçili ayın gelir ve gider kayıtları listede görünür, sağdaki özet
+          kartı o ayın net tutarını verir. Listeyi <strong>Gelirler</strong> ve <strong>Giderler</strong>
+          düğmeleriyle daraltabilir, arama kutusuyla açıklama ya da kategoriye göre süzebilirsiniz.
+        </p>
         <h3>Gelir Ekleme</h3>
         <p>
-          <strong>Gelir Ekle</strong> sayfasında tutar, açıklama, kategori (kira, otopark, bağış, diğer) ve tarih
-          girerek kaydedin. Tarih alanı bugünle dolu gelir, isterseniz değiştirebilirsiniz; ileri bir tarih seçilemez.
+          Sağdaki <strong>Gelir Ekle</strong> düğmesi bir pencere açar. Tutar, tarih, kategori (kira, otopark, bağış,
+          diğer) ve açıklama girerek kaydedin. Tarih alanı bugünle dolu gelir, isterseniz değiştirebilirsiniz. İleri bir
+          tarih seçilemez.
         </p>
         <div class="guide-note">
           <span class="guide-note-icon">ℹ</span>
@@ -541,28 +587,15 @@
         </div>
         <h3>Gider Ekleme</h3>
         <p>
-          <strong>Gider Ekle</strong> sayfasında tutar, açıklama, kategori (bakım, temizlik, fatura, personel, diğer) ve
-          tarih girerek kaydedin. Tarih alanı yine bugünle dolu gelir.
-        </p>
-        <div class="guide-warning">
-          <span class="guide-warning-icon">⚠</span>
-          <div>
-            Gelir ve gider kayıtları <strong>silinemez</strong>. Hatalı kayıt, İşlem Geçmişi ekranından
-            <strong>iptal edilir</strong>. İptal edilen kayıt listede üzeri çizili olarak kalır ve toplamlara girmez.
-          </div>
-        </div>
-
-        <h2 id="transactions">İşlem Geçmişi</h2>
-        <p>
-          Tüm gelir ve gider kayıtlarını yıl ve ay seçerek filtreleyin. <strong>Tüm Zamanlar</strong> butonuyla dönem
-          filtresini kaldırıp bütün kayıtları görebilirsiniz. İptal edilmiş kayıtlar üzeri çizili olarak görünür.
+          <strong>Gider Ekle</strong> düğmesi aynı pencereyi gider için açar. Kategoriler bakım, temizlik, fatura,
+          personel ve diğerdir.
         </p>
         <h3>Kayıt İptali</h3>
         <div class="guide-steps">
           <div class="guide-step">
             <div class="guide-step-num">1</div>
             <div class="guide-step-body">
-              İptal etmek istediğiniz gelir veya gider satırındaki <strong>İptal</strong> butonuna tıklayın.
+              İptal etmek istediğiniz gelir veya gider satırındaki <strong>İptal</strong> düğmesine tıklayın.
             </div>
           </div>
           <div class="guide-step">
@@ -571,7 +604,15 @@
           </div>
           <div class="guide-step">
             <div class="guide-step-num">3</div>
-            <div class="guide-step-body">Kayıt iptal edilir; kasa bakiyesi güncellenir.</div>
+            <div class="guide-step-body">Kayıt iptal edilir ve kasa bakiyesi güncellenir.</div>
+          </div>
+        </div>
+        <div class="guide-warning">
+          <span class="guide-warning-icon">⚠</span>
+          <div>
+            Gelir ve gider kayıtları <strong>silinemez</strong>, yalnızca iptal edilir. İptal edilen kayıt listede üzeri
+            çizili olarak kalır ve toplamlara girmez. Aidat tahsilatından doğan gelir buradan iptal edilemez, satırında
+            düğme yerine kısa çizgi durur. Bu kayıt yalnızca Aidat Takibi sayfasında ödemesi iptal edilerek geri alınır.
           </div>
         </div>
 

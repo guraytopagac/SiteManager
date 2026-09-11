@@ -1,0 +1,25 @@
+.unit-cell {
+  display: inline-grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.unit-tag {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--border-default);
+  border-radius: 11px;
+  background: var(--card-background-1);
+  font-size: 1.15rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.unit-floor {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}

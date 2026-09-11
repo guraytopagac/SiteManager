@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./DuesModals.css";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { showDialog } from "@/utils/dialog";
+import { MAX_DUE_AMOUNT } from "@/utils/constants";
 import { formatCurrency } from "@/utils/currency";
 import { searchKey } from "@/utils/searchKey";
 
@@ -72,9 +74,11 @@ function SingleUpdateModal({ dues, building, onClose, onSaved }) {
     onClose();
   };
 
+  useEscapeKey(handleClose);
+
   return (
-    <div className="du-md-overlay" onClick={handleClose}>
-      <form className="du-md-box" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
+    <div className="du-md-overlay">
+      <form className="du-md-box" onSubmit={handleSubmit}>
         <div className="du-md-head">
           <div className="du-md-identity">
             <h2 className="du-md-title">Daire Aidatı Güncelleme</h2>
@@ -166,9 +170,9 @@ function SingleUpdateModal({ dues, building, onClose, onSaved }) {
                 id="single-amount"
                 type="number"
                 min="1"
-                max="50000"
+                max={MAX_DUE_AMOUNT}
                 step="1"
-                placeholder="Örn: 2000"
+                placeholder="Örn. 2000"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 required

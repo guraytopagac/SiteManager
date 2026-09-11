@@ -40,6 +40,12 @@ function createdPeriodSql(alias = "") {
   return periodSql(`${alias}created_at`);
 }
 
+// The last day of a month, inclusive. monthBounds gives the exclusive end instead, which reads
+// better in a range filter but cannot be compared against a stored date on its own.
+function monthEnd(year, month) {
+  return new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+}
+
 // Start and end of a month, for date >= start AND date < end. The end day is not included.
 function monthBounds(year, month) {
   const start = `${year}-${String(month).padStart(2, "0")}-01`;
@@ -54,6 +60,7 @@ module.exports = {
   createdPeriodSql,
   currentPeriod,
   monthBounds,
+  monthEnd,
   periodSql,
   toPeriod,
   trToday,

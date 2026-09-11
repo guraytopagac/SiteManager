@@ -1,32 +1,37 @@
 import { useState, useEffect, useCallback } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import {
   FiAlertTriangle,
-  FiArrowLeft,
   FiCalendar,
   FiEdit2,
   FiGrid,
   FiHome,
   FiPlus,
   FiRefreshCw,
+  FiSkipBack,
   FiTrash2,
   FiX,
 } from "react-icons/fi";
 import "./BuildingView.css";
-import AccountMenu from "@/components/AccountMenu/AccountMenu";
+import DetailRow from "@/components/DetailRow/DetailRow";
+import PageHeader from "@/components/PageHeader/PageHeader";
 import PeriodSelector from "@/components/PeriodSelector/PeriodSelector";
 import AddModal from "./BuildingViewModals/AddModal";
 import EditModal from "./BuildingViewModals/EditModal";
 import { useCurrentBuilding } from "@/hooks/useSession";
 import { showDialog } from "@/utils/dialog";
-import { DUES_STATUS_LABELS } from "@/utils/constants";
+import {
+  DUES_STATUS_LABELS,
+  DUES_STATUS_ORDER,
+  EMPTY_RESIDENT_LABEL,
+  UNEXPECTED_ERROR_MESSAGE,
+} from "@/utils/constants";
 import { formatCurrency } from "@/utils/currency";
 import { clampMonth, formatMonthYear, getCurrentMonth, getCurrentYear } from "@/utils/date";
+import { floorLabel } from "@/utils/floorLabel";
 
 const SKELETON_LEVELS = [0, 1, 2, 3];
 const SKELETON_UNITS = [0, 1, 2];
-
-const DUES_STATUSES = ["paid", "partial", "unpaid"];
 
 function countByStatus(units, status) {
   return units.filter((unit) => unit.status === status).length;
@@ -36,10 +41,6 @@ function floorTag(floor) {
   return floor === 0 ? "Z" : String(floor);
 }
 
-function floorTitle(floor) {
-  return floor === 0 ? "Zemin kat" : `${floor}. kat`;
-}
-
 function areaLabel(squareMeters) {
   return squareMeters == null ? "—" : `${squareMeters} m²`;
 }
@@ -47,7 +48,7 @@ function areaLabel(squareMeters) {
 function groupByFloor(units) {
   return [...Map.groupBy(units, (unit) => unit.floor)]
     .sort(([leftFloor], [rightFloor]) => rightFloor - leftFloor)
-    .map(([floor, floorUnits]) => ({ floor, tag: floorTag(floor), title: floorTitle(floor), units: floorUnits }));
+    .map(([floor, floorUnits]) => ({ floor, tag: floorTag(floor), title: floorLabel(floor), units: floorUnits }));
 }
 
 async function deleteApartmentFlow(unit, buildingId, onDone) {
@@ -84,7 +85,7 @@ async function deleteApartmentFlow(unit, buildingId, onDone) {
     }
   } catch (err) {
     console.error("[BuildingView] deleteApartment:", err);
-    showDialog.error("Hata", "Beklenmedik bir hata oluştu.");
+    showDialog.error("Hata", UNEXPECTED_ERROR_MESSAGE);
   }
 }
 
@@ -107,7 +108,7 @@ function useBuildingUnits(buildingId, year, month) {
       }
     } catch (err) {
       console.error("[BuildingView] getDuesForMonth:", err);
-      setErrorMessage("Beklenmedik bir hata oluştu.");
+      setErrorMessage(UNEXPECTED_ERROR_MESSAGE);
     }
 
     setIsFirstLoad(false);
@@ -123,7 +124,7 @@ function useBuildingUnits(buildingId, year, month) {
 }
 
 function AddUnitButton({ floor, onAdd }) {
-  const label = `${floorTitle(floor)} için daire ekle`;
+  const label = `${floorLabel(floor)} için daire ekle`;
 
   return (
     <button
@@ -194,7 +195,7 @@ function StatusSummary({ units }) {
     <div className="bv-summary">
       {units && <span className="bv-summary-total">{units.length} daire</span>}
       <span className="bv-summary-items">
-        {DUES_STATUSES.map((status) => (
+        {DUES_STATUS_ORDER.map((status) => (
           <span className="bv-summary-item" key={status}>
             <span className={`bv-summary-dot bv-summary-dot--${status}`} aria-hidden="true" />
             {units && <b className="bv-summary-count">{countByStatus(units, status)}</b>}
@@ -275,16 +276,7 @@ function BuildingPlan({ levels, units, selectedId, isEditMode, onSelect, onAdd }
   );
 }
 
-function DetailRow({ label, value, title }) {
-  return (
-    <div className="bv-detail-row">
-      <dt>{label}</dt>
-      <dd title={title}>{value}</dd>
-    </div>
-  );
-}
-
-function DetailPanel({ unit, period, onClear, onEdit, onDelete }) {
+function DetailPanel({ unit, onClear, onEdit, onDelete }) {
   if (!unit) {
     return (
       <aside className="bv-panel" aria-label="Daire detayı">
@@ -304,7 +296,7 @@ function DetailPanel({ unit, period, onClear, onEdit, onDelete }) {
       <div className="bv-panel-head">
         <div className="bv-panel-identity">
           <h2 className="bv-panel-no">Daire {unit.apartment_no}</h2>
-          <span className="bv-panel-floor">{floorTitle(unit.floor)}</span>
+          <span className="bv-panel-floor">{floorLabel(unit.floor)}</span>
         </div>
         <button type="button" className="bv-panel-close" onClick={onClear} aria-label="Seçimi kaldır">
           <FiX />
@@ -315,7 +307,6 @@ function DetailPanel({ unit, period, onClear, onEdit, onDelete }) {
         <section className="bv-section">
           <div className="bv-section-head">
             <span className="bv-section-title">Aidat Bilgileri</span>
-            <span className="bv-section-period">{period}</span>
           </div>
           <dl>
             <DetailRow label="Aidat" value={formatCurrency(unit.due_amount)} />
@@ -337,7 +328,7 @@ function DetailPanel({ unit, period, onClear, onEdit, onDelete }) {
             <DetailRow label="Alan" value={areaLabel(unit.square_meters)} />
             <DetailRow
               label="Sakin"
-              value={unit.resident_name || "Sakin yok"}
+              value={unit.resident_name || EMPTY_RESIDENT_LABEL}
               title={unit.resident_name || undefined}
             />
           </dl>
@@ -359,7 +350,6 @@ function DetailPanel({ unit, period, onClear, onEdit, onDelete }) {
 }
 
 function BuildingView() {
-  const navigate = useNavigate();
   const location = useLocation();
   const building = useCurrentBuilding();
   const [year, setYear] = useState(getCurrentYear());
@@ -373,11 +363,15 @@ function BuildingView() {
   const levels = groupByFloor(units);
   const hasPlan = !isFirstLoad && !errorMessage && units.length > 0;
   const selectedUnit = units.find((unit) => unit.apartment_id === selectedId) ?? null;
-  const period = formatMonthYear(year, month);
 
   const handleYearChange = (nextYear) => {
     setYear(nextYear);
     setMonth((current) => clampMonth(nextYear, current));
+  };
+
+  const goToStartPeriod = () => {
+    setYear(start.year);
+    setMonth(start.month);
   };
 
   const openAddModal = (floor) => setAddTarget({ floor });
@@ -411,6 +405,9 @@ function BuildingView() {
             icon={<FiCalendar />}
             title="Bu dönemde kayıtlı daire yok"
             body={`Bu binanın daire kayıtları ${formatMonthYear(start.year, start.month)} ayında başlıyor.`}
+            actionIcon={<FiSkipBack />}
+            actionLabel="Kayıtların Başladığı Aya Git"
+            onAction={goToStartPeriod}
           />
         );
       }
@@ -442,23 +439,9 @@ function BuildingView() {
 
   return (
     <div className="bv-container">
-      <header className="bv-band bv-context">
-        <div className="bv-context-top">
-          <button type="button" className="bv-back" onClick={() => navigate("/dashboard")}>
-            <FiArrowLeft />
-            Panoya Dön
-          </button>
-          <AccountMenu />
-        </div>
-        <div className="bv-context-main">
-          <h1 className="bv-title">Bina Görünümü</h1>
-          <span className="bv-building" title={building.name}>
-            {building.name}
-          </span>
-        </div>
-      </header>
+      <PageHeader title="Bina Görünümü" />
 
-      <section className="bv-band bv-band--stage" aria-label="Bina planı">
+      <section className="page-band bv-stage-band" aria-label="Bina planı">
         <div className="bv-stage-split">
           <div className="bv-period">
             <PeriodSelector year={year} month={month} onYearChange={handleYearChange} onMonthChange={setMonth} />
@@ -469,7 +452,6 @@ function BuildingView() {
           </div>
           <DetailPanel
             unit={selectedUnit}
-            period={period}
             onClear={() => setSelectedId(null)}
             onEdit={() => setIsEditModalOpen(true)}
             onDelete={() =>

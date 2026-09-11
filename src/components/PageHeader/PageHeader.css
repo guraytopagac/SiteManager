@@ -1,0 +1,74 @@
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.page-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.page-header-back {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 16px 0 12px;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: var(--card-background-1);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.page-header-back svg {
+  font-size: 1.15rem;
+}
+
+.page-header-back:hover {
+  border-color: var(--button-color);
+  background: var(--accent-tint);
+  color: var(--button-color);
+  opacity: 1;
+}
+
+.page-header-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.page-header-title {
+  flex-shrink: 0;
+  margin: 0;
+  color: var(--text-color);
+  font-size: 1.9rem;
+  font-weight: 750;
+  line-height: 1.14;
+  letter-spacing: -0.025em;
+}
+
+.page-header-building {
+  min-width: 0;
+  max-width: 340px;
+  overflow: hidden;
+  padding-left: 14px;
+  border-left: 1px solid var(--border-default);
+  color: var(--text-color);
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.9;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -7,8 +7,6 @@ import { formatCurrency } from "@/utils/currency";
 import { formatMonthYear, getCurrentYear, getCurrentMonth } from "@/utils/date";
 import {
   FiAlertTriangle,
-  FiArrowDownCircle,
-  FiArrowUpCircle,
   FiChevronRight,
   FiClock,
   FiDollarSign,
@@ -20,6 +18,7 @@ import {
   FiPlus,
   FiRefreshCw,
   FiTrendingUp,
+  FiUser,
   FiUsers,
 } from "react-icons/fi";
 
@@ -55,12 +54,10 @@ function useDashboardStats(buildingId) {
   return { stats, status, reload: load };
 }
 
-function ActionTile({ icon, label, tone, onClick }) {
-  const markClass = tone ? `db-action-mark db-action-mark--${tone}` : "db-action-mark";
-
+function ActionTile({ icon, label, onClick }) {
   return (
     <button className="db-action" type="button" onClick={onClick}>
-      <span className={markClass} aria-hidden="true">
+      <span className="db-action-mark" aria-hidden="true">
         {icon}
       </span>
       <span className="db-action-title">{label}</span>
@@ -148,7 +145,7 @@ function StatusMetrics({ stats, navigate }) {
         className="db-metric db-metric--cash"
         icon={<FiDollarSign />}
         label="Kasa"
-        ariaLabel="Kasa, işlem geçmişini aç"
+        ariaLabel="Kasa, gelir ve gider listesini aç"
         onOpen={() => navigate("/transactions")}
       >
         <span className="db-metric-value">{formatCurrency(stats.cash)}</span>
@@ -228,28 +225,11 @@ function Dashboard() {
         </div>
 
         <div className="db-group">
-          <div className="db-group-label">Finansal İşlemler</div>
+          <div className="db-group-label">Diğer İşlemler</div>
           <div className="db-actions">
-            <ActionTile
-              icon={<FiArrowUpCircle />}
-              label="Gelir Ekle"
-              tone="positive"
-              onClick={() => navigate("/add-income")}
-            />
-            <ActionTile
-              icon={<FiArrowDownCircle />}
-              label="Gider Ekle"
-              tone="negative"
-              onClick={() => navigate("/add-expense")}
-            />
-            <ActionTile icon={<FiList />} label="İşlem Geçmişi" onClick={() => navigate("/transactions")} />
-          </div>
-        </div>
-
-        <div className="db-group">
-          <div className="db-group-label">Raporlama</div>
-          <div className="db-actions">
+            <ActionTile icon={<FiList />} label="Gelir ve Gider" onClick={() => navigate("/transactions")} />
             <ActionTile icon={<FiFileText />} label="Raporlar" onClick={() => navigate("/reports")} />
+            <ActionTile icon={<FiUser />} label="Profilim" onClick={() => navigate("/profile")} />
           </div>
         </div>
       </section>

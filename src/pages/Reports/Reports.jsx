@@ -6,7 +6,7 @@ import "./Reports.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useCurrentBuilding } from "@/hooks/useSession";
 import { showDialog } from "@/utils/dialog";
-import { DUES_STATUS_LABELS } from "@/utils/constants";
+import { DUES_STATUS_LABELS, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import {
   formatMonthYear,
   formatDate,
@@ -104,7 +104,7 @@ function Reports() {
         }
       } catch (err) {
         console.error("[Reports] getReportData:", err);
-        if (isMountedRef.current) showDialog.error("Hata", "Beklenmedik bir hata oluştu.");
+        if (isMountedRef.current) showDialog.error("Hata", UNEXPECTED_ERROR_MESSAGE);
       } finally {
         if (isMountedRef.current) setLoading(false);
       }

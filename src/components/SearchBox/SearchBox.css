@@ -1,0 +1,36 @@
+.search-box {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 190px;
+  gap: 10px;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 11px;
+  background: var(--card-background-1);
+  color: var(--text-secondary);
+}
+
+.search-box:hover {
+  border-color: var(--text-secondary);
+}
+
+.search-box input {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-color);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.search-box input:focus {
+  box-shadow: none;
+}
+
+.search-box input::placeholder {
+  color: var(--text-secondary);
+}

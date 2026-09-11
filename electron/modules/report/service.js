@@ -1,7 +1,7 @@
 // Monthly report data. It only reads, and it never rounds money. That is the renderer's job.
 const { getDb } = require("../../../database/db");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
-const { RESIDENT_NAME_FOR_PERIOD_SQL } = require("../shared/residentPeriod");
+const { RESIDENT_NAME_FOR_PERIOD_SQL, periodCutoff } = require("../shared/residentPeriod");
 const { createdPeriodSql, monthBounds, toPeriod } = require("../shared/trTime");
 
 // The records of one month that are not cancelled. The table name comes from a fixed string only.
@@ -29,6 +29,7 @@ function getReportData(payload) {
     const expenses = fetchByMonth("expenses", buildingId, start, end);
 
     const period = toPeriod(year, month);
+    const cutoff = periodCutoff(year, month);
 
     // Same resident subquery, same month filter, same ordering and same binding order as
     // getDuesForMonth. A report of a past month names the residents of that month.
@@ -46,7 +47,7 @@ function getReportData(payload) {
                   CAST(a.apartment_no AS INTEGER) ASC,
                   a.apartment_no COLLATE NOCASE ASC`,
       )
-      .all(period, period, year, month, buildingId, period);
+      .all(cutoff, cutoff, year, month, buildingId, period);
 
     const totalIncome = incomes.reduce((sum, r) => sum + r.amount, 0);
     const totalExpense = expenses.reduce((sum, r) => sum + r.amount, 0);

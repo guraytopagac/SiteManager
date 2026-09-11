@@ -77,6 +77,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   addResident: (payload) => safeInvoke(CH.RESIDENT.ADD, payload),
   updateResident: (payload) => safeInvoke(CH.RESIDENT.UPDATE, payload),
   moveOutResident: (payload) => safeInvoke(CH.RESIDENT.MOVE_OUT, payload),
+  updateScheduledMoveOut: (payload) => safeInvoke(CH.RESIDENT.UPDATE_MOVE_OUT, payload),
+  cancelScheduledMoveOut: (payload) => safeInvoke(CH.RESIDENT.CANCEL_MOVE_OUT, payload),
 
   // System
   getAppVersion: () => safeInvoke(CH.SYSTEM.GET_APP_VERSION),

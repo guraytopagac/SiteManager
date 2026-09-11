@@ -43,6 +43,8 @@ export const getToday = () => nowInTr().toISOString().slice(0, 10);
 export const getCurrentYear = () => Number(getToday().slice(0, 4));
 export const getCurrentMonth = () => Number(getToday().slice(5, 7));
 
+export const toPeriod = (year, month) => Number(year) * 12 + Number(month);
+
 export const formatDate = (value) => {
   const date = toDate(value);
   return date ? DATE_FORMATTER.format(date) : EMPTY;

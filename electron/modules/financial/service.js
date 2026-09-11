@@ -102,9 +102,23 @@ function getTransactions(payload) {
       )
       .get(...params, ...params);
 
+    // The building's earliest record. Without it the renderer cannot tell "no records at all" from
+    // "nothing yet in the month being viewed", since both come back as an empty list. Each half takes
+    // its own MIN so the building_id + date index answers it without scanning the rows.
+    const start = getDb()
+      .prepare(
+        `SELECT CAST(strftime('%Y', MIN(first_date)) AS INTEGER) AS year,
+                CAST(strftime('%m', MIN(first_date)) AS INTEGER) AS month
+         FROM (SELECT MIN(date) AS first_date FROM incomes WHERE building_id = ?
+               UNION ALL
+               SELECT MIN(date) AS first_date FROM expenses WHERE building_id = ?)`,
+      )
+      .get(buildingId, buildingId);
+
     return {
       success: true,
       data: transactions,
+      start: start.year === null ? null : start,
       totals: { totalIncome, totalExpense, net: totalIncome - totalExpense },
     };
   } catch (err) {

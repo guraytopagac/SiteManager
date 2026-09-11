@@ -11,6 +11,7 @@ const {
   validatePayload,
   validatePeriod,
 } = require("../shared/validate");
+const { trToday } = require("../shared/trTime");
 const duesService = require("./service");
 
 // Same list as the schema CHECK and PAYMENT_METHOD_LABELS in
@@ -105,6 +106,10 @@ function validatePaymentData(paymentData) {
   }
   if (!isValidDate(paymentData.payment_date)) {
     return fail("Geçersiz ödeme tarihi.");
+  }
+  // Rejected by day, the same way the income and expense channels do it.
+  if (paymentData.payment_date > trToday()) {
+    return fail("İleri bir tarih seçilemez.");
   }
   return validateId(paymentData.collected_by, "tahsilat kullanıcısı") ?? validateReceipt(paymentData.receipt);
 }

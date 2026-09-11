@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./BuildingViewModals.css";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { showDialog } from "@/utils/dialog";
-import { APARTMENT_TYPES } from "@/utils/constants";
+import { APARTMENT_TYPES, MAX_DUE_AMOUNT } from "@/utils/constants";
 
 function AddModal({ building, initialFloor, onClose, onSaved }) {
   const [apartmentNo, setApartmentNo] = useState("");
@@ -45,9 +46,11 @@ function AddModal({ building, initialFloor, onClose, onSaved }) {
     onClose();
   };
 
+  useEscapeKey(handleClose);
+
   return (
-    <div className="bv-md-overlay" onClick={handleClose}>
-      <form className="bv-md-box" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
+    <div className="bv-md-overlay">
+      <form className="bv-md-box" onSubmit={handleSubmit}>
         <div className="bv-md-head">
           <div className="bv-md-identity">
             <h2 className="bv-md-title">Yeni Daire Ekle</h2>
@@ -131,7 +134,7 @@ function AddModal({ building, initialFloor, onClose, onSaved }) {
                 id="add-due-amount"
                 type="number"
                 min="0.01"
-                max="50000"
+                max={MAX_DUE_AMOUNT}
                 step="0.01"
                 placeholder="Örn. 1500"
                 value={dueAmount}

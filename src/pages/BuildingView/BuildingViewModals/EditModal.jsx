@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./BuildingViewModals.css";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { showDialog } from "@/utils/dialog";
 import { APARTMENT_TYPES } from "@/utils/constants";
 
@@ -44,9 +45,11 @@ function EditModal({ apartment, building, onClose, onSaved }) {
     onClose();
   };
 
+  useEscapeKey(handleClose);
+
   return (
-    <div className="bv-md-overlay" onClick={handleClose}>
-      <form className="bv-md-box" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
+    <div className="bv-md-overlay">
+      <form className="bv-md-box" onSubmit={handleSubmit}>
         <div className="bv-md-head">
           <div className="bv-md-identity">
             <h2 className="bv-md-title">Daireyi Düzenle</h2>
@@ -119,7 +122,8 @@ function EditModal({ apartment, building, onClose, onSaved }) {
             </div>
 
             <p className="bv-md-note bv-md-field--wide">
-              Aidat tutarı bu formda değişmez, <b>Aidat Takibi</b> sayfasından güncellenir.
+              Bu form yalnızca daireyi değiştirir. Aidat tutarı <b>Aidat Takibi</b>, sakin bilgileri <b>Sakinler</b>{" "}
+              sayfasından güncellenir.
             </p>
           </div>
 

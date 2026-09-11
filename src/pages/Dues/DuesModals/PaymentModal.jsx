@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { FiCheck, FiPaperclip, FiUpload, FiX } from "react-icons/fi";
 import "./DuesModals.css";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { showDialog } from "@/utils/dialog";
+import { EMPTY_RESIDENT_LABEL } from "@/utils/constants";
 import { formatCurrency } from "@/utils/currency";
 import { formatDate, formatMonthYear, getMinDate, getToday } from "@/utils/date";
 
@@ -231,13 +233,11 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
     }
   };
 
-  // The input is reset too, or picking the same file again fires no change event.
   const clearReceiptFile = () => {
     setReceiptFile(null);
     formReceiptRef.current.value = "";
   };
 
-  // The history list shares one hidden input. The row that asked for it is kept in a ref.
   const handleAttachReceipt = (paymentId) => {
     receiptTargetRef.current = paymentId;
     historyReceiptRef.current.value = "";
@@ -267,7 +267,6 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
     }
   };
 
-  // The file opens in the default app of the system, so there is nothing to report on success.
   const handleOpenReceipt = async (paymentId) => {
     try {
       const res = await window.electronAPI.openReceipt({ paymentId, buildingId: building.id });
@@ -283,16 +282,16 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
     onClose();
   };
 
+  useEscapeKey(handleClose);
+
   const remaining = due.due_amount - due.paid_amount;
   const isPaid = due.status === "paid";
   const period = formatMonthYear(due.year, due.month);
-  const scope = due.resident_name
-    ? `Daire ${due.apartment_no} · ${due.resident_name} · ${period}`
-    : `Daire ${due.apartment_no} · ${period}`;
+  const scope = `Daire ${due.apartment_no} · ${due.resident_name || EMPTY_RESIDENT_LABEL} · ${period}`;
 
   return (
-    <div className="du-md-overlay" onClick={handleClose}>
-      <form className="du-md-box du-md-box--wide" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
+    <div className="du-md-overlay">
+      <form className="du-md-box du-md-box--wide" onSubmit={handleSubmit}>
         <div className="du-md-head">
           <div className="du-md-identity">
             <h2 className="du-md-title">Aidat Tahsilatı</h2>

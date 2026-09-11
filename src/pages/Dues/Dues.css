@@ -4,97 +4,6 @@
   padding: 24px 40px 26px;
 }
 
-.du-band {
-  padding: 18px 0;
-}
-
-.du-band + .du-band {
-  border-top: 1px solid var(--border-default);
-}
-
-.du-band:first-child {
-  padding-top: 0;
-}
-
-.du-band:nth-last-child(1 of .du-band) {
-  padding-bottom: 0;
-}
-
-.du-context {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.du-context-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-}
-
-.du-back {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 8px;
-  height: 44px;
-  padding: 0 16px 0 12px;
-  border: 1px solid var(--border-default);
-  border-radius: 12px;
-  background: var(--card-background-1);
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    border-color 0.18s ease,
-    background-color 0.18s ease,
-    color 0.18s ease;
-}
-
-.du-back svg {
-  font-size: 1.15rem;
-}
-
-.du-back:hover {
-  border-color: var(--button-color);
-  background: var(--accent-tint);
-  color: var(--button-color);
-  opacity: 1;
-}
-
-.du-context-main {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.du-title {
-  flex-shrink: 0;
-  margin: 0;
-  color: var(--text-color);
-  font-size: 1.9rem;
-  font-weight: 750;
-  line-height: 1.14;
-  letter-spacing: -0.025em;
-}
-
-.du-building {
-  min-width: 0;
-  max-width: 340px;
-  overflow: hidden;
-  padding-left: 14px;
-  border-left: 1px solid var(--border-default);
-  color: var(--text-color);
-  font-size: 1.05rem;
-  font-weight: 600;
-  line-height: 1.9;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .du-card {
   padding: 18px 20px 20px;
   border: 1px solid var(--border-default);
@@ -247,43 +156,6 @@
   opacity: 1;
 }
 
-.du-search {
-  display: flex;
-  align-items: center;
-  flex: 1 1 auto;
-  min-width: 190px;
-  gap: 10px;
-  height: 44px;
-  padding: 0 14px;
-  border: 1px solid var(--border-default);
-  border-radius: 11px;
-  background: var(--card-background-1);
-  color: var(--text-secondary);
-}
-
-.du-search input {
-  width: 100%;
-  min-width: 0;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--text-color);
-  font: inherit;
-  font-size: 1rem;
-}
-
-.du-search input:focus {
-  box-shadow: none;
-}
-
-.du-search:hover {
-  border-color: var(--text-secondary);
-}
-
-.du-search input::placeholder {
-  color: var(--text-secondary);
-}
-
 .du-collect {
   display: flex;
   flex-direction: column;
@@ -340,6 +212,10 @@
   border-radius: 999px;
   background: var(--border-default);
   overflow: hidden;
+}
+
+.du-collect-meter--blank {
+  visibility: hidden;
 }
 
 .du-collect-meter span {
@@ -483,32 +359,6 @@
   background: color-mix(in srgb, var(--button-color) 6%, transparent);
 }
 
-.du-unit-cell {
-  display: inline-grid;
-  justify-items: center;
-  gap: 4px;
-}
-
-.du-unit-floor {
-  color: var(--text-secondary);
-  font-size: 1rem;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.du-unit-tag {
-  display: inline-grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border: 1px solid var(--border-default);
-  border-radius: 11px;
-  background: var(--card-background-1);
-  font-size: 1.15rem;
-  font-weight: 750;
-  font-variant-numeric: tabular-nums;
-}
-
 .du-table tbody td.du-resident {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -516,7 +366,7 @@
 }
 
 .du-resident-empty {
-  color: var(--text-disabled);
+  color: var(--text-secondary);
 }
 
 .du-pay-cell {
@@ -631,52 +481,6 @@
   font-weight: 500;
 }
 
-.du-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-}
-
-.du-pagination--idle {
-  visibility: hidden;
-}
-
-.du-page-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--border-default);
-  border-radius: 10px;
-  background: var(--background-color-1);
-  color: var(--text-color);
-  cursor: pointer;
-}
-
-.du-page-btn svg {
-  width: 19px;
-  height: 19px;
-}
-
-.du-page-btn:hover:not(:disabled) {
-  border-color: var(--button-color);
-  color: var(--button-color);
-  opacity: 1;
-}
-
-.du-page-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.du-page-info {
-  color: var(--text-secondary);
-  font-size: 1rem;
-  font-variant-numeric: tabular-nums;
-}
-
 .du-table-placeholder {
   position: relative;
 }
@@ -686,14 +490,16 @@
   inset: 0;
   display: grid;
   align-content: center;
+  justify-items: center;
   padding: 0 24px;
 }
 
 .du-state {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 18px 16px;
+  justify-items: start;
 }
 
 .du-state-mark {
@@ -723,7 +529,6 @@
 }
 
 .du-state-text {
-  flex: 1;
   min-width: 260px;
 }
 
@@ -743,6 +548,7 @@
 
 .du-state-action {
   display: inline-flex;
+  grid-column: 2;
   align-items: center;
   gap: 8px;
   height: 44px;
@@ -792,7 +598,7 @@
   }
 }
 
-.du-unit-tag.du-skeleton {
+.unit-tag.du-skeleton {
   border-color: transparent;
   border-radius: 11px;
 }

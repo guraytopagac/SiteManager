@@ -12,8 +12,6 @@ const Dashboard = lazy(() => import("./pages/Dashboard/Dashboard.jsx"));
 const BuildingView = lazy(() => import("./pages/BuildingView/BuildingView.jsx"));
 const Dues = lazy(() => import("./pages/Dues/Dues.jsx"));
 const Residents = lazy(() => import("./pages/Residents/Residents.jsx"));
-const AddIncome = lazy(() => import("./pages/AddIncome/AddIncome.jsx"));
-const AddExpense = lazy(() => import("./pages/AddExpense/AddExpense.jsx"));
 const Transactions = lazy(() => import("./pages/Transactions/Transactions.jsx"));
 const Profile = lazy(() => import("./pages/Profile/Profile.jsx"));
 const Reports = lazy(() => import("./pages/Reports/Reports.jsx"));
@@ -75,8 +73,6 @@ function App() {
                 <Route path="/building-view" element={<BuildingView />} />
                 <Route path="/dues" element={<Dues />} />
                 <Route path="/residents" element={<Residents />} />
-                <Route path="/add-income" element={<AddIncome />} />
-                <Route path="/add-expense" element={<AddExpense />} />
                 <Route path="/transactions" element={<Transactions />} />
                 <Route path="/reports" element={<Reports />} />
               </Route>

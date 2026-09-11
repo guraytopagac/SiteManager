@@ -4,9 +4,9 @@ import "./SelectBuilding.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { useSession, setCurrentBuilding, clearCurrentBuilding, useCurrentBuilding } from "@/hooks/useSession";
 import { showDialog } from "@/utils/dialog";
+import { MAX_BUILDING_NAME_LENGTH } from "@/utils/constants";
 import { FiHome, FiPlus, FiAlertCircle, FiChevronRight, FiEdit2, FiTrash2 } from "react-icons/fi";
 
-const MAX_NAME_LENGTH = 60;
 const ERROR_ID = "sb-name-error";
 
 function buildingMeta(building) {
@@ -17,7 +17,7 @@ function buildingMeta(building) {
 
 function validateBuildingName(value) {
   if (!value) return "Bina adı zorunludur.";
-  if (value.length < 2 || value.length > MAX_NAME_LENGTH) {
+  if (value.length < 2 || value.length > MAX_BUILDING_NAME_LENGTH) {
     return "Bina adı 2 ile 60 karakter arasında olmalıdır.";
   }
   return null;
@@ -220,7 +220,7 @@ function SelectBuilding() {
         <input
           className="sb-input"
           value={editing.name}
-          maxLength={MAX_NAME_LENGTH}
+          maxLength={MAX_BUILDING_NAME_LENGTH}
           aria-label="Bina adı"
           aria-invalid={editError ? true : undefined}
           aria-describedby={editError ? ERROR_ID : undefined}
