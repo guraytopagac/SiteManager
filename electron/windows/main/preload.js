@@ -38,6 +38,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Backup
   runBackup: () => safeInvoke(CH.BACKUP.RUN),
+  restoreOnSetup: () => safeInvoke(CH.BACKUP.RESTORE_ON_SETUP),
 
   // Building
   listBuildings: (payload) => safeInvoke(CH.BUILDING.LIST, payload),
@@ -66,6 +67,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getTransactions: (payload) => safeInvoke(CH.FINANCIAL.GET_TRANSACTIONS, payload),
   cancelIncome: (payload) => safeInvoke(CH.FINANCIAL.CANCEL_INCOME, payload),
   cancelExpense: (payload) => safeInvoke(CH.FINANCIAL.CANCEL_EXPENSE, payload),
+  getDocument: (payload) => safeInvoke(CH.FINANCIAL.GET_DOCUMENT, payload),
+  saveDocumentInfo: (payload) => safeInvoke(CH.FINANCIAL.SAVE_DOCUMENT_INFO, payload),
 
   // Report
   getReportData: (payload) => safeInvoke(CH.REPORT.GET_DATA, payload),

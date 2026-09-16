@@ -1,17 +1,11 @@
-import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { FiDatabase, FiDownload, FiEdit2, FiKey, FiLock, FiRefreshCw, FiRepeat, FiUserCheck } from "react-icons/fi";
 import "./Profile.css";
-import AccountMenu from "@/components/AccountMenu/AccountMenu";
-import { useSession, setSession, clearSession, useCurrentBuilding } from "@/hooks/useSession";
+import PageHeader from "@/components/PageHeader/PageHeader";
+import { useSession, setSession } from "@/hooks/useSession";
 import { showDialog } from "@/utils/dialog";
-import { formatDate } from "@/utils/date";
-
-function validatePasswordForm(oldPassword, newPassword, confirmPassword) {
-  if (!oldPassword) return "Mevcut şifrenizi girmelisiniz.";
-  if (newPassword.length < 8) return "Yeni şifre en az 8 karakter olmalıdır.";
-  if (newPassword !== confirmPassword) return "Yeni şifre ve tekrarı birbirinden farklı.";
-  return null;
-}
+import PasswordModal from "./ProfileModals/PasswordModal";
+import TransferModal from "./ProfileModals/TransferModal";
 
 function validateEmail(value) {
   if (!value) return null;
@@ -20,18 +14,35 @@ function validateEmail(value) {
   return null;
 }
 
+function initialsOf(name) {
+  const words = name.trim().split(/\s+/);
+  const letters = words.length > 1 ? words[0][0] + words[words.length - 1][0] : words[0].slice(0, 2);
+  return letters.toLocaleUpperCase("tr");
+}
+
+function ActionCard({ icon, title, text, actionIcon, actionLabel, onAction, isBusy, danger }) {
+  return (
+    <div className={danger ? "pf-card pf-card--danger" : "pf-card"}>
+      <div className="pf-card-head">
+        <span className="pf-card-mark" aria-hidden="true">
+          {icon}
+        </span>
+        <span className="pf-card-title">{title}</span>
+      </div>
+      <p className="pf-card-text">{text}</p>
+      <button type="button" className="pf-card-btn" onClick={onAction} disabled={isBusy} aria-busy={isBusy}>
+        {actionIcon}
+        {actionLabel}
+      </button>
+    </div>
+  );
+}
+
 function Profile() {
-  const navigate = useNavigate();
   const session = useSession();
-  const building = useCurrentBuilding();
 
-  const [oldPassword, setOldPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const oldPasswordRef = useRef(null);
-
+  const [isPasswordOpen, setIsPasswordOpen] = useState(false);
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [backupRunning, setBackupRunning] = useState(false);
 
   const handleBackup = async () => {
@@ -54,39 +65,7 @@ function Profile() {
     setBackupRunning(false);
   };
 
-  const handleChangePassword = async (e) => {
-    e.preventDefault();
-    if (!session) return;
-
-    const error = validatePasswordForm(oldPassword, newPassword, confirmPassword);
-    if (error) {
-      showDialog.error("Geçersiz Giriş", error);
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const res = await window.electronAPI.changePassword({ userId: session.id, oldPassword, newPassword });
-      if (res.success) {
-        showDialog.toast(res.message);
-        setOldPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-        oldPasswordRef.current?.focus();
-      } else {
-        showDialog.error("Hata", res.message);
-      }
-    } catch (err) {
-      console.error("[Profile] changePassword:", err);
-      showDialog.error("Hata", "Şifre değiştirilemedi.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleUpdateEmail = async () => {
-    if (!session) return;
-
     const email = await showDialog.prompt({
       title: "E-posta Adresi",
       text: "Boş bırakırsanız kayıtlı adres kaldırılır.",
@@ -133,180 +112,92 @@ function Profile() {
     }
   };
 
-  const handleTransfer = async () => {
-    const newPerson = await showDialog.prompt({
-      title: "Hesabı Devret",
-      text: "Devir sonrası şifreniz geçersiz olur ve oturumunuz kapanır.",
-      inputLabel: "Yeni yöneticinin adı soyadı",
-      inputPlaceholder: "Ad Soyad",
-      confirmButtonText: "Devam",
-      validate: (val) => (!val || val.length < 2 ? "Ad soyad en az 2 karakter olmalıdır." : null),
-    });
-    if (!newPerson) return;
-
-    const password = await showDialog.passwordPrompt({
-      title: "Devri Onayla",
-      text: "Kimliğinizi doğrulamak için mevcut şifrenizi girin.",
-      confirmButtonText: "Devret",
-    });
-    if (!password) return;
-
-    let res;
-    try {
-      res = await window.electronAPI.transferAccount({ userId: session.id, password, newPerson });
-    } catch (err) {
-      console.error("[Profile] transferAccount:", err);
-      showDialog.error("Hata", "Hesap devredilemedi.");
-      return;
-    }
-
-    if (!res.success) {
-      showDialog.error("Hata", res.message);
-      return;
-    }
-
-    await showDialog.temporaryPassword({ managerName: newPerson, code: res.temporaryPassword });
-    await showDialog.transferredRecoveryCode(res.recoveryCode);
-    clearSession();
-    navigate("/", { replace: true });
-  };
-
   return (
     <div className="profile-container">
-      <div className="account-menu-row">
-        <AccountMenu />
-      </div>
+      <PageHeader title="Profilim" />
 
-      <h2 className="page-title">Profilim</h2>
-
-      <div className="profile-card">
-        <h3 className="profile-section-title">Hesap Bilgileri</h3>
-        <div className="info-grid">
-          <div className="info-item">
-            <span className="info-label">Ad Soyad</span>
-            <span className="info-value">{session?.managerName || "—"}</span>
+      <section className="page-band" aria-label="Hesap bilgileri">
+        <div className="pf-identity">
+          <div className="pf-cell pf-person">
+            <span className="pf-avatar" aria-hidden="true">
+              {initialsOf(session.managerName)}
+            </span>
+            <span className="pf-person-text">
+              <span className="pf-role">Site Yöneticisi</span>
+              <span className="pf-name" title={session.managerName}>
+                {session.managerName}
+              </span>
+            </span>
           </div>
-          <div className="info-item">
-            <span className="info-label">Giriş Kullanıcı Adı</span>
-            <span className="info-value">{session?.username}</span>
+          <div className="pf-cell">
+            <span className="pf-cell-label">Kullanıcı Adı</span>
+            <span className="pf-cell-value" title={session.username}>
+              {session.username}
+            </span>
           </div>
-          <div className="info-item">
-            <span className="info-label">E-posta</span>
-            <span className="info-value info-value-editable">
-              {session?.email || "—"}
-              <button className="btn-secondary btn-xs" onClick={handleUpdateEmail}>
-                {session?.email ? "Düzenle" : "Ekle"}
+          <div className="pf-cell">
+            <span className="pf-cell-label">E-posta</span>
+            <span className="pf-cell-row">
+              {session.email ? (
+                <span className="pf-cell-value" title={session.email}>
+                  {session.email}
+                </span>
+              ) : (
+                <span className="pf-cell-value pf-cell-value--blank">Eklenmedi</span>
+              )}
+              <button type="button" className="pf-inline-btn" onClick={handleUpdateEmail}>
+                {session.email ? "Düzenle" : "Ekle"}
               </button>
             </span>
           </div>
-          {building?.name && (
-            <div className="info-item">
-              <span className="info-label">Aktif Bina</span>
-              <span className="info-value">{building.name}</span>
-            </div>
-          )}
-          <div className="info-item">
-            <span className="info-label">Son Giriş</span>
-            <span className="info-value">{formatDate(session?.lastLogin)}</span>
-          </div>
         </div>
-      </div>
+      </section>
 
-      <div className="profile-card">
-        <h3 className="profile-section-title">Şifre Değiştir</h3>
-        <form onSubmit={handleChangePassword} className="password-form">
-          <div className="input-group">
-            <label htmlFor="old-password">Mevcut Şifre</label>
-            <input
-              id="old-password"
-              ref={oldPasswordRef}
-              type="password"
-              required
-              autoComplete="current-password"
-              value={oldPassword}
-              onChange={(e) => setOldPassword(e.target.value)}
-              placeholder="Mevcut şifrenizi girin"
-            />
-          </div>
-          <div className="password-row">
-            <div className="input-group">
-              <label htmlFor="new-password">Yeni Şifre</label>
-              <input
-                id="new-password"
-                type="password"
-                required
-                autoComplete="new-password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="En az 8 karakter"
-              />
-            </div>
-            <div className="input-group">
-              <label htmlFor="confirm-password">Yeni Şifre Tekrar</label>
-              <input
-                id="confirm-password"
-                type="password"
-                required
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Yeni şifreyi tekrar girin"
-              />
-            </div>
-          </div>
-          <div className="form-actions">
-            <button type="submit" className="btn-primary" disabled={isSubmitting}>
-              {isSubmitting ? "Kaydediliyor..." : "Şifreyi Değiştir"}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <div className="profile-card">
-        <h3 className="profile-section-title">Veri Yedeği</h3>
-        <p className="profile-muted">
-          Tüm kayıtlarınız yalnızca bu bilgisayarda saklanır. Yedek dosyasını harici bir diske ya da bulut klasörünüze
-          kaydedin; bilgisayar değişirse verinizi geri yüklemenin tek yolu budur.
-        </p>
-        <div className="profile-action-row">
-          <button className="btn-primary" onClick={handleBackup} disabled={backupRunning}>
-            {backupRunning ? "Yedekleniyor..." : "Yedek Al"}
-          </button>
+      <section className="page-band" aria-label="Güvenlik ve veri">
+        <div className="pf-cards">
+          <ActionCard
+            icon={<FiLock />}
+            title="Şifre"
+            text="Giriş şifrenizi yenileyin. Yeni şifre mevcut şifreden farklı olmalıdır."
+            actionIcon={<FiEdit2 />}
+            actionLabel="Şifreyi Değiştir"
+            onAction={() => setIsPasswordOpen(true)}
+          />
+          <ActionCard
+            icon={<FiKey />}
+            title="Kurtarma Kodu"
+            text="Şifre unutulduğunda giriş ekranından bu kodla yeni şifre belirlenir. Yeni kod üretilince eskisi geçersiz olur."
+            actionIcon={<FiRefreshCw />}
+            actionLabel="Yeni Kod Üret"
+            onAction={handleRegenerateRecovery}
+          />
+          <ActionCard
+            icon={<FiDatabase />}
+            title="Veri Yedeği"
+            text="Kayıtlar yalnızca bu bilgisayarda saklanır. Yedek dosyasını harici bir diske ya da bulut klasörüne kaydedin."
+            actionIcon={<FiDownload />}
+            actionLabel={backupRunning ? "Yedekleniyor..." : "Yedek Al"}
+            onAction={handleBackup}
+            isBusy={backupRunning}
+          />
+          <ActionCard
+            icon={<FiUserCheck />}
+            title="Hesabı Devret"
+            text="Hesap ve tüm kayıtlar yeni yöneticiye geçer. Başka bir bilgisayarda yüklenebilmesi için devir dosyası oluşturulur. Bu işlem geri alınamaz."
+            actionIcon={<FiRepeat />}
+            actionLabel="Hesabı Devret"
+            onAction={() => setIsTransferOpen(true)}
+            danger
+          />
         </div>
-      </div>
+      </section>
 
-      <div className="profile-card">
-        <h3 className="profile-section-title">Güvenlik</h3>
-        <p className="profile-muted">
-          Kurtarma kodu, şifrenizi unutursanız yeni şifre belirlemenin tek yoludur. Yeni kod ürettiğinizde eski kod
-          geçersiz olur.
-        </p>
-        <div className="profile-action-row">
-          <button className="btn-secondary" onClick={handleRegenerateRecovery}>
-            Yeni Kurtarma Kodu Üret
-          </button>
-        </div>
-      </div>
-
-      <div className="profile-card profile-card-danger">
-        <h3 className="profile-section-title">Yönetici Değişikliği</h3>
-        <p className="profile-muted">
-          Hesabı yeni bir yöneticiye devreder. Binalar ve geçmiş kayıtlar korunur;{" "}
-          <strong>şifreniz geçersiz olur</strong>, oturumunuz kapanır ve yeni yöneticiye bir kez gösterilen geçici şifre
-          üretilir. Bu işlem geri alınamaz.
-        </p>
-        <div className="profile-action-row">
-          <button className="btn-danger" onClick={handleTransfer}>
-            Hesabı Devret
-          </button>
-        </div>
-      </div>
-
-      <div className="return-link">
-        <button className="btn-secondary" onClick={() => navigate(building ? "/dashboard" : "/select-building")}>
-          Geri Dön
-        </button>
-      </div>
+      {isPasswordOpen && (
+        <PasswordModal userId={session.id} username={session.username} onClose={() => setIsPasswordOpen(false)} />
+      )}
+      {isTransferOpen && (
+        <TransferModal userId={session.id} username={session.username} onClose={() => setIsTransferOpen(false)} />
+      )}
     </div>
   );
 }

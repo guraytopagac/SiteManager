@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
   FiAlertTriangle,
@@ -18,6 +18,7 @@ import PageHeader from "@/components/PageHeader/PageHeader";
 import PeriodSelector from "@/components/PeriodSelector/PeriodSelector";
 import AddModal from "./BuildingViewModals/AddModal";
 import EditModal from "./BuildingViewModals/EditModal";
+import { useIpcData } from "@/hooks/useIpcData";
 import { useCurrentBuilding } from "@/hooks/useSession";
 import { showDialog } from "@/utils/dialog";
 import {
@@ -29,9 +30,6 @@ import {
 import { formatCurrency } from "@/utils/currency";
 import { clampMonth, formatMonthYear, getCurrentMonth, getCurrentYear } from "@/utils/date";
 import { floorLabel } from "@/utils/floorLabel";
-
-const SKELETON_LEVELS = [0, 1, 2, 3];
-const SKELETON_UNITS = [0, 1, 2];
 
 function countByStatus(units, status) {
   return units.filter((unit) => unit.status === status).length;
@@ -90,37 +88,14 @@ async function deleteApartmentFlow(unit, buildingId, onDone) {
 }
 
 function useBuildingUnits(buildingId, year, month) {
-  const [units, setUnits] = useState([]);
-  const [start, setStart] = useState(null);
-  const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [res, loadUnits] = useIpcData("getDuesForMonth", { buildingId, year, month });
 
-  const loadUnits = useCallback(async () => {
-    setErrorMessage("");
-
-    try {
-      const res = await window.electronAPI.getDuesForMonth({ buildingId, year, month });
-      if (res.success) {
-        setUnits(res.data);
-        setStart(res.start);
-      } else {
-        setErrorMessage(res.message || "Veriler alınamadı.");
-      }
-    } catch (err) {
-      console.error("[BuildingView] getDuesForMonth:", err);
-      setErrorMessage(UNEXPECTED_ERROR_MESSAGE);
-    }
-
-    setIsFirstLoad(false);
-  }, [buildingId, year, month]);
-
-  useEffect(() => {
-    (async () => {
-      await loadUnits();
-    })();
-  }, [loadUnits]);
-
-  return { units, start, isFirstLoad, errorMessage, loadUnits };
+  return {
+    units: res.success ? res.data : [],
+    start: res.success ? res.start : null,
+    errorMessage: res.success ? "" : res.message || "Veriler alınamadı.",
+    loadUnits,
+  };
 }
 
 function AddUnitButton({ floor, onAdd }) {
@@ -171,11 +146,11 @@ function UnitButton({ unit, isSelected, onSelect }) {
   );
 }
 
-function Facade({ levelCount, ariaHidden, children }) {
+function Facade({ levelCount, children }) {
   return (
     <div className="bv-scene">
       <div className="bv-yard">
-        <figure className="bv-facade" style={{ "--bv-levels": levelCount }} aria-hidden={ariaHidden}>
+        <figure className="bv-facade" style={{ "--bv-levels": levelCount }}>
           <div className="bv-wall">
             {children}
             <div className="bv-lobby" aria-hidden="true">
@@ -193,37 +168,17 @@ function Facade({ levelCount, ariaHidden, children }) {
 function StatusSummary({ units }) {
   return (
     <div className="bv-summary">
-      {units && <span className="bv-summary-total">{units.length} daire</span>}
+      <span className="bv-summary-total">{units.length} daire</span>
       <span className="bv-summary-items">
         {DUES_STATUS_ORDER.map((status) => (
           <span className="bv-summary-item" key={status}>
             <span className={`bv-summary-dot bv-summary-dot--${status}`} aria-hidden="true" />
-            {units && <b className="bv-summary-count">{countByStatus(units, status)}</b>}
+            <b className="bv-summary-count">{countByStatus(units, status)}</b>
             {DUES_STATUS_LABELS[status]}
           </span>
         ))}
       </span>
     </div>
-  );
-}
-
-function StageSkeleton() {
-  return (
-    <>
-      <Facade levelCount={SKELETON_LEVELS.length} ariaHidden>
-        {SKELETON_LEVELS.map((level) => (
-          <div className="bv-level" key={level}>
-            <span className="bv-floor bv-skeleton" />
-            <span className="bv-units">
-              {SKELETON_UNITS.map((cell) => (
-                <span className="bv-unit bv-skeleton" key={cell} />
-              ))}
-            </span>
-          </div>
-        ))}
-      </Facade>
-      <StatusSummary />
-    </>
   );
 }
 
@@ -358,10 +313,10 @@ function BuildingView() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
-  const { units, start, isFirstLoad, errorMessage, loadUnits } = useBuildingUnits(building.id, year, month);
+  const { units, start, errorMessage, loadUnits } = useBuildingUnits(building.id, year, month);
 
   const levels = groupByFloor(units);
-  const hasPlan = !isFirstLoad && !errorMessage && units.length > 0;
+  const hasPlan = !errorMessage && units.length > 0;
   const selectedUnit = units.find((unit) => unit.apartment_id === selectedId) ?? null;
 
   const handleYearChange = (nextYear) => {
@@ -381,8 +336,6 @@ function BuildingView() {
   };
 
   const renderStage = () => {
-    if (isFirstLoad) return <StageSkeleton />;
-
     if (errorMessage) {
       return (
         <StagePlaceholder

@@ -1,7 +1,7 @@
 import { FiSearch } from "react-icons/fi";
 import "./SearchBox.css";
 
-function SearchBox({ label, value, disabled, onChange }) {
+function SearchBox({ label, value, onChange }) {
   return (
     <label className="search-box">
       <FiSearch size={18} aria-hidden="true" />
@@ -11,7 +11,6 @@ function SearchBox({ label, value, disabled, onChange }) {
         placeholder={label}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
       />
     </label>
   );

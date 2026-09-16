@@ -18,17 +18,27 @@ export const RESIDENT_TYPE_LABELS = {
   tenant: "Kiracı",
 };
 
+export const PAYMENT_METHOD_LABELS = {
+  cash: "Nakit",
+  bank_transfer: "Havale / EFT",
+  card: "Kredi Kartı",
+  other: "Diğer",
+};
+
 export const INCOME_CATEGORIES = [
-  { value: "rent", label: "Kira" },
+  { value: "rent", label: "Ortak Alan Kirası" },
   { value: "parking", label: "Otopark" },
-  { value: "donation", label: "Bağış" },
+  { value: "utility_share", label: "Su / Isı Payı" },
+  { value: "special_fee", label: "Ortak Harcama" },
+  { value: "penalty", label: "Gecikme Bedeli" },
   { value: "other", label: "Diğer" },
 ];
 
 export const EXPENSE_CATEGORIES = [
-  { value: "maintenance", label: "Bakım & Onarım" },
+  { value: "maintenance", label: "Bakım / Onarım" },
   { value: "cleaning", label: "Temizlik" },
-  { value: "utility", label: "Fatura / Abonelik" },
+  { value: "utility", label: "Faturalar" },
+  { value: "heating", label: "Isınma / Yakıt" },
   { value: "staff", label: "Personel" },
   { value: "other", label: "Diğer" },
 ];

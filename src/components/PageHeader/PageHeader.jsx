@@ -11,17 +11,23 @@ function PageHeader({ title }) {
   return (
     <header className="page-band page-header">
       <div className="page-header-top">
-        <button type="button" className="page-header-back" onClick={() => navigate("/dashboard")}>
+        <button
+          type="button"
+          className="page-header-back"
+          onClick={() => navigate(building ? "/dashboard" : "/select-building")}
+        >
           <FiArrowLeft />
-          Panoya Dön
+          {building ? "Panoya Dön" : "Bina Seçimine Dön"}
         </button>
         <AccountMenu />
       </div>
       <div className="page-header-main">
         <h1 className="page-header-title">{title}</h1>
-        <span className="page-header-building" title={building.name}>
-          {building.name}
-        </span>
+        {building ? (
+          <span className="page-header-building" title={building.name}>
+            {building.name}
+          </span>
+        ) : null}
       </div>
     </header>
   );

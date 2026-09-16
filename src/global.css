@@ -265,10 +265,37 @@ body {
   }
 }
 
-.account-menu-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 16px;
+.du-md-overlay,
+.rs-md-overlay,
+.tx-md-overlay,
+.bv-md-overlay,
+.pf-md-overlay {
+  animation: modalOverlayIn 0.16s ease-out backwards;
+}
+
+.du-md-box,
+.rs-md-box,
+.tx-md-box,
+.bv-md-box,
+.pf-md-box {
+  animation: modalBoxIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes modalOverlayIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes modalBoxIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .auth-page {
@@ -595,6 +622,11 @@ textarea:focus-visible {
   line-height: 1.5;
   margin: 0.8em 0 0;
   text-align: left;
+}
+
+.swal-path {
+  color: var(--text-secondary);
+  word-break: break-all;
 }
 
 .swal-warning {

@@ -2,7 +2,7 @@ import { FiCalendar, FiChevronDown } from "react-icons/fi";
 import "./PeriodSelector.css";
 import { getMonthOptions, getYearOptions } from "@/utils/date";
 
-function PeriodSelector({ year, month, onYearChange, onMonthChange }) {
+function PeriodSelector({ year, month, onYearChange, onMonthChange, isMonthDisabled = false, isYearDisabled = false }) {
   return (
     <div className="ps-wrapper">
       <span className="ps-mark" aria-hidden="true">
@@ -10,7 +10,12 @@ function PeriodSelector({ year, month, onYearChange, onMonthChange }) {
       </span>
 
       <span className="ps-field">
-        <select aria-label="Ay" value={month} onChange={(e) => onMonthChange(Number(e.target.value))}>
+        <select
+          aria-label="Ay"
+          value={month}
+          onChange={(e) => onMonthChange(Number(e.target.value))}
+          disabled={isMonthDisabled}
+        >
           {getMonthOptions(year).map((m) => (
             <option key={m.value} value={m.value}>
               {m.label}
@@ -25,7 +30,12 @@ function PeriodSelector({ year, month, onYearChange, onMonthChange }) {
       <span className="ps-divider" aria-hidden="true" />
 
       <span className="ps-field">
-        <select aria-label="Yıl" value={year} onChange={(e) => onYearChange(Number(e.target.value))}>
+        <select
+          aria-label="Yıl"
+          value={year}
+          onChange={(e) => onYearChange(Number(e.target.value))}
+          disabled={isYearDisabled}
+        >
           {getYearOptions().map((y) => (
             <option key={y} value={y}>
               {y}

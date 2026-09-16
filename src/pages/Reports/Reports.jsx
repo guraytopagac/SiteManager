@@ -1,225 +1,387 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import "./Reports.css";
-import AccountMenu from "@/components/AccountMenu/AccountMenu";
-import { useCurrentBuilding } from "@/hooks/useSession";
-import { showDialog } from "@/utils/dialog";
-import { DUES_STATUS_LABELS, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  formatMonthYear,
-  formatDate,
-  getCurrentYear,
-  getCurrentMonth,
-  getYearOptions,
-  getMonthOptions,
-  clampMonth,
-} from "@/utils/date";
+  FiAlertTriangle,
+  FiCalendar,
+  FiCheckCircle,
+  FiChevronDown,
+  FiChevronLeft,
+  FiChevronRight,
+  FiDownload,
+  FiFileText,
+  FiRefreshCw,
+} from "react-icons/fi";
+import "./Reports.css";
+import PageHeader from "@/components/PageHeader/PageHeader";
+import PeriodSelector from "@/components/PeriodSelector/PeriodSelector";
+import { useIpcData } from "@/hooks/useIpcData";
+import { useCurrentBuilding, useSession } from "@/hooks/useSession";
+import { DUES_STATUS_LABELS, EMPTY_RESIDENT_LABEL, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import { formatCurrency, formatSignedCurrency } from "@/utils/currency";
-import { floorLabel } from "@/utils/floorLabel";
+import { clampMonth, formatMonthYear, getCurrentMonth, getCurrentYear, getYearOptions, toPeriod } from "@/utils/date";
+import { showDialog } from "@/utils/dialog";
+import { buildReportHtml } from "./ReportsPdf/buildReportHtml";
+import { categoryLabel, collectionRate, groupByCategory } from "./ReportsPdf/reportFigures";
 
-const fmt = formatCurrency;
+const SCOPES = [
+  {
+    key: "month",
+    label: "Aylık",
+    stepUnit: "ay",
+    exportNote: "Aylık rapor",
+    title: (year, month) => formatMonthYear(year, month),
+    fileSuffix: (year, month) => `${year}_${String(month).padStart(2, "0")}`,
+  },
+  {
+    key: "year",
+    label: "Yıllık",
+    stepUnit: "yıl",
+    exportNote: "Yıllık rapor",
+    title: (year) => `${year} Yılı`,
+    fileSuffix: (year) => `${year}`,
+  },
+  {
+    key: "all",
+    label: "Tüm Zamanlar",
+    stepUnit: null,
+    exportNote: "Binanın tüm kayıtları",
+    title: () => "Tüm Zamanlar",
+    fileSuffix: () => "tum_zamanlar",
+  },
+];
 
-const PDF_TEXT_MAP = {
-  ç: "c",
-  Ç: "C",
-  ğ: "g",
-  Ğ: "G",
-  ı: "i",
-  İ: "I",
-  ö: "o",
-  Ö: "O",
-  ş: "s",
-  Ş: "S",
-  ü: "u",
-  Ü: "U",
-  "₺": "TL",
-  "—": "-",
-  "–": "-",
-  "’": "'",
-  "‘": "'",
-  "“": '"',
-  "”": '"',
-  "…": "...",
-};
+function useReport(buildingId, scope, year, month) {
+  const [res, loadReport] = useIpcData("getReportData", { buildingId, scope, year, month });
 
-const PDF_MAPPED_CHARS = /[çÇğĞıİöÖşŞüÜ₺—–’‘“”…]/g;
-const PDF_UNSUPPORTED_CHARS = /[^\n\x20-\xFF]/g;
+  return {
+    report: res.success ? res.data : null,
+    errorMessage: res.success ? "" : res.message || "Rapor verileri alınamadı.",
+    loadReport,
+  };
+}
 
-const toPdfText = (value) =>
-  String(value ?? "")
-    .replace(PDF_MAPPED_CHARS, (char) => PDF_TEXT_MAP[char])
-    .replace(PDF_UNSUPPORTED_CHARS, "?");
+function TotalCell({ tone, label, value, isBlank }) {
+  return (
+    <div className={`rp-total rp-total--${tone}`}>
+      <span className="rp-total-label">{label}</span>
+      <span className={isBlank ? "rp-total-value rp-total-value--blank" : "rp-total-value"}>
+        {isBlank ? "—" : value}
+      </span>
+    </div>
+  );
+}
 
-const toPdfRow = (cells) => cells.map(toPdfText);
+function Totals({ report }) {
+  const isBlank = !report;
+  const income = report ? report.totalIncome : 0;
+  const expense = report ? report.totalExpense : 0;
 
-function buildFinanceRows(data) {
-  return [
-    ...data.incomes.map((r) => ({ ...r, rowType: "income" })),
-    ...data.expenses.map((r) => ({ ...r, rowType: "expense" })),
-  ].sort((a, b) => a.date.localeCompare(b.date));
+  return (
+    <div className="rp-totals">
+      <TotalCell tone="income" label="Gelir" value={formatSignedCurrency(income)} isBlank={isBlank} />
+      <TotalCell tone="expense" label="Gider" value={formatSignedCurrency(-expense)} isBlank={isBlank} />
+      <TotalCell tone="net" label="Net" value={formatSignedCurrency(income - expense)} isBlank={isBlank} />
+    </div>
+  );
+}
+
+function MissingNotice({ icon, tone, text }) {
+  return (
+    <div className="rp-miss-notice">
+      <span className={`rp-miss-notice-mark rp-miss-notice-mark--${tone}`} aria-hidden="true">
+        {icon}
+      </span>
+      <span>{text}</span>
+    </div>
+  );
+}
+
+function MissingList({ dues }) {
+  if (dues.length === 0) {
+    return <MissingNotice icon={<FiCalendar />} tone="muted" text="Rapor edilecek daire bulunmuyor." />;
+  }
+
+  const missing = dues.filter((row) => row.status !== "paid");
+
+  if (missing.length === 0) {
+    return <MissingNotice icon={<FiCheckCircle />} tone="clear" text="Tüm daireler aidatını ödedi." />;
+  }
+
+  return (
+    <div className="rp-miss-rows">
+      {missing.map((row) => (
+        <div className="rp-miss-row" key={row.apartment_id}>
+          <span className="rp-miss-unit">Daire {row.apartment_no}</span>
+          <span className={row.resident_name ? "rp-miss-name" : "rp-miss-name rp-miss-name--empty"}>
+            {row.resident_name || EMPTY_RESIDENT_LABEL}
+          </span>
+          <span className={`rp-miss-status rp-miss-status--${row.status}`}>{DUES_STATUS_LABELS[row.status]}</span>
+          <span className="rp-miss-amount">{formatCurrency(row.due_amount - row.paid_amount)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CollectPanel({ report }) {
+  const dues = report ? report.dues : [];
+  const hasDues = dues.length > 0;
+  const rate = report ? collectionRate(report.totalDue, report.totalPaid) : null;
+  const paidCount = dues.filter((row) => row.status === "paid").length;
+  const missingCount = dues.length - paidCount;
+
+  return (
+    <section className="rp-panel rp-panel--collect" aria-label="Aidat tahsilatı">
+      <span className="rp-panel-title">Aidat Tahsilatı</span>
+
+      <div className="rp-collect-head">
+        <span className={rate === null ? "rp-collect-rate rp-collect-rate--blank" : "rp-collect-rate"}>
+          {rate === null ? "—" : `%${rate}`}
+        </span>
+        <div className="rp-collect-bars">
+          <span className={rate === null ? "rp-collect-meter rp-collect-meter--blank" : "rp-collect-meter"}>
+            <i style={{ width: `${rate ?? 0}%` }} />
+          </span>
+          <span className="rp-collect-note">
+            {hasDues ? (
+              <>
+                <b>{formatCurrency(report.totalPaid)}</b> tahsil edildi, {dues.length} daireden {paidCount} tanesi
+                tamamını ödedi.
+              </>
+            ) : (
+              "Tahakkuk etmiş aidat yok."
+            )}
+          </span>
+        </div>
+      </div>
+
+      <div className="rp-miss">
+        <div className="rp-miss-head">
+          <span className="rp-miss-title">Ödemesi eksik daireler{missingCount > 0 ? ` (${missingCount})` : ""}</span>
+          {missingCount > 0 && <span className="rp-miss-amount-label">Kalan</span>}
+        </div>
+        <MissingList dues={dues} />
+      </div>
+    </section>
+  );
+}
+
+function BarGroup({ label, rows, total, tone, emptyLabel }) {
+  return (
+    <div className="rp-dist-group">
+      <span className="rp-dist-label">{label}</span>
+      {rows.length === 0 ? (
+        <p className="rp-dist-empty">{emptyLabel}</p>
+      ) : (
+        <div className="rp-dist-rows">
+          {rows.map((row) => (
+            <div className={`rp-bar-row rp-bar-row--${tone}`} key={row.category}>
+              <span className="rp-bar-fill" style={{ width: `${total > 0 ? (row.amount / total) * 100 : 0}%` }} />
+              <span className="rp-bar-name">{categoryLabel(row.category)}</span>
+              <span className="rp-bar-amount">{formatCurrency(row.amount)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DistributionPanel({ report }) {
+  const incomeRows = useMemo(() => (report ? groupByCategory(report.incomes) : []), [report]);
+  const expenseRows = useMemo(() => (report ? groupByCategory(report.expenses) : []), [report]);
+
+  return (
+    <section className="rp-panel rp-panel--dist" aria-label="Gelir ve gider dağılımı">
+      <span className="rp-panel-title">Dağılım</span>
+      <div className="rp-dist">
+        <BarGroup
+          label="Gelir"
+          rows={incomeRows}
+          total={report ? report.totalIncome : 0}
+          tone="income"
+          emptyLabel="Gelir kaydı yok."
+        />
+        <BarGroup
+          label="Gider"
+          rows={expenseRows}
+          total={report ? report.totalExpense : 0}
+          tone="expense"
+          emptyLabel="Gider kaydı yok."
+        />
+      </div>
+    </section>
+  );
+}
+
+function ErrorPanel({ message, onRetry }) {
+  return (
+    <div className="rp-error" role="alert">
+      <span className="rp-error-mark" aria-hidden="true">
+        <FiAlertTriangle />
+      </span>
+      <span className="rp-error-text">
+        <span className="rp-error-title">Rapor okunamadı</span>
+        <span className="rp-error-body">{message}</span>
+      </span>
+      <button type="button" className="rp-error-action" onClick={onRetry}>
+        <FiRefreshCw />
+        Yeniden Dene
+      </button>
+    </div>
+  );
+}
+
+function PeriodStepper({ scope, year, month, onChange }) {
+  const isMonthly = scope.key === "month";
+  const isYearly = scope.key === "year";
+  const minYear = Math.min(...getYearOptions());
+  const currentYear = getCurrentYear();
+  const period = toPeriod(year, month);
+
+  const canGoBack = isMonthly ? period > toPeriod(minYear, 1) : isYearly && year > minYear;
+  const canGoForward = isMonthly ? period < toPeriod(currentYear, getCurrentMonth()) : isYearly && year < currentYear;
+
+  const unit = scope.stepUnit ?? "dönem";
+  const backLabel = `Önceki ${unit}`;
+  const forwardLabel = `Sonraki ${unit}`;
+
+  const step = (direction) => {
+    if (isMonthly) {
+      const monthIndex = period - 1 + direction;
+      onChange(Math.floor(monthIndex / 12), (monthIndex % 12) + 1);
+    } else {
+      onChange(year + direction, month);
+    }
+  };
+
+  return (
+    <div className="rp-stepper">
+      <button
+        type="button"
+        className="rp-step-btn"
+        onClick={() => step(-1)}
+        disabled={!canGoBack}
+        aria-label={backLabel}
+        title={backLabel}
+      >
+        <FiChevronLeft aria-hidden="true" />
+      </button>
+
+      <PeriodSelector
+        year={year}
+        month={month}
+        onYearChange={(nextYear) => onChange(nextYear, month)}
+        onMonthChange={(nextMonth) => onChange(year, nextMonth)}
+        isMonthDisabled={!isMonthly}
+        isYearDisabled={!isMonthly && !isYearly}
+      />
+
+      <button
+        type="button"
+        className="rp-step-btn"
+        onClick={() => step(1)}
+        disabled={!canGoForward}
+        aria-label={forwardLabel}
+        title={forwardLabel}
+      >
+        <FiChevronRight aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
+function ExportMenu({ year, month, isExporting, onExport }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const wrapperRef = useRef(null);
+  const triggerRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleMouseDown = (e) => {
+      if (!wrapperRef.current?.contains(e.target)) setIsOpen(false);
+    };
+    const handleKeyDown = (e) => {
+      if (e.key !== "Escape") return;
+      setIsOpen(false);
+      triggerRef.current?.focus();
+    };
+
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
+  const handleSelect = (scope) => {
+    setIsOpen(false);
+    onExport(scope);
+  };
+
+  return (
+    <div className="rp-export" ref={wrapperRef}>
+      <button
+        type="button"
+        className="rp-export-trigger"
+        ref={triggerRef}
+        onClick={() => setIsOpen((open) => !open)}
+        disabled={isExporting}
+        aria-haspopup="true"
+        aria-expanded={isOpen}
+        aria-busy={isExporting}
+      >
+        <FiDownload aria-hidden="true" />
+        PDF İndir
+        <FiChevronDown className={isOpen ? "rp-export-caret rp-export-caret--open" : "rp-export-caret"} />
+      </button>
+
+      {isOpen && (
+        <div className="rp-export-panel">
+          {SCOPES.map((scope) => (
+            <button key={scope.key} type="button" className="rp-export-item" onClick={() => handleSelect(scope)}>
+              <FiFileText aria-hidden="true" />
+              <span className="rp-export-item-text">
+                <span className="rp-export-item-title">{scope.title(year, month)}</span>
+                <span className="rp-export-item-note">{scope.exportNote}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Reports() {
-  const navigate = useNavigate();
   const building = useCurrentBuilding();
+  const session = useSession();
 
-  const [year, setYear] = useState(() => getCurrentYear());
-  const [month, setMonth] = useState(() => getCurrentMonth());
-  const [reportData, setReportData] = useState(null);
-  const [loadedPeriod, setLoadedPeriod] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("finance");
+  const [selectedScope, setSelectedScope] = useState("month");
+  const [selectedYear, setSelectedYear] = useState(() => getCurrentYear());
+  const [selectedMonth, setSelectedMonth] = useState(() => getCurrentMonth());
+  const [isExporting, setIsExporting] = useState(false);
 
-  const isMountedRef = useRef(true);
+  const { report, errorMessage, loadReport } = useReport(building.id, selectedScope, selectedYear, selectedMonth);
 
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
-  const fetchReport = useCallback(
-    async (selectedYear, selectedMonth) => {
-      if (!building?.id) {
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      try {
-        const res = await window.electronAPI.getReportData({
-          buildingId: building.id,
-          year: selectedYear,
-          month: selectedMonth,
-        });
-        if (!isMountedRef.current) return;
-        if (res.success) {
-          setReportData(res.data);
-          setLoadedPeriod({ year: selectedYear, month: selectedMonth });
-          setActiveTab("finance");
-        } else {
-          showDialog.error("Hata", res.message || "Rapor verileri alınamadı.");
-        }
-      } catch (err) {
-        console.error("[Reports] getReportData:", err);
-        if (isMountedRef.current) showDialog.error("Hata", UNEXPECTED_ERROR_MESSAGE);
-      } finally {
-        if (isMountedRef.current) setLoading(false);
-      }
-    },
-    [building],
-  );
-
-  useEffect(() => {
-    (async () => {
-      await fetchReport(getCurrentYear(), getCurrentMonth());
-    })();
-  }, [fetchReport]);
-
-  const handleYearChange = (selectedYear) => {
-    setYear(selectedYear);
-    setMonth((prev) => clampMonth(selectedYear, prev));
+  const changePeriod = (year, month) => {
+    setSelectedYear(year);
+    setSelectedMonth(clampMonth(year, month));
   };
 
-  const collectionRate =
-    reportData && reportData.totalDue > 0 ? Math.round((reportData.totalPaid / reportData.totalDue) * 100) : null;
-
-  const financeRows = useMemo(() => (reportData ? buildFinanceRows(reportData) : []), [reportData]);
-
-  const buildPdf = () => {
-    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const buildingName = building?.name || "Mavikent Site Yönetimi";
-    const period = loadedPeriod ?? { year, month };
-    const title = `${buildingName} ${formatMonthYear(period.year, period.month)} Raporu`;
-    const pageW = doc.internal.pageSize.getWidth();
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(15);
-    doc.text(toPdfText(title), pageW / 2, 18, { align: "center" });
-    doc.setDrawColor(180, 180, 180);
-    doc.line(14, 22, pageW - 14, 22);
-
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.text(toPdfText("Özet"), 14, 30);
-    autoTable(doc, {
-      startY: 33,
-      head: [toPdfRow(["Toplam Gelir", "Toplam Gider", "Net Kasa", "Aidat Tahsilat"])],
-      body: [
-        toPdfRow([
-          fmt(reportData.totalIncome),
-          fmt(reportData.totalExpense),
-          fmt(reportData.totalIncome - reportData.totalExpense),
-          collectionRate === null ? "—" : `%${collectionRate}`,
-        ]),
-      ],
-      styles: { fontSize: 9, halign: "center" },
-      headStyles: { fillColor: [37, 99, 235] },
-      margin: { left: 14, right: 14 },
-    });
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text(toPdfText("Gelir / Gider Detayı"), 14, doc.lastAutoTable.finalY + 10);
-
-    const pdfFinanceRows = financeRows.map((r) =>
-      toPdfRow([
-        r.date,
-        r.rowType === "income" ? "Gelir" : "Gider",
-        r.description,
-        formatSignedCurrency(r.rowType === "income" ? r.amount : -r.amount),
-      ]),
-    );
-
-    autoTable(doc, {
-      startY: doc.lastAutoTable.finalY + 13,
-      head: [toPdfRow(["Tarih", "Tür", "Açıklama", "Tutar"])],
-      body: pdfFinanceRows.length > 0 ? pdfFinanceRows : [toPdfRow(["—", "—", "Bu ay için kayıt bulunamadı.", "—"])],
-      styles: { fontSize: 8.5 },
-      headStyles: { fillColor: [37, 99, 235] },
-      columnStyles: { 3: { halign: "right" } },
-      margin: { left: 14, right: 14 },
-    });
-
-    doc.addPage();
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text(toPdfText("Aidat Tahsilat Durumu"), 14, 18);
-
-    autoTable(doc, {
-      startY: 22,
-      head: [toPdfRow(["Daire No", "Kat", "Tip", "Sakin", "Aidat", "Ödenen", "Durum"])],
-      body:
-        reportData.dues.length > 0
-          ? reportData.dues.map((d) =>
-              toPdfRow([
-                d.apartment_no,
-                floorLabel(d.floor),
-                d.type,
-                d.resident_name || "—",
-                fmt(d.due_amount),
-                fmt(d.paid_amount),
-                DUES_STATUS_LABELS[d.status],
-              ]),
-            )
-          : [toPdfRow(["—", "—", "—", "Bu ay için aidat kaydı bulunamadı.", "—", "—", "—"])],
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [37, 99, 235] },
-      columnStyles: { 4: { halign: "right" }, 5: { halign: "right" } },
-      margin: { left: 14, right: 14 },
-    });
-
-    return doc.output("arraybuffer");
-  };
-
-  const handleExportPdf = async () => {
+  const saveReport = async (data, scope) => {
     try {
-      const buffer = buildPdf();
-      const period = loadedPeriod ?? { year, month };
-      const filename = `rapor_${period.year}_${String(period.month).padStart(2, "0")}.pdf`;
-      const res = await window.electronAPI.saveReportFile({ filename, buffer: new Uint8Array(buffer) });
+      const html = buildReportHtml({
+        data,
+        scope,
+        year: selectedYear,
+        month: selectedMonth,
+        buildingName: building.name,
+        managerName: session.managerName,
+      });
+      const filename = `rapor_${scope.fileSuffix(selectedYear, selectedMonth)}.pdf`;
+      const res = await window.electronAPI.saveReportFile({ filename, html });
       if (res.success) {
         showDialog.toast("Rapor Kaydedildi", res.message);
       } else if (!res.cancelled) {
@@ -231,189 +393,70 @@ function Reports() {
     }
   };
 
+  const handleExport = async (scope) => {
+    setIsExporting(true);
+    try {
+      const res = await window.electronAPI.getReportData({
+        buildingId: building.id,
+        scope: scope.key,
+        year: selectedYear,
+        month: selectedMonth,
+      });
+      if (res.success) {
+        await saveReport(res.data, scope);
+      } else {
+        showDialog.error("Hata", res.message || "Rapor verileri alınamadı.");
+      }
+    } catch (err) {
+      console.error("[Reports] getReportData:", err);
+      showDialog.error("Hata", UNEXPECTED_ERROR_MESSAGE);
+    }
+    setIsExporting(false);
+  };
+
   return (
     <div className="reports-container">
-      <div className="account-menu-row">
-        <AccountMenu />
-      </div>
+      <PageHeader title="Raporlar" />
 
-      <div className="reports-header">
-        <h2>Raporlar</h2>
-      </div>
-
-      <div className="period-selector">
-        <div className="period-controls">
-          <div className="select-group">
-            <label>Yıl</label>
-            <select value={year} onChange={(e) => handleYearChange(Number(e.target.value))}>
-              {getYearOptions().map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="select-group">
-            <label>Ay</label>
-            <select value={month} onChange={(e) => setMonth(Number(e.target.value))}>
-              {getMonthOptions(year).map((m) => (
-                <option key={m.value} value={m.value}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button
-            className="button button-primary"
-            onClick={() => fetchReport(year, month)}
-            disabled={loading}
-            aria-busy={loading}
-          >
-            {loading ? "Yükleniyor..." : "Raporu Göster"}
-          </button>
+      <section className="page-band rp-control-row" aria-label="Rapor türü ve dışa aktarma">
+        <div className="rp-scope" role="group" aria-label="Ekrandaki rapor türü">
+          {SCOPES.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={item.key === selectedScope ? "rp-scope-btn rp-scope-btn--active" : "rp-scope-btn"}
+              onClick={() => setSelectedScope(item.key)}
+              aria-pressed={item.key === selectedScope}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
 
-        {reportData && (
-          <div className="export-buttons">
-            <button className="button button-pdf" onClick={handleExportPdf}>
-              PDF İndir
-            </button>
-          </div>
-        )}
-      </div>
+        <PeriodStepper
+          scope={SCOPES.find((item) => item.key === selectedScope)}
+          year={selectedYear}
+          month={selectedMonth}
+          onChange={changePeriod}
+        />
 
-      {reportData && (
-        <>
-          {loadedPeriod && (
-            <p className="report-period-label">{formatMonthYear(loadedPeriod.year, loadedPeriod.month)} raporu</p>
+        <ExportMenu year={selectedYear} month={selectedMonth} isExporting={isExporting} onExport={handleExport} />
+      </section>
+
+      <section className="page-band" aria-label="Rapor özeti">
+        <div className="rp-sheet">
+          <Totals report={report} />
+
+          {errorMessage ? (
+            <ErrorPanel message={errorMessage} onRetry={loadReport} />
+          ) : (
+            <div className="rp-panels">
+              <CollectPanel report={report} />
+              <DistributionPanel report={report} />
+            </div>
           )}
-          <div className="report-summary">
-            <div className="summary-card income">
-              <span className="summary-label">Toplam Gelir</span>
-              <span className="summary-amount">{fmt(reportData.totalIncome)}</span>
-            </div>
-            <div className="summary-card expense">
-              <span className="summary-label">Toplam Gider</span>
-              <span className="summary-amount">{fmt(reportData.totalExpense)}</span>
-            </div>
-            <div
-              className={`summary-card net ${reportData.totalIncome - reportData.totalExpense >= 0 ? "positive" : "negative"}`}
-            >
-              <span className="summary-label">Net Kasa</span>
-              <span className="summary-amount">{fmt(reportData.totalIncome - reportData.totalExpense)}</span>
-            </div>
-            <div className="summary-card collection">
-              <span className="summary-label">Aidat Tahsilat</span>
-              <span className="summary-amount">{collectionRate === null ? "—" : `%${collectionRate}`}</span>
-            </div>
-          </div>
-
-          <div className="report-tabs">
-            <button
-              className={`report-tab ${activeTab === "finance" ? "active" : ""}`}
-              onClick={() => setActiveTab("finance")}
-            >
-              Gelir / Gider ({reportData.incomes.length + reportData.expenses.length})
-            </button>
-            <button
-              className={`report-tab ${activeTab === "dues" ? "active" : ""}`}
-              onClick={() => setActiveTab("dues")}
-            >
-              Aidat Tahsilat ({reportData.dues.length})
-            </button>
-          </div>
-
-          {activeTab === "finance" && (
-            <table className="report-table">
-              <thead>
-                <tr>
-                  <th>Tarih</th>
-                  <th>Tür</th>
-                  <th>Açıklama</th>
-                  <th className="amount-header">Tutar</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportData.incomes.length === 0 && reportData.expenses.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="empty-cell">
-                      Bu ay için kayıt bulunamadı.
-                    </td>
-                  </tr>
-                ) : (
-                  financeRows.map((r) => (
-                    <tr key={`${r.rowType}-${r.id}`}>
-                      <td className="date-cell">{formatDate(r.date)}</td>
-                      <td>
-                        <span className={`type-badge type-${r.rowType}`}>
-                          {r.rowType === "income" ? "Gelir" : "Gider"}
-                        </span>
-                      </td>
-                      <td>{r.description}</td>
-                      <td className={`amount-cell amount-${r.rowType}`}>
-                        {formatSignedCurrency(r.rowType === "income" ? r.amount : -r.amount)}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          )}
-
-          {activeTab === "dues" && (
-            <table className="report-table">
-              <thead>
-                <tr>
-                  <th>Daire No</th>
-                  <th>Kat</th>
-                  <th>Tip</th>
-                  <th>Sakin</th>
-                  <th className="amount-header">Aidat</th>
-                  <th className="amount-header">Ödenen</th>
-                  <th>Durum</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportData.dues.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="empty-cell">
-                      Bu ay için aidat kaydı bulunamadı.
-                    </td>
-                  </tr>
-                ) : (
-                  reportData.dues.map((d) => (
-                    <tr key={d.apartment_id}>
-                      <td>{d.apartment_no}</td>
-                      <td>{floorLabel(d.floor)}</td>
-                      <td>{d.type}</td>
-                      <td>{d.resident_name || "—"}</td>
-                      <td className="amount-cell">{fmt(d.due_amount)}</td>
-                      <td className="amount-cell">{fmt(d.paid_amount)}</td>
-                      <td>
-                        <span className={`status-badge status-${d.status}`}>{DUES_STATUS_LABELS[d.status]}</span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          )}
-        </>
-      )}
-
-      {!reportData && !loading && (
-        <div className="reports-empty">
-          <p>Rapor verisi yüklenemedi. Bir dönem seçip "Raporu Göster" butonuna tıklayın.</p>
         </div>
-      )}
-
-      <hr className="reports-divider" />
-
-      <div className="return-link">
-        <button onClick={() => navigate("/dashboard")} className="button button-back">
-          Geri Dön
-        </button>
-      </div>
+      </section>
     </div>
   );
 }

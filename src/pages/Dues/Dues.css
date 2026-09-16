@@ -107,14 +107,9 @@
     background-color 0.15s ease;
 }
 
-.du-pill:hover:not(:disabled) {
+.du-pill:hover {
   border-color: var(--text-secondary);
   color: var(--text-color);
-}
-
-.du-pill:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 
 .du-pill:focus-visible {
@@ -575,79 +570,4 @@
 .du-state-action svg {
   width: 18px;
   height: 18px;
-}
-
-.du-skeleton {
-  border-radius: 8px;
-  background: linear-gradient(
-    90deg,
-    var(--border-default) 0%,
-    color-mix(in srgb, var(--border-default) 45%, transparent) 50%,
-    var(--border-default) 100%
-  );
-  background-size: 200% 100%;
-  animation: apShimmer 1.4s ease-in-out infinite;
-}
-
-@keyframes apShimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
-}
-
-.unit-tag.du-skeleton {
-  border-color: transparent;
-  border-radius: 11px;
-}
-
-.du-skeleton-floor {
-  width: 52px;
-  height: 12px;
-  border-radius: 999px;
-}
-
-.du-skeleton-name,
-.du-skeleton-pay,
-.du-skeleton-chip,
-.du-skeleton-action {
-  margin-inline: auto;
-}
-
-.du-skeleton-name {
-  width: 130px;
-  height: 14px;
-}
-
-.du-skeleton-pay {
-  width: 190px;
-  height: 14px;
-}
-
-.du-skeleton-chip {
-  width: 146px;
-  height: 30px;
-  border-radius: 999px;
-}
-
-.du-skeleton-action {
-  width: 100px;
-  height: 40px;
-  border-radius: 10px;
-}
-
-.du-collect-value.du-skeleton {
-  width: 72px;
-  height: 26px;
-}
-
-.du-collect-amounts.du-skeleton {
-  width: 180px;
-  height: 18px;
-}
-
-.du-collect-meter.du-skeleton span {
-  display: none;
 }

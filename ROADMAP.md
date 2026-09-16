@@ -94,6 +94,29 @@
 - **Gerçek borç:** Kalan sayfa CSS dosyaları. Yoğunlukları yukarıdaki komutla ölçülür, sayı buraya yazılmaz.
 - **Kural:** **Toplu sweep yapma.** Yoğun tablo sayfalarında satır yüksekliği ve sütun genişliği değişir, her sayfa iki temada gözle doğrulanmalıdır. Bir sayfaya dokunulduğunda o sayfa yükseltilir.
 
+### U2. SweetAlert diyaloglarının modale taşınması 🔴
+
+- **Karar:** Kullanıcı isteğiyle, form taşıyan diyalogların çoğu sayfa modallerine (`<Sayfa>Modals/`) taşınacak. İlk adım atıldı: şifre değiştirme ve hesap devri `ProfileModals/` altındadır.
+- **Neden:** SweetAlert girdi kutuları oturum ekranlarının alan dilini (`AuthField`, Caps Lock rozeti, göster/gizle, alan içi hata) taşımıyor. Birden fazla alan gerektiren akışlar da art arda diyaloglara bölünüyor, kullanıcı bir adımda vazgeçince önceki girdiler kayboluyor.
+- **Adaylar:** `showDialog.prompt` (e-posta), `showDialog.passwordPrompt` (kurtarma kodu üretimi) ve `showDialog.cancelReason` (ödeme, gelir ve gider iptali) çağrıları.
+- **Karar gerekiyor:** Hangi diyaloglar SweetAlert'te kalacak. Öneri: `toast`, `confirm`/`confirmDanger`, `error` ve bir kez gösterilen kod diyalogları (`codeDialog`) kalır, çünkü form taşımazlar. Taşıma bittiğinde `dialog.js`'ten kullanılmayan metodlar silinir ve `CLAUDE.md` §11'in dialog bölümü güncellenir.
+- **Doğrulama:** `grep -rn "showDialog\.\(prompt\|passwordPrompt\|cancelReason\)" src`
+
+### U3. Binanın adresi tutulmuyor, belgelerde adres satırı yok 🟡
+
+- **Kanıt:** `buildings` tablosunda adres kolonu yok (`database/schema/02_buildings.sql`). Tahsilat makbuzu ile gider pusulasının başlığı (`src/pages/Transactions/TransactionsPdf/TransactionDocument.jsx` → `Header`) bu yüzden yalnızca bina adını ve `YÖNETİMİ` satırını basar.
+- **Hedef:** Kâğıt makbuzlarda başlığın altında apartmanın açık adresi durur. Adres tutulmaya başladığında `Header` bileşeninin kutusuna `YÖNETİMİ` satırının altında bir adres satırı eklenir, iki belge de aynı bileşeni kullandığı için tek yerde değişir. Kutu 22mm yüksekliğindedir, adres satırı eklenirken belgelerin tek sayfaya sığdığı yeniden ölçülmelidir.
+- **Karar gerekiyor:** Adresin nerede girileceği (bina kurulum sihirbazı, `SelectBuilding`'in yeniden adlandırma formu ya da ayrı bir bina bilgileri ekranı) ve zorunlu olup olmadığı. Şema ile `building` IPC'si değişeceği için `CLAUDE.md` §3 gereği önce onay alınmalıdır.
+- **Doğrulama:** `grep -n "address" database/schema/02_buildings.sql` (çıktı boş)
+
+### U4. Binanın açılış kasası tutulmuyor 🟡
+
+- **Kanıt:** `buildings` tablosunda başlangıç bakiyesi kolonu yok (`database/schema/02_buildings.sql`). `report/service.js` → `getReportData` devreden kasayı (`openingBalance`) yalnızca aralıktan önceki iptalsiz gelir eksi giderden hesaplar, yani defterin ilk gününden önce var olan para hiçbir yerde durmaz.
+- **Sonuç:** Yönetimi devralan ya da defteri yıl ortasında açan kullanıcı kasadaki mevcut parayı giremez. Bugünkü tek yol, tutarı `Diğer` kategorisiyle bir gelir satırı olarak yazmaktır, o da kasa hareketleri listesinde gerçek bir tahsilat gibi görünür.
+- **Hedef:** Para binanın kendi alanı olsun, gelir kategorisi değil. Gelir kategorisi seçeneği tartışıldı ve seçilmedi: altı yuvadan birini yerdi ve o satıra makbuz kesilebilir olurdu (`CLAUDE.md` §11).
+- **Karar gerekiyor:** Değerin nerede girileceği (bina kurulum sihirbazının bir adımı ya da bina bilgileri ekranı), hangi tarihten itibaren geçerli sayılacağı ve raporun `all` kapsamında nasıl görüneceği (`openingBalance` o kapsamda bugün `null`'dur). Şema, `building` IPC'si ve rapor sözleşmesi değişeceği için `CLAUDE.md` §3 gereği önce onay alınmalıdır.
+- **Doğrulama:** `grep -n "opening" database/schema/02_buildings.sql` (çıktı boş)
+
 ---
 
 ## 6. Bilinçli Kararlar (dokunma)

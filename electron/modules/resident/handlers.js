@@ -3,6 +3,7 @@
 // field.
 const { CHANNELS: CH } = require("../../ipc/channels");
 const { createHandle } = require("../../ipc/createHandle");
+const { formatPersonName } = require("../shared/personName");
 const {
   fail,
   isValidDate,
@@ -63,6 +64,9 @@ function normalizeResidentData(payload) {
     } else if (value === undefined) {
       payload[field] = null;
     }
+  }
+  if (typeof payload.full_name === "string") {
+    payload.full_name = formatPersonName(payload.full_name);
   }
 }
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiAlertTriangle,
@@ -17,7 +17,11 @@ import PageHeader from "@/components/PageHeader/PageHeader";
 import Pager from "@/components/Pager/Pager";
 import PeriodSelector from "@/components/PeriodSelector/PeriodSelector";
 import SearchBox from "@/components/SearchBox/SearchBox";
+import DetailModal from "./TransactionsModals/DetailModal";
+import DocumentModal from "./TransactionsModals/DocumentModal";
 import TransactionModal from "./TransactionsModals/TransactionModal";
+import { useIpcData } from "@/hooks/useIpcData";
+import { usePagination } from "@/hooks/usePagination";
 import { useCurrentBuilding, useSession } from "@/hooks/useSession";
 import { TRANSACTION_CATEGORY_LABELS, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import { formatSignedCurrency } from "@/utils/currency";
@@ -38,39 +42,15 @@ const FILTER_PILLS = [
 const EMPTY_TOTALS = { totalIncome: 0, totalExpense: 0, net: 0 };
 
 function useTransactions(buildingId, year, month) {
-  const [transactions, setTransactions] = useState([]);
-  const [totals, setTotals] = useState(EMPTY_TOTALS);
-  const [start, setStart] = useState(null);
-  const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [res, loadTransactions] = useIpcData("getTransactions", { buildingId, period: { year, month } });
 
-  const loadTransactions = useCallback(async () => {
-    setErrorMessage("");
-
-    try {
-      const res = await window.electronAPI.getTransactions({ buildingId, period: { year, month } });
-      if (res.success) {
-        setTransactions(res.data);
-        setTotals(res.totals);
-        setStart(res.start);
-      } else {
-        setErrorMessage(res.message || "İşlem listesi alınamadı.");
-      }
-    } catch (err) {
-      console.error("[Transactions] getTransactions:", err);
-      setErrorMessage(UNEXPECTED_ERROR_MESSAGE);
-    }
-
-    setIsFirstLoad(false);
-  }, [buildingId, year, month]);
-
-  useEffect(() => {
-    (async () => {
-      await loadTransactions();
-    })();
-  }, [loadTransactions]);
-
-  return { transactions, totals, start, isFirstLoad, errorMessage, loadTransactions };
+  return {
+    transactions: res.success ? res.data : [],
+    totals: res.success ? res.totals : EMPTY_TOTALS,
+    start: res.success ? res.start : null,
+    errorMessage: res.success ? "" : res.message || "İşlem listesi alınamadı.",
+    loadTransactions,
+  };
 }
 
 function TableShell({ overlay, spacerCount = 0, children }) {
@@ -107,85 +87,25 @@ function TableShell({ overlay, spacerCount = 0, children }) {
   );
 }
 
-function CancelCell({ transaction, onCancel }) {
-  if (transaction.is_cancelled) {
-    return (
-      <button
-        type="button"
-        className="tx-detail-btn"
-        onClick={() =>
-          showDialog.cancelledRecord({
-            reason: transaction.cancel_reason,
-            date: formatDate(transaction.cancelled_at),
-          })
-        }
-        title="İptal nedenini görüntüle"
-      >
-        Detay
-      </button>
-    );
-  }
-
-  if (transaction.category === "dues") {
-    return (
-      <span className="tx-slot tx-locked" title="Aidat geliri yalnızca ödemesi iptal edilerek geri alınır">
-        —
-      </span>
-    );
-  }
-
-  return (
-    <button type="button" className="tx-cancel-btn" onClick={onCancel}>
-      İptal Et
-    </button>
-  );
-}
-
-function TransactionRow({ transaction, onCancel }) {
+function TransactionRow({ transaction, onOpen }) {
   const signedAmount = transaction.type === "income" ? transaction.amount : -transaction.amount;
 
   return (
     <tr className={transaction.is_cancelled ? "tx-row--cancelled" : undefined}>
       <td className="tx-date">{formatDate(transaction.date)}</td>
       <td className="tx-category">{TRANSACTION_CATEGORY_LABELS[transaction.category] ?? transaction.category}</td>
-      <td className="tx-desc" title={transaction.description}>
-        {transaction.is_cancelled && <span className="tx-cancelled-tag">İptal edildi ·</span>}
-        {transaction.description}
+      <td className="tx-desc" title={transaction.description || undefined}>
+        {transaction.is_cancelled ? <span className="tx-cancelled-tag">İptal edildi ·</span> : null}
+        {transaction.description || "—"}
       </td>
       <td className={`tx-amount tx-amount--${transaction.type}`}>{formatSignedCurrency(signedAmount)}</td>
       <td>
-        <CancelCell transaction={transaction} onCancel={onCancel} />
+        <button type="button" className="tx-detail-btn" onClick={onOpen}>
+          Detay
+        </button>
       </td>
     </tr>
   );
-}
-
-function SkeletonRows() {
-  const skeletons = [];
-
-  for (let index = 0; index < PAGE_SIZE; index += 1) {
-    skeletons.push(
-      <tr key={`skeleton-${index}`}>
-        <td>
-          <div className="tx-skeleton tx-skeleton-date" />
-        </td>
-        <td>
-          <div className="tx-skeleton tx-skeleton-category" />
-        </td>
-        <td>
-          <div className="tx-skeleton tx-skeleton-desc" />
-        </td>
-        <td>
-          <div className="tx-skeleton tx-skeleton-amount" />
-        </td>
-        <td>
-          <div className="tx-skeleton tx-skeleton-action" />
-        </td>
-      </tr>,
-    );
-  }
-
-  return skeletons;
 }
 
 function ListPlaceholder({ icon, tone, title, body, actionIcon, actionLabel, onAction, role }) {
@@ -215,7 +135,16 @@ function ListPlaceholder({ icon, tone, title, body, actionIcon, actionLabel, onA
   );
 }
 
-function NetSummary({ totals, isFirstLoad, hasError }) {
+function NetRow({ label, tone, amount, isBlank }) {
+  return (
+    <div className="tx-net-row">
+      <span>{label}</span>
+      <b className={isBlank ? "tx-net--zero" : `tx-net--${tone}`}>{isBlank ? "—" : formatSignedCurrency(amount)}</b>
+    </div>
+  );
+}
+
+function NetSummary({ totals, hasError }) {
   const isBlank = hasError;
 
   return (
@@ -227,40 +156,29 @@ function NetSummary({ totals, isFirstLoad, hasError }) {
           </span>
           Net
         </span>
-        {isFirstLoad ? (
-          <span className="tx-net-value tx-skeleton" aria-hidden="true" />
-        ) : (
-          <span className={isBlank ? "tx-net-value tx-net-value--blank" : `tx-net-value ${netToneClass(totals.net)}`}>
-            {isBlank ? "—" : formatSignedCurrency(totals.net)}
-          </span>
-        )}
+        <span className={isBlank ? "tx-net-value tx-net--zero" : `tx-net-value ${netToneClass(totals.net)}`}>
+          {isBlank ? "—" : formatSignedCurrency(totals.net)}
+        </span>
       </div>
 
-      {isFirstLoad ? (
-        <span className="tx-net-amounts tx-skeleton" aria-hidden="true" />
-      ) : (
-        <span className="tx-net-amounts">
-          {isBlank ? (
-            "Dönem özeti okunamadı"
-          ) : (
-            <>
-              <b>{formatSignedCurrency(totals.totalIncome)}</b> · <b>{formatSignedCurrency(-totals.totalExpense)}</b>
-            </>
-          )}
-        </span>
-      )}
+      <div className="tx-net-split">
+        <NetRow label="Gelir" tone="positive" amount={totals.totalIncome} isBlank={isBlank} />
+        <NetRow label="Gider" tone="negative" amount={-totals.totalExpense} isBlank={isBlank} />
+      </div>
     </section>
   );
 }
 
-function netToneClass(net) {
-  return net < 0 ? "tx-net-value--negative" : "tx-net-value--positive";
+function netToneClass(amount) {
+  if (amount > 0) return "tx-net--positive";
+  if (amount < 0) return "tx-net--negative";
+  return "tx-net--zero";
 }
 
-function CardAction({ icon, tone, label, onClick }) {
+function CardAction({ icon, label, onClick }) {
   return (
     <button type="button" className="tx-card-action" onClick={onClick}>
-      <span className={`tx-card-action-mark tx-card-action-mark--${tone}`} aria-hidden="true">
+      <span className="tx-card-action-mark" aria-hidden="true">
         {icon}
       </span>
       <span className="tx-card-action-title">{label}</span>
@@ -273,8 +191,8 @@ function ActionsCard({ onAdd }) {
     <section className="tx-card tx-actions" aria-label="İlgili işlemler">
       <span className="tx-card-title">İlgili İşlemler</span>
       <div className="tx-card-actions">
-        <CardAction icon={<FiArrowUpCircle />} tone="positive" label="Gelir Ekle" onClick={() => onAdd("income")} />
-        <CardAction icon={<FiArrowDownCircle />} tone="negative" label="Gider Ekle" onClick={() => onAdd("expense")} />
+        <CardAction icon={<FiArrowUpCircle />} label="Gelir Ekle" onClick={() => onAdd("income")} />
+        <CardAction icon={<FiArrowDownCircle />} label="Gider Ekle" onClick={() => onAdd("expense")} />
       </div>
     </section>
   );
@@ -308,9 +226,8 @@ function TransactionsControlBar({
   onFilterChange,
   searchTerm,
   onSearchChange,
-  isFirstLoad,
 }) {
-  const counts = transactions.reduce(
+  const filterCounts = transactions.reduce(
     (acc, transaction) => {
       acc[transaction.type] += 1;
       return acc;
@@ -330,22 +247,16 @@ function TransactionsControlBar({
             type="button"
             className={`tx-pill${modifier}${isActive ? " tx-pill--active" : ""}`}
             onClick={() => onFilterChange(pill.key)}
-            disabled={isFirstLoad}
             aria-pressed={isActive}
           >
             {pill.key !== "all" && <span className="tx-pill-dot" aria-hidden="true" />}
             {pill.label}
-            {!isFirstLoad && <span className="tx-pill-count">{counts[pill.key]}</span>}
+            <span className="tx-pill-count">{filterCounts[pill.key]}</span>
           </button>
         );
       })}
 
-      <SearchBox
-        label="Açıklama veya kategori ara"
-        value={searchTerm}
-        disabled={isFirstLoad}
-        onChange={onSearchChange}
-      />
+      <SearchBox label="Açıklama veya kategori ara" value={searchTerm} onChange={onSearchChange} />
 
       <PeriodSelector
         year={selectedYear}
@@ -366,11 +277,11 @@ function Transactions() {
   const [selectedMonth, setSelectedMonth] = useState(() => getCurrentMonth());
   const [typeFilter, setTypeFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageKey, setPageKey] = useState("");
   const [addType, setAddType] = useState(null);
+  const [detailTarget, setDetailTarget] = useState(null);
+  const [documentTarget, setDocumentTarget] = useState(null);
 
-  const { transactions, totals, start, isFirstLoad, errorMessage, loadTransactions } = useTransactions(
+  const { transactions, totals, start, errorMessage, loadTransactions } = useTransactions(
     building.id,
     selectedYear,
     selectedMonth,
@@ -395,7 +306,7 @@ function Transactions() {
 
   const handleCancel = async (transaction) => {
     const reason = await showDialog.cancelReason(`${transaction.type === "income" ? "Geliri" : "Gideri"} İptal Et`);
-    if (!reason) return;
+    if (!reason) return false;
 
     const cancelTransaction =
       transaction.type === "income" ? window.electronAPI.cancelIncome : window.electronAPI.cancelExpense;
@@ -410,16 +321,28 @@ function Transactions() {
       if (res.success) {
         showDialog.toast(res.message);
         loadTransactions();
-      } else {
-        showDialog.error("Hata", res.message);
+        return true;
       }
+      showDialog.error("Hata", res.message);
     } catch (err) {
       console.error("[Transactions] cancelTransaction:", err);
       showDialog.error("Hata", UNEXPECTED_ERROR_MESSAGE);
     }
+    return false;
   };
 
-  const term = searchKey(searchTerm).trim();
+  const cancelFromDetail = async () => {
+    if (await handleCancel(detailTarget)) {
+      setDetailTarget(null);
+    }
+  };
+
+  const openDocument = () => {
+    setDocumentTarget(detailTarget);
+    setDetailTarget(null);
+  };
+
+  const term = searchKey(searchTerm);
   const filteredTransactions = transactions.filter((transaction) => {
     if (typeFilter !== "all" && transaction.type !== typeFilter) return false;
     if (!term) return true;
@@ -427,25 +350,14 @@ function Transactions() {
     return searchKey(transaction.description).includes(term) || searchKey(categoryLabel).includes(term);
   });
 
-  const nextPageKey = `${typeFilter}|${searchTerm}|${selectedYear}|${selectedMonth}`;
-  if (pageKey !== nextPageKey) {
-    setPageKey(nextPageKey);
-    setPage(1);
-  }
-
-  const pageCount = Math.max(1, Math.ceil(filteredTransactions.length / PAGE_SIZE));
-  const currentPage = Math.min(page, pageCount);
-  const pagedTransactions = filteredTransactions.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const {
+    pageItems: pagedTransactions,
+    currentPage,
+    pageCount,
+    setPage,
+  } = usePagination(filteredTransactions, PAGE_SIZE, `${typeFilter}|${searchTerm}|${selectedYear}|${selectedMonth}`);
 
   const renderList = () => {
-    if (isFirstLoad) {
-      return (
-        <TableShell>
-          <SkeletonRows />
-        </TableShell>
-      );
-    }
-
     if (errorMessage) {
       return (
         <ListPlaceholder
@@ -508,7 +420,7 @@ function Transactions() {
           <TransactionRow
             key={`${transaction.type}-${transaction.id}`}
             transaction={transaction}
-            onCancel={() => handleCancel(transaction)}
+            onOpen={() => setDetailTarget(transaction)}
           />
         ))}
       </TableShell>
@@ -529,7 +441,6 @@ function Transactions() {
         onFilterChange={setTypeFilter}
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        isFirstLoad={isFirstLoad}
       />
 
       <section className="page-band" aria-label="İşlem listesi">
@@ -537,7 +448,7 @@ function Transactions() {
           <div className="tx-list-main">{renderList()}</div>
 
           <div className="tx-rail">
-            <NetSummary totals={totals} isFirstLoad={isFirstLoad} hasError={Boolean(errorMessage)} />
+            <NetSummary totals={totals} hasError={Boolean(errorMessage)} />
             <ActionsCard onAdd={setAddType} />
             <PagesCard onNavigate={navigate} />
           </div>
@@ -555,6 +466,25 @@ function Transactions() {
             setAddType(null);
             loadTransactions();
           }}
+        />
+      )}
+
+      {detailTarget && (
+        <DetailModal
+          transaction={detailTarget}
+          building={building}
+          onClose={() => setDetailTarget(null)}
+          onCreateDocument={openDocument}
+          onCancel={cancelFromDetail}
+        />
+      )}
+
+      {documentTarget && (
+        <DocumentModal
+          transaction={documentTarget}
+          building={building}
+          onClose={() => setDocumentTarget(null)}
+          onSaved={() => setDocumentTarget(null)}
         />
       )}
     </div>

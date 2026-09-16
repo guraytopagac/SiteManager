@@ -8,14 +8,21 @@ CREATE TABLE IF NOT EXISTS expenses (
     date >= '2000-01-01' AND
     date <= '2100-12-31'
   ),
-  description TEXT NOT NULL CHECK(length(trim(description)) > 0 AND length(description) <= 500),
-  category TEXT NOT NULL DEFAULT 'other' CHECK(category IN ('maintenance', 'cleaning', 'utility', 'staff', 'other')),
+  description TEXT CHECK(description IS NULL OR (length(trim(description)) > 0 AND length(description) <= 500)),
+  category TEXT NOT NULL DEFAULT 'other' CHECK(
+    category IN (
+      'maintenance', 'cleaning', 'utility', 'heating', 'staff', 'other'
+    )
+  ),
   is_cancelled INTEGER NOT NULL DEFAULT 0 CHECK(is_cancelled IN (0, 1)),
   cancelled_at TEXT CHECK(cancelled_at IS NULL OR datetime(cancelled_at) IS NOT NULL),
   cancel_reason TEXT CHECK(cancel_reason IS NULL OR (length(trim(cancel_reason)) > 0 AND length(cancel_reason) <= 300)),
   cancelled_by INTEGER,
   created_at TEXT NOT NULL DEFAULT (datetime('now', '+3 hours')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now', '+3 hours')),
+  -- Printed on the expense voucher. A vendor can be a firm, so the name allows more than a person's.
+  vendor_name TEXT CHECK(vendor_name IS NULL OR (length(trim(vendor_name)) > 0 AND length(vendor_name) <= 100)),
+  vendor_address TEXT CHECK(vendor_address IS NULL OR (length(trim(vendor_address)) > 0 AND length(vendor_address) <= 300)),
   -- The four cancel fields are either all NULL or all filled.
   CHECK(
     (is_cancelled = 0 AND cancelled_at IS NULL AND cancel_reason IS NULL AND cancelled_by IS NULL) OR

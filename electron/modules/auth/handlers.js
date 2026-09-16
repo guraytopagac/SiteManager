@@ -1,6 +1,8 @@
 // Auth IPC entry points. Passwords are never trimmed, because a space may be part of the password.
 const { CHANNELS: CH } = require("../../ipc/channels");
 const { createHandle } = require("../../ipc/createHandle");
+const { getMainWindow } = require("../../windows/main");
+const { formatPersonName } = require("../shared/personName");
 const { fail, isValidEmail, noValidation, validateId, validatePayload } = require("../shared/validate");
 const authService = require("./service");
 
@@ -11,6 +13,12 @@ const USERNAME_RE = /^[A-Za-z0-9_]{3,30}$/;
 function trimField(payload, field) {
   if (typeof payload[field] === "string") {
     payload[field] = payload[field].trim();
+  }
+}
+
+function formatNameField(payload, field) {
+  if (typeof payload[field] === "string") {
+    payload[field] = formatPersonName(payload[field]);
   }
 }
 
@@ -28,6 +36,14 @@ function validatePassword(value, message = "Şifre en az 8 karakter olmalıdır.
 function validatePersonName(value, message) {
   if (typeof value !== "string" || value.length < 2 || value.length > 60) {
     return fail(message);
+  }
+  return null;
+}
+
+// Setup and transfer both write the username, so they share the rule and the sentence.
+function validateUsername(value) {
+  if (typeof value !== "string" || !USERNAME_RE.test(value)) {
+    return fail("Kullanıcı adı 3-30 karakter olmalı, yalnızca İngilizce harf, rakam ve _ içermelidir.");
   }
   return null;
 }
@@ -74,15 +90,21 @@ function validateEmailField(payload) {
   return null;
 }
 
+// The username changes with the person, or the new manager would sign in under the previous one's
+// name. Whether it differs from the stored one needs the row, so the service checks that part.
 function validateTransferFields(payload) {
-  trimField(payload, "newPerson");
+  formatNameField(payload, "newPerson");
+  trimField(payload, "newUsername");
   if (typeof payload.password !== "string" || !payload.password) {
     return fail("Mevcut şifre zorunludur.");
   }
   if (typeof payload.newPerson !== "string" || !payload.newPerson) {
     return fail("Yeni yöneticinin adı zorunludur.");
   }
-  return validatePersonName(payload.newPerson, "Yönetici adı 2 ile 60 karakter arasında olmalıdır.");
+  return (
+    validatePersonName(payload.newPerson, "Yönetici adı 2 ile 60 karakter arasında olmalıdır.") ??
+    validateUsername(payload.newUsername)
+  );
 }
 
 function validateResetFields(payload) {
@@ -101,11 +123,9 @@ function validateRecoveryCodeField(payload) {
 
 function validateSetupFields(payload) {
   trimField(payload, "username");
-  trimField(payload, "managerName");
-  if (typeof payload.username !== "string" || !USERNAME_RE.test(payload.username)) {
-    return fail("Kullanıcı adı 3-30 karakter olmalı, yalnızca İngilizce harf, rakam ve _ içermelidir.");
-  }
+  formatNameField(payload, "managerName");
   return (
+    validateUsername(payload.username) ??
     validateRequiredPassword(payload) ??
     validatePassword(payload.password) ??
     validatePersonName(payload.managerName, "Ad soyad 2 ile 60 karakter arasında olmalıdır.")
@@ -129,7 +149,8 @@ function registerAuthHandlers(ipcMain) {
   handle(
     CH.AUTH.TRANSFER_ACCOUNT,
     (payload) => validateAccountScope(payload) ?? validateTransferFields(payload),
-    authService.transferAccount,
+    // The save dialog of a transfer file is tied to the main window, like the backup dialogs.
+    (payload) => authService.transferAccount(payload, getMainWindow()),
   );
   handle(
     CH.AUTH.RESET_ACCOUNT_PASSWORD,

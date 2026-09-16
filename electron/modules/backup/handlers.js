@@ -1,4 +1,5 @@
-// The only backup IPC entry point. Restore has none, because it restarts the app.
+// Backup IPC entry points. Restore on a working install has none and stays in the menu, because it
+// replaces data the user is looking at. The setup screen has its own, since there is no data yet.
 const { CHANNELS: CH } = require("../../ipc/channels");
 const { createHandle } = require("../../ipc/createHandle");
 const { getMainWindow } = require("../../windows/main");
@@ -14,6 +15,12 @@ function registerBackupHandlers(ipcMain) {
     noValidation,
     () => backupService.runBackup(getMainWindow(), { silent: true }),
     "Yedek alınamadı.",
+  );
+  handle(
+    CH.BACKUP.RESTORE_ON_SETUP,
+    noValidation,
+    () => backupService.restoreOnSetup(getMainWindow()),
+    "Dosya yüklenemedi.",
   );
 }
 

@@ -114,6 +114,14 @@
             gösterilmeyecektir.
           </div>
         </div>
+        <div class="guide-note">
+          <span class="guide-note-icon">ℹ</span>
+          <div>
+            Önceki yöneticiden bir <strong>devir dosyası</strong> aldıysanız ya da elinizde bir yedek dosyası varsa
+            hesap oluşturmayın. Kurulum ekranının altındaki <strong>Dosyadan yükleyin</strong> bağlantısıyla dosyayı
+            seçin, uygulama yeniden başladığında size iletilen kullanıcı adı ve geçici şifreyle giriş yapın.
+          </div>
+        </div>
 
         <h2 id="login">Giriş Ekranı</h2>
         <p>Uygulama açıldığında kullanıcı adı ve şifre girişi istenir.</p>
@@ -471,7 +479,7 @@
               </td>
             </tr>
             <tr>
-              <td><strong>Sakin Geçmişi</strong></td>
+              <td><strong>Daire Geçmişi</strong></td>
               <td>Bir dairenin tüm aktif ve geçmiş kayıtlarını, malik ve kiracı ayrımıyla listeler.</td>
             </tr>
           </tbody>
@@ -501,7 +509,7 @@
             <strong>Gelecek</strong> bir çıkış tarihi kaydı aktif bırakır, çünkü henüz taşınmamıştır. Gün geldiğinde
             kayıt kendiliğinden geçmişe düşer ve varsa sırada bekleyen kişi devreye girer, ayrıca bir işlem yapmanız
             gerekmez. Kayıt geçmişe düştüğü anda sakin listesinden ve daire panelinden de çıkar, kişinin bilgileri
-            <strong>Sakin Geçmişi</strong> penceresinde durmaya devam eder. Planlanan bir çıkış ya da devir varken daire
+            <strong>Daire Geçmişi</strong> penceresinde durmaya devam eder. Planlanan bir çıkış ya da devir varken daire
             panelindeki <strong>Düzenle</strong> butonu tarihi ve sırada bekleyen kişinin bilgilerini değiştirmenizi
             sağlar, aynı pencerede <strong>İptal Et</strong> ile planı tamamen kaldırabilirsiniz.
           </div>
@@ -662,16 +670,40 @@
         </p>
         <h3>Hesabı Devretme</h3>
         <p>
-          Bina yöneticisi değiştiğinde hesabı yeni kişiye devredebilirsiniz. Mevcut şifrenizi ve yeni kişinin ad
-          soyadını girdiğinizde hesap yeni kişiye aktarılır ve <strong>tek kullanımlık geçici bir şifre</strong>
-          üretilir (bir kez gösterilir). Binalarınız ve tüm verileriniz aynı hesapta kalır.
+          Bina yöneticisi değiştiğinde hesabı yeni kişiye devredebilirsiniz. Yeni kişinin ad soyadını, yeni kullanıcı
+          adını ve mevcut şifrenizi girin, ardından <strong>devir dosyasının</strong> kaydedileceği yeri seçin.
+          <strong>Tek kullanımlık geçici bir şifre</strong> ile yeni bir kurtarma kodu üretilir ve ikisi de bir kez
+          gösterilir. Binalarınız ve tüm verileriniz hesapla birlikte devredilir.
         </p>
+        <div class="guide-steps">
+          <div class="guide-step">
+            <div class="guide-step-num">1</div>
+            <div class="guide-step-body">
+              Kullanıcı adını, geçici şifreyi ve kurtarma kodunu yeni yöneticiye iletin.
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">2</div>
+            <div class="guide-step-body">
+              Yeni yönetici <strong>bu bilgisayarı</strong> kullanacaksa doğrudan giriş yapar, dosyayı yüklemesine gerek
+              yoktur.
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">3</div>
+            <div class="guide-step-body">
+              Yeni yönetici <strong>başka bir bilgisayar</strong> kullanacaksa devir dosyasını da ona iletin. Uygulamayı
+              kendi bilgisayarına kurar ve kurulum ekranında hesap oluşturmadan, altta yer alan
+              <strong>Dosyadan yükleyin</strong> bağlantısıyla dosyayı seçer.
+            </div>
+          </div>
+        </div>
         <div class="guide-note">
           <span class="guide-note-icon">ℹ</span>
           <div>
-            Devir sonrası eski şifreniz geçersiz olur ve oturumunuz kapanır. Yeni kişi, kendisine verilen geçici
-            şifreyle
-            <strong>aynı bilgisayarda</strong> giriş yapar. Hesap yalnızca bu bilgisayarda geçerlidir.
+            Devir sonrası eski şifreniz geçersiz olur ve oturumunuz kapanır. Bu bilgisayardaki veriler yerinde kalır
+            ancak eski bilgilerle giriş yapılamaz. Yeni yönetici giriş yaptıktan sonra profil sayfasından kendi
+            şifresini belirlemelidir.
           </div>
         </div>
         <div class="guide-note">
@@ -685,7 +717,8 @@
         <h2 id="backup">Yedekleme ve Geri Yükleme</h2>
         <p>
           Yedek almanın iki yolu vardır: <strong>Profilim → Yedek Al</strong> butonu veya <strong>Dosya</strong> menüsü.
-          Geri yükleme yalnızca <strong>Dosya</strong> menüsünden yapılır.
+          Geri yükleme <strong>Dosya</strong> menüsünden yapılır. Uygulama yeni kurulduysa kurulum ekranının altındaki
+          <strong>Dosyadan yükleyin</strong> bağlantısı da aynı işi görür.
         </p>
         <h3>Yedek Alma</h3>
         <div class="guide-steps">

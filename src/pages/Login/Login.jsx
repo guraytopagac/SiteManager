@@ -35,7 +35,6 @@ function Login() {
 
       if (res.success) {
         setSession(res.user);
-        navigate("/select-building", { replace: true });
         return;
       }
 

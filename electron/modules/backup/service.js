@@ -44,19 +44,49 @@ function validateBackupFile(filePath) {
   }
 }
 
-// Safe copy while the database is open. Cancelling is not an error.
-async function runBackup(mainWindow, { silent = false } = {}) {
+// Asks where to save, then writes a safe copy while the database is open. Returns the path, or null
+// when the user cancels. editCopy changes the copy only. If it fails the file is removed, because a
+// half edited transfer file would still carry the previous manager's password.
+async function saveDatabaseCopy(mainWindow, { title, defaultPath, editCopy = null }) {
   const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
-    title: "Yedek Dosyasını Kaydet",
-    defaultPath: `mavikent-yedek-${trToday()}.db`,
+    title,
+    defaultPath,
     filters: [{ name: "Yedek Dosyası", extensions: ["db"] }],
   });
 
-  if (!filePath || canceled) return { success: false, cancelled: true, message: "İptal edildi." };
+  if (!filePath || canceled) return null;
 
+  await getDb().backup(filePath);
+  await removeSidecarFiles(filePath);
+
+  if (editCopy) {
+    try {
+      const copyDb = new Database(filePath);
+      try {
+        // Leaves WAL mode, so the edit lands in the file itself and no sidecar travels with it.
+        copyDb.pragma("journal_mode = DELETE");
+        editCopy(copyDb);
+      } finally {
+        copyDb.close();
+      }
+    } catch (err) {
+      await fs.promises.unlink(filePath).catch(() => {});
+      throw err;
+    }
+  }
+
+  return filePath;
+}
+
+// Safe copy while the database is open. Cancelling is not an error.
+async function runBackup(mainWindow, { silent = false } = {}) {
   try {
-    await getDb().backup(filePath);
-    await removeSidecarFiles(filePath);
+    const filePath = await saveDatabaseCopy(mainWindow, {
+      title: "Yedek Dosyasını Kaydet",
+      defaultPath: `mavikent-yedek-${trToday()}.db`,
+    });
+
+    if (!filePath) return { success: false, cancelled: true, message: "İptal edildi." };
 
     if (!silent) {
       await showMessage(mainWindow, { type: "info", title: "Yedekleme", message: BACKUP_OK_MESSAGE });
@@ -71,17 +101,66 @@ async function runBackup(mainWindow, { silent = false } = {}) {
   }
 }
 
-// Restore, from the menu only. Check the file, ask, copy the current database aside, swap it, restart.
-async function runRestore(mainWindow) {
+async function pickBackupFile(mainWindow) {
   const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow, {
     title: "Yedek Dosyasını Seç",
     filters: [{ name: "Yedek Dosyası", extensions: ["db"] }],
     properties: ["openFile"],
   });
+  return canceled || !filePaths.length ? null : filePaths[0];
+}
 
-  if (canceled || !filePaths.length) return;
+// Copies the current database aside, swaps in the chosen file and restarts. It returns only when
+// the safety copy fails, with the message to show. Every later path ends in a restart.
+async function replaceDatabase(mainWindow, sourcePath, { isInitial }) {
+  // The .bak copy is never deleted. It is the only way back after restoring the wrong file.
+  const dbPath = getDb().name;
+  const tempBackup = `${dbPath}.bak`;
 
-  const fileError = validateBackupFile(filePaths[0]);
+  try {
+    await fs.promises.copyFile(dbPath, tempBackup);
+  } catch (err) {
+    console.error("[backup.service] replaceDatabase safety copy failed:", err);
+    return "Mevcut verileriniz yedeklenemediği için işlem durduruldu.";
+  }
+
+  // Windows cannot overwrite a locked file, so the connection is closed here and never opened
+  // again. That is why both paths below end in a restart.
+  closeDb();
+
+  try {
+    await removeSidecarFiles(dbPath);
+    await fs.promises.copyFile(sourcePath, dbPath);
+    // On a fresh install there was nothing to keep, so pointing at the .bak copy would only confuse.
+    await showMessage(mainWindow, {
+      type: "info",
+      title: "Geri Yükleme",
+      message: "Verileriniz yüklendi. Uygulama yeniden başlatılıyor...",
+      detail: isInitial ? undefined : `Önceki verilerinizin kopyası şu dosyada saklandı:\n${tempBackup}`,
+    });
+    // relaunch only plans the restart, so exit has to follow it.
+    app.relaunch();
+    app.exit();
+  } catch (err) {
+    console.error("[backup.service] replaceDatabase failed, rolling back:", err);
+    await fs.promises.copyFile(tempBackup, dbPath).catch(() => {});
+    await showMessage(mainWindow, {
+      type: "error",
+      title: "Geri Yükleme Hatası",
+      message: "Geri yükleme başarısız oldu. Önceki verileriniz korundu. Uygulama yeniden başlatılıyor...",
+    });
+    app.relaunch();
+    app.exit();
+  }
+  return null;
+}
+
+// Restore from the menu. Check the file, ask, then replace.
+async function runRestore(mainWindow) {
+  const filePath = await pickBackupFile(mainWindow);
+  if (!filePath) return;
+
+  const fileError = validateBackupFile(filePath);
   if (fileError) {
     await showMessage(mainWindow, { type: "error", title: "Geçersiz Dosya", message: fileError });
     return;
@@ -96,49 +175,28 @@ async function runRestore(mainWindow) {
 
   if (response !== 0) return;
 
-  // The .bak copy is never deleted. It is the only way back after restoring the wrong file.
-  const dbPath = getDb().name;
-  const tempBackup = `${dbPath}.bak`;
-
-  try {
-    await fs.promises.copyFile(dbPath, tempBackup);
-  } catch (err) {
-    console.error("[backup.service] runRestore safety copy failed:", err);
-    await showMessage(mainWindow, {
-      type: "error",
-      title: "Geri Yükleme Hatası",
-      message: "Mevcut verileriniz yedeklenemediği için işlem durduruldu.",
-    });
-    return;
-  }
-
-  // Windows cannot overwrite a locked file, so the connection is closed here and never opened
-  // again. That is why both paths below end in a restart.
-  closeDb();
-
-  try {
-    await removeSidecarFiles(dbPath);
-    await fs.promises.copyFile(filePaths[0], dbPath);
-    await showMessage(mainWindow, {
-      type: "info",
-      title: "Geri Yükleme",
-      message: "Verileriniz geri yüklendi. Uygulama yeniden başlatılıyor...",
-      detail: `Önceki verilerinizin kopyası şu dosyada saklandı:\n${tempBackup}`,
-    });
-    // relaunch only plans the restart, so exit has to follow it.
-    app.relaunch();
-    app.exit();
-  } catch (err) {
-    console.error("[backup.service] runRestore failed, rolling back:", err);
-    await fs.promises.copyFile(tempBackup, dbPath).catch(() => {});
-    await showMessage(mainWindow, {
-      type: "error",
-      title: "Geri Yükleme Hatası",
-      message: "Geri yükleme başarısız oldu. Önceki verileriniz korundu. Uygulama yeniden başlatılıyor...",
-    });
-    app.relaunch();
-    app.exit();
+  const copyError = await replaceDatabase(mainWindow, filePath, { isInitial: false });
+  if (copyError) {
+    await showMessage(mainWindow, { type: "error", title: "Geri Yükleme Hatası", message: copyError });
   }
 }
 
-module.exports = { runBackup, runRestore };
+// Restore from the setup screen, where a new manager loads a transfer file or a backup instead of
+// creating an account. It skips the confirmation because there is no account to lose, and it
+// refuses once an account exists, since this channel is reachable without signing in.
+async function restoreOnSetup(mainWindow) {
+  if (getDb().prepare(`SELECT 1 FROM users LIMIT 1`).get()) {
+    return { success: false, message: "Bu bilgisayarda kurulu bir hesap var. Yedek, Dosya menüsünden geri yüklenir." };
+  }
+
+  const filePath = await pickBackupFile(mainWindow);
+  if (!filePath) return { success: false, cancelled: true, message: "İptal edildi." };
+
+  const fileError = validateBackupFile(filePath);
+  if (fileError) return { success: false, message: fileError };
+
+  const copyError = await replaceDatabase(mainWindow, filePath, { isInitial: true });
+  return { success: false, message: copyError };
+}
+
+module.exports = { restoreOnSetup, runBackup, runRestore, saveDatabaseCopy };

@@ -38,14 +38,9 @@
     background-color 0.15s ease;
 }
 
-.rs-pill:hover:not(:disabled) {
+.rs-pill:hover {
   border-color: var(--text-secondary);
   color: var(--text-color);
-}
-
-.rs-pill:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 
 .rs-pill:focus-visible {
@@ -607,65 +602,4 @@
   color: var(--text-secondary);
   font-size: 1rem;
   line-height: 1.4;
-}
-
-.rs-skeleton {
-  border-radius: 8px;
-  background: linear-gradient(
-    90deg,
-    var(--border-default) 0%,
-    color-mix(in srgb, var(--border-default) 45%, transparent) 50%,
-    var(--border-default) 100%
-  );
-  background-size: 200% 100%;
-  animation: rsShimmer 1.4s ease-in-out infinite;
-}
-
-@keyframes rsShimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
-}
-
-.unit-tag.rs-skeleton {
-  border-color: transparent;
-  border-radius: 11px;
-}
-
-.rs-skeleton-floor {
-  width: 52px;
-  height: 12px;
-  border-radius: 999px;
-}
-
-.rs-skeleton-name,
-.rs-skeleton-count {
-  margin-inline: auto;
-}
-
-.rs-skeleton-name {
-  width: 150px;
-  height: 14px;
-}
-
-.rs-skeleton-count {
-  width: 26px;
-  height: 14px;
-}
-
-.rs-summary-value.rs-skeleton {
-  width: 72px;
-  height: 26px;
-}
-
-.rs-summary-amounts.rs-skeleton {
-  width: 180px;
-  height: 18px;
-}
-
-.rs-summary-meter.rs-skeleton span {
-  display: none;
 }

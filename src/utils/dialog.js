@@ -161,18 +161,6 @@ export const showDialog = {
 
   warning: (title, body) => dismissDialog(title, body, "warning"),
 
-  cancelledRecord: ({ reason, date }) =>
-    dismissDialog(
-      "İptal Edilmiş Kayıt",
-      {
-        html: `
-        <p class="swal-note"><b>İptal nedeni:</b> ${escapeHtml(reason)}</p>
-        <p class="swal-note"><b>İptal tarihi:</b> ${escapeHtml(date)}</p>
-      `,
-      },
-      "info",
-    ),
-
   releaseNotes: (html) =>
     fire((t) => ({
       ...base(t),
@@ -251,16 +239,18 @@ export const showDialog = {
       validate: (val) => (!val ? "Şifre zorunludur." : null),
     }),
 
-  temporaryPassword: ({ managerName, code }) =>
+  temporaryPassword: ({ managerName, username, code, filePath }) =>
     codeDialog({
       title: "Hesap Devredildi",
       code,
       html: `
         Hesap <b>${escapeHtml(managerName)}</b> adına devredildi ve geçici bir şifre üretildi.<br /><br />
+        <b>Kullanıcı adı:</b> ${escapeHtml(username)}<br /><br />
         <b>Geçici şifre:</b><br />
         ${CODE_LINE}
         ${COPY_LINE}<br />
-        <p class="swal-note">Bu şifreyi yeni yöneticiye iletin. Bu bilgisayardan giriş yaptıktan sonra profil sayfasından kendi şifresini belirlemelidir.</p>
+        <p class="swal-note"><b>Devir dosyası:</b><br /><span class="swal-path">${escapeHtml(filePath)}</span></p>
+        <p class="swal-note">Kullanıcı adını, bu şifreyi ve sonraki adımda gösterilecek kurtarma kodunu yeni yöneticiye iletin. Yeni yönetici bu bilgisayarı kullanacaksa doğrudan giriş yapar. Başka bir bilgisayar kullanacaksa uygulamayı kurar ve kurulum ekranının altındaki <b>Dosyadan yükleyin</b> bağlantısıyla bu dosyayı seçer. Giriş yaptıktan sonra profil sayfasından kendi şifresini belirlemelidir.</p>
         <p class="swal-warning">Bu şifre bir daha gösterilmeyecek.</p>
       `,
     }),

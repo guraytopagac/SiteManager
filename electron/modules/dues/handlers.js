@@ -1,7 +1,9 @@
 // Dues IPC entry points. Every channel that takes a period rejects a future one.
 const { CHANNELS: CH } = require("../../ipc/channels");
 const { createHandle } = require("../../ipc/createHandle");
+const { formatPersonName } = require("../shared/personName");
 const {
+  PAYMENT_METHODS,
   fail,
   isValidDate,
   isValidFileName,
@@ -14,9 +16,6 @@ const {
 const { trToday } = require("../shared/trTime");
 const duesService = require("./service");
 
-// Same list as the schema CHECK and PAYMENT_METHOD_LABELS in
-// src/pages/Dues/DuesModals/PaymentModal.jsx.
-const VALID_PAYMENT_METHODS = ["cash", "bank_transfer", "card", "other"];
 const FUTURE_PERIOD_MESSAGE = "Gelecek bir dönem için aidat işlemi yapılamaz.";
 
 // Accepted receipt types, keyed by extension. The same extensions are a CHECK on receipt_name.
@@ -96,12 +95,12 @@ function validatePaymentData(paymentData) {
     if (typeof paymentData.collector_name !== "string") {
       return fail("Geçersiz tahsil eden bilgisi.");
     }
-    paymentData.collector_name = paymentData.collector_name.trim();
+    paymentData.collector_name = formatPersonName(paymentData.collector_name);
     if (paymentData.collector_name.length > 60) {
       return fail("Tahsil eden en fazla 60 karakter olabilir.");
     }
   }
-  if (!VALID_PAYMENT_METHODS.includes(paymentData.payment_method)) {
+  if (!PAYMENT_METHODS.includes(paymentData.payment_method)) {
     return fail("Geçersiz ödeme yöntemi.");
   }
   if (!isValidDate(paymentData.payment_date)) {

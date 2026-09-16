@@ -8,6 +8,9 @@ node_modules/
 dist/
 dist_electron/
 
+# Static document previews (receipts, vouchers, report samples) built for visual review
+preview/
+
 # Installer artifacts copied out of dist_electron/
 *.exe
 *.blockmap

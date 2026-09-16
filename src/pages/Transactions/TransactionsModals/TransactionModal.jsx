@@ -2,7 +2,12 @@ import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./TransactionsModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
+import {
+  EXPENSE_CATEGORIES,
+  INCOME_CATEGORIES,
+  PAYMENT_METHOD_LABELS,
+  UNEXPECTED_ERROR_MESSAGE,
+} from "@/utils/constants";
 import { showDialog } from "@/utils/dialog";
 import { getMinDate, getToday } from "@/utils/date";
 
@@ -20,7 +25,7 @@ const TYPES = {
     submitLabel: "Geliri Kaydet",
     errorMessage: "Gelir kaydedilemedi.",
     categories: INCOME_CATEGORIES,
-    note: "Aidat tahsilatları buradan girilmez. Aidat Takibi sayfasından kaydedilir ve gelire otomatik işlenir.",
+    asksPaymentMethod: true,
   },
   expense: {
     title: "Gider Ekle",
@@ -31,7 +36,7 @@ const TYPES = {
     submitLabel: "Gideri Kaydet",
     errorMessage: "Gider kaydedilemedi.",
     categories: EXPENSE_CATEGORIES,
-    note: null,
+    asksPaymentMethod: false,
   },
 };
 
@@ -45,6 +50,7 @@ function TransactionModal({ type, building, onClose, onSaved }) {
   const text = TYPES[type];
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("other");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
   const [date, setDate] = useState(() => getToday());
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,6 +79,7 @@ function TransactionModal({ type, building, onClose, onSaved }) {
         category,
         date,
         description: description.trim(),
+        ...(text.asksPaymentMethod ? { payment_method: paymentMethod } : {}),
       });
 
       if (res.success) {
@@ -168,17 +175,35 @@ function TransactionModal({ type, building, onClose, onSaved }) {
               </div>
             </div>
 
-            {text.note && <p className="tx-md-note">{text.note}</p>}
+            {text.asksPaymentMethod ? (
+              <div className="tx-md-field tx-md-field--wide">
+                <span className="tx-md-legend" id="tx-method-label">
+                  Ödeme Şekli
+                </span>
+                <div className="tx-cat-list tx-method-list" role="radiogroup" aria-labelledby="tx-method-label">
+                  {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
+                    <label key={value} className={paymentMethod === value ? "tx-cat tx-cat--active" : "tx-cat"}>
+                      <input
+                        type="radio"
+                        name="tx-method"
+                        checked={paymentMethod === value}
+                        onChange={() => setPaymentMethod(value)}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
             <div className="tx-md-field tx-md-field--wide">
-              <label htmlFor="tx-description">Açıklama</label>
+              <label htmlFor="tx-description">Açıklama (isteğe bağlı)</label>
               <textarea
                 id="tx-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder={text.descriptionPlaceholder}
                 maxLength={MAX_DESCRIPTION_LENGTH}
-                required
               />
               <span className={counterClass(description.length)}>
                 {description.length}/{MAX_DESCRIPTION_LENGTH}

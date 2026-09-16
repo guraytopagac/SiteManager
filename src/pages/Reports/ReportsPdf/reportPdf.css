@@ -1,0 +1,202 @@
+@page {
+  size: A4;
+  margin: 14mm 14mm 22mm;
+  @bottom-left {
+    margin-top: 9mm;
+    padding-top: 1.5mm;
+    border-top: 0.2mm solid #e2e8f0;
+    vertical-align: top;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 8pt;
+    color: #64748b;
+  }
+  @bottom-right {
+    content: "Sayfa " counter(page) " / " counter(pages);
+    margin-top: 9mm;
+    padding-top: 1.5mm;
+    border-top: 0.2mm solid #e2e8f0;
+    vertical-align: top;
+    text-align: right;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 8pt;
+    color: #64748b;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-size: 8.5pt;
+  color: #1e293b;
+}
+
+.doc-head {
+  padding-bottom: 2.5mm;
+  border-bottom: 0.6mm solid #2563eb;
+}
+
+h1 {
+  margin: 0;
+  font-size: 16pt;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.doc-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 1mm;
+  font-size: 11pt;
+  color: #64748b;
+}
+
+.doc-date {
+  font-size: 9pt;
+}
+
+section {
+  margin-top: 6mm;
+}
+
+.keep {
+  break-inside: avoid;
+}
+
+h2 {
+  margin: 0 0 2mm;
+  font-size: 11.5pt;
+  break-after: avoid;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+th,
+td {
+  padding: 2mm;
+  border: 0.1mm solid #e2e8f0;
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+th {
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+}
+
+tr {
+  break-inside: avoid;
+}
+
+tr.total {
+  break-before: avoid;
+}
+
+table:not(.summary) tbody tr:nth-child(odd) td {
+  background: #f8fafc;
+}
+
+table:not(.summary) tbody tr.total td {
+  background: #f1f5f9;
+  font-weight: 700;
+}
+
+.num {
+  text-align: right;
+}
+
+td.empty {
+  text-align: center;
+  color: #64748b;
+}
+
+.summary th,
+.summary td {
+  text-align: center;
+}
+
+.summary td {
+  padding: 3.5mm 2mm;
+  font-size: 10.5pt;
+  font-weight: 700;
+  background: #f5f5f5;
+}
+
+.note {
+  margin: 1.5mm 0 0;
+  font-size: 9pt;
+  color: #64748b;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6mm;
+  align-items: start;
+}
+
+.positive,
+.paid {
+  color: #15803d;
+}
+
+.negative,
+.unpaid {
+  color: #b91c1c;
+}
+
+.partial {
+  color: #b45309;
+}
+
+.paid,
+.partial,
+.unpaid {
+  font-weight: 700;
+}
+
+.signature {
+  width: 64mm;
+  margin: 12mm 0 0 auto;
+  break-inside: avoid;
+  break-before: avoid;
+}
+
+.signature-role {
+  display: block;
+  font-size: 9pt;
+  color: #64748b;
+}
+
+.signature-name {
+  display: block;
+  margin-top: 1mm;
+  font-size: 10.5pt;
+}
+
+.signature-line {
+  margin-top: 12mm;
+  padding-top: 1mm;
+  border-top: 0.2mm solid #64748b;
+  font-size: 8.5pt;
+  color: #64748b;
+}

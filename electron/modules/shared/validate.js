@@ -5,6 +5,10 @@ const { currentPeriod, toPeriod } = require("./trTime");
 // Same list as the schema CHECK and APARTMENT_TYPES in src/utils/constants.js.
 const APARTMENT_TYPES = ["0+1", "1+1", "2+1", "3+1", "4+1"];
 
+// Used by dues and financial. Same list as the due_payments and incomes CHECKs and
+// PAYMENT_METHOD_LABELS in src/utils/constants.js.
+const PAYMENT_METHODS = ["cash", "bank_transfer", "card", "other"];
+
 // Path separators and the characters Windows does not allow in a file name.
 const FILE_NAME_RE = /[\\/:*?"<>|]/;
 
@@ -112,6 +116,7 @@ function isValidEmail(value) {
 
 module.exports = {
   APARTMENT_TYPES,
+  PAYMENT_METHODS,
   fail,
   isValidDate,
   isValidEmail,

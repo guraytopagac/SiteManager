@@ -1,3 +1,5 @@
 export function searchKey(value) {
-  return String(value ?? "").toLocaleLowerCase("tr");
+  return String(value ?? "")
+    .trim()
+    .toLocaleLowerCase("tr");
 }

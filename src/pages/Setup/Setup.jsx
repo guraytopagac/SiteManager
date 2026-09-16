@@ -6,6 +6,7 @@ import AuthField from "@/components/AuthField/AuthField";
 import PasswordStrength from "@/components/PasswordStrength/PasswordStrength";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { markSetupComplete, needsSetup } from "@/hooks/useSession";
+import { UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import { MIN_PASSWORD_LENGTH } from "@/utils/passwordPolicy";
 import { FiAlertCircle, FiArrowLeft, FiArrowRight, FiCheck, FiCopy, FiLock, FiLogIn, FiUser } from "react-icons/fi";
 
@@ -38,6 +39,7 @@ function Setup() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [createdAccount, setCreatedAccount] = useState(null);
+  const [isRestoring, setIsRestoring] = useState(false);
   const { isCopied, copy } = useCopyFeedback();
 
   if (!needsSetup() && !createdAccount) {
@@ -101,6 +103,21 @@ function Setup() {
 
     markSetupComplete(trimmedUsername);
     setCreatedAccount({ recoveryCode: res.recoveryCode, username: trimmedUsername });
+  };
+
+  const handleRestore = async () => {
+    setIsRestoring(true);
+    setError("");
+    try {
+      const res = await window.electronAPI.restoreOnSetup();
+      if (!res.success && !res.cancelled) {
+        setError(res.message);
+      }
+    } catch (err) {
+      console.error("[Setup] restoreOnSetup:", err);
+      setError(UNEXPECTED_ERROR_MESSAGE);
+    }
+    setIsRestoring(false);
   };
 
   const handleCopyCode = async () => {
@@ -318,6 +335,21 @@ function Setup() {
                 </button>
               </div>
             </form>
+
+            {step === 1 && (
+              <div className="setup-foot">
+                <p className="setup-foot-text">Devir ya da yedek dosyanız var mı?</p>
+                <button
+                  type="button"
+                  className="setup-restore"
+                  onClick={handleRestore}
+                  disabled={isRestoring}
+                  aria-busy={isRestoring}
+                >
+                  {isRestoring ? "Yükleniyor..." : "Dosyadan yükleyin"}
+                </button>
+              </div>
+            )}
           </section>
         )}
       </div>

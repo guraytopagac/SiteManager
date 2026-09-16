@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import "./SelectBuilding.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
+import { useIpcData } from "@/hooks/useIpcData";
 import { useSession, setCurrentBuilding, clearCurrentBuilding, useCurrentBuilding } from "@/hooks/useSession";
 import { showDialog } from "@/utils/dialog";
 import { MAX_BUILDING_NAME_LENGTH } from "@/utils/constants";
@@ -28,60 +29,29 @@ function SelectBuilding() {
   const location = useLocation();
   const session = useSession();
   const selectedBuilding = useCurrentBuilding();
-  const [buildings, setBuildings] = useState([]);
-  const [deleted, setDeleted] = useState([]);
   const [deletedOpen, setDeletedOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [loadFailed, setLoadFailed] = useState(false);
   const [editing, setEditing] = useState(null);
   const [editError, setEditError] = useState("");
   const [isBusy, setIsBusy] = useState(false);
+  const [autoEnterAllowed, setAutoEnterAllowed] = useState(() => !location.state?.manual);
 
   const ownerId = session.id;
-  const autoEnterAllowed = !location.state?.manual;
+  const [res, reload] = useIpcData("listBuildings", { ownerId });
+  const allBuildings = res.success ? res.data : [];
+  const buildings = allBuildings.filter((b) => b.is_active === 1);
+  const deleted = allBuildings.filter((b) => b.is_active === 0);
+  const autoEnterTarget = autoEnterAllowed && buildings.length === 1 ? buildings[0] : null;
 
-  const loadBuildings = useCallback(
-    async (allowAutoEnter) => {
-      setLoading(true);
-      setLoadFailed(false);
-
-      try {
-        const res = await window.electronAPI.listBuildings({ ownerId });
-
-        if (!res.success) {
-          setLoadFailed(true);
-        } else {
-          if (res.data.length === 0) {
-            navigate("/new-building", { replace: true });
-            return;
-          }
-
-          const active = res.data.filter((b) => b.is_active === 1);
-
-          if (allowAutoEnter && active.length === 1) {
-            setCurrentBuilding({ id: active[0].id, name: active[0].name });
-            navigate("/dashboard", { replace: true });
-            return;
-          }
-
-          setBuildings(active);
-          setDeleted(res.data.filter((b) => b.is_active === 0));
-        }
-      } catch (err) {
-        console.error("[SelectBuilding] listBuildings:", err);
-        setLoadFailed(true);
-      }
-
-      setLoading(false);
-    },
-    [ownerId, navigate],
-  );
+  const loadBuildings = () => {
+    setAutoEnterAllowed(false);
+    reload();
+  };
 
   useEffect(() => {
-    (async () => {
-      await loadBuildings(autoEnterAllowed);
-    })();
-  }, [loadBuildings, autoEnterAllowed]);
+    if (!autoEnterTarget) return;
+    setCurrentBuilding({ id: autoEnterTarget.id, name: autoEnterTarget.name });
+    navigate("/dashboard", { replace: true });
+  }, [autoEnterTarget, navigate]);
 
   const enterBuilding = (building) => {
     setCurrentBuilding({ id: building.id, name: building.name });
@@ -128,7 +98,7 @@ function SelectBuilding() {
         }
         showDialog.toast(res.message);
         cancelEdit();
-        loadBuildings(false);
+        loadBuildings();
       } else {
         setEditError(res.message);
       }
@@ -156,7 +126,7 @@ function SelectBuilding() {
         if (selectedBuilding?.id === building.id) {
           clearCurrentBuilding();
         }
-        loadBuildings(false);
+        loadBuildings();
         showDialog.toast(res.message);
       } else {
         showDialog.error("Hata", res.message);
@@ -195,7 +165,7 @@ function SelectBuilding() {
         if (!willActivate && selectedBuilding?.id === building.id) {
           clearCurrentBuilding();
         }
-        loadBuildings(false);
+        loadBuildings();
         showDialog.toast(res.message);
       } else {
         showDialog.error("Hata", res.message);
@@ -209,8 +179,7 @@ function SelectBuilding() {
     }
   };
 
-  const isLoaded = !loading && !loadFailed;
-  const showDeleted = isLoaded && deleted.length > 0;
+  const showDeleted = res.success && deleted.length > 0;
 
   const openWizard = () => navigate("/new-building", { state: { fromList: true } });
 
@@ -255,6 +224,16 @@ function SelectBuilding() {
     </form>
   );
 
+  if (res.success && allBuildings.length === 0) {
+    return (
+      <div className="auth-page">
+        <Navigate to="/new-building" replace />
+      </div>
+    );
+  }
+
+  if (autoEnterTarget) return null;
+
   return (
     <div className="auth-page">
       <main className="auth-card sb-shell">
@@ -269,35 +248,21 @@ function SelectBuilding() {
           </div>
         </section>
 
-        {loading && (
-          <section className="sb-band sb-band--fill">
-            <h2 className="sb-band-title">Binalarınız</h2>
-            <div className="sb-list">
-              <div className="sb-skeleton" />
-              <div className="sb-skeleton" />
-            </div>
-          </section>
-        )}
-
-        {loadFailed && (
+        {!res.success && (
           <section className="sb-band">
             <div className="sb-status" role="alert">
               <span className="sb-status-icon">
                 <FiAlertCircle size={16} />
               </span>
               <span>Bina listesi alınamadı.</span>
-              <button
-                type="button"
-                className="sb-btn-secondary sb-status-retry"
-                onClick={() => loadBuildings(autoEnterAllowed)}
-              >
+              <button type="button" className="sb-btn-secondary sb-status-retry" onClick={reload}>
                 Yeniden Dene
               </button>
             </div>
           </section>
         )}
 
-        {isLoaded && (
+        {res.success && (
           <section className="sb-band sb-band--fill">
             <h2 className="sb-band-title">
               Binalarınız

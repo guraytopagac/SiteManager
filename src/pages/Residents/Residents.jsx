@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiAlertTriangle,
@@ -27,13 +27,10 @@ import UnitCell from "@/components/UnitCell/UnitCell";
 import ResidentChangeModal from "./ResidentsModals/ResidentChangeModal";
 import ResidentFormModal from "./ResidentsModals/ResidentFormModal";
 import ResidentHistoryModal from "./ResidentsModals/ResidentHistoryModal";
+import { useIpcData } from "@/hooks/useIpcData";
+import { usePagination } from "@/hooks/usePagination";
 import { useCurrentBuilding } from "@/hooks/useSession";
-import {
-  EMPTY_RESIDENT_LABEL,
-  RESIDENT_TYPE_LABELS,
-  UNEXPECTED_ERROR_MESSAGE,
-  UNNAMED_RESIDENT_LABEL,
-} from "@/utils/constants";
+import { EMPTY_RESIDENT_LABEL, RESIDENT_TYPE_LABELS, UNNAMED_RESIDENT_LABEL } from "@/utils/constants";
 import { clampMonth, formatDate, formatMonthYear, getCurrentMonth, getCurrentYear } from "@/utils/date";
 import { floorLabel } from "@/utils/floorLabel";
 import { formatPhone } from "@/utils/phoneNumber";
@@ -155,37 +152,14 @@ function roleActions(roleState, { onForm, onMoveOut, onEditSchedule }) {
 }
 
 function useResidents(buildingId, year, month) {
-  const [units, setUnits] = useState([]);
-  const [start, setStart] = useState(null);
-  const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [res, loadResidents] = useIpcData("getResidentsOverview", { buildingId, year, month });
 
-  const loadResidents = useCallback(async () => {
-    setErrorMessage("");
-
-    try {
-      const res = await window.electronAPI.getResidentsOverview({ buildingId, year, month });
-      if (res.success) {
-        setUnits(res.data);
-        setStart(res.start);
-      } else {
-        setErrorMessage(res.message || "Veriler alınamadı.");
-      }
-    } catch (err) {
-      console.error("[Residents] getResidentsOverview:", err);
-      setErrorMessage(UNEXPECTED_ERROR_MESSAGE);
-    }
-
-    setIsFirstLoad(false);
-  }, [buildingId, year, month]);
-
-  useEffect(() => {
-    (async () => {
-      await loadResidents();
-    })();
-  }, [loadResidents]);
-
-  return { units, start, isFirstLoad, errorMessage, loadResidents };
+  return {
+    units: res.success ? res.data : [],
+    start: res.success ? res.start : null,
+    errorMessage: res.success ? "" : res.message || "Veriler alınamadı.",
+    loadResidents,
+  };
 }
 
 function TableShell({ overlay, spacerCount = 0, children }) {
@@ -269,34 +243,6 @@ function UnitRow({ unit, isSelected, onSelect }) {
   );
 }
 
-function SkeletonRows() {
-  const skeletons = [];
-
-  for (let index = 0; index < PAGE_SIZE; index += 1) {
-    skeletons.push(
-      <tr key={`skeleton-${index}`}>
-        <td>
-          <span className="unit-cell">
-            <span className="unit-tag rs-skeleton">&nbsp;</span>
-            <span className="unit-floor rs-skeleton rs-skeleton-floor" />
-          </span>
-        </td>
-        <td>
-          <div className="rs-skeleton rs-skeleton-name" />
-        </td>
-        <td>
-          <div className="rs-skeleton rs-skeleton-name" />
-        </td>
-        <td>
-          <div className="rs-skeleton rs-skeleton-count" />
-        </td>
-      </tr>,
-    );
-  }
-
-  return skeletons;
-}
-
 function ListPlaceholder({ icon, tone, title, body, actionIcon, actionLabel, onAction, role }) {
   return (
     <TableShell
@@ -336,19 +282,16 @@ function PanelEmpty({ title, body }) {
   );
 }
 
-function OccupancySummary({ units, isFirstLoad, hasError }) {
+function OccupancySummary({ units, hasError }) {
   const occupied = units.filter((unit) => unit.occupant_id).length;
   const people = units.reduce((sum, unit) => sum + (unit.occupant_id ? unit.occupant_household_size || 0 : 0), 0);
   const occupancyPercent = units.length > 0 ? Math.round((occupied / units.length) * 100) : null;
   const hasPercent = !hasError && occupancyPercent !== null;
-  const skeletonClass = isFirstLoad ? " rs-skeleton" : "";
-  const summaryText = isFirstLoad
-    ? ""
-    : hasError
-      ? "Doluluk okunamadı"
-      : occupancyPercent === null
-        ? "Binada kayıtlı daire yok"
-        : `${occupied} / ${units.length} daire dolu · ${people} kişi`;
+  const summaryText = hasError
+    ? "Doluluk okunamadı"
+    : occupancyPercent === null
+      ? "Binada kayıtlı daire yok"
+      : `${occupied} / ${units.length} daire dolu · ${people} kişi`;
 
   return (
     <div className="rs-summary">
@@ -359,16 +302,16 @@ function OccupancySummary({ units, isFirstLoad, hasError }) {
           </span>
           Doluluk
         </span>
-        <span className={`rs-summary-value${hasPercent ? "" : " rs-summary-value--blank"}${skeletonClass}`}>
-          {isFirstLoad ? "" : hasPercent ? `%${occupancyPercent}` : "—"}
+        <span className={hasPercent ? "rs-summary-value" : "rs-summary-value rs-summary-value--blank"}>
+          {hasPercent ? `%${occupancyPercent}` : "—"}
         </span>
       </div>
-      {(isFirstLoad || hasPercent) && (
-        <span className={`rs-summary-meter${skeletonClass}`} aria-hidden="true">
-          <span style={{ width: `${Math.min(occupancyPercent ?? 0, 100)}%` }} />
+      {hasPercent && (
+        <span className="rs-summary-meter" aria-hidden="true">
+          <span style={{ width: `${Math.min(occupancyPercent, 100)}%` }} />
         </span>
       )}
-      <span className={`rs-summary-amounts${skeletonClass}`}>{summaryText}</span>
+      <span className="rs-summary-amounts">{summaryText}</span>
     </div>
   );
 }
@@ -485,7 +428,6 @@ function ResidentsControlBar({
   selectedMonth,
   onYearChange,
   onMonthChange,
-  isFirstLoad,
 }) {
   const occupied = units.filter((unit) => unit.occupant_id).length;
   const counts = { all: units.length, occupied, vacant: units.length - occupied };
@@ -502,22 +444,16 @@ function ResidentsControlBar({
             type="button"
             className={`rs-pill${modifier}${isActive ? " rs-pill--active" : ""}`}
             onClick={() => onFilterChange(pill.key)}
-            disabled={isFirstLoad}
             aria-pressed={isActive}
           >
             {pill.key !== "all" && <span className="rs-pill-dot" aria-hidden="true" />}
             {pill.label}
-            {!isFirstLoad && <span className="rs-pill-count">{counts[pill.key]}</span>}
+            <span className="rs-pill-count">{counts[pill.key]}</span>
           </button>
         );
       })}
 
-      <SearchBox
-        label="Daire, sakin veya malik ara"
-        value={searchTerm}
-        disabled={isFirstLoad}
-        onChange={onSearchChange}
-      />
+      <SearchBox label="Daire, sakin veya malik ara" value={searchTerm} onChange={onSearchChange} />
 
       <PeriodSelector
         year={selectedYear}
@@ -537,18 +473,12 @@ function Residents() {
   const [selectedMonth, setSelectedMonth] = useState(() => getCurrentMonth());
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageKey, setPageKey] = useState("");
   const [selectedApartmentId, setSelectedApartmentId] = useState(null);
   const [formTarget, setFormTarget] = useState(null);
   const [moveOutTarget, setMoveOutTarget] = useState(null);
   const [historyTarget, setHistoryTarget] = useState(null);
 
-  const { units, start, isFirstLoad, errorMessage, loadResidents } = useResidents(
-    building.id,
-    selectedYear,
-    selectedMonth,
-  );
+  const { units, start, errorMessage, loadResidents } = useResidents(building.id, selectedYear, selectedMonth);
 
   const isReadOnly = selectedYear !== getCurrentYear() || selectedMonth !== getCurrentMonth();
 
@@ -573,7 +503,7 @@ function Residents() {
     loadResidents();
   };
 
-  const term = searchKey(searchTerm).trim();
+  const term = searchKey(searchTerm);
   const filteredUnits = units.filter((unit) => {
     if (statusFilter === "occupied" && !unit.occupant_id) return false;
     if (statusFilter === "vacant" && unit.occupant_id) return false;
@@ -585,15 +515,12 @@ function Residents() {
     );
   });
 
-  const nextPageKey = `${statusFilter}|${searchTerm}|${selectedYear}|${selectedMonth}`;
-  if (pageKey !== nextPageKey) {
-    setPageKey(nextPageKey);
-    setPage(1);
-  }
-
-  const pageCount = Math.max(1, Math.ceil(filteredUnits.length / PAGE_SIZE));
-  const currentPage = Math.min(page, pageCount);
-  const pagedUnits = filteredUnits.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const {
+    pageItems: pagedUnits,
+    currentPage,
+    pageCount,
+    setPage,
+  } = usePagination(filteredUnits, PAGE_SIZE, `${statusFilter}|${searchTerm}|${selectedYear}|${selectedMonth}`);
 
   const selectedUnit = units.find((unit) => unit.apartment_id === selectedApartmentId) || null;
   const panelUnit = errorMessage ? null : selectedUnit;
@@ -601,14 +528,6 @@ function Residents() {
   const panelTarget = (role, extra) => ({ unit: panelUnit, roles: panelRoles, role, ...extra });
 
   const renderList = () => {
-    if (isFirstLoad) {
-      return (
-        <TableShell>
-          <SkeletonRows />
-        </TableShell>
-      );
-    }
-
     if (errorMessage) {
       return (
         <ListPlaceholder
@@ -695,7 +614,6 @@ function Residents() {
         selectedMonth={selectedMonth}
         onYearChange={handleYearChange}
         onMonthChange={setSelectedMonth}
-        isFirstLoad={isFirstLoad}
       />
 
       <section className="page-band" aria-label="Sakin listesi">
@@ -718,7 +636,7 @@ function Residents() {
                 />
               ) : (
                 <>
-                  <OccupancySummary units={units} isFirstLoad={isFirstLoad} hasError={Boolean(errorMessage)} />
+                  <OccupancySummary units={units} hasError={Boolean(errorMessage)} />
                   <PanelEmpty
                     title="Daire seçilmedi"
                     body="Listeden bir daire seçin, sakin bilgileri burada görünür."

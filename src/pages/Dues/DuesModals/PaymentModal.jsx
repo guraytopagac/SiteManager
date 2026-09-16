@@ -1,18 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FiCheck, FiPaperclip, FiUpload, FiX } from "react-icons/fi";
 import "./DuesModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { showDialog } from "@/utils/dialog";
-import { EMPTY_RESIDENT_LABEL } from "@/utils/constants";
+import { EMPTY_RESIDENT_LABEL, PAYMENT_METHOD_LABELS, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import { formatCurrency } from "@/utils/currency";
 import { formatDate, formatMonthYear, getMinDate, getToday } from "@/utils/date";
-
-const PAYMENT_METHOD_LABELS = {
-  cash: "Nakit",
-  bank_transfer: "Havale / EFT",
-  card: "Kredi Kartı",
-  other: "Diğer",
-};
 
 const RECEIPT_ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp";
 
@@ -47,12 +40,14 @@ function PaymentSummary({ due, remaining }) {
   );
 }
 
-function PaymentHistory({ history, loading, onCancel, onOpenReceipt, onAttachReceipt }) {
+function PaymentHistory({ history, loading, errorMessage, onCancel, onOpenReceipt, onAttachReceipt }) {
   return (
     <>
       <h3 className="du-md-section-title">Ödeme Geçmişi</h3>
       {loading ? (
         <p className="du-history-empty">Yükleniyor...</p>
+      ) : errorMessage ? (
+        <p className="du-history-empty">{errorMessage}</p>
       ) : history.length === 0 ? (
         <p className="du-history-empty">Henüz ödeme kaydı yok.</p>
       ) : (
@@ -132,21 +127,21 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
   const receiptTargetRef = useRef(null);
 
   const [history, setHistory] = useState([]);
+  const [historyError, setHistoryError] = useState("");
   const [historyLoading, setHistoryLoading] = useState(true);
 
   const fetchHistory = useCallback(async () => {
-    setHistoryLoading(true);
-
     try {
       const res = await window.electronAPI.getPaymentHistory({ dueId: due.id, buildingId: building.id });
       if (res.success) {
         setHistory(res.data);
+        setHistoryError("");
       } else {
-        showDialog.error("Hata", res.message);
+        setHistoryError(res.message || "Ödeme geçmişi alınamadı.");
       }
     } catch (err) {
       console.error("[PaymentModal] getPaymentHistory:", err);
-      showDialog.error("Hata", "Ödeme geçmişi alınamadı.");
+      setHistoryError(UNEXPECTED_ERROR_MESSAGE);
     }
 
     setHistoryLoading(false);
@@ -437,6 +432,7 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
             <PaymentHistory
               history={history}
               loading={historyLoading}
+              errorMessage={historyError}
               onCancel={handleCancel}
               onOpenReceipt={handleOpenReceipt}
               onAttachReceipt={handleAttachReceipt}

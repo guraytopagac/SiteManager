@@ -22,6 +22,7 @@ const CHANNELS = {
 
   BACKUP: {
     RUN: "backup:run",
+    RESTORE_ON_SETUP: "backup:restore-on-setup",
   },
 
   BUILDING: {
@@ -55,6 +56,8 @@ const CHANNELS = {
     GET_TRANSACTIONS: "financial:get-transactions",
     CANCEL_INCOME: "financial:cancel-income",
     CANCEL_EXPENSE: "financial:cancel-expense",
+    GET_DOCUMENT: "financial:get-document",
+    SAVE_DOCUMENT_INFO: "financial:save-document-info",
   },
 
   REPORT: {

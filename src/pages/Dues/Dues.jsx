@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiAlertTriangle,
@@ -21,13 +21,10 @@ import UnitCell from "@/components/UnitCell/UnitCell";
 import BulkUpdateModal from "./DuesModals/BulkUpdateModal";
 import PaymentModal from "./DuesModals/PaymentModal";
 import SingleUpdateModal from "./DuesModals/SingleUpdateModal";
+import { useIpcData } from "@/hooks/useIpcData";
+import { usePagination } from "@/hooks/usePagination";
 import { useSession, useCurrentBuilding } from "@/hooks/useSession";
-import {
-  DUES_STATUS_LABELS,
-  DUES_STATUS_ORDER,
-  EMPTY_RESIDENT_LABEL,
-  UNEXPECTED_ERROR_MESSAGE,
-} from "@/utils/constants";
+import { DUES_STATUS_LABELS, DUES_STATUS_ORDER, EMPTY_RESIDENT_LABEL } from "@/utils/constants";
 import { formatCurrency } from "@/utils/currency";
 import { clampMonth, formatMonthYear, getCurrentMonth, getCurrentYear } from "@/utils/date";
 import { searchKey } from "@/utils/searchKey";
@@ -37,37 +34,14 @@ const PAGE_SIZE = 5;
 const COLUMNS = ["Daire", "Sakin", "Aidat", "Durum", "İşlem"];
 
 function useDues(buildingId, year, month) {
-  const [dues, setDues] = useState([]);
-  const [start, setStart] = useState(null);
-  const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [res, loadDues] = useIpcData("getDuesForMonth", { buildingId, year, month });
 
-  const loadDues = useCallback(async () => {
-    setErrorMessage("");
-
-    try {
-      const res = await window.electronAPI.getDuesForMonth({ buildingId, year, month });
-      if (res.success) {
-        setDues(res.data);
-        setStart(res.start);
-      } else {
-        setErrorMessage(res.message || "Veriler alınamadı.");
-      }
-    } catch (err) {
-      console.error("[Dues] getDuesForMonth:", err);
-      setErrorMessage(UNEXPECTED_ERROR_MESSAGE);
-    }
-
-    setIsFirstLoad(false);
-  }, [buildingId, year, month]);
-
-  useEffect(() => {
-    (async () => {
-      await loadDues();
-    })();
-  }, [loadDues]);
-
-  return { dues, start, isFirstLoad, errorMessage, loadDues };
+  return {
+    dues: res.success ? res.data : [],
+    start: res.success ? res.start : null,
+    errorMessage: res.success ? "" : res.message || "Veriler alınamadı.",
+    loadDues,
+  };
 }
 
 function TableShell({ overlay, spacerCount = 0, children }) {
@@ -149,37 +123,6 @@ function DuesRow({ due, onCollect }) {
   );
 }
 
-function SkeletonRows() {
-  const skeletons = [];
-
-  for (let index = 0; index < PAGE_SIZE; index += 1) {
-    skeletons.push(
-      <tr key={`skeleton-${index}`}>
-        <td>
-          <span className="unit-cell">
-            <span className="unit-tag du-skeleton">&nbsp;</span>
-            <span className="unit-floor du-skeleton du-skeleton-floor" />
-          </span>
-        </td>
-        <td>
-          <div className="du-skeleton du-skeleton-name" />
-        </td>
-        <td>
-          <div className="du-skeleton du-skeleton-pay" />
-        </td>
-        <td>
-          <div className="du-skeleton du-skeleton-chip" />
-        </td>
-        <td>
-          <div className="du-skeleton du-skeleton-action" />
-        </td>
-      </tr>,
-    );
-  }
-
-  return skeletons;
-}
-
 function ListPlaceholder({ icon, tone, title, body, actionIcon, actionLabel, onAction, role }) {
   return (
     <TableShell
@@ -248,7 +191,7 @@ function PagesCard({ onNavigate }) {
   );
 }
 
-function CollectSummary({ dues, isFirstLoad, hasError }) {
+function CollectSummary({ dues, hasError }) {
   const totalDue = dues.reduce((sum, due) => sum + due.due_amount, 0);
   const totalPaid = dues.reduce((sum, due) => sum + due.paid_amount, 0);
   const collectionPercent = totalDue > 0 ? Math.round((totalPaid / totalDue) * 100) : null;
@@ -268,31 +211,15 @@ function CollectSummary({ dues, isFirstLoad, hasError }) {
           </span>
           Tahsilat
         </span>
-        {isFirstLoad ? (
-          <span className="du-collect-value du-skeleton" aria-hidden="true" />
-        ) : (
-          <span className={isBlank ? "du-collect-value du-collect-value--blank" : "du-collect-value"}>
-            {isBlank ? "—" : `%${collectionPercent}`}
-          </span>
-        )}
+        <span className={isBlank ? "du-collect-value du-collect-value--blank" : "du-collect-value"}>
+          {isBlank ? "—" : `%${collectionPercent}`}
+        </span>
       </div>
 
-      {isFirstLoad ? (
-        <>
-          <span className="du-collect-meter du-skeleton" aria-hidden="true" />
-          <span className="du-collect-amounts du-skeleton" aria-hidden="true" />
-        </>
-      ) : (
-        <>
-          <span
-            className={isBlank ? "du-collect-meter du-collect-meter--blank" : "du-collect-meter"}
-            aria-hidden="true"
-          >
-            <span style={{ width: `${Math.min(collectionPercent ?? 0, 100)}%` }} />
-          </span>
-          <span className="du-collect-amounts">{amountsText}</span>
-        </>
-      )}
+      <span className={isBlank ? "du-collect-meter du-collect-meter--blank" : "du-collect-meter"} aria-hidden="true">
+        <span style={{ width: `${Math.min(collectionPercent ?? 0, 100)}%` }} />
+      </span>
+      <span className="du-collect-amounts">{amountsText}</span>
     </section>
   );
 }
@@ -312,7 +239,6 @@ function DuesControlBar({
   onFilterChange,
   searchTerm,
   onSearchChange,
-  isFirstLoad,
 }) {
   const counts = dues.reduce(
     (acc, due) => {
@@ -334,17 +260,16 @@ function DuesControlBar({
             type="button"
             className={`du-pill${modifier}${isActive ? " du-pill--active" : ""}`}
             onClick={() => onFilterChange(pill.key)}
-            disabled={isFirstLoad}
             aria-pressed={isActive}
           >
             {pill.key !== "all" && <span className="du-pill-dot" aria-hidden="true" />}
             {pill.label}
-            {!isFirstLoad && <span className="du-pill-count">{counts[pill.key]}</span>}
+            <span className="du-pill-count">{counts[pill.key]}</span>
           </button>
         );
       })}
 
-      <SearchBox label="Daire no veya sakin ara" value={searchTerm} disabled={isFirstLoad} onChange={onSearchChange} />
+      <SearchBox label="Daire no veya sakin ara" value={searchTerm} onChange={onSearchChange} />
 
       <PeriodSelector
         year={selectedYear}
@@ -365,13 +290,11 @@ function Dues() {
   const [selectedMonth, setSelectedMonth] = useState(() => getCurrentMonth());
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageKey, setPageKey] = useState("");
   const [selectedApartmentId, setSelectedApartmentId] = useState(null);
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
   const [showSingleUpdate, setShowSingleUpdate] = useState(false);
 
-  const { dues, start, isFirstLoad, errorMessage, loadDues } = useDues(building.id, selectedYear, selectedMonth);
+  const { dues, start, errorMessage, loadDues } = useDues(building.id, selectedYear, selectedMonth);
 
   const handleYearChange = (year) => {
     setSelectedYear(year);
@@ -388,34 +311,23 @@ function Dues() {
     setSelectedMonth(start.month);
   };
 
-  const term = searchKey(searchTerm).trim();
+  const term = searchKey(searchTerm);
   const filteredDues = dues.filter((due) => {
     if (statusFilter !== "all" && due.status !== statusFilter) return false;
     if (!term) return true;
     return searchKey(due.apartment_no).includes(term) || searchKey(due.resident_name).includes(term);
   });
 
-  const nextPageKey = `${statusFilter}|${searchTerm}|${selectedYear}|${selectedMonth}`;
-  if (pageKey !== nextPageKey) {
-    setPageKey(nextPageKey);
-    setPage(1);
-  }
-
-  const pageCount = Math.max(1, Math.ceil(filteredDues.length / PAGE_SIZE));
-  const currentPage = Math.min(page, pageCount);
-  const pagedDues = filteredDues.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const {
+    pageItems: pagedDues,
+    currentPage,
+    pageCount,
+    setPage,
+  } = usePagination(filteredDues, PAGE_SIZE, `${statusFilter}|${searchTerm}|${selectedYear}|${selectedMonth}`);
 
   const selectedDue = dues.find((due) => due.apartment_id === selectedApartmentId) || null;
 
   const renderList = () => {
-    if (isFirstLoad) {
-      return (
-        <TableShell>
-          <SkeletonRows />
-        </TableShell>
-      );
-    }
-
     if (errorMessage) {
       return (
         <ListPlaceholder
@@ -495,7 +407,6 @@ function Dues() {
         onFilterChange={setStatusFilter}
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        isFirstLoad={isFirstLoad}
       />
 
       <section className="page-band" aria-label="Daire listesi">
@@ -503,7 +414,7 @@ function Dues() {
           <div className="du-list-main">{renderList()}</div>
 
           <div className="du-rail">
-            <CollectSummary dues={dues} isFirstLoad={isFirstLoad} hasError={Boolean(errorMessage)} />
+            <CollectSummary dues={dues} hasError={Boolean(errorMessage)} />
             <ActionsCard
               onBulkUpdate={() => setShowBulkUpdate(true)}
               onSingleUpdate={() => setShowSingleUpdate(true)}

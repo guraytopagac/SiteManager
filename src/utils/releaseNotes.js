@@ -4,6 +4,27 @@ const RELEASE_NOTES_SEEN_KEY = "releaseNotesSeenVersion";
 
 const RELEASE_NOTES = [
   {
+    version: "2.0.0",
+    date: "2026-09-16",
+    title: "Tahsilat makbuzu, gider pusulası ve yenilenen raporlar",
+    changes: [
+      "Tahsilat makbuzu ve gider pusulası eklendi. Gelir ve gider kaydının detayından PDF belge oluşturulup bilgisayara kaydedilebiliyor.",
+      "Belge oluşturulurken ödeyen, hizmeti veren ve adres bilgileri girilebiliyor. Belgeye basılacak bilgilerin tamamı kaydetmeden önce listeleniyor ve tutar yazıyla da yazılıyor.",
+      "Aidat makbuzu dairenin o ayının tamamını kapsıyor. Ay içinde farklı yöntemlerle alınan tahsilatlar tek makbuzda toplanıyor.",
+      "Raporlar sayfası yeniden tasarlandı. Dönem toplamları, aidat tahsilatı ve gelir gider dağılımı ekranda özet olarak görünüyor.",
+      "Rapor kapsamı aylık, yıllık ve tüm zamanlar olarak seçiliyor ve dönem ok tuşlarıyla adımlanıyor. İndirme menüsü üç raporu birden sunuyor.",
+      "Rapor PDF'i yeniden yazıldı. Devreden kasa, yıllık raporda aylık döküm, sayfa altbilgisi ve imza alanı eklendi.",
+      "Profil sayfası yeniden tasarlandı. Şifre değiştirme ve hesap devri kendi pencerelerine taşındı.",
+      "Hesap devri artık bir devir dosyası oluşturuyor. Yeni yönetici başka bir bilgisayarda bu dosyayı kurulum ekranından yükleyerek kaldığı yerden devam edebiliyor.",
+      "Kurulum ekranına dosyadan yükleme bağlantısı eklendi. Bilgisayar değiştiren yönetici yedeğini buradan geri yükleyebiliyor.",
+      "Gelir kaydına ödeme şekli eklendi. Gelir kategorileri gözden geçirildi, su ve ısı payı eklendi.",
+      "Gelir ve gider açıklaması isteğe bağlı oldu.",
+      "Kişi adları kaydedilirken Türkçe yazım kurallarıyla biçimleniyor.",
+      "Dönem seçicilerindeki yıl listesi hesabın açıldığı yıldan başlıyor.",
+      "Sayfalar verisi hazır olmadan boş çizilmiyor. Dönem değiştirildiğinde ve kayıt sonrasında listeler yerinde yenileniyor.",
+    ],
+  },
+  {
     version: "1.9.0",
     date: "2026-09-11",
     title: "Malik ve kiracı kayıtları, bina görünümü ve yenilenen gelir gider sayfası",
@@ -33,19 +54,6 @@ const RELEASE_NOTES = [
       "Silinen dairenin numarası yeniden kullanılabiliyor. Aynı numarayla eklenen daire artık silinen dairenin aidat ve sakin geçmişini devralmıyor.",
       "Daireler ve İşlemler sayfaları ortak bir dönem seçicisi kullanıyor.",
       "Tahsilat, daire düzenleme, toplu aidat ve sakin pencereleri ortak bir görsel dile alındı.",
-    ],
-  },
-  {
-    version: "1.7.0",
-    date: "2026-09-04",
-    title: "Yenilenen pano, kişi sayısı ve ortak oturum ekranları",
-    changes: [
-      'Sakin kaydına "Dairede Yaşayan Kişi Sayısı" alanı eklendi. Bina listesindeki kişi sayısı artık bu değerden toplanıyor.',
-      "Pano yeniden tasarlandı. Kasa, tahsilat ve gecikme tek bir yüzeyde toplandı, üçüne de tıklayarak ilgili listeye geçebilirsiniz.",
-      "Panodaki ölçülemeyen durumlar artık sıfır yerine açıklamayla gösteriliyor. Defter tamamen boşken pano doğrudan daire eklemeye yönlendiriyor.",
-      "Giriş, kurulum, şifre kurtarma ve bina seçim ekranları ortak bir görsel dile alındı.",
-      "Bina seçim kartları yenilendi. Daire ve kişi sayısı satırda görünüyor, yeniden adlandırma ve silme düğmeleri her zaman açıkta duruyor.",
-      'Kurulum ve şifre kurtarma ekranlarındaki "Kodu Kopyala" düğmesi artık kopyalandığını bildiriyor.',
     ],
   },
 ];

@@ -1,12 +1,15 @@
 // Income and expense rules. A record is never deleted, only cancelled.
 const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
+const { periodCutoff, RESIDENT_NAME_FOR_PERIOD_SQL } = require("../shared/residentPeriod");
 const { TR_NOW_SQL, monthBounds } = require("../shared/trTime");
 
+// Only NOT NULL columns belong here, since the resolver reads labels on the UNIQUE and NOT NULL
+// branches alone. The description and the document fields are nullable, so every violation on them
+// is a CHECK.
 const COLUMN_LABELS = {
   amount: "Tutar",
   date: "Tarih",
-  description: "Açıklama",
   category: "Kategori",
 };
 
@@ -14,6 +17,13 @@ const COLUMN_LABELS = {
 const CANCEL_SELECT = {
   incomes: "is_cancelled, due_payment_id",
   expenses: "is_cancelled",
+};
+
+// Columns only one table takes on insert. The names are fixed here and each value is read from the
+// validated payload under the same key, so nothing from the renderer reaches the SQL text.
+const EXTRA_INSERT_COLUMNS = {
+  incomes: ["payment_method"],
+  expenses: [],
 };
 
 const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
@@ -32,12 +42,22 @@ function withDbError(name, context, run) {
 
 // The table name goes straight into the SQL, so it may only come from a fixed string in this file.
 function insertRecord(table, payload, label) {
+  const extraColumns = EXTRA_INSERT_COLUMNS[table];
+  const extraNames = extraColumns.map((column) => `${column}, `).join("");
+  const extraSlots = extraColumns.map(() => "?, ").join("");
   const result = getDb()
     .prepare(
-      `INSERT INTO ${table} (amount, date, description, category, building_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
+      `INSERT INTO ${table} (amount, date, description, category, building_id, ${extraNames}created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ${extraSlots}${TR_NOW_SQL}, ${TR_NOW_SQL})`,
     )
-    .run(payload.amount, payload.date, payload.description, payload.category, payload.buildingId);
+    .run(
+      payload.amount,
+      payload.date,
+      payload.description,
+      payload.category,
+      payload.buildingId,
+      ...extraColumns.map((column) => payload[column]),
+    );
   return { success: true, id: result.lastInsertRowid, message: `${label} eklendi.` };
 }
 
@@ -127,6 +147,148 @@ function getTransactions(payload) {
   }
 }
 
+// A document is printed only for a live record, and both tables give the same two answers.
+function documentBlocker(record) {
+  if (!record) return { success: false, message: "Kayıt bulunamadı." };
+  if (record.is_cancelled) {
+    return { success: false, message: "İptal edilmiş bir kayıt için belge oluşturulamaz." };
+  }
+  return null;
+}
+
+// The resident of the paid month rather than today's, so a receipt printed later still names the
+// person who lived there then.
+function residentNameForPaidMonth(receipt) {
+  if (receipt.apartment_id == null) return null;
+  const cutoff = periodCutoff(receipt.year, receipt.month);
+  return getDb()
+    .prepare(`SELECT ${RESIDENT_NAME_FOR_PERIOD_SQL} AS full_name FROM apartments a WHERE a.id = ?`)
+    .get(cutoff, cutoff, receipt.apartment_id).full_name;
+}
+
+// One row per payment method, summed over the month's live payments. Cancelled payments are left out,
+// since their income rows are cancelled with them.
+function livePaymentsForDue(dueId) {
+  return getDb()
+    .prepare(
+      `SELECT dp.payment_method, SUM(dp.amount) AS amount, MAX(dp.payment_date) AS last_date
+       FROM due_payments dp
+       LEFT JOIN payment_cancellations pc ON pc.payment_id = dp.id
+       WHERE dp.due_id = ? AND pc.id IS NULL
+       GROUP BY dp.payment_method
+       ORDER BY MIN(dp.id)`,
+    )
+    .all(dueId);
+}
+
+// A manual income prints itself. A dues receipt covers the whole month of that apartment instead:
+// someone who pays 70 in cash and 30 by card enters two payments but takes one receipt, whichever
+// of the two income rows it is opened from. The amounts are summed in whole kuruş so the per-method
+// lines always add up to the total.
+function readReceipt(id, buildingId) {
+  const receipt = getDb()
+    .prepare(
+      `SELECT i.id, i.amount, i.date, i.description, i.category, i.is_cancelled, i.payer_name, i.payment_method,
+              dp.due_id, d.apartment_id, a.apartment_no, d.year, d.month
+       FROM incomes i
+       LEFT JOIN due_payments dp ON dp.id = i.due_payment_id
+       LEFT JOIN dues d ON d.id = dp.due_id
+       LEFT JOIN apartments a ON a.id = d.apartment_id
+       WHERE i.id = ? AND i.building_id = ?`,
+    )
+    .get(id, buildingId);
+  const blocker = documentBlocker(receipt);
+  if (blocker) return blocker;
+
+  if (receipt.due_id == null) {
+    const payments = receipt.payment_method ? [{ payment_method: receipt.payment_method, amount: receipt.amount }] : [];
+    return { success: true, data: { ...receipt, payments, resident_name: null } };
+  }
+
+  const groups = livePaymentsForDue(receipt.due_id);
+  const payments = groups.map((group) => ({
+    payment_method: group.payment_method,
+    amount: Math.round(group.amount * 100) / 100,
+  }));
+  const totalCents = payments.reduce((sum, payment) => sum + Math.round(payment.amount * 100), 0);
+  const lastDate = groups.reduce(
+    (latest, group) => (group.last_date > latest ? group.last_date : latest),
+    receipt.date,
+  );
+
+  return {
+    success: true,
+    data: {
+      ...receipt,
+      amount: totalCents / 100,
+      date: lastDate,
+      payer_name: null,
+      payment_method: null,
+      payments,
+      resident_name: residentNameForPaidMonth(receipt),
+    },
+  };
+}
+
+function readVoucher(id, buildingId) {
+  const voucher = getDb()
+    .prepare(
+      `SELECT id, amount, date, description, category, is_cancelled, vendor_name, vendor_address
+       FROM expenses WHERE id = ? AND building_id = ?`,
+    )
+    .get(id, buildingId);
+  return documentBlocker(voucher) ?? { success: true, data: voucher };
+}
+
+// Everything a receipt or a voucher prints, in one call. Names, dates and amounts come back raw,
+// and the renderer formats them the same way it does on screen.
+function getDocument(payload) {
+  const { id, buildingId, type } = payload;
+  try {
+    return type === "income" ? readReceipt(id, buildingId) : readVoucher(id, buildingId);
+  } catch (err) {
+    console.error("[financial.service] getDocument:", err);
+    return { success: false, message: "Belge bilgileri alınamadı." };
+  }
+}
+
+// Only a manual income takes a payer name. A dues receipt always names the apartment's resident for
+// that month, so nothing typed may replace it. The payment method is never written from here either,
+// it was chosen when the income or the dues payment was entered.
+function saveReceiptInfo(payload) {
+  const { id, buildingId, payer_name } = payload;
+  const record = getDb()
+    .prepare("SELECT is_cancelled, due_payment_id FROM incomes WHERE id = ? AND building_id = ?")
+    .get(id, buildingId);
+  const blocker = documentBlocker(record);
+  if (blocker) return blocker;
+  if (record.due_payment_id != null) {
+    return { success: false, message: "Aidat makbuzunda ödeyen dairenin sakinidir ve değiştirilemez." };
+  }
+
+  getDb()
+    .prepare(`UPDATE incomes SET payer_name = ?, updated_at = ${TR_NOW_SQL} WHERE id = ? AND building_id = ?`)
+    .run(payer_name, id, buildingId);
+  return { success: true, message: "Makbuz bilgileri kaydedildi." };
+}
+
+function saveVoucherInfo(payload) {
+  const { id, buildingId, vendor_name, vendor_address } = payload;
+  const record = getDb()
+    .prepare("SELECT is_cancelled FROM expenses WHERE id = ? AND building_id = ?")
+    .get(id, buildingId);
+  const blocker = documentBlocker(record);
+  if (blocker) return blocker;
+
+  getDb()
+    .prepare(
+      `UPDATE expenses SET vendor_name = ?, vendor_address = ?, updated_at = ${TR_NOW_SQL}
+       WHERE id = ? AND building_id = ?`,
+    )
+    .run(vendor_name, vendor_address, id, buildingId);
+  return { success: true, message: "Gider pusulası bilgileri kaydedildi." };
+}
+
 const addIncome = withDbError("addIncome", "Gelir ekleme", (payload) =>
   insertRecord("incomes", payload, "Gelir kaydı"),
 );
@@ -139,5 +301,16 @@ const cancelIncome = withDbError("cancelIncome", "Gelir iptali", (payload) =>
 const cancelExpense = withDbError("cancelExpense", "Gider iptali", (payload) =>
   cancelRecord("expenses", payload, "Gider kaydı"),
 );
+const saveDocumentInfo = withDbError("saveDocumentInfo", "Belge kaydı", (payload) =>
+  payload.type === "income" ? saveReceiptInfo(payload) : saveVoucherInfo(payload),
+);
 
-module.exports = { addIncome, addExpense, getTransactions, cancelIncome, cancelExpense };
+module.exports = {
+  addIncome,
+  addExpense,
+  getTransactions,
+  cancelIncome,
+  cancelExpense,
+  getDocument,
+  saveDocumentInfo,
+};

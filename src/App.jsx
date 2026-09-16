@@ -30,10 +30,12 @@ function StartupRedirect() {
 
 function RequireGuest() {
   const session = useSession();
-  if (session) {
-    return <Navigate to="/select-building" replace />;
-  }
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      {session && <Navigate to="/select-building" replace />}
+    </>
+  );
 }
 
 function RequireAuth() {

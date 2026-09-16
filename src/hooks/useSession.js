@@ -76,5 +76,9 @@ export function markSetupComplete(username) {
   setLedgerStartYear(getCurrentYear());
 }
 
+export function setSavedUsername(username) {
+  accountState = { ...accountState, username };
+}
+
 export const needsSetup = () => accountState.needsSetup;
 export const savedUsername = () => accountState.username;

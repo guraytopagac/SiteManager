@@ -641,31 +641,3 @@ button.bv-unit--add:hover {
   font-size: 1rem;
   line-height: 1.5;
 }
-
-.bv-skeleton {
-  border-color: transparent;
-  background: linear-gradient(
-    90deg,
-    var(--border-default) 0%,
-    color-mix(in srgb, var(--border-default) 45%, transparent) 50%,
-    var(--border-default) 100%
-  );
-  background-size: 200% 100%;
-  animation: bvShimmer 1.4s ease-in-out infinite;
-}
-
-.bv-floor.bv-skeleton {
-  width: 18px;
-  height: 14px;
-  margin-inline: auto;
-  border-radius: 999px;
-}
-
-@keyframes bvShimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
-}

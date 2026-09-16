@@ -2,10 +2,12 @@
 // recovery codes are stored as bcrypt hashes. The only value ever returned in clear text is a
 // new recovery code, shown to the user once.
 const crypto = require("crypto");
+const fs = require("fs");
 const bcrypt = require("bcryptjs");
 const { getDb } = require("../../../database/db");
+const { saveDatabaseCopy } = require("../backup/service");
 const { createDbErrorResolver } = require("../shared/dbError");
-const { TR_NOW_SQL } = require("../shared/trTime");
+const { TR_NOW_SQL, trToday } = require("../shared/trTime");
 
 const COLUMN_LABELS = {
   username: "Kullanıcı adı",
@@ -116,35 +118,61 @@ function login(credentials) {
   }
 }
 
+const TRANSFER_SQL = `UPDATE users SET username = ?, email = NULL, password_hash = ?, manager_name = ?,
+  recovery_hash = ?, password_changed_at = ${TR_NOW_SQL}, updated_at = ${TR_NOW_SQL} WHERE id = ?`;
+
 // Hands the account to another person. Buildings and data stay where they are. The recovery code
-// is replaced too, or the old holder could use their code to get back in.
-function transferAccount(payload) {
-  const { userId, password, newPerson } = payload;
+// is replaced too, or the old holder could use their code to get back in. The username and email
+// go for the same reason the name does: they belong to the person, not to the ledger.
+// A transfer always writes a transfer file, whether the new manager stays on this computer or not.
+// The new credentials go into a copy of the database first and then into this one, so the file
+// never carries the old password and this computer is locked to the previous manager as well.
+async function transferAccount(payload, mainWindow) {
+  const { userId, password, newPerson, newUsername } = payload;
+  let filePath = null;
   try {
-    const user = getDb().prepare(`SELECT id, password_hash FROM users WHERE id = ?`).get(userId);
+    const user = getDb().prepare(`SELECT id, username, password_hash FROM users WHERE id = ?`).get(userId);
     if (!user) return { success: false, message: ACCOUNT_NOT_FOUND_MESSAGE };
     if (!bcrypt.compareSync(password, user.password_hash)) return { success: false, message: INVALID_PASSWORD_MESSAGE };
+    // Usernames are ASCII only, so a plain lower-case compare matches the NOCASE index.
+    if (user.username.toLowerCase() === newUsername.toLowerCase()) {
+      return { success: false, message: "Yeni kullanıcı adı mevcut kullanıcı adından farklı olmalıdır." };
+    }
 
     const temporaryPassword = generateTemporaryPassword();
     const temporaryPasswordHash = bcrypt.hashSync(temporaryPassword, BCRYPT_ROUNDS);
     const newRecoveryCode = generateRecoveryCode();
     const newRecoveryHash = bcrypt.hashSync(newRecoveryCode.rawCode, BCRYPT_ROUNDS);
+    const params = [newUsername, temporaryPasswordHash, newPerson, newRecoveryHash, userId];
+
+    filePath = await saveDatabaseCopy(mainWindow, {
+      title: "Devir Dosyasını Kaydet",
+      defaultPath: `mavikent-devir-${trToday()}.db`,
+      editCopy: (copyDb) => {
+        if (copyDb.prepare(TRANSFER_SQL).run(...params).changes !== 1) {
+          throw new Error("transferAccount: account row missing in the copy");
+        }
+      },
+    });
+    if (!filePath) return { success: false, cancelled: true, message: "İptal edildi." };
 
     getDb()
-      .prepare(
-        `UPDATE users SET password_hash = ?, manager_name = ?, recovery_hash = ?,
-         password_changed_at = ${TR_NOW_SQL}, updated_at = ${TR_NOW_SQL} WHERE id = ?`,
-      )
-      .run(temporaryPasswordHash, newPerson, newRecoveryHash, userId);
+      .prepare(TRANSFER_SQL)
+      .run(...params);
 
     return {
       success: true,
       message: "Hesap devri tamamlandı.",
+      managerName: newPerson,
+      username: newUsername,
       temporaryPassword,
       recoveryCode: newRecoveryCode.displayCode,
+      filePath,
     };
   } catch (err) {
     console.error("[auth.service] transferAccount:", err);
+    // A file whose twin write here failed would hand over credentials this computer never got.
+    if (filePath) await fs.promises.unlink(filePath).catch(() => {});
     return { success: false, message: "Devir tamamlanamadı." };
   }
 }

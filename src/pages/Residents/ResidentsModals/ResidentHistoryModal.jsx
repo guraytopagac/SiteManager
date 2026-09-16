@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { FiChevronDown, FiHome, FiUser, FiX } from "react-icons/fi";
 import "./ResidentsModals.css";
 import DetailRow from "@/components/DetailRow/DetailRow";
 import Pager from "@/components/Pager/Pager";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import { showDialog } from "@/utils/dialog";
+import { usePagination } from "@/hooks/usePagination";
 import { RESIDENT_TYPE_LABELS, UNEXPECTED_ERROR_MESSAGE, UNNAMED_RESIDENT_LABEL } from "@/utils/constants";
 import { formatDate } from "@/utils/date";
 import { formatPhone } from "@/utils/phoneNumber";
@@ -29,13 +29,12 @@ function PlaceholderCard() {
 
 function ResidentHistoryModal({ apartment, building, onClose }) {
   const [history, setHistory] = useState([]);
+  const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
-  const [page, setPage] = useState(1);
 
   useEffect(() => {
     (async () => {
-      setLoading(true);
       try {
         const res = await window.electronAPI.getResidentHistory({
           apartmentId: apartment.apartment_id,
@@ -44,11 +43,11 @@ function ResidentHistoryModal({ apartment, building, onClose }) {
         if (res.success) {
           setHistory(res.data);
         } else {
-          showDialog.error("Hata", res.message || "Sakin geçmişi alınamadı.");
+          setErrorMessage(res.message || "Sakin geçmişi alınamadı.");
         }
       } catch (err) {
         console.error("[ResidentHistoryModal] getResidentHistory:", err);
-        showDialog.error("Hata", UNEXPECTED_ERROR_MESSAGE);
+        setErrorMessage(UNEXPECTED_ERROR_MESSAGE);
       }
       setLoading(false);
     })();
@@ -56,9 +55,10 @@ function ResidentHistoryModal({ apartment, building, onClose }) {
 
   useEscapeKey(onClose);
 
-  const pageCount = Math.max(1, Math.ceil(history.length / PAGE_SIZE));
-  const visible = history.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const message = loading ? "Yükleniyor..." : history.length === 0 ? "Bu daire için sakin kaydı yok." : null;
+  const { pageItems: visible, currentPage, pageCount, setPage } = usePagination(history, PAGE_SIZE);
+  const message = loading
+    ? "Yükleniyor..."
+    : errorMessage || (history.length === 0 ? "Bu daire için sakin kaydı yok." : null);
   const spacers = [];
 
   for (let index = 0; index < PAGE_SIZE - visible.length; index += 1) {
@@ -142,7 +142,7 @@ function ResidentHistoryModal({ apartment, building, onClose }) {
             {message && <p className="rs-history-empty">{message}</p>}
           </div>
 
-          <Pager currentPage={page} pageCount={pageCount} onChange={changePage} />
+          <Pager currentPage={currentPage} pageCount={pageCount} onChange={changePage} />
         </div>
       </div>
     </div>

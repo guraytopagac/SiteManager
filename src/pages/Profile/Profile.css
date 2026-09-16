@@ -1,212 +1,227 @@
 .profile-container {
-  width: 100%;
-  max-width: 680px;
+  width: 1200px;
   margin: 0 auto;
-  padding: 30px;
+  padding: 24px 40px 26px;
   color: var(--text-color);
 }
 
-.profile-container .page-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0 0 24px;
-}
-
-.profile-card {
-  background: var(--card-background-1);
+.pf-identity {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   border: 1px solid var(--border-default);
   border-radius: 14px;
+  background: var(--background-color-1);
+}
+
+.pf-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
   padding: 24px;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 12px var(--shadow-soft);
 }
 
-.profile-section-title {
-  font-size: 0.82rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--button-color);
-  margin: 0 0 16px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border-default);
+.pf-cell + .pf-cell {
+  border-left: 1px solid var(--border-default);
 }
 
-.info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.pf-person {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
   gap: 16px;
 }
 
-.info-item {
-  display: flex;
-  flex-direction: column;
+.pf-avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent-tint);
+  color: var(--button-color);
+  font-size: 1.3rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.pf-person-text {
+  display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
-.info-label {
-  font-size: 0.78rem;
+.pf-name {
+  overflow: hidden;
+  font-size: 1.4rem;
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pf-role,
+.pf-cell-label {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.pf-cell-label {
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  opacity: 0.55;
 }
 
-.info-value {
-  font-size: 0.97rem;
+.pf-cell-value {
+  overflow: hidden;
+  font-size: 1.1rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pf-cell-value--blank {
+  color: var(--text-secondary);
   font-weight: 500;
-  color: var(--text-color);
 }
 
-.info-value-editable {
+.pf-cell-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  min-width: 0;
 }
 
-.password-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.password-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.profile-container .input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.profile-container .input-group label {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.profile-container .input-group input {
-  height: 44px;
+.pf-inline-btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  height: 32px;
+  margin-left: auto;
   padding: 0 12px;
-  border-radius: 9px;
   border: 1px solid var(--border-default);
-  background: var(--card-background-2);
-  color: var(--text-color);
-  font-size: 0.93rem;
-  font-family: inherit;
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
-}
-
-.profile-container .input-group input::placeholder {
-  color: var(--text-secondary);
-  opacity: 0.5;
-}
-
-.profile-container .input-group input:focus:not(:focus-visible) {
-  outline: none;
-  box-shadow: none;
-}
-
-.profile-container .input-group input:focus-visible {
-  outline: none;
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px var(--accent-tint);
-}
-
-.profile-container .form-actions {
-  display: flex;
-  justify-content: center;
-}
-
-.profile-container .return-link {
-  display: flex;
-  justify-content: center;
-  margin-top: 8px;
-}
-
-.profile-container .btn-primary,
-.profile-container .btn-secondary {
-  min-width: 160px;
-  height: 44px;
   border-radius: 9px;
-  font-size: 0.93rem;
+  background: var(--card-background-1);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 1rem;
   font-weight: 600;
-  font-family: inherit;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
-.profile-container .btn-primary {
-  border: none;
-  background: var(--button-color);
-  color: var(--button-text);
-}
-
-.profile-container .btn-primary:hover:not(:disabled) {
-  background: var(--button-hover);
-  transform: translateY(-1px);
-}
-
-.profile-container .btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.profile-container .btn-secondary {
-  background: transparent;
-  border: 1px solid var(--border-default);
-  color: var(--text-secondary);
-}
-
-.profile-container .btn-secondary:hover {
+.pf-inline-btn:hover {
   border-color: var(--button-color);
   color: var(--button-color);
+  opacity: 1;
 }
 
-.profile-container .btn-danger {
-  min-width: 160px;
-  height: 44px;
-  border-radius: 9px;
-  font-size: 0.93rem;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: transparent;
-  border: 1px solid var(--danger);
-  color: var(--danger);
-}
-
-.profile-container .btn-danger:hover {
-  background: color-mix(in srgb, var(--danger) 12%, transparent);
-}
-
-.profile-card-danger {
-  border-color: color-mix(in srgb, var(--danger) 45%, var(--border-default));
-}
-
-.profile-muted {
-  font-size: 1rem;
-  color: var(--text-secondary);
-  margin: 0 0 14px;
-}
-
-.profile-action-row {
-  display: flex;
-  flex-wrap: wrap;
+.pf-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
-.profile-container .btn-secondary.btn-xs {
-  min-width: 0;
-  height: 36px;
-  padding: 0 14px;
+.pf-card {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 14px;
+  background: var(--background-color-1);
+}
+
+.pf-card-head {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+}
+
+.pf-card-mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--accent-tint);
+  color: var(--button-color);
+}
+
+.pf-card-mark svg {
+  width: 21px;
+  height: 21px;
+}
+
+.pf-card--danger .pf-card-mark {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.pf-card-title {
+  font-size: 1.1rem;
+  font-weight: 650;
+}
+
+.pf-card-text {
+  margin: 0;
+  color: var(--text-secondary);
   font-size: 1rem;
+}
+
+.pf-card-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  margin-top: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: 11px;
+  background: var(--card-background-1);
+  color: var(--text-color);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.pf-card-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.pf-card-btn:hover:not(:disabled) {
+  border-color: var(--button-color);
+  background: var(--accent-tint);
+  color: var(--button-color);
+  opacity: 1;
+}
+
+.pf-card--danger .pf-card-btn {
+  color: var(--color-danger-text);
+}
+
+.pf-card--danger .pf-card-btn:hover:not(:disabled) {
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.pf-inline-btn:focus-visible,
+.pf-card-btn:focus-visible {
+  outline: 3px solid var(--accent-focus-ring);
+  outline-offset: 0;
+}
+
+.pf-card-btn:disabled {
+  color: var(--text-disabled);
+  cursor: default;
+  opacity: 1;
 }

@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
+import { useIpcData } from "@/hooks/useIpcData";
 import { useCurrentBuilding } from "@/hooks/useSession";
 import { formatCurrency } from "@/utils/currency";
 import { formatMonthYear, getCurrentYear, getCurrentMonth } from "@/utils/date";
@@ -21,38 +21,6 @@ import {
   FiUser,
   FiUsers,
 } from "react-icons/fi";
-
-const EMPTY_STATS = { cash: 0, collections: null, delays: 0 };
-
-function useDashboardStats(buildingId) {
-  const [stats, setStats] = useState(EMPTY_STATS);
-  const [status, setStatus] = useState("loading");
-
-  const load = useCallback(async () => {
-    setStatus("loading");
-
-    try {
-      const res = await window.electronAPI.getStats({ buildingId });
-      if (res.success) {
-        setStats(res.data);
-        setStatus("ready");
-      } else {
-        setStatus("error");
-      }
-    } catch (err) {
-      console.error("[Dashboard] getStats:", err);
-      setStatus("error");
-    }
-  }, [buildingId]);
-
-  useEffect(() => {
-    (async () => {
-      await load();
-    })();
-  }, [load]);
-
-  return { stats, status, reload: load };
-}
 
 function ActionTile({ icon, label, onClick }) {
   return (
@@ -82,19 +50,6 @@ function MetricTile({ className, icon, label, ariaLabel, onOpen, children }) {
       </span>
       {children}
     </button>
-  );
-}
-
-function StatusSkeleton() {
-  return (
-    <div className="db-metrics">
-      {[0, 1, 2].map((index) => (
-        <div className="db-metric db-metric--static" key={index}>
-          <div className="db-bar db-bar--label" />
-          <div className="db-bar db-bar--value" />
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -186,9 +141,10 @@ function StatusMetrics({ stats, navigate }) {
 function Dashboard() {
   const navigate = useNavigate();
   const building = useCurrentBuilding();
-  const { stats, status, reload } = useDashboardStats(building.id);
+  const [res, reload] = useIpcData("getStats", { buildingId: building.id });
+  const stats = res.success ? res.data : null;
   const period = formatMonthYear(getCurrentYear(), getCurrentMonth());
-  const isEmptyBook = stats.collections === null && stats.cash === 0 && stats.delays === 0;
+  const isEmptyBook = Boolean(stats) && stats.collections === null && stats.cash === 0 && stats.delays === 0;
 
   return (
     <div className="dashboard-container">
@@ -206,12 +162,9 @@ function Dashboard() {
       </header>
 
       <section className="db-band" aria-label="Bina durumu">
-        {status === "loading" && <StatusSkeleton />}
-        {status === "error" && <StatusError onRetry={reload} />}
-        {status === "ready" && isEmptyBook && (
-          <StatusEmpty onAdd={() => navigate("/building-view", { state: { openAdd: true } })} />
-        )}
-        {status === "ready" && !isEmptyBook && <StatusMetrics stats={stats} navigate={navigate} />}
+        {!stats && <StatusError onRetry={reload} />}
+        {isEmptyBook && <StatusEmpty onAdd={() => navigate("/building-view", { state: { openAdd: true } })} />}
+        {stats && !isEmptyBook && <StatusMetrics stats={stats} navigate={navigate} />}
       </section>
 
       <section className="db-band" aria-label="İşlemler">

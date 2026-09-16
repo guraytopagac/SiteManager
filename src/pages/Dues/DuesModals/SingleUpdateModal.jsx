@@ -16,7 +16,7 @@ function SingleUpdateModal({ dues, building, onClose, onSaved }) {
 
   const selectedDue = dues.find((due) => due.apartment_id === apartmentId) || null;
 
-  const term = searchKey(searchTerm).trim();
+  const term = searchKey(searchTerm);
   const matches = dues.filter((due) => {
     if (!term) return true;
     return searchKey(due.apartment_no).includes(term) || searchKey(due.resident_name).includes(term);

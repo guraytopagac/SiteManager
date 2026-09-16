@@ -88,12 +88,6 @@
   background: color-mix(in srgb, var(--button-color) 10%, var(--background-color-1));
 }
 
-.db-metric--static,
-.db-metric--static:hover {
-  background: transparent;
-  cursor: default;
-}
-
 .db-metric:focus-visible {
   outline: 3px solid var(--accent-focus-ring);
   outline-offset: -3px;
@@ -294,38 +288,6 @@
   height: 17px;
 }
 
-.db-bar {
-  border-radius: 7px;
-  background: linear-gradient(
-    90deg,
-    var(--background-color-1) 0%,
-    color-mix(in srgb, var(--button-color) 12%, var(--background-color-1)) 50%,
-    var(--background-color-1) 100%
-  );
-  background-size: 200% 100%;
-  animation: dbShimmer 1.3s linear infinite;
-}
-
-.db-bar--label {
-  width: 120px;
-  height: 22px;
-}
-
-.db-bar--value {
-  width: 190px;
-  height: 34px;
-  border-radius: 10px;
-}
-
-@keyframes dbShimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
-}
-
 .db-group {
   display: grid;
   grid-template-columns: 190px minmax(0, 1fr);
@@ -435,10 +397,5 @@
   .db-action:hover .db-action-go,
   .db-metric:hover .db-metric-go {
     transform: none;
-  }
-
-  .db-bar {
-    animation-duration: 2.6s !important;
-    animation-iteration-count: infinite !important;
   }
 }

@@ -10,15 +10,25 @@ CREATE TABLE IF NOT EXISTS incomes (
     date >= '2000-01-01' AND
     date <= '2100-12-31'
   ),
-  description TEXT NOT NULL CHECK(length(trim(description)) > 0 AND length(description) <= 500),
+  description TEXT CHECK(description IS NULL OR (length(trim(description)) > 0 AND length(description) <= 500)),
   -- The dues category is kept for recordPayment. The handler rejects it on manual entry.
-  category TEXT NOT NULL DEFAULT 'other' CHECK(category IN ('dues', 'rent', 'parking', 'donation', 'other')),
+  category TEXT NOT NULL DEFAULT 'other' CHECK(
+    category IN (
+      'dues', 'rent', 'parking', 'utility_share', 'special_fee', 'penalty', 'other'
+    )
+  ),
   is_cancelled INTEGER NOT NULL DEFAULT 0 CHECK(is_cancelled IN (0, 1)),
   cancelled_at TEXT CHECK(cancelled_at IS NULL OR datetime(cancelled_at) IS NOT NULL),
   cancel_reason TEXT CHECK(cancel_reason IS NULL OR (length(trim(cancel_reason)) > 0 AND length(cancel_reason) <= 300)),
   cancelled_by INTEGER,
   created_at TEXT NOT NULL DEFAULT (datetime('now', '+3 hours')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now', '+3 hours')),
+  -- Name printed as the payer on the receipt of a manual income. A dues receipt always names the
+  -- apartment's resident for that month, so this stays NULL there.
+  payer_name TEXT CHECK(payer_name IS NULL OR (length(trim(payer_name)) > 0 AND length(payer_name) <= 60)),
+  -- Written for manual income only, when the income is entered. A dues income reads its method from
+  -- the payment row. Rows entered before the column existed stay NULL and print no method.
+  payment_method TEXT CHECK(payment_method IS NULL OR payment_method IN ('cash', 'bank_transfer', 'card', 'other')),
   -- The four cancel fields are either all NULL or all filled.
   CHECK(
     (is_cancelled = 0 AND cancelled_at IS NULL AND cancel_reason IS NULL AND cancelled_by IS NULL) OR

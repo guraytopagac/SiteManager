@@ -10,7 +10,7 @@
   transition: border-color 0.15s ease;
 }
 
-.ps-wrapper:hover {
+.ps-wrapper:has(select:enabled):hover {
   border-color: var(--text-secondary);
 }
 
@@ -55,6 +55,16 @@
 
 .ps-field select:focus {
   box-shadow: none;
+}
+
+.ps-field select:disabled {
+  color: var(--text-disabled);
+  opacity: 1;
+  cursor: default;
+}
+
+.ps-field select:disabled + .ps-chevron {
+  color: var(--text-disabled);
 }
 
 .ps-field option {
