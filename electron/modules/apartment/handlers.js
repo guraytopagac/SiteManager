@@ -1,4 +1,3 @@
-// Apartment IPC entry points. Validation only, the SQL is in service.js.
 const { CHANNELS: CH } = require("../../ipc/channels");
 const { createHandle } = require("../../ipc/createHandle");
 const {
@@ -17,9 +16,8 @@ function validateOwnedApartmentScope(payload) {
   return validateBuildingScope(payload) ?? validateId(payload.id, "daire ID");
 }
 
-// Trims first, so it can be chained after a scope validator. The limits match the CHECK
-// constraints on the apartments table one to one. The due amount is not checked here, because
-// only one of the two callers sends it.
+// Trims first, so it can be chained after a scope validator. The limits match the CHECK constraints on the
+// apartments table. The due amount is checked apart, because only one of the two callers sends it.
 function validateApartmentFields(payload) {
   payload.apartment_no = typeof payload.apartment_no === "string" ? payload.apartment_no.trim() : "";
   if (!APARTMENT_NO_RE.test(payload.apartment_no)) {
@@ -44,8 +42,7 @@ function validateCurrentMonthScope(payload) {
   return null;
 }
 
-// The amount belongs to the dues page. An update that leaves it out keeps the current one, so the
-// building view can edit an apartment without carrying an amount it does not show. Sending one
+// The amount belongs to the dues page, so an update that leaves it out keeps the current one. Sending one
 // also means answering which period it starts from, the same question the bulk endpoint asks.
 function validateDueAmountChange(payload) {
   if (payload.due_amount == null) {

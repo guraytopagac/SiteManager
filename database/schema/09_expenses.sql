@@ -9,9 +9,11 @@ CREATE TABLE IF NOT EXISTS expenses (
     date <= '2100-12-31'
   ),
   description TEXT CHECK(description IS NULL OR (length(trim(description)) > 0 AND length(description) <= 500)),
+  -- The severance_fund category is written only by the severance fund transfers. The handler rejects it
+  -- on manual entry.
   category TEXT NOT NULL DEFAULT 'other' CHECK(
     category IN (
-      'maintenance', 'cleaning', 'utility', 'heating', 'staff', 'other'
+      'maintenance', 'cleaning', 'utility', 'heating', 'staff', 'other', 'severance_fund'
     )
   ),
   is_cancelled INTEGER NOT NULL DEFAULT 0 CHECK(is_cancelled IN (0, 1)),

@@ -15,14 +15,9 @@ const NOT_FOUND_MESSAGE = "Bina bulunamadı veya bu işlem için yetkiniz yok.";
 
 const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
 
-// The two counts are subqueries rather than a second round trip, because the picker draws one
-// meta line per building and a per-building call would be one IPC hop each. Both are scoped to
-// active apartments, so the numbers match what the apartment and resident screens list.
-// person_count sums household_size instead of counting rows, because one resident row stands for
-// a whole household. It joins the one occupant of each apartment rather than summing every active
-// row, since an apartment can hold an owner and a tenant at once and an owner who rented the flat
-// out keeps the occupancy flag for the months before the tenancy. SUM skips a household of unknown
-// size, so such a flat counts as occupied but adds nothing here.
+// The two counts are subqueries rather than a second round trip, since the picker draws one meta line per
+// building. person_count sums household_size of the single occupant row, because one row stands for a whole
+// household and an owner who rented the flat out keeps the flag. SUM skips a household of unknown size.
 function listBuildings(payload) {
   try {
     applyResidentSchedule();
@@ -58,7 +53,6 @@ function findDuplicateName(ownerId, name, excludeId = null) {
     .get(ownerId, name, excludeId);
 }
 
-// The wording changes if the building with that name sits in the deleted section.
 function duplicateNameMessage(duplicate) {
   return duplicate.is_active === 1
     ? "Bu isimde bir binanız zaten var."

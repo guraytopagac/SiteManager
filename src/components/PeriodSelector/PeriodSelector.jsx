@@ -1,7 +1,11 @@
+// The period control of the four period aware screens. Both option lists come from the date layer, and the
+// month list stopping at the current month is what makes a future period unreachable from the interface.
+
 import { FiCalendar, FiChevronDown } from "react-icons/fi";
 import "./PeriodSelector.css";
 import { getMonthOptions, getYearOptions } from "@/utils/date";
 
+// A field that cannot affect the current screen is disabled rather than removed, so the control keeps its width.
 function PeriodSelector({ year, month, onYearChange, onMonthChange, isMonthDisabled = false, isYearDisabled = false }) {
   return (
     <div className="ps-wrapper">

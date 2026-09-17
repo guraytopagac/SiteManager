@@ -1,3 +1,6 @@
+// Figures the screen and the printed report both compute. They live beside the document, since the page
+// imports the document and keeping them there would create an import loop.
+
 import { TRANSACTION_CATEGORY_LABELS } from "@/utils/constants";
 
 export function groupByCategory(rows) {

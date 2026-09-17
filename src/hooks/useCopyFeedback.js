@@ -1,3 +1,6 @@
+// Clipboard write plus the temporary confirmation label, shared by the two screens that show a value once.
+// Only the timing is shared: copy returns a boolean and each screen writes its own failure text.
+
 import { useEffect, useRef, useState } from "react";
 
 const COPY_FEEDBACK_MS = 5000;

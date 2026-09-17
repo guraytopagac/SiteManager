@@ -1,3 +1,6 @@
+// Resident records: the list, the detail panel and the owner and tenant lifecycle. The service returns
+// whoever lived there in the chosen month, so an older month shows that month's people.
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -48,6 +51,8 @@ const FILTER_PILLS = [
 
 const ROLE_ORDER = ["tenant", "owner"];
 
+// Every string that varies by role lives in this one table, so the page holds no comparison against a role
+// name and new role dependent text is added here.
 const ROLES = {
   tenant: {
     label: RESIDENT_TYPE_LABELS.tenant,
@@ -77,6 +82,8 @@ const ROLES = {
   },
 };
 
+// All four records share one field set and differ only by prefix, so one mapping reads any of them. The
+// occupant prefix does not mean tenant: that join falls back to the owner, and the type field tells them apart.
 function residentAt(unit, scope) {
   const id = unit[`${scope}_id`];
   if (!id) return null;
@@ -95,6 +102,8 @@ function residentAt(unit, scope) {
   };
 }
 
+// Normalised once per selection. record is the viewed month's entry and drives the display, openRecord is
+// only the still open one and drives the writes, which all require an active record.
 function toRoleState(role, record, pending) {
   const isOpen = Boolean(record && record.is_active);
 
@@ -127,6 +136,8 @@ function defaultRole(roles) {
   return roles.owner.record ? "owner" : "tenant";
 }
 
+// The occupancy sentence appears only when nothing else answers it: a tenant always lives there, and for a
+// tenanted apartment the tenant tab already says so. That leaves an owner with no tenant.
 function roleNote(roleState, hasOpenTenant) {
   const { record, text } = roleState;
 
@@ -136,6 +147,8 @@ function roleNote(roleState, hasOpenTenant) {
   return record.is_occupant ? "Dairede oturuyor" : "Dairede oturmuyor";
 }
 
+// A scheduled change replaces the close action rather than adding a third button, since the panel has two
+// slots. Cancelling the plan lives inside that modal.
 function roleActions(roleState, { onForm, onMoveOut, onEditSchedule }) {
   const { role, text, isOpen, isScheduled } = roleState;
 
@@ -199,6 +212,7 @@ function TableShell({ overlay, spacerCount = 0, children }) {
   );
 }
 
+// A record with a blank name and no record at all are separate facts, so they never share a label.
 function NameCell({ id, name, emptyLabel }) {
   const hasName = Boolean(id && name);
 
@@ -209,6 +223,8 @@ function NameCell({ id, name, emptyLabel }) {
   );
 }
 
+// Three outcomes: an empty apartment and an occupied one of unknown size are separate facts. The column is
+// too narrow for a word, so the explanation sits in the tooltip.
 function HouseholdCell({ occupantId, size }) {
   if (!occupantId) return <td className="rs-muted">—</td>;
   if (size == null)
@@ -221,6 +237,8 @@ function HouseholdCell({ occupantId, size }) {
   return <td className="rs-count">{size}</td>;
 }
 
+// The row itself opens the panel and carries no buttons, so it takes focus and answers Enter and Space to
+// stay reachable from the keyboard. No role is declared, it stays an ordinary table row.
 function UnitRow({ unit, isSelected, onSelect }) {
   return (
     <tr
@@ -282,6 +300,8 @@ function PanelEmpty({ title, body }) {
   );
 }
 
+// The occupancy figure is the panel's first block rather than its own card, which ate the panel's height.
+// An unknown household size counts as zero, so the total never reports people the user never entered.
 function OccupancySummary({ units, hasError }) {
   const occupied = units.filter((unit) => unit.occupant_id).length;
   const people = units.reduce((sum, unit) => sum + (unit.occupant_id ? unit.occupant_household_size || 0 : 0), 0);
@@ -342,8 +362,11 @@ function PanelActions({ roleState, isReadOnly, readOnlyNote, onForm, onMoveOut, 
   );
 }
 
+// One record at a time, chosen by the tabs, since both at once overrun the panel's measured height. Plain
+// buttons without a tablist role, which would promise arrow key navigation that is not written.
 function DetailPanel({ unit, roles, isReadOnly, period, onClose, onForm, onMoveOut, onEditSchedule, onHistory }) {
   const [role, setRole] = useState(() => defaultRole(roles));
+  // Reset during render when the apartment changes, or one frame would show the previous apartment's tab.
   const [roleKey, setRoleKey] = useState(unit.apartment_id);
 
   if (roleKey !== unit.apartment_id) {
@@ -480,6 +503,8 @@ function Residents() {
 
   const { units, start, errorMessage, loadResidents } = useResidents(building.id, selectedYear, selectedMonth);
 
+  // An older month keeps only the history button: every write needs an active record, so the others
+  // could only end in an error message.
   const isReadOnly = selectedYear !== getCurrentYear() || selectedMonth !== getCurrentMonth();
 
   const handleYearChange = (year) => {

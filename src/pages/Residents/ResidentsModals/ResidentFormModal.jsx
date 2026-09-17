@@ -1,3 +1,6 @@
+// Adds or edits one record, with the role arriving as a prop from the panel tab. The occupancy switch is
+// drawn only without an active tenant, and starts off so it never reports occupancy nobody claimed.
+
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./ResidentsModals.css";
@@ -31,6 +34,8 @@ function ResidentFormModal({ apartment, resident, residentType, hasTenant, build
   const nextName = form.full_name.trim();
   const isRename = isEdit && previousName !== "" && nextName !== previousName;
 
+  // This form overwrites the active record, so a rename rewrites that person out of every month. The service
+  // cannot tell a typo from a new occupant, so an edited name asks first and points to the proper route.
   const confirmRename = () => {
     const change = nextName ? `${previousName} yerine ${nextName} yazılacak.` : `${previousName} adı silinecek.`;
     const advice = isOwnerForm
@@ -56,6 +61,7 @@ function ResidentFormModal({ apartment, resident, residentType, hasTenant, build
       const residentData = {
         ...form,
         resident_type: residentType,
+        // Explicit, because an empty string would become zero and be stored as a size instead of unknown.
         household_size: form.household_size === "" ? null : Number(form.household_size),
       };
 

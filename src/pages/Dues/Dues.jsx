@@ -1,3 +1,6 @@
+// Dues tracking: the monthly list, collection, and the only place the due amount itself can be changed.
+// Apartments belong to the building view and resident records to the resident page.
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -31,6 +34,7 @@ import { searchKey } from "@/utils/searchKey";
 
 const PAGE_SIZE = 5;
 
+// Single owner of the header row and the filler cell span, so a new column cannot leave filler rows short.
 const COLUMNS = ["Daire", "Sakin", "Aidat", "Durum", "İşlem"];
 
 function useDues(buildingId, year, month) {
@@ -44,6 +48,8 @@ function useDues(buildingId, year, month) {
   };
 }
 
+// The shell owns the surface, the header and the filler rows, because a fixed height belongs to the shell.
+// Filler rows copy the real cell structure and are hidden with visibility, so height and borders still match.
 function TableShell({ overlay, spacerCount = 0, children }) {
   const isPlaceholder = Boolean(overlay);
   const spacers = [];
@@ -123,6 +129,7 @@ function DuesRow({ due, onCollect }) {
   );
 }
 
+// Drawn as an overlay on the shell, so an empty state is as tall as a full page and the layout never jumps.
 function ListPlaceholder({ icon, tone, title, body, actionIcon, actionLabel, onAction, role }) {
   return (
     <TableShell
@@ -191,6 +198,8 @@ function PagesCard({ onNavigate }) {
   );
 }
 
+// Reads the whole period and ignores the filters, since it reports the building rather than the list. The
+// meter is only hidden when empty, never removed: the rail sets the row height and the card would shrink.
 function CollectSummary({ dues, hasError }) {
   const totalDue = dues.reduce((sum, due) => sum + due.due_amount, 0);
   const totalPaid = dues.reduce((sum, due) => sum + due.paid_amount, 0);
@@ -325,6 +334,7 @@ function Dues() {
     setPage,
   } = usePagination(filteredDues, PAGE_SIZE, `${statusFilter}|${searchTerm}|${selectedYear}|${selectedMonth}`);
 
+  // Selection is held as an id and resolved on every render, so the open modal never shows stale figures.
   const selectedDue = dues.find((due) => due.apartment_id === selectedApartmentId) || null;
 
   const renderList = () => {
@@ -343,6 +353,8 @@ function Dues() {
     }
 
     if (dues.length === 0) {
+      // An empty list alone cannot tell an empty building from a period before its apartments, so the service
+      // also reports the first month on record and the two cases get their own wording and action.
       if (start) {
         return (
           <ListPlaceholder

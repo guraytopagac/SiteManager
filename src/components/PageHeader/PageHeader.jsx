@@ -6,6 +6,8 @@ import { useCurrentBuilding } from "@/hooks/useSession";
 
 function PageHeader({ title }) {
   const navigate = useNavigate();
+  // One consumer sits outside the building guard, so the label is dropped and the back button aims at the
+  // picker. Both facts come from the same store, which is why this is a read rather than a prop.
   const building = useCurrentBuilding();
 
   return (

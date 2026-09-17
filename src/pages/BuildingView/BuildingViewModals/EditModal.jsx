@@ -1,3 +1,6 @@
+// Edits the identity of an apartment only. No due amount: the figure on this page is the frozen amount of the
+// viewed month, and sending it would silently pull the current amount back to an old one.
+
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./BuildingViewModals.css";

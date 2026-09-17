@@ -1,3 +1,6 @@
+// Password recovery. Three states in one screen rather than three routes: enter the code, set a new
+// password, then a finished state that shows the freshly issued code once.
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Recover.css";
@@ -7,6 +10,7 @@ import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { MIN_PASSWORD_LENGTH } from "@/utils/passwordPolicy";
 import { FiAlertCircle, FiArrowLeft, FiArrowRight, FiCheck, FiCopy, FiInfo, FiLock } from "react-icons/fi";
 
+// The four look-alike characters are absent, matching the alphabet the code is generated from.
 const RECOVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const RECOVERY_LENGTH = 16;
 const RECOVERY_GROUP_SIZE = 4;
@@ -15,6 +19,8 @@ const ERROR_ID = "recover-error";
 const HINT_ID = "recover-code-hint";
 const CODE_PLACEHOLDER = "ABCD-EFGH-JKLP-QRST";
 
+// State holds the bare characters and the grouping is produced on render, the same split the phone field uses.
+// Anything outside the alphabet is dropped as it is typed, which is what the hint below explains.
 function toRecoveryDigits(input) {
   return input
     .toUpperCase()
@@ -74,6 +80,8 @@ function Recover() {
     setError("");
   };
 
+  // A side effect free check, so the user is not made to choose a new password before finding out the code
+  // is wrong. The authoritative check still happens inside the reset call below.
   const handleCodeSubmit = async (e) => {
     e.preventDefault();
     if (recoveryDigits.length !== RECOVERY_LENGTH) {
@@ -123,10 +131,14 @@ function Recover() {
       });
 
       if (res.success) {
+        // Same early return as the sign in screen: the flag stays raised because the finished state takes
+        // over the render, and a reset here would briefly re-enable a form that is about to disappear.
         setRenewedCredentials({ recoveryCode: res.recoveryCode, username: res.username });
         return;
       }
 
+      // Branching on the machine readable field rather than on the message, which is free to be reworded.
+      // The code can go stale between the two steps, and the user is sent back to enter it again.
       if (res.code === "INVALID_RECOVERY_CODE") {
         setStep(1);
       }

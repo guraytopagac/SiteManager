@@ -1,3 +1,6 @@
+// Sets the due amount of one apartment, with the same period cards as the bulk modal. No confirmation step:
+// undoing one apartment is just another edit.
+
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./DuesModals.css";
@@ -14,8 +17,11 @@ function SingleUpdateModal({ dues, building, onClose, onSaved }) {
   const [applyCurrentMonth, setApplyCurrentMonth] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // The amount label names the selected apartment, since the row can drop out of the list as the search narrows.
   const selectedDue = dues.find((due) => due.apartment_id === apartmentId) || null;
 
+  // A searchable list instead of a dropdown, which meant scrolling through fifty entries. The fixed height
+  // keeps the box from resizing on every keystroke.
   const term = searchKey(searchTerm);
   const matches = dues.filter((due) => {
     if (!term) return true;
@@ -44,6 +50,8 @@ function SingleUpdateModal({ dues, building, onClose, onSaved }) {
     setIsSubmitting(true);
 
     try {
+      // Identity fields travel straight from the row: they come from the apartment and do not vary by period,
+      // unlike the amount next to them.
       const res = await window.electronAPI.updateApartment({
         id: selectedDue.apartment_id,
         buildingId: building.id,

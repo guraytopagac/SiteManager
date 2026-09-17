@@ -1,3 +1,6 @@
+// The account settings screen: identity on top, then four equal cards for the actions that change something
+// lasting. Not a list page, so no table, rail or paging, and its height is not padded out.
+
 import { useState } from "react";
 import { FiDatabase, FiDownload, FiEdit2, FiKey, FiLock, FiRefreshCw, FiRepeat, FiUserCheck } from "react-icons/fi";
 import "./Profile.css";
@@ -20,6 +23,8 @@ function initialsOf(name) {
   return letters.toLocaleUpperCase("tr");
 }
 
+// These cards carry a description, unlike the dashboard tiles: they produce a lasting result, so the user
+// reads what will happen first. Only the transfer card takes a semantic colour, since it cannot be undone.
 function ActionCard({ icon, title, text, actionIcon, actionLabel, onAction, isBusy, danger }) {
   return (
     <div className={danger ? "pf-card pf-card--danger" : "pf-card"}>

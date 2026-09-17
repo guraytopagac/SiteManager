@@ -1,3 +1,6 @@
+// Adds one apartment, opened from a floor slot with that floor prefilled or from the empty state. The floor
+// stays editable, the only route to a floor that is not drawn yet.
+
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./BuildingViewModals.css";

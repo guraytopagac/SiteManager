@@ -1,3 +1,6 @@
+// The cash ledger: income and expense records, their cancellation and the documents printed from them.
+// Entry lives in a modal opened from the rail, the only place it can be opened from.
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -24,7 +27,7 @@ import { useIpcData } from "@/hooks/useIpcData";
 import { usePagination } from "@/hooks/usePagination";
 import { useCurrentBuilding, useSession } from "@/hooks/useSession";
 import { TRANSACTION_CATEGORY_LABELS, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
-import { formatSignedCurrency } from "@/utils/currency";
+import { formatCurrency, formatSignedCurrency } from "@/utils/currency";
 import { showDialog } from "@/utils/dialog";
 import { clampMonth, formatDate, formatMonthYear, getCurrentMonth, getCurrentYear, toPeriod } from "@/utils/date";
 import { searchKey } from "@/utils/searchKey";
@@ -40,6 +43,11 @@ const FILTER_PILLS = [
 ];
 
 const EMPTY_TOTALS = { totalIncome: 0, totalExpense: 0, net: 0 };
+
+// A fund payout is money going out, so the expense pill lists it even though the totals leave it out.
+function filterType(transaction) {
+  return transaction.type === "severance_payout" ? "expense" : transaction.type;
+}
 
 function useTransactions(buildingId, year, month) {
   const [res, loadTransactions] = useIpcData("getTransactions", { buildingId, period: { year, month } });
@@ -87,18 +95,33 @@ function TableShell({ overlay, spacerCount = 0, children }) {
   );
 }
 
+// A fund payout is listed but never counted, so it takes no sign and no colour.
+function rowAmount(transaction) {
+  if (transaction.type === "severance_payout") return formatCurrency(transaction.amount);
+  return formatSignedCurrency(transaction.type === "income" ? transaction.amount : -transaction.amount);
+}
+
+function rowClass(transaction) {
+  if (transaction.is_cancelled) return "tx-row--cancelled";
+  if (transaction.type === "severance_payout") return "tx-row--fund";
+  return undefined;
+}
+
+// No type column: the amount carries its own sign and colour. A cancelled record says so as a prefix in the
+// description, and the flag is 0 or 1 from the database, so a conditional is used: React prints a bare zero.
 function TransactionRow({ transaction, onOpen }) {
-  const signedAmount = transaction.type === "income" ? transaction.amount : -transaction.amount;
+  const isFundPayout = transaction.type === "severance_payout";
 
   return (
-    <tr className={transaction.is_cancelled ? "tx-row--cancelled" : undefined}>
+    <tr className={rowClass(transaction)}>
       <td className="tx-date">{formatDate(transaction.date)}</td>
       <td className="tx-category">{TRANSACTION_CATEGORY_LABELS[transaction.category] ?? transaction.category}</td>
       <td className="tx-desc" title={transaction.description || undefined}>
         {transaction.is_cancelled ? <span className="tx-cancelled-tag">İptal edildi ·</span> : null}
+        {isFundPayout && !transaction.is_cancelled ? <span className="tx-fund-tag">Tazminat kasasından ·</span> : null}
         {transaction.description || "—"}
       </td>
-      <td className={`tx-amount tx-amount--${transaction.type}`}>{formatSignedCurrency(signedAmount)}</td>
+      <td className={`tx-amount tx-amount--${transaction.type}`}>{rowAmount(transaction)}</td>
       <td>
         <button type="button" className="tx-detail-btn" onClick={onOpen}>
           Detay
@@ -135,6 +158,8 @@ function ListPlaceholder({ icon, tone, title, body, actionIcon, actionLabel, onA
   );
 }
 
+// The breakdown rows keep their colour at zero, since they state a direction. The net figure is a
+// measurement, so zero reads as neutral there.
 function NetRow({ label, tone, amount, isBlank }) {
   return (
     <div className="tx-net-row">
@@ -144,7 +169,7 @@ function NetRow({ label, tone, amount, isBlank }) {
   );
 }
 
-function NetSummary({ totals, hasError }) {
+function NetSummary({ totals, hasError, hasSeverancePayouts }) {
   const isBlank = hasError;
 
   return (
@@ -165,6 +190,10 @@ function NetSummary({ totals, hasError }) {
         <NetRow label="Gelir" tone="positive" amount={totals.totalIncome} isBlank={isBlank} />
         <NetRow label="Gider" tone="negative" amount={-totals.totalExpense} isBlank={isBlank} />
       </div>
+
+      {hasSeverancePayouts ? (
+        <p className="tx-net-note">Tazminat kasasından yapılan ödemeler toplama dahil değildir.</p>
+      ) : null}
     </section>
   );
 }
@@ -229,7 +258,7 @@ function TransactionsControlBar({
 }) {
   const filterCounts = transactions.reduce(
     (acc, transaction) => {
-      acc[transaction.type] += 1;
+      acc[filterType(transaction)] += 1;
       return acc;
     },
     { all: transactions.length, income: 0, expense: 0 },
@@ -302,8 +331,11 @@ function Transactions() {
     setSelectedMonth(start.month);
   };
 
+  // Unlike the apartment lists, the query is filtered by period, so an empty month before the ledger and a
+  // quiet one in the middle look alike. The first recorded month tells them apart.
   const isBeforeStart = Boolean(start) && toPeriod(selectedYear, selectedMonth) < toPeriod(start.year, start.month);
 
+  // Reports whether the record was cancelled, so the detail modal closes only on success.
   const handleCancel = async (transaction) => {
     const reason = await showDialog.cancelReason(`${transaction.type === "income" ? "Geliri" : "Gideri"} İptal Et`);
     if (!reason) return false;
@@ -344,7 +376,7 @@ function Transactions() {
 
   const term = searchKey(searchTerm);
   const filteredTransactions = transactions.filter((transaction) => {
-    if (typeFilter !== "all" && transaction.type !== typeFilter) return false;
+    if (typeFilter !== "all" && filterType(transaction) !== typeFilter) return false;
     if (!term) return true;
     const categoryLabel = TRANSACTION_CATEGORY_LABELS[transaction.category] ?? transaction.category;
     return searchKey(transaction.description).includes(term) || searchKey(categoryLabel).includes(term);
@@ -448,7 +480,11 @@ function Transactions() {
           <div className="tx-list-main">{renderList()}</div>
 
           <div className="tx-rail">
-            <NetSummary totals={totals} hasError={Boolean(errorMessage)} />
+            <NetSummary
+              totals={totals}
+              hasError={Boolean(errorMessage)}
+              hasSeverancePayouts={transactions.some((transaction) => transaction.type === "severance_payout")}
+            />
             <ActionsCard onAdd={setAddType} />
             <PagesCard onNavigate={navigate} />
           </div>

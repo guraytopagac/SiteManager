@@ -1,21 +1,6 @@
--- An apartment can now hold an owner row and a tenant row at the same time. The owner is the
--- lasting contact, the tenant comes and goes, and the manager needs both: the flat is often rented
--- out while the dues, the major repairs and the ownership questions still belong to the owner.
---
--- Two changes, and the first one needs the table rebuilt, so they share one migration.
---
--- 1. resident_type becomes NOT NULL. It used to be a decorative label that could be left empty.
---    It now decides which of the two active rows a row is, so it can no longer be missing. Rows
---    that carry no type become 'tenant', because an existing row always stood for whoever lived
---    in the apartment.
--- 2. is_occupant is added. A tenant always lives in the apartment, an owner may or may not, and
---    without this column an owner recorded for an empty flat would make it count as occupied and
---    would add a person to the building's headcount.
---
--- The partial unique index is the last line of defence for the first rule and the table CHECK for
--- the second. A database written before them could in theory hold two active rows for one
--- apartment, since the old rule only lived in the service, so the extra rows are closed here
--- rather than letting index creation fail and stop the app from opening.
+-- An apartment can now hold an owner row and a tenant row at once. Rebuilds residents so resident_type is
+-- NOT NULL (untyped rows become 'tenant') and adds is_occupant. Extra active rows are closed first, or the
+-- new partial unique index would fail and stop the app from opening.
 
 CREATE TABLE residents_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,9 +14,8 @@ CREATE TABLE residents_new (
   email TEXT CHECK(email IS NULL OR (email LIKE '%@%.%' AND length(email) BETWEEN 5 AND 254)),
   national_id TEXT CHECK(national_id IS NULL OR (length(national_id) = 11 AND national_id NOT GLOB '*[^0-9]*')),
   resident_type TEXT NOT NULL CHECK(resident_type IN ('owner', 'tenant')),
-  -- Whether this person lives in the apartment. A tenant always does, which the table CHECK below
-  -- enforces. For an owner it answers "does the owner live here when the flat is not rented", so an
-  -- owner recorded only as a contact for an empty or rented flat never counts as living there.
+  -- Whether this person lives in the apartment. A tenant always does (table CHECK below), and an owner kept
+  -- only as a contact never counts as living there.
   is_occupant INTEGER NOT NULL DEFAULT 1 CHECK(is_occupant IN (0, 1)),
   household_size INTEGER NOT NULL DEFAULT 1 CHECK(typeof(household_size) = 'integer' AND household_size BETWEEN 1 AND 20),
   move_out_date TEXT CHECK(

@@ -1,3 +1,6 @@
+// Records one income or one expense, the type arriving as a prop. Everything that differs lives in the table
+// below, so the only comparison against the type is the line that picks the endpoint.
+
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./TransactionsModals.css";

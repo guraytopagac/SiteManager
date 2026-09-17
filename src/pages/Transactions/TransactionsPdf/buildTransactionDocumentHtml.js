@@ -1,3 +1,6 @@
+// Renders the document into a detached container and returns the whole page as one string for the main
+// process. The stylesheet is imported raw, since a plain import would style the main window too.
+
 import { createElement } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";

@@ -1,4 +1,3 @@
-/* Splash styles. They stand alone and share nothing with src/style.css. */
 * {
   margin: 0;
   padding: 0;
@@ -21,12 +20,10 @@ body {
   transition: opacity 0.18s ease;
 }
 
-/* The fade out. Its length must match CLOSE_FADE_MS in the splash window module. */
 body.splash-closing {
   opacity: 0;
 }
 
-/* A solid overlay, not a blur, because hardware acceleration is turned off. */
 .splash-scrim {
   position: absolute;
   inset: 0;
@@ -60,7 +57,6 @@ body.splash-closing {
   margin-bottom: 18px;
 }
 
-/* The badge, the progress bar and the restart prompt stay hidden until splash.js shows them. */
 .splash-update-badge {
   display: none;
   align-items: center;

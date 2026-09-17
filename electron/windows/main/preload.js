@@ -19,13 +19,11 @@ function safeOn(channel, callback) {
 
 // window.electronAPI. Every method takes no argument or one plain object.
 contextBridge.exposeInMainWorld("electronAPI", {
-  // Apartment
   addApartment: (payload) => safeInvoke(CH.APARTMENT.ADD, payload),
   updateApartment: (payload) => safeInvoke(CH.APARTMENT.UPDATE, payload),
   deleteApartment: (payload) => safeInvoke(CH.APARTMENT.DELETE, payload),
   bulkUpdateDueAmount: (payload) => safeInvoke(CH.APARTMENT.BULK_UPDATE_DUE_AMOUNT, payload),
 
-  // Auth
   login: (payload) => safeInvoke(CH.AUTH.LOGIN, payload),
   changePassword: (payload) => safeInvoke(CH.AUTH.CHANGE_PASSWORD, payload),
   updateEmail: (payload) => safeInvoke(CH.AUTH.UPDATE_EMAIL, payload),
@@ -36,21 +34,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getSetupState: () => safeInvoke(CH.AUTH.GET_SETUP_STATE),
   completeSetup: (payload) => safeInvoke(CH.AUTH.COMPLETE_SETUP, payload),
 
-  // Backup
   runBackup: () => safeInvoke(CH.BACKUP.RUN),
   restoreOnSetup: () => safeInvoke(CH.BACKUP.RESTORE_ON_SETUP),
 
-  // Building
   listBuildings: (payload) => safeInvoke(CH.BUILDING.LIST, payload),
   createBuilding: (payload) => safeInvoke(CH.BUILDING.CREATE, payload),
   renameBuilding: (payload) => safeInvoke(CH.BUILDING.RENAME, payload),
   updateBuildingStatus: (payload) => safeInvoke(CH.BUILDING.UPDATE_STATUS, payload),
   removeBuilding: (payload) => safeInvoke(CH.BUILDING.REMOVE, payload),
 
-  // Dashboard
   getStats: (payload) => safeInvoke(CH.DASHBOARD.GET_STATS, payload),
 
-  // Dues
   getDuesForMonth: (payload) => safeInvoke(CH.DUES.GET_FOR_MONTH, payload),
   recordPayment: (payload) => safeInvoke(CH.DUES.RECORD_PAYMENT, payload),
   cancelPayment: (payload) => safeInvoke(CH.DUES.CANCEL_PAYMENT, payload),
@@ -58,10 +52,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   attachReceipt: (payload) => safeInvoke(CH.DUES.ATTACH_RECEIPT, payload),
   openReceipt: (payload) => safeInvoke(CH.DUES.OPEN_RECEIPT, payload),
 
-  // Events
   onToggleTheme: (callback) => safeOn(CH.EVENTS.TOGGLE_THEME, callback),
 
-  // Financial
   addIncome: (payload) => safeInvoke(CH.FINANCIAL.ADD_INCOME, payload),
   addExpense: (payload) => safeInvoke(CH.FINANCIAL.ADD_EXPENSE, payload),
   getTransactions: (payload) => safeInvoke(CH.FINANCIAL.GET_TRANSACTIONS, payload),
@@ -70,11 +62,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getDocument: (payload) => safeInvoke(CH.FINANCIAL.GET_DOCUMENT, payload),
   saveDocumentInfo: (payload) => safeInvoke(CH.FINANCIAL.SAVE_DOCUMENT_INFO, payload),
 
-  // Report
   getReportData: (payload) => safeInvoke(CH.REPORT.GET_DATA, payload),
   saveReportFile: (payload) => safeInvoke(CH.REPORT.SAVE_FILE, payload),
 
-  // Resident
   getResidentsOverview: (payload) => safeInvoke(CH.RESIDENT.GET_OVERVIEW, payload),
   getResidentHistory: (payload) => safeInvoke(CH.RESIDENT.GET_HISTORY, payload),
   addResident: (payload) => safeInvoke(CH.RESIDENT.ADD, payload),
@@ -83,6 +73,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
   updateScheduledMoveOut: (payload) => safeInvoke(CH.RESIDENT.UPDATE_MOVE_OUT, payload),
   cancelScheduledMoveOut: (payload) => safeInvoke(CH.RESIDENT.CANCEL_MOVE_OUT, payload),
 
-  // System
+  getSeveranceOverview: (payload) => safeInvoke(CH.SEVERANCE.GET_OVERVIEW, payload),
+  setupSeveranceFund: (payload) => safeInvoke(CH.SEVERANCE.SETUP_FUND, payload),
+  updateSeveranceFund: (payload) => safeInvoke(CH.SEVERANCE.UPDATE_FUND, payload),
+  addEmployee: (payload) => safeInvoke(CH.SEVERANCE.ADD_EMPLOYEE, payload),
+  updateEmployee: (payload) => safeInvoke(CH.SEVERANCE.UPDATE_EMPLOYEE, payload),
+  deleteEmployee: (payload) => safeInvoke(CH.SEVERANCE.DELETE_EMPLOYEE, payload),
+  recordSeverancePayout: (payload) => safeInvoke(CH.SEVERANCE.RECORD_PAYOUT, payload),
+  cancelSeverancePayout: (payload) => safeInvoke(CH.SEVERANCE.CANCEL_PAYOUT, payload),
+
   getAppVersion: () => safeInvoke(CH.SYSTEM.GET_APP_VERSION),
 });

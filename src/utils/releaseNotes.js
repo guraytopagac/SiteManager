@@ -1,8 +1,24 @@
+// Release notes for the footer dialog. Only the last three releases stay in the list: a new entry goes to the
+// front and the oldest one is deleted. Each version string must match package.json.
+
 import { formatDate } from "./date";
 
 const RELEASE_NOTES_SEEN_KEY = "releaseNotesSeenVersion";
 
 const RELEASE_NOTES = [
+  {
+    version: "2.0.1",
+    date: "2026-09-17",
+    title: "Tazminat kasası",
+    changes: [
+      "Tazminat Kasası sayfası eklendi. Kapıcı, bahçıvan ve güvenlik gibi bina çalışanlarının kıdem tazminatı için ayrılan para takip edilebiliyor.",
+      "Belirlenen aylık tutar her ay ana kasadan tazminat kasasına gider olarak aktarılıyor. Kasa açılış bakiyesiyle başlatılabiliyor.",
+      "Çalışanlar işe giriş tarihi ve brüt ücretiyle kaydediliyor, her çalışan için tahmini tazminat hesaplanıyor.",
+      "Tazminat ödemesi kasadan yapılıyor. Kasa yetmezse eksik tutar ana kasadan ekleniyor, ödeme gerektiğinde iptal edilebiliyor.",
+      "Pano, Gelir ve Gider sayfası ve raporlar tazminat kasasını gösteriyor.",
+      "Uygulama kaldırıldığında bu bilgisayardaki uygulama verisi de siliniyor. Verilerin korunması için kaldırmadan önce yedek alınmalıdır.",
+    ],
+  },
   {
     version: "2.0.0",
     date: "2026-09-16",
@@ -42,22 +58,10 @@ const RELEASE_NOTES = [
       "Kayıt bulunmayan geçmiş aylarda listeler artık kayıtların başladığı aya yönlendiriyor.",
     ],
   },
-  {
-    version: "1.8.0",
-    date: "2026-09-08",
-    title: "Bina kurulum sihirbazı, dekontlu tahsilat ve yenilenen daire listesi",
-    changes: [
-      "Yeni bina oluşturma iki adımlı bir sihirbaza taşındı. İkinci adımda kat ve daire düzeninin önizlemesi görünüyor, bina daireleriyle birlikte tek adımda kuruluyor.",
-      "Daireler ve Aidat sayfası yeniden tasarlandı. Durum süzgeçleri, daire ve sakin araması, sayfalama ve tahsilat özeti eklendi.",
-      "Aidat tahsilatına dekont eklenebiliyor. PDF, JPG, PNG ve WEBP dosyaları 5 MB'a kadar kabul ediliyor, dekont sonradan da eklenip değiştirilebiliyor ve varsayılan uygulamada açılıyor.",
-      'Ödeme kaydına "Tahsil Eden" alanı eklendi. Aidatı başkası topladığında ödeme geçmişinde o kişinin adı görünüyor.',
-      "Silinen dairenin numarası yeniden kullanılabiliyor. Aynı numarayla eklenen daire artık silinen dairenin aidat ve sakin geçmişini devralmıyor.",
-      "Daireler ve İşlemler sayfaları ortak bir dönem seçicisi kullanıyor.",
-      "Tahsilat, daire düzenleme, toplu aidat ve sakin pencereleri ortak bir görsel dile alındı.",
-    ],
-  },
 ];
 
+// The release-note-* classes live in global.css, because the owner of a style is the module that builds the
+// markup, not the component that opens the dialog.
 const renderRelease = (release, currentVersion) => {
   const isCurrent = release.version === currentVersion;
   return `
@@ -78,6 +82,8 @@ const renderRelease = (release, currentVersion) => {
 export const renderReleaseNotesHtml = (currentVersion) =>
   `<div class="release-notes">${RELEASE_NOTES.map((release) => renderRelease(release, currentVersion)).join("")}</div>`;
 
+// The running version has to exist in the list, so a build whose notes were not written yet never opens the
+// dialog on its own.
 export const hasUnseenReleaseNotes = (version) =>
   RELEASE_NOTES.some((release) => release.version === version) &&
   localStorage.getItem(RELEASE_NOTES_SEEN_KEY) !== version;

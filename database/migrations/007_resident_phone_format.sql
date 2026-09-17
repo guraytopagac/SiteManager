@@ -1,18 +1,6 @@
--- Three changes that all need the table rebuilt, so they share one migration.
---
--- 1. phone becomes a plain 10 digit national number with no leading zero. The old CHECK meant to
---    allow spaces, dashes and parentheses but never did: inside the GLOB class '[^0-9+()- ]' the
---    dash sits between ')' and ' ' and is read as a range, so those three characters were rejected
---    while the handler regex accepted them. Digits only removes the class problem entirely and the
---    grouping (545 545 55 55) is now produced for display instead of being stored.
--- 2. notes is dropped. Nothing reads or writes it any more.
--- 3. move_in_date is dropped. It only ever answered "from which month does this row count", which
---    created_at already answers, and the date itself is unknowable for a resident who moved in
---    years before the ledger existed. move_out_date loses the comparison against it.
---
--- Existing numbers are normalized rather than discarded: separators are stripped, then a +90 or a
--- leading 0 prefix. Whatever still fails the new shape becomes NULL, because a migration that
--- raises would stop the app from opening at all.
+-- Rebuilds residents for three changes: phone becomes 10 bare digits (the old GLOB class read '-' as a range),
+-- notes is dropped, and move_in_date is dropped since created_at answers the same question. Existing numbers
+-- are normalised, and whatever still fails becomes NULL so the migration cannot stop the app from opening.
 
 CREATE TABLE residents_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

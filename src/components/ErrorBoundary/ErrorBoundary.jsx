@@ -1,3 +1,6 @@
+// Catches render failures in the routed tree and replaces them with a plain screen. Nothing technical is
+// shown: the error already reached the log through console.error, and a stack trace is not an action here.
+
 import { Component } from "react";
 import { FiAlertTriangle } from "react-icons/fi";
 import "./ErrorBoundary.css";
@@ -13,6 +16,8 @@ class ErrorBoundary extends Component {
     console.error("[ErrorBoundary]", error, info.componentStack);
   }
 
+  // One button by design: setting the hash and reloading resets the route and the broken tree in one step.
+  // The session survives, because it lives in session storage.
   handleGoHome = () => {
     window.location.hash = "#/";
     window.location.reload();

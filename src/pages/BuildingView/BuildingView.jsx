@@ -1,3 +1,6 @@
+// Draws the building as a facade and owns the apartment lifecycle: add, edit and delete live here only.
+// The wizard's facade shares the look but no code, since this one is built from real, irregular rows.
+
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
@@ -49,6 +52,8 @@ function groupByFloor(units) {
     .map(([floor, floorUnits]) => ({ floor, tag: floorTag(floor), title: floorLabel(floor), units: floorUnits }));
 }
 
+// Two step confirmation: a deleted apartment drops out of every read and would take its debt with it, so the
+// service refuses while a balance is unpaid. Both calls share one result and no busy flag, so no helper.
 async function deleteApartmentFlow(unit, buildingId, onDone) {
   const confirmed = await showDialog.confirmDanger(
     "Daireyi Sil",
@@ -87,6 +92,8 @@ async function deleteApartmentFlow(unit, buildingId, onDone) {
   }
 }
 
+// Reads the same endpoint the dues list uses. One call already returns apartment fields, the period's
+// resident and the period's status, so the facade can be drawn and coloured without a second query.
 function useBuildingUnits(buildingId, year, month) {
   const [res, loadUnits] = useIpcData("getDuesForMonth", { buildingId, year, month });
 
@@ -98,6 +105,8 @@ function useBuildingUnits(buildingId, year, month) {
   };
 }
 
+// Always visible while the mode is on, never revealed by hover. Empty slots are not inferred, since nothing
+// records how many apartments a floor should hold, so each floor gets exactly one add point.
 function AddUnitButton({ floor, onAdd }) {
   const label = `${floorLabel(floor)} için daire ekle`;
 
@@ -114,6 +123,8 @@ function AddUnitButton({ floor, onAdd }) {
   );
 }
 
+// Off by default, and it governs the add slots alone: edit and delete in the panel stay visible either way.
+// Positioned absolutely over the scene, so it costs the tightly measured card no vertical room.
 function EditModeToggle({ isOn, onToggle }) {
   return (
     <button
@@ -165,6 +176,8 @@ function Facade({ levelCount, children }) {
   );
 }
 
+// A status summary rather than a legend, so the count comes before the label. The order is shared with the
+// filter pills on the dues page, so the two never list the same three states differently.
 function StatusSummary({ units }) {
   return (
     <div className="bv-summary">
@@ -309,6 +322,8 @@ function BuildingView() {
   const building = useCurrentBuilding();
   const [year, setYear] = useState(getCurrentYear());
   const [month, setMonth] = useState(getCurrentMonth());
+  // The one deep link into this page. The dashboard sends this flag from its empty book panel, and it is
+  // read once at mount so the add modal starts open. The named tile arrives without it.
   const [addTarget, setAddTarget] = useState(location.state?.openAdd ? { floor: "" } : null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);

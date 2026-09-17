@@ -1,3 +1,6 @@
+// First run account creation: two steps, then a finished state that shows the recovery code once. The step
+// form is keyed by the step number, so it remounts and autofocus lands on the new step's first field.
+
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import logoImgWebp from "../../../assets/app-logo.webp";
@@ -11,7 +14,10 @@ import { MIN_PASSWORD_LENGTH } from "@/utils/passwordPolicy";
 import { FiAlertCircle, FiArrowLeft, FiArrowRight, FiCheck, FiCopy, FiLock, FiLogIn, FiUser } from "react-icons/fi";
 
 const ERROR_ID = "setup-error";
+// Mirrors the rule the handler enforces. This copy only moves the message earlier, it is not the boundary.
 const USERNAME_RE = /^[A-Za-z0-9_]{3,30}$/;
+// The side rail and the panel heading read from one table, so the two descriptions of a step cannot drift
+// apart as the wording changes.
 const SETUP_STEPS = [
   {
     title: "Hesap bilgileri",
@@ -42,6 +48,8 @@ function Setup() {
   const [isRestoring, setIsRestoring] = useState(false);
   const { isCopied, copy } = useCopyFeedback();
 
+  // Read synchronously, no loading branch. The second half keeps the finished panel alive after the flag
+  // flips, otherwise completing setup would redirect away from the code that is shown only once.
   if (!needsSetup() && !createdAccount) {
     return <Navigate to="/login" replace />;
   }
@@ -81,6 +89,8 @@ function Setup() {
     const trimmedUsername = username.trim();
     const trimmedManagerName = managerName.trim();
 
+    // The try wraps the call alone, deliberately breaking the usual shape: the success branch puts a value on
+    // screen that is never shown again, and a throw inside it would report a failure and lose the code.
     let res;
     try {
       res = await window.electronAPI.completeSetup({

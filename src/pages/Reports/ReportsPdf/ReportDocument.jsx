@@ -1,3 +1,6 @@
+// The printed report, in a fixed order of sections. It never loads the application stylesheet and always
+// prints on light paper, so its colours are literal. Page breaks are declared in its CSS.
+
 import { DUES_STATUS_LABELS, EMPTY_RESIDENT_LABEL } from "@/utils/constants";
 import { formatCurrency, formatSignedCurrency } from "@/utils/currency";
 import { formatDate, formatMonthYear, getCurrentMonth, getCurrentYear, getToday } from "@/utils/date";
@@ -84,6 +87,8 @@ function PdfSection({ title, keepTogether = false, children }) {
   );
 }
 
+// Opens with the balance carried in, since a period report asks where the cash started and ended. An all
+// time report has no opening balance.
 function PdfCashSummary({ data }) {
   const net = data.totalIncome - data.totalExpense;
   const opening = data.openingBalance;
@@ -105,6 +110,32 @@ function PdfCashSummary({ data }) {
   return (
     <PdfSection title="Kasa Özeti" keepTogether>
       <PdfSummary cells={cells} />
+    </PdfSection>
+  );
+}
+
+// Only printed when the building has a fund. What entered the fund covers the monthly transfers, the
+// top-ups and, in the range the fund was started, its opening balance.
+function PdfSeveranceSummary({ severance }) {
+  const cells = [
+    ...(severance.startBalance === null
+      ? []
+      : [{ label: "Dönem Başı Bakiye", value: formatCurrency(severance.startBalance) }]),
+    { label: "Kasaya Giren", value: formatSignedCurrency(severance.inflow), tone: "positive" },
+    { label: "Ödenen Tazminat", value: formatSignedCurrency(-severance.paidOut), tone: "negative" },
+    {
+      label: severance.startBalance === null ? "Kasa Bakiyesi" : "Dönem Sonu Bakiye",
+      value: formatCurrency(severance.endBalance),
+    },
+  ];
+
+  return (
+    <PdfSection title="Tazminat Kasası" keepTogether>
+      <PdfSummary cells={cells} />
+      <p className="note">
+        Rapor tarihindeki tahmini tazminat yükümlülüğü {formatCurrency(severance.liability)}. Aylık aktarımlar gider
+        hareketlerinde yer alır, kasadan yapılan ödemeler ana kasanın toplamına girmez.
+      </p>
     </PdfSection>
   );
 }
@@ -293,6 +324,7 @@ function ReportDocument({ data, year, title, buildingName, managerName }) {
         </div>
       </header>
       <PdfCashSummary data={data} />
+      {data.severance ? <PdfSeveranceSummary severance={data.severance} /> : null}
       <PdfDuesSummary data={data} />
       <PdfDistribution data={data} />
       {data.monthlyDues ? <PdfMonthlyBreakdown data={data} year={year} /> : null}

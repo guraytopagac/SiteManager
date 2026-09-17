@@ -1,3 +1,6 @@
+// Renders the report and returns the whole page as one string for the main process. Only the footer's left
+// text is built here, as a second one line rule that merges with the one in the stylesheet.
+
 import { createElement } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";

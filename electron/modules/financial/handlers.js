@@ -1,4 +1,3 @@
-// Financial IPC entry points, for income and expense entered by hand and the documents printed from them.
 const { CHANNELS: CH } = require("../../ipc/channels");
 const { createHandle } = require("../../ipc/createHandle");
 const { formatPersonName } = require("../shared/personName");
@@ -15,12 +14,12 @@ const {
 } = require("../shared/validate");
 const financialService = require("./service");
 
-// The dues category is valid in the schema but not here, because only recordPayment may write it.
+// The dues and severance_fund categories are valid in the schema but not here, because only recordPayment
+// and the severance transfers may write them.
 // Both lists match the schema CHECKs and the selects on the matching pages.
 const MANUAL_INCOME_CATEGORIES = ["rent", "parking", "utility_share", "special_fee", "penalty", "other"];
 const EXPENSE_CATEGORIES = ["maintenance", "cleaning", "utility", "heating", "staff", "other"];
 
-// An income prints a collection receipt, an expense prints an expense voucher.
 const DOCUMENT_TYPES = ["income", "expense"];
 
 // Trims, turns an empty description into null and sets the default category, so the service
@@ -73,7 +72,6 @@ function validateRecordFields(payload, allowedCategories) {
   if (payload.date > trToday()) {
     return fail("İleri bir tarih seçilemez.");
   }
-  // The description is optional, so only a value that is present has to be a string of the right length.
   if (payload.description != null) {
     if (typeof payload.description !== "string") {
       return fail("Geçersiz açıklama.");

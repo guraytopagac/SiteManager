@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import "./PageLoader.css";
 
+// Delayed on purpose so a fast route swap never flashes a loader. In practice it only appears on the very
+// first launch, when there is no previous screen to hold on the display while the next one suspends.
 const DELAY_MS = 150;
 
 function PageLoader() {

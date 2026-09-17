@@ -32,7 +32,6 @@ function closeDb() {
   db = null;
 }
 
-// Safe to call twice. Only main.js calls it, at startup.
 function openDatabase() {
   if (db) return db;
 

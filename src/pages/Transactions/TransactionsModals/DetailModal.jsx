@@ -1,3 +1,7 @@
+// Everything that can be done to one record. A cancelled record offers nothing, and an income created by a
+// collection can only be cancelled through that collection, so a note names the route instead. Severance fund
+// rows offer nothing either: both belong to the fund page.
+
 import { FiX } from "react-icons/fi";
 import "./TransactionsModals.css";
 import DetailRow from "@/components/DetailRow/DetailRow";
@@ -17,15 +21,31 @@ const TYPES = {
     documentLabel: "Gider Pusulası Oluştur",
     cancelLabel: "Gideri İptal Et",
   },
+  severance_payout: {
+    title: "Tazminat Ödemesi",
+  },
 };
 
 const DUES_INCOME_NOTE =
   "Bu kayıt bir aidat tahsilatından oluşturuldu ve buradan iptal edilemez. Geri almak için Aidat Takibi sayfasından ilgili tahsilatı iptal edin.";
 
+const FUND_TRANSFER_NOTE =
+  "Bu kayıt ana kasadan tazminat kasasına yapılan bir aktarımdır ve buradan iptal edilemez. Aktarım tutarı Tazminat Kasası sayfasından yönetilir.";
+
+const FUND_PAYOUT_NOTE =
+  "Bu ödeme tazminat kasasından yapıldı ve ana kasanın toplamına girmez. Ödemeyi iptal etmek için Tazminat Kasası sayfasını kullanın.";
+
+function fundNote(transaction) {
+  if (transaction.type === "severance_payout") return FUND_PAYOUT_NOTE;
+  if (transaction.category === "severance_fund") return FUND_TRANSFER_NOTE;
+  return null;
+}
+
 function DetailModal({ transaction, building, onClose, onCreateDocument, onCancel }) {
   const text = TYPES[transaction.type];
   const isCancelled = Boolean(transaction.is_cancelled);
   const isDuesIncome = transaction.category === "dues";
+  const fundText = fundNote(transaction);
 
   useEscapeKey(onClose);
 
@@ -52,14 +72,18 @@ function DetailModal({ transaction, building, onClose, onCreateDocument, onCance
               value={TRANSACTION_CATEGORY_LABELS[transaction.category] ?? transaction.category}
             />
             <DetailRow label="Tutar" value={formatCurrency(transaction.amount)} />
-            <DetailRow label="Açıklama" value={transaction.description} />
+            <DetailRow
+              label={transaction.type === "severance_payout" ? "Çalışan" : "Açıklama"}
+              value={transaction.description}
+            />
             {isCancelled ? <DetailRow label="İptal Tarihi" value={formatDate(transaction.cancelled_at)} /> : null}
             {isCancelled ? <DetailRow label="İptal Nedeni" value={transaction.cancel_reason} /> : null}
           </dl>
 
           {isDuesIncome && !isCancelled ? <p className="tx-detail-note">{DUES_INCOME_NOTE}</p> : null}
+          {fundText && !isCancelled ? <p className="tx-detail-note">{fundText}</p> : null}
 
-          {isCancelled ? null : (
+          {isCancelled || fundText ? null : (
             <div className="tx-md-actions">
               <button type="button" className="tx-md-btn-solid" onClick={onCreateDocument}>
                 {text.documentLabel}

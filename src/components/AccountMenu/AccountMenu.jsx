@@ -1,3 +1,6 @@
+// The account tool of every protected screen. It takes no props and reads the session itself.
+// No ARIA menu role: that would promise arrow key navigation and a roving tabindex, neither of them written.
+
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiChevronDown, FiLogOut, FiRepeat, FiUser } from "react-icons/fi";
@@ -34,6 +37,8 @@ function AccountMenu() {
     const handleKeyDown = (e) => {
       if (e.key !== "Escape") return;
       setIsOpen(false);
+      // Focus goes back to the trigger, otherwise it would fall to the body and the next tab press would
+      // restart from the top of the page.
       triggerRef.current?.focus();
     };
 
@@ -58,6 +63,7 @@ function AccountMenu() {
     navigate(path, options);
   };
 
+  // No fallback chain: the column is NOT NULL and this renders only under the authenticated guard.
   const label = session.managerName;
 
   return (

@@ -1,3 +1,6 @@
+// Builds the printable document for one record and lists every value it will print. A dues receipt has no
+// editable field: its payer is that month's resident, and another name would detach it from the record.
+
 import { useEffect, useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./TransactionsModals.css";
@@ -96,6 +99,8 @@ function DocumentModal({ transaction, building, onClose, onSaved }) {
     setIsSubmitting(true);
 
     try {
+      // Save, read back, then print: names are formatted on the way in and the printed one must be the stored
+      // one. A dues receipt has nothing to store, so the save is skipped.
       let res = isDuesReceipt
         ? { success: true }
         : await window.electronAPI.saveDocumentInfo({ ...scope, ...documentInfo() });
@@ -111,6 +116,8 @@ function DocumentModal({ transaction, building, onClose, onSaved }) {
           buildingName: building.name,
           managerName: session.managerName,
         });
+        // Reuses the report saving channel, the page size comes from the document's own stylesheet. The type
+        // only selects the save dialog title.
         res = await window.electronAPI.saveReportFile({ filename, html, documentType: text.documentType });
         if (res.success) {
           showDialog.toast(text.savedTitle, res.message);

@@ -1,3 +1,6 @@
+// The form field of the session screens rather than a general one: the icon is mandatory, required is baked
+// in and the padding is fixed around the floating label. Ordinary page forms use plain inputs.
+
 import { useEffect, useState } from "react";
 import { FiAlertTriangle, FiEye, FiEyeOff } from "react-icons/fi";
 import "./AuthField.css";
@@ -5,6 +8,8 @@ import "./AuthField.css";
 const CAPS_LOCK_MESSAGE = "Caps Lock tuşu açık, şifreniz büyük harfle yazılıyor.";
 const CAPS_LOCK_EVENTS = ["keydown", "keyup", "mousedown"];
 
+// Module level single source, the same shape as the theme store. Two password fields on one screen read one
+// hardware state, and measuring it per field would put three listeners on the document for each of them.
 let isCapsLockOn = false;
 const capsLockListeners = new Set();
 
@@ -15,6 +20,8 @@ function syncCapsLock(e) {
   capsLockListeners.forEach((listener) => listener(isCapsLockOn));
 }
 
+// Every event in the list has to carry modifier state, so an event type without getModifierState must not
+// be added here. There is no reset on blur either, the key stays lit while the field is unfocused.
 CAPS_LOCK_EVENTS.forEach((type) => document.addEventListener(type, syncCapsLock));
 
 function useCapsLockOn() {
@@ -43,6 +50,8 @@ function CapsLockBadge() {
   );
 }
 
+// The floating label is the input's sibling and follows it in the DOM, and the input always carries a
+// placeholder, because the raised state comes from :not(:placeholder-shown) rather than from state.
 function AuthField({
   id,
   label,

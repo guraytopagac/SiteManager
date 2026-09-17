@@ -1,3 +1,6 @@
+// Closes a record and opens its replacement in one request and one transaction: the date, then the person.
+// Only a tenant may leave with nobody lined up, since an apartment always belongs to someone.
+
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./ResidentsModals.css";
@@ -88,6 +91,7 @@ function ResidentChangeModal({
       resident_type: residentType,
       household_size: form.household_size === "" ? null : Number(form.household_size),
     };
+    // An owner recorded beside a tenant is a contact, not an occupant. For a tenant the service forces the flag.
     if (isOwner && !asksOccupancy) data.is_occupant = false;
     return data;
   };
@@ -139,11 +143,14 @@ function ResidentChangeModal({
     }
   };
 
+  // The second step may not be submitted empty: it is reached by advancing, so a blank record could open by
+  // accident. Editing a plan is the exception, where clearing every field drops the queued replacement.
   const isBlank = !form.full_name.trim() && !form.phone && !form.email.trim() && !form.national_id.trim();
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    // The first step advances rather than saves, so Enter moves forward and skipping needs its own button.
     if (step === 1) {
       setStep(2);
       return;
@@ -200,6 +207,8 @@ function ResidentChangeModal({
                   value={moveOutDate}
                   onChange={(e) => setMoveOutDate(e.target.value)}
                   required
+                  // The visible half of the service's check: a record starts the day it was entered, or on
+                  // its handover day when it was queued.
                   min={resident.start_date || undefined}
                   autoFocus
                 />

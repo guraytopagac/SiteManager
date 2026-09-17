@@ -1,3 +1,6 @@
+// Routes and the three guards that protect them. The guards live here rather than under components: none
+// produces markup, each returns an outlet or a redirect, and all three wrap a whole group as layout routes.
+
 import { lazy, Suspense } from "react";
 import { HashRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary";
@@ -15,6 +18,7 @@ const Residents = lazy(() => import("./pages/Residents/Residents.jsx"));
 const Transactions = lazy(() => import("./pages/Transactions/Transactions.jsx"));
 const Profile = lazy(() => import("./pages/Profile/Profile.jsx"));
 const Reports = lazy(() => import("./pages/Reports/Reports.jsx"));
+const SeveranceFund = lazy(() => import("./pages/SeveranceFund/SeveranceFund.jsx"));
 const SelectBuilding = lazy(() => import("./pages/SelectBuilding/SelectBuilding.jsx"));
 const NewBuilding = lazy(() => import("./pages/NewBuilding/NewBuilding.jsx"));
 
@@ -28,6 +32,8 @@ function StartupRedirect() {
   return <Navigate to={needsSetup() ? "/setup" : "/login"} replace />;
 }
 
+// Two named guards instead of one with a flag, so the call site reads which protection applies from the name.
+// The outlet and the redirect render together, or the current card would blank before the target is ready.
 function RequireGuest() {
   const session = useSession();
   return (
@@ -46,6 +52,8 @@ function RequireAuth() {
   return <Outlet />;
 }
 
+// Only the screens that read building scoped data sit under this one. The account page is deliberately
+// outside it and works with no building selected.
 function RequireBuilding() {
   const building = useCurrentBuilding();
   if (!building) {
@@ -77,6 +85,7 @@ function App() {
                 <Route path="/residents" element={<Residents />} />
                 <Route path="/transactions" element={<Transactions />} />
                 <Route path="/reports" element={<Reports />} />
+                <Route path="/severance-fund" element={<SeveranceFund />} />
               </Route>
             </Route>
 

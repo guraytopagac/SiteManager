@@ -9,7 +9,6 @@ const authService = require("./service");
 // Same rule as the username CHECK on the users table.
 const USERNAME_RE = /^[A-Za-z0-9_]{3,30}$/;
 
-// Trimming happens here only. The service never trims again.
 function trimField(payload, field) {
   if (typeof payload[field] === "string") {
     payload[field] = payload[field].trim();
@@ -40,7 +39,6 @@ function validatePersonName(value, message) {
   return null;
 }
 
-// Setup and transfer both write the username, so they share the rule and the sentence.
 function validateUsername(value) {
   if (typeof value !== "string" || !USERNAME_RE.test(value)) {
     return fail("Kullanıcı adı 3-30 karakter olmalı, yalnızca İngilizce harf, rakam ve _ içermelidir.");

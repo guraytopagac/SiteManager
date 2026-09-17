@@ -1,15 +1,6 @@
--- A transfer can now be dated ahead together with the record that follows it. The old row stays
--- open until that day and the new one waits beside it, so "who lives here" needs a start date that
--- is not the row's own created_at: a row written today would otherwise count from today and would
--- overlap the record it replaces.
---
--- move_in_date is that start. It is NULL for every ordinary record, which keeps the old rule in
--- place: a row counts from the day it was recorded. It is written only by a dated-ahead move-out
--- that carries a successor, and such a row waits with is_active = 0 until the day arrives.
---
--- ADD COLUMN cannot carry the table CHECK that ties the two dates together, so the table is rebuilt.
--- The partial unique index on the queued rows is the last line of defence for "one successor at a
--- time"; the service says it first with a sentence the user can read.
+-- Brings back move_in_date: a successor queued behind a dated-ahead move-out needs a start other than its
+-- own created_at, and it stays NULL on ordinary rows. The table is rebuilt for the CHECK tying the two dates,
+-- and a partial unique index allows one queued row per kind.
 
 CREATE TABLE residents_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

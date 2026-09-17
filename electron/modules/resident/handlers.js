@@ -1,6 +1,5 @@
-// Resident IPC entry points. Apart from the apartment link, the kind of record and the household
-// size, every field is optional, so those checks come from a table instead of one if block per
-// field.
+// Resident IPC entry points. Most fields are optional, so their checks come from a table rather than one
+// if block each.
 const { CHANNELS: CH } = require("../../ipc/channels");
 const { createHandle } = require("../../ipc/createHandle");
 const { formatPersonName } = require("../shared/personName");
@@ -15,8 +14,8 @@ const {
 const { trToday } = require("../shared/trTime");
 const residentService = require("./service");
 
-// Rules that only residents have. Shared limits such as date and email come from shared/validate.js.
-// RESIDENT_TYPES matches the schema CHECK and RESIDENT_TYPE_LABELS in src/utils/constants.js.
+// Rules only residents have. Shared limits come from shared/validate.js, and RESIDENT_TYPES matches the
+// schema CHECK and RESIDENT_TYPE_LABELS in src/utils/constants.js.
 const RESIDENT_TYPES = ["owner", "tenant"];
 const PHONE_RE = /^[1-9][0-9]{9}$/;
 const NON_ASCII_RE = /[^\x20-\x7E]/;
@@ -24,8 +23,7 @@ const NATIONAL_ID_RE = /^[0-9]{11}$/;
 
 const TRIMMED_FIELDS = ["full_name", "phone", "email", "national_id", "resident_type", "move_out_date"];
 
-// Checked in order, and the first failure wins. Email appears twice, because the character check
-// and the format check need different messages.
+// First failure wins. Email appears twice, the character check and the format check say different things.
 const OPTIONAL_TEXT_RULES = [
   { field: "full_name", invalid: "Geçersiz ad soyad.", max: 60, tooLong: "Ad soyad en fazla 60 karakter olabilir." },
   {
@@ -54,8 +52,7 @@ const OPTIONAL_TEXT_RULES = [
   },
 ];
 
-// Trims, and turns an empty or missing value into null. The service then needs no fallback, and
-// each check needs only one null test.
+// Trims, and turns an empty or missing value into null, so nothing downstream needs a fallback.
 function normalizeResidentData(payload) {
   for (const field of TRIMMED_FIELDS) {
     const value = payload[field];
@@ -70,7 +67,6 @@ function normalizeResidentData(payload) {
   }
 }
 
-// A null value always passes.
 function validateOptionalText(value, rule) {
   if (value == null) return null;
   if (typeof value !== "string") return fail(rule.invalid);
@@ -79,9 +75,8 @@ function validateOptionalText(value, rule) {
   return null;
 }
 
-// Only the add channel may carry this date with the other fields. The update channel rejects it
-// below, and the move-out channel has its own required check. A record added today starts today, so
-// an earlier date would close it before it opened.
+// Only the add channel may carry this date. A record added today starts today, so an earlier date would
+// close it before it ever opened.
 function validateOptionalMoveOutDate(payload) {
   const value = payload.move_out_date;
   if (value == null) return null;
@@ -89,14 +84,12 @@ function validateOptionalMoveOutDate(payload) {
   return value < trToday() ? fail("Çıkış tarihi bugünden önce olamaz.") : null;
 }
 
-// Which of the two records this is. Required, because an apartment holds one row of each kind and
-// this field is the only thing telling them apart.
+// Required: an apartment holds one row of each kind and this field is the only thing telling them apart.
 function validateResidentType(payload) {
   return RESIDENT_TYPES.includes(payload.resident_type) ? null : fail("Geçersiz kayıt türü.");
 }
 
-// Only an owner can be recorded without living in the flat, so only an owner has to answer this.
-// A tenant is always the occupant and the service writes the flag itself.
+// Only an owner can be on file without living there. A tenant is always the occupant, set by the service.
 function validateOccupancy(payload) {
   if (payload.resident_type !== "owner") return null;
   if (typeof payload.is_occupant !== "boolean") {
@@ -105,8 +98,7 @@ function validateOccupancy(payload) {
   return null;
 }
 
-// Optional, because the user may not know it. A null means unknown and the building list's sum
-// skips that row. A given value matches the range in the CHECK on the column.
+// Optional, the user may not know it. Null means unknown and the building list's sum skips that row.
 function validateHouseholdSize(payload) {
   const value = payload.household_size;
   if (value == null) return null;
@@ -116,7 +108,7 @@ function validateHouseholdSize(payload) {
   return null;
 }
 
-// Trims first, so it can be chained after a scope validator. Runs on both add and update.
+// Trims first, so it can be chained after a scope validator.
 function validateResidentFields(payload) {
   normalizeResidentData(payload);
 
@@ -131,13 +123,8 @@ function validateResidentFields(payload) {
   return validateHouseholdSize(payload) ?? validateOccupancy(payload) ?? validateOptionalMoveOutDate(payload);
 }
 
-// The move-out channel may carry the record that replaces the one being closed, whether the exit is
-// dated today or ahead. The fields are the same ones the add channel takes, so they go through the
-// same validator: an optional payload still has to be a complete record once it is there.
-// resident_type comes along and the service checks it against the record being closed, which is what
-// keeps the validated role and the written role the same. A move-out date on the new record makes no
-// sense, so it is rejected rather than dropped, and its start date is not the caller's to send: the
-// service derives it from the transfer date.
+// The optional record replacing the one being closed. Same fields as the add channel, so once it is there
+// it has to be complete. Its own exit date is rejected, and its start date is the service's to derive.
 function validateNextResident(payload) {
   const next = payload.next;
   if (next == null) return null;
@@ -149,14 +136,13 @@ function validateNextResident(payload) {
   return next.move_out_date == null ? null : fail("Yeni kayıt için çıkış tarihi girilemez.");
 }
 
-// Only moveOutResident may write that date, so the update channel says no instead of quietly
-// dropping it.
+// Only moveOutResident may write that date, so this says no rather than dropping it quietly.
 function rejectMoveOutDate(payload) {
   if (payload.move_out_date == null) return null;
   return fail("Çıkış tarihi bu işlemle değiştirilemez, sakin çıkışı işlemini kullanın.");
 }
 
-// Named differently from validateOwnedApartmentScope in apartment, which checks another field.
+// Named apart from validateOwnedApartmentScope in apartment, which checks another field.
 function validateApartmentScope(payload) {
   return validateBuildingScope(payload) ?? validateId(payload.apartmentId, "daire ID");
 }

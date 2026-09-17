@@ -18,9 +18,8 @@ const duesService = require("./service");
 
 const FUTURE_PERIOD_MESSAGE = "Gelecek bir dönem için aidat işlemi yapılamaz.";
 
-// Accepted receipt types, keyed by extension. The same extensions are a CHECK on receipt_name.
-// A file also has to start with the signature of its type, so a renamed executable is refused
-// before it reaches the database or the temp file openReceipt hands to the shell.
+// Accepted receipt types, keyed by extension, the same list as the CHECK on receipt_name. A file also has
+// to start with its type's signature, so a renamed executable never reaches the database or the shell.
 const JPEG_SIGNATURE = [{ offset: 0, bytes: [0xff, 0xd8, 0xff] }];
 const RECEIPT_SIGNATURES = {
   pdf: [{ offset: 0, bytes: [0x25, 0x50, 0x44, 0x46] }],
@@ -33,7 +32,6 @@ const RECEIPT_SIGNATURES = {
   ],
 };
 
-// The receipt is optional wherever it is accepted, so a missing one is not an error here.
 function validateReceipt(receipt) {
   if (receipt == null) {
     return null;

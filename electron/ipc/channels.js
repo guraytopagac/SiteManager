@@ -75,6 +75,17 @@ const CHANNELS = {
     CANCEL_MOVE_OUT: "resident:cancel-move-out",
   },
 
+  SEVERANCE: {
+    GET_OVERVIEW: "severance:get-overview",
+    SETUP_FUND: "severance:setup-fund",
+    UPDATE_FUND: "severance:update-fund",
+    ADD_EMPLOYEE: "severance:add-employee",
+    UPDATE_EMPLOYEE: "severance:update-employee",
+    DELETE_EMPLOYEE: "severance:delete-employee",
+    RECORD_PAYOUT: "severance:record-payout",
+    CANCEL_PAYOUT: "severance:cancel-payout",
+  },
+
   SYSTEM: {
     GET_APP_VERSION: "system:get-app-version",
   },

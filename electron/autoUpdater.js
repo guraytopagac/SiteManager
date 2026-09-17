@@ -7,6 +7,11 @@ const { sendToSplash, setSplashStatus, setSplashProgress, getSplashWindow } = re
 autoUpdater.logger = log;
 // Not the package default. A downloaded update installs only when the user picks restart.
 autoUpdater.autoInstallOnAppQuit = false;
+// No web installer target is built, so leaving this off only earns a deprecation warning.
+autoUpdater.disableWebInstaller = true;
+// A delta download rebuilds the installer from a cached base file and its block map, and the two drift
+// apart whenever the app is installed outside the updater, which restarts the transfer as a full one.
+autoUpdater.disableDifferentialDownload = true;
 
 const CHECK_TIMEOUT_MS = 20000;
 const DOWNLOAD_STALL_TIMEOUT_MS = 60000;
@@ -25,7 +30,6 @@ function runStartupUpdateFlow() {
     let finished = false;
     let idleTimeout = null;
 
-    // The one exit point. Removes every listener once, then lets startup go on.
     const continueStartup = () => {
       if (finished) return;
       finished = true;
@@ -45,7 +49,6 @@ function runStartupUpdateFlow() {
       continueStartup();
     };
 
-    // Restarted on every sign of progress, and gives up after ms of silence.
     const waitForProgress = (ms, giveUpReason) => {
       clearTimeout(idleTimeout);
       idleTimeout = setTimeout(() => skipUpdate(giveUpReason), ms);
@@ -72,7 +75,6 @@ function runStartupUpdateFlow() {
       });
     };
 
-    // The splash asks the restart question. Saying no keeps the current version for this session.
     const onUpdateDownloaded = async () => {
       clearTimeout(idleTimeout);
       setSplashProgress(-1);
@@ -109,7 +111,6 @@ function runStartupUpdateFlow() {
   });
 }
 
-// Returns the restart choice made in the splash, or false if that window is gone.
 function askToRestart() {
   return new Promise((resolve) => {
     const splash = getSplashWindow();

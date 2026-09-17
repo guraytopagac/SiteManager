@@ -1,6 +1,5 @@
-// Resident rules. An apartment carries two records: the owner, who stays, and the tenant, who comes
-// and goes. Each step is its own action instead of being part of the apartment form: add, update,
-// move out. Replacing a tenant means a move out followed by an add.
+// Resident rules. An apartment carries two records: the owner, who stays, and the tenant, who comes and
+// goes. Each step is its own action rather than part of the apartment form: add, update, move out.
 const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
 const { applyResidentSchedule } = require("../shared/residentSchedule");
@@ -21,8 +20,7 @@ const PENDING_MESSAGES = {
   tenant: "Bu daire için planlanmış bir kiracı değişimi var. Önce planlanan değişimi iptal edin.",
 };
 
-// A record starts on move_in_date when it was queued, and on the day it was entered otherwise, so a
-// move-out dated before that would close it before it ever opened.
+// A record starts on move_in_date when it was queued, and on the day it was entered otherwise.
 const EARLY_MOVE_OUT_MESSAGES = {
   owner: "Devir tarihi, malik kaydının başlangıç tarihinden önce olamaz.",
   tenant: "Çıkış tarihi, kiracının giriş tarihinden önce olamaz.",
@@ -38,8 +36,7 @@ const CLOSED_MESSAGES = {
   tenant: "Bu sakin çıkış yapmış, geçmiş kaydı değiştirilemez.",
 };
 
-// resident_type is the only labelled column. It is the one NOT NULL field the user fills in, and
-// the UNIQUE index it also sits in is guarded by the duplicate check below with its own sentence.
+// The only labelled column: the one NOT NULL field the user fills in. Its UNIQUE index is answered below.
 const resolveDbError = createDbErrorResolver({ resident_type: "Kayıt türü" });
 
 // Does not care whether the apartment is active, so the history of an old apartment stays readable.
@@ -47,7 +44,6 @@ function findOwnedApartment(apartmentId, buildingId) {
   return getDb().prepare(`SELECT id FROM apartments WHERE id = ? AND building_id = ?`).get(apartmentId, buildingId);
 }
 
-// Writing also needs the apartment to be active.
 function findOwnedActiveApartment(apartmentId, buildingId) {
   return getDb()
     .prepare(`SELECT id, apartment_no FROM apartments WHERE id = ? AND building_id = ? AND is_active = 1`)
@@ -71,10 +67,8 @@ function occupancyFlag(residentType, isOccupantRequested) {
   return residentType === "tenant" || isOccupantRequested ? 1 : 0;
 }
 
-// The one place that decides whether a write may take a role, and what the row's occupancy flag
-// becomes. excludeId leaves the row being updated out of its own duplicate check. The move-out
-// path does not come through here: it closes the only active row of that kind in the same
-// transaction, so the duplicate it would look for cannot exist by the time the insert runs.
+// The one place deciding whether a write may take a role and what the occupancy flag becomes. excludeId
+// leaves the updated row out of its own check. Move-out skips this, it closes and inserts in one go.
 function resolveRole(apartmentId, residentType, isOccupantRequested, excludeId) {
   const siblings = getDb()
     .prepare(
@@ -91,8 +85,7 @@ function resolveRole(apartmentId, residentType, isOccupantRequested, excludeId) 
   return { isOccupant: occupancyFlag(residentType, isOccupantRequested) };
 }
 
-// Shared by addResident and the replacement half of moveOutResident, so the column list is written
-// once. The caller has already decided the role and the occupancy flag.
+// Shared by addResident and the replacement half of moveOutResident, so the column list is written once.
 function insertResident(apartmentId, data, residentType, isOccupant, moveInDate = null) {
   getDb()
     .prepare(
@@ -114,16 +107,14 @@ function insertResident(apartmentId, data, residentType, isOccupant, moveInDate 
     );
 }
 
-// The queued record of one kind. The overview joins it as a whole row rather than pulling columns
-// one at a time, because the panel prefills the edit form from it. The type is a literal
-// from this module, never a value from the payload.
+// The queued record of one kind, joined as a whole row because the panel prefills the edit form from it.
+// The type is a literal from this module, never a value from the payload.
 const pendingSql = (column, residentType) => `(
            SELECT p.${column} FROM residents p
            WHERE p.apartment_id = a.id AND p.resident_type = '${residentType}'
              AND p.is_active = 0 AND p.move_out_date IS NULL
          )`;
 
-// The record waiting for a dated-ahead transfer, if there is one.
 function findPendingSibling(apartmentId, residentType) {
   return getDb()
     .prepare(
@@ -133,16 +124,8 @@ function findPendingSibling(apartmentId, residentType) {
     .get(apartmentId, residentType);
 }
 
-// LEFT JOIN, so an apartment with no resident still shows up. The occupant is the one who lived
-// there in the month being viewed, not the one living there now, so a past month keeps naming
-// whoever was in the apartment then. The owner is joined a second time because the panel shows both
-// records, and the two joins land on the same row when the owner lives there. The joined tables are
-// aliased "res" and "own" because the shared subquery already uses "r" for its own scan. Same
-// numeric apartment_no ordering as getDuesForMonth.
-//
-// Both rows carry is_active, because the month a record covers and whether it is still open are two
-// different questions: someone who moved out today still belongs to this month's list, but the
-// screen may no longer offer to edit them.
+// LEFT JOIN, so an apartment with no resident still shows up. Both residents are the ones of the month being
+// viewed, and both carry is_active, because "covers this month" and "still open" are separate questions.
 function getResidentsOverview(payload) {
   const { buildingId, year, month } = payload;
   try {
@@ -189,8 +172,8 @@ function getResidentsOverview(payload) {
       )
       .all(cutoff, cutoff, cutoff, cutoff, buildingId, period);
 
-    // The building's earliest active apartment. Without it the renderer cannot tell "no apartments
-    // at all" from "no apartments yet in the month being viewed", since both come back empty.
+    // The building's earliest active apartment, so the renderer can tell "no apartments at all" from "none
+    // yet in the month being viewed". Both come back with an empty list otherwise.
     const start = getDb()
       .prepare(
         `SELECT CAST(strftime('%Y', MIN(created_at)) AS INTEGER) AS year,
@@ -206,8 +189,7 @@ function getResidentsOverview(payload) {
   }
 }
 
-// Rows are a timeline, so start date alone orders them and is_active never lifts a row. A pending
-// row carries a future transfer date, which puts it on top without a case of its own.
+// A timeline: start date alone orders the rows, and a queued row's future date puts it on top by itself.
 function getResidentHistory(payload) {
   const { apartmentId, buildingId } = payload;
   try {
@@ -259,8 +241,8 @@ function addResident(payload) {
   }
 }
 
-// Overwrites the active row. An empty field means the user cleared it, and a closed record can
-// never be edited. move_out_date is left out of the column list on purpose.
+// Overwrites the active row: an empty field means the user cleared it, and a closed record is never edited.
+// move_out_date is left out of the column list on purpose.
 function updateResident(payload) {
   const { residentId, buildingId, resident_type: residentType } = payload;
   try {
@@ -300,20 +282,9 @@ function updateResident(payload) {
   }
 }
 
-// Sets the move-out date, and the trigger then deactivates the row. A later date keeps it active,
-// so the message says which of the two happened. An owner record is closed rather than moved out,
-// which is what a change of hands looks like.
-//
-// payload.next is the record that replaces the one being closed, and it is optional. Both writes
-// share one transaction, so the flat is never left without the record for a moment: the update
-// fires the move-out trigger, the row goes inactive, and only then does the insert take the role.
-// That order is also what keeps the partial unique index happy, since it allows one active row per
-// kind.
-//
-// A dated-ahead exit takes the successor too, and then the new row is queued rather than opened: it
-// carries move_in_date and waits with is_active = 0, so it stays out of the active index and out of
-// every screen until applyResidentSchedule promotes it on the day. One queue per kind, which is why
-// a second dated-ahead transfer is refused until the standing one is cancelled.
+// Sets the move-out date, and the trigger deactivates the row. A date ahead keeps it active, so the message
+// says which of the two happened. The optional payload.next replaces it in the same transaction, close
+// first, because the active unique index allows one row per kind. A dated-ahead exit queues it instead.
 function moveOutResident(payload) {
   const { residentId, buildingId, moveOutDate, next } = payload;
   try {
@@ -387,10 +358,8 @@ function moveOutResident(payload) {
   }
 }
 
-// Rewrites a transfer that has not happened yet: the date moves, and the record queued behind it
-// is updated, created or dropped to match what the caller sent. Pulling the date back to today or
-// earlier applies the transfer on the spot, which is the same two steps applyResidentSchedule runs:
-// the standing row closes through its trigger and the queued row takes over, in that order.
+// Rewrites a transfer that has not happened yet: the date moves and the queued record is updated, created
+// or dropped. Pulling the date back to today applies it on the spot, closing first and promoting after.
 function updateScheduledMoveOut(payload) {
   const { residentId, buildingId, moveOutDate, next } = payload;
   try {
@@ -467,10 +436,8 @@ function updateScheduledMoveOut(payload) {
   }
 }
 
-// Undoes a transfer that has not happened yet: the date on the standing record is cleared and the
-// record queued behind it is removed. The queued row is deleted rather than closed, because it
-// never took effect and a zero-day record would only clutter the apartment's history. Nothing else
-// in the app deletes a resident row.
+// Undoes a transfer that has not happened yet. The queued row is deleted rather than closed, since it never
+// took effect and a zero-day record would only clutter the history. Nothing else in the app deletes one.
 function cancelScheduledMoveOut(payload) {
   const { residentId, buildingId } = payload;
   try {

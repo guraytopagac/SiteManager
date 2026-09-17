@@ -33,7 +33,6 @@ function noValidation() {
   return null;
 }
 
-// First link of every chain. It makes sure the payload is a plain object for the checks that follow.
 function validatePayload(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return fail("Geçersiz istek.");
@@ -45,13 +44,11 @@ function validateId(value, label) {
   return Number.isInteger(value) && value > 0 ? null : fail(`Geçersiz ${label}.`);
 }
 
-// Used by six domains. Each one chains its own id check after this.
 function validateBuildingScope(payload) {
   return validatePayload(payload) ?? validateId(payload.buildingId, "bina ID");
 }
 
-// Used by apartment and building with the same sentence, because a building can be created
-// together with its apartments.
+// Shared by apartment and building, since a building can be created together with its apartments.
 function validateApartmentType(value) {
   return APARTMENT_TYPES.includes(value) ? null : fail("Geçersiz daire tipi.");
 }
@@ -63,7 +60,6 @@ function validateDueAmount(value) {
   return null;
 }
 
-// Used by dues and financial with the same sentence, so it lives here.
 function validateCancelReason(payload) {
   if (typeof payload.reason !== "string" || !payload.reason.trim()) {
     return fail("İptal nedeni zorunludur.");
@@ -103,7 +99,6 @@ function isValidMonth(value) {
   return Number.isInteger(value) && value >= 1 && value <= 12;
 }
 
-// Used by report for the saved PDF and by dues for the payment receipt.
 function isValidFileName(value) {
   if (typeof value !== "string" || !value || value.length > MAX_FILE_NAME_LENGTH) return false;
   return !FILE_NAME_RE.test(value);

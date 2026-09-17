@@ -1,3 +1,6 @@
+// The field set two modals must write alike, so a length cap, placeholder or phone mask cannot drift apart.
+// Exports the component alone, which is why the shared empty form lives with the renderer constants.
+
 import "./ResidentsModals.css";
 import { formatPhone, phoneDigits } from "@/utils/phoneNumber";
 
@@ -5,6 +8,8 @@ function ResidentFieldset({ idPrefix, form, setForm, residentType, asksOccupancy
   const isOwnerForm = residentType === "owner";
   const updateField = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
 
+  // Whether the slot exists and whether its content is visible are separate: a hidden field keeps its grid
+  // cell, so the box does not resize on every toggle.
   const asksHouseholdSize = !isOwnerForm || asksOccupancy;
   const showsHouseholdSize = asksHouseholdSize && (!isOwnerForm || form.is_occupant);
 
@@ -31,6 +36,8 @@ function ResidentFieldset({ idPrefix, form, setForm, residentType, asksOccupancy
             inputMode="numeric"
             maxLength={13}
             placeholder="Örn. 5XX XXX XX XX"
+            // State holds bare digits and the input shows the grouped form, so a pasted number normalises in
+            // place. The real limit is the ten digit trim inside the helper, not the length cap.
             value={formatPhone(form.phone)}
             onChange={(e) => updateField("phone", phoneDigits(e.target.value))}
           />

@@ -1,3 +1,6 @@
+// The application footer. It renders outside the error boundary, which is what forces the optional chaining
+// below. The icon span is keyed by the theme, so React remounts it and the swap animation replays.
+
 import { useEffect, useState } from "react";
 import { FiSun, FiMoon } from "react-icons/fi";
 import { toggleTheme, useTheme } from "@/hooks/useTheme";
@@ -12,6 +15,8 @@ function Footer() {
   const theme = useTheme();
 
   useEffect(() => {
+    // Required rather than stylistic: outside the boundary a throw would unmount the whole tree and leave a
+    // blank window with no message. The operator short circuits the entire chain, then and catch included.
     window.electronAPI
       ?.getAppVersion()
       .then((appVersion) => {

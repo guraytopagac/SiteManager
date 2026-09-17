@@ -10,6 +10,8 @@ import { FiHome, FiArrowLeft, FiArrowRight, FiCheck } from "react-icons/fi";
 
 const MAX_FLOORS = 30;
 const MAX_PER_FLOOR = 20;
+// Trimming starts one floor above this limit, because the band replacing the hidden floors takes a row of its
+// own. At the limit plus one it would hide a single floor and save no space at all.
 const PREVIEW_FLOOR_LIMIT = 5;
 const PREVIEW_CELL_LIMIT = 4;
 
@@ -29,6 +31,8 @@ function isValidDueAmount(value) {
   return Number.isFinite(value) && value > 0 && value <= MAX_DUE_AMOUNT;
 }
 
+// Rows come out ready to draw, labels included, so the markup only walks the list. A floor wider than the
+// cell limit spends its last slot on a counter, so a row never wraps onto a second line.
 function toPreviewRow(floorIndex, perFloor, firstFloor) {
   const visibleCount = perFloor > PREVIEW_CELL_LIMIT ? PREVIEW_CELL_LIMIT - 1 : perFloor;
   const firstUnit = floorIndex * perFloor + 1;
@@ -76,6 +80,8 @@ function validateName(value) {
   return null;
 }
 
+// Shared by the preview and by the submit, so an empty preview and a refused submit always agree on why.
+// The messages name their own field, which is why no validator binds itself to an input.
 function validateCounts(floors, perFloor) {
   if (!isValidCount(floors, MAX_FLOORS)) {
     return `Kat sayısı 1 ile ${MAX_FLOORS} arasında bir tam sayı olmalıdır.`;
@@ -92,6 +98,8 @@ function validateLayout(floors, perFloor, dueAmount) {
   return validateCounts(floors, perFloor) ?? dueError;
 }
 
+// The cell count is handed to CSS as a custom property and the width is computed there, so the geometry
+// stays in the stylesheet and this component only supplies the number.
 function BuildingPreview({ name, notice, rows, cellCount }) {
   return (
     <aside className="auth-card nb-preview" aria-label="Bina önizlemesi">
@@ -160,6 +168,8 @@ function NewBuilding() {
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // The first user of an account has no list to go back to, so the way out is only offered to someone who
+  // arrived from one.
   const canCancel = Boolean(location.state?.fromList);
   const floors = Number(layout.floors);
   const perFloor = Number(layout.perFloor);
@@ -190,6 +200,8 @@ function NewBuilding() {
     setStep(2);
   };
 
+  // Called both by the submit and by the secondary button, which finishes the wizard without a layout
+  // rather than skipping ahead to a step that does not exist.
   const submitBuilding = async (withLayout) => {
     if (withLayout) {
       const layoutError = validateLayout(floors, perFloor, dueAmount);

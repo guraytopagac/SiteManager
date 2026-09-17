@@ -16,7 +16,6 @@ const restartLaterBtn = document.getElementById("restart-later");
 
 // Kept, so the status can go back to it while there is no download speed yet.
 const DEFAULT_PROGRESS_STATUS = progressStatus.textContent;
-// Sent by the main process in the query string, so it is there on the first paint.
 const currentVersion = new URLSearchParams(window.location.search).get("v") || "";
 
 versionEl.textContent = currentVersion ? "v" + currentVersion : "v—";
@@ -40,7 +39,6 @@ if (window.splashAPI) {
     statusTextEl.textContent = text;
   });
 
-  // An update hides the status line and shows the progress bar instead.
   window.splashAPI.onUpdateAvailable(({ version }) => {
     updateBadgeText.textContent = currentVersion ? "v" + currentVersion + " → v" + version : "v" + version;
     updateBadge.classList.add("splash-visible");

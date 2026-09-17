@@ -1,5 +1,10 @@
+// The only module allowed to import sweetalert2, enforced by no-restricted-imports in eslint.config.mjs.
+// Pages call showDialog methods, a new kind of dialog is added here rather than at the call site.
+
 import Swal from "sweetalert2";
 
+// Resolved at fire time rather than at module load: the theme toggles at runtime and a cached palette
+// would go stale on the first switch.
 const theme = () => {
   const styles = getComputedStyle(document.documentElement);
   const cssVar = (name) => styles.getPropertyValue(name).trim();
@@ -12,6 +17,8 @@ const theme = () => {
   };
 };
 
+// allowOutsideClick lives here instead of on individual methods, so no dialog can be dismissed by a stray
+// click. Escape still closes. Cancel reason and password prompts used to lose typed text this way.
 const base = (t) => ({
   heightAuto: false,
   allowOutsideClick: false,
@@ -25,6 +32,8 @@ export const isDialogOpen = () => Swal.isVisible();
 
 const HTML_ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 
+// Deliberately not exported. A dialog that embeds raw user text gets its own method in this file, so the
+// escaping stays next to the markup that needs it.
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => HTML_ESCAPES[char]);
 
 const bodyOf = (body) => {
@@ -45,6 +54,8 @@ const dismissDialog = (title, body, icon) =>
     confirmButtonColor: t.confirm,
   }));
 
+// Returns a boolean rather than the raw SweetAlertResult, so callers write `if (confirmed)`. reverseButtons
+// puts cancel on the left, so cancelText comes third: the signature follows the order the user reads.
 const confirmDialog = async (title, body, cancelText, confirmText, pickConfirmColor) => {
   const { isConfirmed } = await fire((t) => ({
     ...base(t),
@@ -88,6 +99,8 @@ const copyToClipboard = async (value) => {
   }
 };
 
+// Shared by the three dialogs that show a value exactly once. The backdrop animation is off and the code is
+// never written to the clipboard on its own, the user presses the button and sees the result.
 const codeDialog = ({ title, code, html }) => {
   let resetTimer = null;
 
@@ -205,6 +218,7 @@ export const showDialog = {
       confirmButtonColor: t.confirm,
       cancelButtonColor: t.cancel,
       preConfirm: (raw) => {
+        // Passwords are never trimmed, a leading or trailing space may be deliberate.
         const val = input === "password" ? raw : raw?.trim();
         const message = validate?.(val);
         if (message) {
@@ -223,6 +237,7 @@ export const showDialog = {
       input: "textarea",
       inputLabel: "İptal Nedeni",
       inputPlaceholder: "Lütfen iptal nedenini yazın...",
+      // Mirrors the handler's 300 character limit, the user should meet the bound while typing.
       inputAttributes: { maxlength: 300 },
       confirmButtonText: "Evet, İptal Etmek İstiyorum",
       cancelText: "Geri Dön",

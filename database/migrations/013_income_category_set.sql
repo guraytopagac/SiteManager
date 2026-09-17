@@ -1,8 +1,6 @@
--- Reworks the manual income categories: adds utility_share for metered water and heating
--- shares collected from the apartments, and drops donation, which a building ledger never
--- really carries. SQLite cannot alter a CHECK in place, so the table is rebuilt. DROP TABLE
--- takes the old indexes and triggers with it, so the new table gets its own copies below.
--- Existing donation rows move to other, the only value that can hold them.
+-- Reworks the manual income categories: adds utility_share for metered water and heating shares, drops
+-- donation and moves its rows to other. The table is rebuilt, since SQLite cannot alter a CHECK in place,
+-- and its indexes and triggers are created again below.
 DROP TRIGGER IF EXISTS trg_incomes_prevent_update_after_cancel;
 DROP TRIGGER IF EXISTS trg_incomes_no_delete;
 

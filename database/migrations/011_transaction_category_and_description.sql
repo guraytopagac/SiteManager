@@ -1,7 +1,5 @@
--- Widens the category CHECK on incomes and expenses and makes description optional.
--- SQLite cannot alter a CHECK or drop a NOT NULL in place, so both tables are rebuilt.
--- DROP TABLE takes the old indexes and triggers with it, so the new table gets its own
--- copies at the end of each block.
+-- Widens the category CHECK on incomes and expenses and makes description optional. Both tables are
+-- rebuilt, and each gets its indexes and triggers back since DROP TABLE takes them.
 DROP TRIGGER IF EXISTS trg_incomes_prevent_update_after_cancel;
 DROP TRIGGER IF EXISTS trg_incomes_no_delete;
 

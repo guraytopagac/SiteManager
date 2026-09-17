@@ -1,3 +1,6 @@
+// The sign in screen. It makes no call of its own to find out who logged in last, the account state was
+// already resolved before the tree mounted.
+
 import { useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Login.css";
@@ -6,11 +9,15 @@ import { savedUsername, setSession } from "@/hooks/useSession";
 import AuthField from "@/components/AuthField/AuthField";
 import { FiUser, FiLock, FiAlertCircle, FiArrowRight } from "react-icons/fi";
 
+// The error block is tied to both fields through this id. role=alert only announces at the moment the
+// message appears, so a reader tabbing back into a field would otherwise hear nothing about it.
 const ERROR_ID = "login-error";
 
 function Login() {
   const navigate = useNavigate();
   const location = useLocation();
+  // A name carried by the navigation wins over the stored one, because it comes from a setup or a recovery
+  // that just finished and is therefore newer than anything on record.
   const [initialUsername] = useState(() => location.state?.username ?? savedUsername() ?? "");
   const [username, setUsername] = useState(initialUsername);
   const [password, setPassword] = useState("");
@@ -34,6 +41,8 @@ function Login() {
       const res = await window.electronAPI.login({ username, password });
 
       if (res.success) {
+        // Returning early leaves the submitting flag raised on purpose: writing the session hands the screen
+        // over to the guard, and resetting here would flash an enabled form during the swap.
         setSession(res.user);
         return;
       }

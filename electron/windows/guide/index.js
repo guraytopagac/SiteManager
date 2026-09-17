@@ -64,7 +64,6 @@ async function openGuide(parentWindow) {
     shell.openExternal(url).catch((err) => console.warn("[Guide] External open failed:", err));
   });
 
-  // Version, support address and theme go in the query string, because there is no preload.
   guideWin.loadFile(path.join(__dirname, "guide.html"), {
     query: { v: app.getVersion(), mail: SUPPORT_EMAIL, theme },
   });

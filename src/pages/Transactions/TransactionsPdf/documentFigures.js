@@ -1,3 +1,6 @@
+// Values the screen and the printed document both need. They live beside the document, since the page
+// imports the document and keeping them there would create an import loop.
+
 import { TRANSACTION_CATEGORY_LABELS } from "@/utils/constants";
 import { formatMonthYear } from "@/utils/date";
 
@@ -31,6 +34,8 @@ export function receiptDescription(receipt) {
 export const voucherDescription = (voucher) =>
   voucher.description || TRANSACTION_CATEGORY_LABELS[voucher.category] || "";
 
+// Names the document: type, serial, building, counterparty and date, folded to ASCII. The serial keeps two
+// same-day documents apart, and a dues receipt has none since it covers a whole month.
 export function documentFileName(type, record, buildingName) {
   const isDuesReceipt = type === "income" && record.apartment_no != null;
   const party = type === "income" ? record.payer_name : record.vendor_name;
@@ -46,6 +51,8 @@ export function documentFileName(type, record, buildingName) {
   return `${[head, fileNamePart(buildingName, 30), subject, period].filter(Boolean).join("_")}.pdf`;
 }
 
+// Long free text shrinks rather than overflowing the clipped sheet. The optional fourth step was added by
+// measurement, for the longest description made of unbreakable words.
 export function textSizeClass(text, compactFrom, tightFrom, denseFrom) {
   const length = String(text ?? "").length;
   if (denseFrom !== undefined && length >= denseFrom) return "fill--dense";

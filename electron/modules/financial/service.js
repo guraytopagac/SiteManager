@@ -2,21 +2,22 @@
 const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
 const { periodCutoff, RESIDENT_NAME_FOR_PERIOD_SQL } = require("../shared/residentPeriod");
+const { ensureSeveranceTransfers } = require("../shared/severanceFund");
 const { TR_NOW_SQL, monthBounds } = require("../shared/trTime");
 
-// Only NOT NULL columns belong here, since the resolver reads labels on the UNIQUE and NOT NULL
-// branches alone. The description and the document fields are nullable, so every violation on them
-// is a CHECK.
+// Only NOT NULL columns belong here, since the resolver reads a label on the UNIQUE and NOT NULL branches
+// alone. The nullable columns can only fail a CHECK, which carries no usable column name.
 const COLUMN_LABELS = {
   amount: "Tutar",
   date: "Tarih",
   category: "Kategori",
 };
 
-// Only incomes have the dues link, so the two tables read different columns before cancelling.
+// Only incomes have the dues link and only expenses carry the severance transfers, so the two tables
+// read different columns before cancelling.
 const CANCEL_SELECT = {
   incomes: "is_cancelled, due_payment_id",
-  expenses: "is_cancelled",
+  expenses: "is_cancelled, category",
 };
 
 // Columns only one table takes on insert. The names are fixed here and each value is read from the
@@ -61,7 +62,8 @@ function insertRecord(table, payload, label) {
   return { success: true, id: result.lastInsertRowid, message: `${label} eklendi.` };
 }
 
-// Soft cancel. An income tied to a dues payment can only be cancelled through cancelPayment.
+// Soft cancel. An income tied to a dues payment can only be cancelled through cancelPayment, and a
+// severance transfer only through the severance module.
 function cancelRecord(table, payload, label) {
   const { id, buildingId, userId, reason } = payload;
   const record = getDb()
@@ -69,6 +71,9 @@ function cancelRecord(table, payload, label) {
     .get(id, buildingId);
   if (!record) return { success: false, message: "Kayıt bulunamadı." };
   if (record.is_cancelled) return { success: false, message: "Bu kayıt zaten iptal edilmiş." };
+  if (record.category === "severance_fund") {
+    return { success: false, message: "Tazminat kasası aktarımları bu sayfadan iptal edilemez." };
+  }
   if (record.due_payment_id != null) {
     return {
       success: false,
@@ -87,30 +92,42 @@ function cancelRecord(table, payload, label) {
 }
 
 // Income and expense in one list, newest first. A null period means all time. The totals skip
-// cancelled rows and are worked out in SQL, not in the renderer.
+// cancelled rows and are worked out in SQL, not in the renderer. Severance payouts are listed too, as
+// their own type, and never counted: the main cash already paid for them through the fund transfers.
 function getTransactions(payload) {
   const { buildingId, period } = payload;
   try {
+    // The monthly fund transfer is an expense, so it is written before the list is read.
+    ensureSeveranceTransfers(buildingId);
+
     const hasPeriod = Boolean(period);
     const dateFilter = hasPeriod ? "AND date >= ? AND date < ?" : "";
 
-    // The same parameters are passed twice, once for each half of the UNION.
     const params = [buildingId];
     if (hasPeriod) {
       const { start, end } = monthBounds(period.year, period.month);
       params.push(start, end);
     }
 
+    // A payout and its top-up are written in the same second, so sort_rank puts the payout above it, the same
+    // order the fund page uses. A compound select can only sort by result columns, hence the extra column.
     const transactions = getDb()
       .prepare(
         `SELECT id, amount, date, description, category, 'income' AS type, created_at,
-                is_cancelled, cancelled_at, cancel_reason FROM incomes WHERE building_id = ? ${dateFilter}
+                is_cancelled, cancelled_at, cancel_reason, 0 AS sort_rank
+         FROM incomes WHERE building_id = ? ${dateFilter}
          UNION ALL
          SELECT id, amount, date, description, category, 'expense' AS type, created_at,
-                is_cancelled, cancelled_at, cancel_reason FROM expenses WHERE building_id = ? ${dateFilter}
-         ORDER BY date DESC, created_at DESC, id DESC`,
+                is_cancelled, cancelled_at, cancel_reason, 0 AS sort_rank
+         FROM expenses WHERE building_id = ? ${dateFilter}
+         UNION ALL
+         SELECT id, amount, date, full_name AS description, 'severance_payout' AS category, 'severance_payout' AS type,
+                created_at, is_cancelled, cancelled_at, cancel_reason, 1 AS sort_rank
+         FROM (SELECT p.*, e.full_name FROM severance_payouts p JOIN employees e ON e.id = p.employee_id)
+         WHERE building_id = ? ${dateFilter}
+         ORDER BY date DESC, created_at DESC, sort_rank DESC, id DESC`,
       )
-      .all(...params, ...params);
+      .all(...params, ...params, ...params);
 
     const { totalIncome, totalExpense } = getDb()
       .prepare(
@@ -122,9 +139,8 @@ function getTransactions(payload) {
       )
       .get(...params, ...params);
 
-    // The building's earliest record. Without it the renderer cannot tell "no records at all" from
-    // "nothing yet in the month being viewed", since both come back as an empty list. Each half takes
-    // its own MIN so the building_id + date index answers it without scanning the rows.
+    // The building's earliest record, so the renderer can tell "no records at all" from "nothing yet in the
+    // month being viewed". Each half takes its own MIN, so the building_id + date index answers it.
     const start = getDb()
       .prepare(
         `SELECT CAST(strftime('%Y', MIN(first_date)) AS INTEGER) AS year,
@@ -147,11 +163,14 @@ function getTransactions(payload) {
   }
 }
 
-// A document is printed only for a live record, and both tables give the same two answers.
 function documentBlocker(record) {
   if (!record) return { success: false, message: "Kayıt bulunamadı." };
   if (record.is_cancelled) {
     return { success: false, message: "İptal edilmiş bir kayıt için belge oluşturulamaz." };
+  }
+  // A fund transfer moves money between the building's own two cash boxes, so there is no vendor to print.
+  if (record.category === "severance_fund") {
+    return { success: false, message: "Tazminat kasası aktarımı için gider pusulası oluşturulamaz." };
   }
   return null;
 }
@@ -181,10 +200,8 @@ function livePaymentsForDue(dueId) {
     .all(dueId);
 }
 
-// A manual income prints itself. A dues receipt covers the whole month of that apartment instead:
-// someone who pays 70 in cash and 30 by card enters two payments but takes one receipt, whichever
-// of the two income rows it is opened from. The amounts are summed in whole kuruş so the per-method
-// lines always add up to the total.
+// A manual income prints itself. A dues receipt covers the whole month of the apartment, so two payments
+// made in different methods still take one receipt, summed in whole cents to keep the lines adding up.
 function readReceipt(id, buildingId) {
   const receipt = getDb()
     .prepare(
@@ -252,9 +269,8 @@ function getDocument(payload) {
   }
 }
 
-// Only a manual income takes a payer name. A dues receipt always names the apartment's resident for
-// that month, so nothing typed may replace it. The payment method is never written from here either,
-// it was chosen when the income or the dues payment was entered.
+// Only a manual income takes a payer name: a dues receipt always names the apartment's resident of that
+// month. The payment method is never written here either, it was chosen when the record was entered.
 function saveReceiptInfo(payload) {
   const { id, buildingId, payer_name } = payload;
   const record = getDb()
@@ -275,7 +291,7 @@ function saveReceiptInfo(payload) {
 function saveVoucherInfo(payload) {
   const { id, buildingId, vendor_name, vendor_address } = payload;
   const record = getDb()
-    .prepare("SELECT is_cancelled FROM expenses WHERE id = ? AND building_id = ?")
+    .prepare("SELECT is_cancelled, category FROM expenses WHERE id = ? AND building_id = ?")
     .get(id, buildingId);
   const blocker = documentBlocker(record);
   if (blocker) return blocker;

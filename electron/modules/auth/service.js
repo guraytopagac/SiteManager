@@ -1,6 +1,5 @@
-// Auth rules. There is one account, so every lookup takes the first row by id. Passwords and
-// recovery codes are stored as bcrypt hashes. The only value ever returned in clear text is a
-// new recovery code, shown to the user once.
+// Auth rules. There is one account, so every lookup takes the first row by id. Passwords and recovery
+// codes are stored as bcrypt hashes, and a new recovery code is the only value ever returned in clear.
 const crypto = require("crypto");
 const fs = require("fs");
 const bcrypt = require("bcryptjs");
@@ -45,16 +44,14 @@ function generateTemporaryPassword() {
   return randomCode(TEMP_PASSWORD_LENGTH);
 }
 
-// Accepts dashes, spaces and lower case when the user types the code back in.
 function normalizeRecoveryCode(input) {
   return String(input || "")
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, "");
 }
 
-// The one account row. No row means setup is not done yet.
-// startYear is the year the account row was written, which is also the first year that can hold
-// any data. The renderer uses it as the floor of every period selector.
+// The one account row. No row means setup is not done yet. startYear is the year the row was written,
+// which the renderer uses as the floor of every period selector.
 function findAccount() {
   return getDb()
     .prepare(
@@ -121,12 +118,9 @@ function login(credentials) {
 const TRANSFER_SQL = `UPDATE users SET username = ?, email = NULL, password_hash = ?, manager_name = ?,
   recovery_hash = ?, password_changed_at = ${TR_NOW_SQL}, updated_at = ${TR_NOW_SQL} WHERE id = ?`;
 
-// Hands the account to another person. Buildings and data stay where they are. The recovery code
-// is replaced too, or the old holder could use their code to get back in. The username and email
-// go for the same reason the name does: they belong to the person, not to the ledger.
-// A transfer always writes a transfer file, whether the new manager stays on this computer or not.
-// The new credentials go into a copy of the database first and then into this one, so the file
-// never carries the old password and this computer is locked to the previous manager as well.
+// Hands the account to another person. Buildings and data stay where they are, while the username, email
+// and recovery code go with the person, or the previous holder could sign in or reset their way back in.
+// The new credentials land in a copy of the database first, so the file never carries the old password.
 async function transferAccount(payload, mainWindow) {
   const { userId, password, newPerson, newUsername } = payload;
   let filePath = null;
@@ -282,7 +276,6 @@ function regenerateRecoveryCode(payload) {
   }
 }
 
-// Used by the startup redirect and to fill in the username on the login page.
 function getSetupState() {
   try {
     const account = findAccount();

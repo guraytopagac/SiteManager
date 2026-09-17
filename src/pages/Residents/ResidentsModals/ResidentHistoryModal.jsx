@@ -1,3 +1,6 @@
+// Every record an apartment has had, owners and tenants on one timeline, the role shown by a leading icon.
+// A card expands in place and only one stays open, so a long history does not scroll for metres.
+
 import { useEffect, useState } from "react";
 import { FiChevronDown, FiHome, FiUser, FiX } from "react-icons/fi";
 import "./ResidentsModals.css";
@@ -11,11 +14,15 @@ import { formatPhone } from "@/utils/phoneNumber";
 
 const PAGE_SIZE = 5;
 
+// One dash covers an owner who never lived there and an occupant of unknown size. All four rows are drawn
+// either way, so the card height does not depend on the record.
 function householdText(resident) {
   if (!resident.is_occupant || resident.household_size == null) return null;
   return `${resident.household_size} kişi`;
 }
 
+// The slot always holds a full page and the paging row is always drawn, so the box keeps one height in every
+// state. A filler is a span while a card is a button, so two measured stylesheet rules match their height.
 function PlaceholderCard() {
   return (
     <li className="rs-history-item rs-history-spacer" aria-hidden="true">

@@ -1,8 +1,6 @@
--- A payment can now carry a receipt file. The name and the blob are added together, so the table
--- is rebuilt: SQLite cannot add the table level CHECK that binds the two columns with ALTER TABLE.
--- The order below is the one SQLite documents for this kind of change. The new table is built under
--- a temporary name and the old one is dropped before the rename, so ALTER TABLE never rewrites the
--- due_payments references that payment_cancellations and incomes hold.
+-- A payment can now carry a receipt file. ALTER TABLE cannot add the CHECK binding name and blob, so the
+-- table is rebuilt in the documented order: build under a temporary name, drop the old one, then rename,
+-- which leaves the due_payments references in payment_cancellations and incomes intact.
 CREATE TABLE new_due_payments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   due_id INTEGER NOT NULL,

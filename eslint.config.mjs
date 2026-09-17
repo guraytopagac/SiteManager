@@ -1,11 +1,18 @@
+// Four blocks, each carrying both its globals and its module kind. Declaring the kind is the point: an import
+// written into a file that uses the other module system then fails to parse instead of failing later.
+
 import js from "@eslint/js";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import { defineConfig, globalIgnores } from "eslint/config";
 
+// Single owner of the classic script list, read twice below: once by their own block and once by the
+// exclusions of the Node block. A new window script goes here.
 const BROWSER_SCRIPTS = ["electron/windows/**/guide.js", "electron/windows/**/splash.js", "public/*.js"];
 
+// Two written rules turned into checks. The renderer may not reach Node, and dialogs may only be opened
+// through the one wrapper, so neither depends on being remembered.
 const NODE_ONLY_MODULES = ["electron", "fs", "path", "better-sqlite3"].map((name) => ({
   name,
   message: "The renderer has no Node access. Go through window.electronAPI.",
@@ -22,7 +29,9 @@ function restrictedImports(paths) {
 
 const commonRules = {
   "no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+  // Only these two survive, which is why even informational lines are written as warnings.
   "no-console": ["warn", { allow: ["error", "warn"] }],
+  // Smart, so the deliberate loose null checks in the validation layer stay legal.
   eqeqeq: ["error", "smart"],
   "no-var": "error",
   "prefer-const": "error",
@@ -46,6 +55,8 @@ export default defineConfig([
     },
   },
   {
+    // The one file allowed to pull in the dialog library. It gets its own block so the exemption does not
+    // quietly drop the Node restrictions along with it.
     files: ["src/utils/dialog.js"],
     rules: {
       "no-restricted-imports": restrictedImports(NODE_ONLY_MODULES),
@@ -71,6 +82,8 @@ export default defineConfig([
     rules: commonRules,
   },
   {
+    // Without this block the two config files at the repository root match nothing and count as linted with
+    // not a single rule applied. Printing the resolved config for one of them shows whether it still holds.
     files: ["*.js", "*.mjs"],
     extends: [js.configs.recommended],
     languageOptions: {

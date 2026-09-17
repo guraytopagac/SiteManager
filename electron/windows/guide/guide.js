@@ -104,7 +104,6 @@ function buildSearchIndex(navItems) {
   return haystacks;
 }
 
-// Filters the sidebar. A group label is hidden when none of the links under it match.
 function initSearch(navItems) {
   const searchInput = document.getElementById("guide-search-input");
   const searchEmpty = document.getElementById("guide-search-empty");

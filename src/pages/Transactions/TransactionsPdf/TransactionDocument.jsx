@@ -1,3 +1,6 @@
+// The two printed documents, both A5 landscape. Everything shared lives in the sheet component and only the
+// body differs, so a change to the frame cannot land on one and miss the other.
+
 import { PAYMENT_METHOD_LABELS } from "@/utils/constants";
 import { formatCurrency, formatCurrencyInWords } from "@/utils/currency";
 import { formatDate } from "@/utils/date";
@@ -14,6 +17,8 @@ const TITLES = {
   expense: "GİDER PUSULASI",
 };
 
+// Single owner of the shrink thresholds, so fields of the same width share numbers. The address keeps its
+// own entry by measurement: on the text thresholds it pushed the expense sheet to its edge.
 const SIZES = {
   name: [40, 70],
   address: [60, 120, 220],

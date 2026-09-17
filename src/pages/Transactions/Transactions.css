@@ -391,6 +391,28 @@
   color: var(--amount-negative);
 }
 
+.tx-amount--severance_payout {
+  color: var(--text-secondary);
+}
+
+.tx-row--fund .tx-category,
+.tx-row--fund .tx-desc {
+  color: var(--text-secondary);
+}
+
+.tx-fund-tag {
+  margin-right: 5px;
+  color: var(--button-color);
+  font-weight: 600;
+}
+
+.tx-net-note {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
 .tx-row--cancelled .tx-amount {
   color: var(--text-secondary);
   text-decoration: line-through;

@@ -1,3 +1,6 @@
+// The building picker, plus renaming, deleting and restoring. Creating one belongs to the wizard alone,
+// this screen only leads there.
+
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import "./SelectBuilding.css";
@@ -10,6 +13,8 @@ import { FiHome, FiPlus, FiAlertCircle, FiChevronRight, FiEdit2, FiTrash2 } from
 
 const ERROR_ID = "sb-name-error";
 
+// Three distinct sentences rather than one with zeroes in it: a building with no apartments yet, one whose
+// apartments are all empty, and a populated one are different facts to the reader.
 function buildingMeta(building) {
   if (!building.apartment_count) return "Henüz daire eklenmemiş";
   if (!building.person_count) return `${building.apartment_count} daire · kimse yok`;
@@ -33,6 +38,8 @@ function SelectBuilding() {
   const [editing, setEditing] = useState(null);
   const [editError, setEditError] = useState("");
   const [isBusy, setIsBusy] = useState(false);
+  // A single active building normally means this screen is skipped. Coming here on purpose from the account
+  // menu disables that, and so does every action that reloads the list, or a delete would throw the user out.
   const [autoEnterAllowed, setAutoEnterAllowed] = useState(() => !location.state?.manual);
 
   const ownerId = session.id;
@@ -68,6 +75,8 @@ function SelectBuilding() {
     setEditError("");
   };
 
+  // Every writer below keeps the stored selection in step with what it changed: a rename rewrites it, a delete
+  // clears it. The guard only checks the store, so a stale entry keeps letting records into a gone building.
   const submitEdit = async (event) => {
     event.preventDefault();
     const renamedBuilding = editing.building;
@@ -224,6 +233,8 @@ function SelectBuilding() {
     </form>
   );
 
+  // With nothing to pick, only the page backdrop and the redirect are returned, so no card is drawn for a
+  // frame. The wizard shares that backdrop, which makes the swap invisible.
   if (res.success && allBuildings.length === 0) {
     return (
       <div className="auth-page">

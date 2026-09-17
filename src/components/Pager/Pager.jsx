@@ -1,3 +1,6 @@
+// Shared by every paged list. Table shells stay twinned per page because each owns its column widths and
+// page size, while paging has no such measurement. The row is always shown, the buttons tell if it is usable.
+
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import "./Pager.css";
 

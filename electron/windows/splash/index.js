@@ -12,11 +12,11 @@ const CLOSE_FADE_MS = 180;
 
 let splashWindow = null;
 
-// No frame, centred, with its own small preload.
 function createSplashWindow() {
   splashWindow = new BrowserWindow({
     width: 520,
-    height: 360,
+    // Sized for the restart prompt, the tallest state this window ever shows.
+    height: 400,
     resizable: false,
     frame: false,
     center: true,

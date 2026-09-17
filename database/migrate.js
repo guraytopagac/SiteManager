@@ -2,7 +2,6 @@
 const fs = require("fs");
 const path = require("path");
 
-// Runs the migrations that have not run yet, in file name order, one transaction each.
 function applyMigrations(db) {
   const migrationsDir = path.join(__dirname, "migrations");
 
@@ -67,7 +66,6 @@ function applyMigrations(db) {
   }
 }
 
-// Every statement is IF NOT EXISTS, so this does nothing on an existing install.
 function loadSchema(db) {
   const schemaDir = path.join(__dirname, "schema");
 

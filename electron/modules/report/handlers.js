@@ -1,4 +1,3 @@
-// Report IPC entry points. One returns the report data, the other prints the report page to a PDF.
 const fs = require("fs");
 const path = require("path");
 const { pathToFileURL } = require("url");
@@ -19,7 +18,7 @@ const reportService = require("./service");
 
 const FUTURE_PERIOD_MESSAGE = "Gelecek bir dönem için rapor alınamaz.";
 
-// Kept in step with the renderer's own list, see the enum parity rule in the docs.
+// Kept in step with SCOPES in Reports.jsx.
 const REPORT_SCOPES = ["month", "year", "all"];
 
 // The scope decides which period fields the payload has to carry. A year is future when its
@@ -59,7 +58,6 @@ const SAVE_DIALOG_TITLES = {
   voucher: "Gider Pusulasını Kaydet",
 };
 
-// The renderer builds the whole page, CSS included, and sends it here as a string.
 function validateSaveFileFields(payload) {
   const { filename, html, documentType } = payload;
   if (!isValidFileName(filename)) {
@@ -74,10 +72,8 @@ function validateSaveFileFields(payload) {
   return null;
 }
 
-// The page is markup from the renderer, so it is printed with scripts off and every request other
-// than the page itself is cancelled. It goes through a temp file because Chromium caps a URL at
-// 2 MB, and a data URL of a large ledger can pass that. Paper size, margins and the page footer
-// all come from the page's own CSS.
+// The page is markup from the renderer, so it prints with scripts off and every request other than the page
+// itself cancelled. A temp file, because Chromium caps a URL at 2 MB. Paper and footer come from its own CSS.
 async function printReportPdf(html) {
   const pagePath = path.join(app.getPath("temp"), `mavikent-rapor-${Date.now()}.html`);
   const pageUrl = pathToFileURL(pagePath).href;
@@ -99,9 +95,8 @@ async function printReportPdf(html) {
   }
 }
 
-// The only body that stays in a handler, because it never touches the database. The save box is
-// tied to the main window, or Windows can hide it behind the app. It is asked first, so a cancel
-// never opens the print window.
+// The only body that stays in a handler, since it never touches the database. The save box is tied to the
+// main window, or Windows can hide it, and it is asked first so a cancel never opens the print window.
 async function saveReportFile(payload) {
   const { filename, html, documentType = "report" } = payload;
   const { filePath, canceled } = await dialog.showSaveDialog(getMainWindow(), {

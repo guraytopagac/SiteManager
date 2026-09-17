@@ -1,3 +1,6 @@
+// Handing the account to someone else. The target computer is not asked: this machine is locked to the new
+// credentials either way, and the file is the new manager's way onto another computer or just a backup.
+
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiDownload, FiKey, FiLock, FiLogIn, FiLogOut, FiUser, FiX } from "react-icons/fi";
@@ -9,6 +12,8 @@ import { showDialog } from "@/utils/dialog";
 
 const ERROR_ID = "transfer-modal-error";
 
+// Sits just above the button, so it is read at the moment the decision is made. Each line was measured to
+// fit on one line of text, so a longer sentence wraps.
 const OUTCOMES = [
   { icon: FiDownload, text: "Tüm kayıtlar, seçeceğiniz yere devir dosyası olarak kaydedilir." },
   { icon: FiKey, text: "Yeni yönetici için geçici şifre ve kurtarma kodu bir kez gösterilir." },
@@ -58,6 +63,8 @@ function TransferModal({ userId, username, onClose }) {
     }
 
     setIsSubmitting(true);
+    // The try wraps the call alone, as on the setup screen: the success branch shows two values never shown
+    // again, and the handover has already happened, so a throw inside it would lose the codes.
     let res;
     try {
       res = await window.electronAPI.transferAccount({ userId, password, newPerson, newUsername });

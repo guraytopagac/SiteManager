@@ -230,6 +230,7 @@ body {
 .transactions-container,
 .reports-container,
 .profile-container,
+.severance-container,
 .bv-container {
   background: linear-gradient(180deg, var(--page-surface-2), var(--page-surface-1));
   border: 1px solid var(--border-default);
@@ -269,7 +270,8 @@ body {
 .rs-md-overlay,
 .tx-md-overlay,
 .bv-md-overlay,
-.pf-md-overlay {
+.pf-md-overlay,
+.sf-md-overlay {
   animation: modalOverlayIn 0.16s ease-out backwards;
 }
 
@@ -277,7 +279,8 @@ body {
 .rs-md-box,
 .tx-md-box,
 .bv-md-box,
-.pf-md-box {
+.pf-md-box,
+.sf-md-box {
   animation: modalBoxIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 

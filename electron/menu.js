@@ -10,7 +10,6 @@ const { openGuide, toggleGuideTheme } = require("./windows/guide");
 const ICON_PATH = path.join(__dirname, "../assets/app-icon.ico");
 const BUG_REPORT_SUBJECT = "Mavikent Site Yönetimi - Hata Bildirimi";
 
-// Called once by windows/main, the only place the menu is installed.
 function buildMenu(mainWindow, isDev) {
   const template = [
     {

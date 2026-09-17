@@ -24,7 +24,6 @@ async function removeSidecarFiles(dbPath) {
   await fs.promises.unlink(`${dbPath}-shm`).catch(() => {});
 }
 
-// Checks the file is healthy and is really one of our backups. Returns a message or null.
 function validateBackupFile(filePath) {
   let testDb = null;
   try {
@@ -44,9 +43,8 @@ function validateBackupFile(filePath) {
   }
 }
 
-// Asks where to save, then writes a safe copy while the database is open. Returns the path, or null
-// when the user cancels. editCopy changes the copy only. If it fails the file is removed, because a
-// half edited transfer file would still carry the previous manager's password.
+// Asks where to save, then writes a safe copy while the database is open. Returns the path, or null when
+// the user cancels. editCopy touches the copy only, and a failed edit deletes the file instead of shipping it.
 async function saveDatabaseCopy(mainWindow, { title, defaultPath, editCopy = null }) {
   const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
     title,
@@ -78,7 +76,6 @@ async function saveDatabaseCopy(mainWindow, { title, defaultPath, editCopy = nul
   return filePath;
 }
 
-// Safe copy while the database is open. Cancelling is not an error.
 async function runBackup(mainWindow, { silent = false } = {}) {
   try {
     const filePath = await saveDatabaseCopy(mainWindow, {
@@ -155,7 +152,6 @@ async function replaceDatabase(mainWindow, sourcePath, { isInitial }) {
   return null;
 }
 
-// Restore from the menu. Check the file, ask, then replace.
 async function runRestore(mainWindow) {
   const filePath = await pickBackupFile(mainWindow);
   if (!filePath) return;
@@ -181,9 +177,8 @@ async function runRestore(mainWindow) {
   }
 }
 
-// Restore from the setup screen, where a new manager loads a transfer file or a backup instead of
-// creating an account. It skips the confirmation because there is no account to lose, and it
-// refuses once an account exists, since this channel is reachable without signing in.
+// Restore from the setup screen, where a new manager loads a file instead of creating an account. No
+// confirmation, since there is nothing to lose, and it refuses once an account exists: no session needed.
 async function restoreOnSetup(mainWindow) {
   if (getDb().prepare(`SELECT 1 FROM users LIMIT 1`).get()) {
     return { success: false, message: "Bu bilgisayarda kurulu bir hesap var. Yedek, Dosya menüsünden geri yüklenir." };

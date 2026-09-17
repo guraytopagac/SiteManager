@@ -38,11 +38,9 @@ function calcDueStatus(dueAmount, paidAmount) {
   return "unpaid";
 }
 
-// LEFT JOIN with COALESCE, because the dues row may not exist yet. An apartment is left out of
-// the months before it was created.
-// apartment_no is TEXT, so a plain sort puts "10" before "2". The GLOB keeps digit-led numbers
-// ahead of names like "B2", the CAST orders them by their numeric prefix and the collated column
-// breaks ties, which yields 1, 2, 3, 3A, 10, 20, A1, B2.
+// LEFT JOIN with COALESCE, since the dues row may not exist yet. Months before the apartment are left out.
+// apartment_no is TEXT, so a plain sort puts "10" before "2". GLOB keeps digit-led numbers ahead of names
+// like "B2", CAST orders them by the numeric prefix and the collated column breaks ties: 1, 3A, 10, A1.
 function getDuesForMonth(payload) {
   const { buildingId, year, month } = payload;
   try {
@@ -87,7 +85,6 @@ function getDuesForMonth(payload) {
   }
 }
 
-// Saves the payment, writes the matching income row, and updates the due, all in one transaction.
 function recordPayment(payload) {
   const { apartmentId, buildingId, year, month, paymentData } = payload;
   try {
@@ -99,7 +96,6 @@ function recordPayment(payload) {
       .get(apartmentId, buildingId);
     if (!apartment) return { success: false, message: "Daire bulunamadı veya bu işlem için yetkiniz yok." };
 
-    // No payment for a month in which the apartment did not exist yet.
     if (toPeriod(year, month) < apartment.createdPeriod) {
       return { success: false, message: "Daire bu dönemde henüz kayıtlı değildi, ödeme alınamaz." };
     }
@@ -169,7 +165,6 @@ function recordPayment(payload) {
   }
 }
 
-// Cancels a payment by writing an audit row that can never change. The payment row stays.
 function cancelPayment(payload) {
   const { paymentId, buildingId, userId, reason } = payload;
   try {
@@ -285,9 +280,8 @@ function attachReceipt(payload) {
   }
 }
 
-// The renderer cannot open a file, so the blob is written to a temp file and handed to the shell.
-// Only the extension of the stored name is reused: a name built here keeps the stored one out of
-// the path, and the payment id keeps two receipts with the same file name apart.
+// The renderer cannot open a file, so the blob is written to a temp file and handed to the shell. Only the
+// stored extension is reused, and the payment id keeps two receipts with the same name apart.
 async function openReceipt(payload) {
   const { paymentId, buildingId } = payload;
   try {

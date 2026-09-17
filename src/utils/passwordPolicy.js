@@ -1,3 +1,6 @@
+// Local password strength scoring for the setup, recovery and profile screens. Entirely offline and
+// advisory: the only hard rule is MIN_PASSWORD_LENGTH, which the handlers enforce as well.
+
 const COMMON_WORDS = [
   "sifre",
   "parola",
@@ -81,6 +84,8 @@ function longestSequenceLength(password) {
   return longest;
 }
 
+// Folded to bare ASCII letters before matching, so accented and unaccented spellings of the same word score
+// alike.
 function foldToLetters(password) {
   return password
     .toLowerCase()
@@ -98,6 +103,8 @@ function findCommonWords(password) {
   return hits;
 }
 
+// Returns the password's own length when nothing repeats, so the caller can tell periodic from non-periodic
+// without a second flag.
 function periodLength(password) {
   for (let period = 1; period <= password.length / 2; period++) {
     let isPeriodic = true;
@@ -116,6 +123,7 @@ function scorePassword(password) {
   if (!password) return { score: 0, isPredictable: false, isPatterned: false };
 
   let pool = 0;
+  // 29 per case is the size of the Turkish alphabet, not 26.
   if (/[a-zçğıöşü]/.test(password)) pool += 29;
   if (/[A-ZÇĞİÖŞÜ]/.test(password)) pool += 29;
   if (/\d/.test(password)) pool += 10;
@@ -126,6 +134,8 @@ function scorePassword(password) {
   const isPeriodic = period < password.length;
   let effectiveLength = isPeriodic ? Math.min(period + 1, collapsed.length) : collapsed.length;
 
+  // The three reducers below all shrink the length that actually counts: a periodic password carries about
+  // one period of information, a dictionary word or a year none, and a keyboard run one character.
   const words = findCommonWords(password);
   for (const { word, occurrences } of words) {
     effectiveLength -= word.length * occurrences;

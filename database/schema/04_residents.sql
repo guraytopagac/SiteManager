@@ -1,6 +1,5 @@
--- An apartment holds at most one active owner row and one active tenant row. The owner is the
--- lasting record and the tenant comes and goes, so the two are told apart by resident_type rather
--- than by their order. Older rows of either kind stay as history.
+-- An apartment holds at most one active owner row and one active tenant row, told apart by resident_type.
+-- Older rows of either kind stay as history.
 CREATE TABLE IF NOT EXISTS residents (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   apartment_id INTEGER NOT NULL,
@@ -17,21 +16,17 @@ CREATE TABLE IF NOT EXISTS residents (
   national_id TEXT CHECK(national_id IS NULL OR (length(national_id) = 11 AND national_id NOT GLOB '*[^0-9]*')),
   -- Required, because the two active rows of an apartment are identified by this column.
   resident_type TEXT NOT NULL CHECK(resident_type IN ('owner', 'tenant')),
-  -- Whether this person lives in the apartment. A tenant always does, which the table CHECK below
-  -- enforces. For an owner it answers "does the owner live here when the flat is not rented", so an
-  -- owner recorded only as a contact for an empty or rented flat never counts as living there.
+  -- Whether this person lives in the apartment. A tenant always does (table CHECK below), and an owner kept
+  -- only as a contact never counts as living there.
   is_occupant INTEGER NOT NULL DEFAULT 1 CHECK(is_occupant IN (0, 1)),
-  -- How many people live in the apartment. Optional, because the user may not know it: NULL means
-  -- unknown and the building list's sum skips such a row, so the flat still counts as occupied but
-  -- adds nothing to the headcount. Only the occupant row is summed, so a non-occupying owner never
-  -- adds to it either.
+  -- Household size, optional: NULL means unknown and the building list's sum skips it. Only the occupant
+  -- row is summed, so a non-occupying owner never adds to the headcount.
   household_size INTEGER CHECK(
     household_size IS NULL OR
     (typeof(household_size) = 'integer' AND household_size BETWEEN 1 AND 20)
   ),
-  -- The day the record takes effect. NULL for every ordinary row, which counts from its own
-  -- created_at instead. It is written only when a move-out is dated ahead and the record that
-  -- follows it is entered at the same time: that row waits with is_active = 0 until the day comes.
+  -- The day the record takes effect. NULL on ordinary rows, which count from created_at. Set only on a
+  -- successor queued behind a dated-ahead move-out, which waits with is_active = 0 until that day.
   move_in_date TEXT CHECK(
     move_in_date IS NULL OR
     (date(move_in_date) IS NOT NULL AND

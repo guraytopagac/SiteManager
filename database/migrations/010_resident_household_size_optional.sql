@@ -1,10 +1,5 @@
--- household_size becomes optional, so a record can say "unknown" instead of carrying a number the
--- user never gave. The column was required because the building list sums it, and that sum now
--- simply skips an unknown row: the flat still counts as occupied, it just adds nothing to the
--- headcount. Inventing a 1 for it would report a person nobody entered.
---
--- SQLite cannot drop NOT NULL or widen a CHECK in place, so the table is rebuilt. Existing values
--- are carried over untouched, which means no row turns unknown by this migration.
+-- household_size becomes optional: NULL means unknown and the building list's sum skips it. SQLite cannot
+-- drop NOT NULL or widen a CHECK in place, so the table is rebuilt with existing values untouched.
 
 CREATE TABLE residents_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

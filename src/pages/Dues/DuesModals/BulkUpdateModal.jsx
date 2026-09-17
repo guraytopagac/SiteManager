@@ -1,3 +1,6 @@
+// Sets one due amount across every apartment of the building. The period is asked by two cards that state
+// their own consequence, defaulting to the coming month like the single apartment modal.
+
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./DuesModals.css";

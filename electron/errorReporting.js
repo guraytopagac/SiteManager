@@ -9,7 +9,6 @@ const LOG_FILE_MAX_SIZE = 5 * 1024 * 1024;
 let getParentWindow;
 let fatalErrorShown = false;
 
-// The only fatal error box. It always tells the user what to do next.
 function showFatalError(title, message, whatToDo, parentWindow) {
   // getFile() only builds the path, it does not create the file.
   const logFilePath = log.transports.file.getFile().path;
@@ -42,7 +41,6 @@ function showFatalError(title, message, whatToDo, parentWindow) {
   if (choice === 0) shell.showItemInFolder(logFilePath);
 }
 
-// Copies renderer console errors and warnings into main.log. Covers all three windows.
 function catchRendererConsole() {
   app.on("web-contents-created", (event, webContents) => {
     webContents.on("console-message", ({ level, message, lineNumber, sourceId }) => {

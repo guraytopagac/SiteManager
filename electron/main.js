@@ -24,7 +24,6 @@ initLogging(getMainWindow);
 // On purpose. It prevents drawing problems on old hardware.
 app.disableHardwareAcceleration();
 
-// The only place openDatabase is called.
 function connectDatabase() {
   try {
     return openDatabase();
@@ -64,7 +63,6 @@ async function startApp() {
     registerIpcHandlers(ipcMain);
 
     setSplashStatus("Uygulama yükleniyor");
-    // Only created here. The splash module is what shows it.
     const mainWindow = createMainWindow(isDev);
     closeSplashWhenMainReady(mainWindow, isDev);
   } catch (err) {

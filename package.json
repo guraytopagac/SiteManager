@@ -1,7 +1,7 @@
 {
   "name": "mavikent-site-yonetimi",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Mavikent Site Yönetimi Uygulaması",
   "author": "Güray Topağaç",
   "type": "commonjs",
@@ -51,7 +51,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Mavikent Site Yönetimi"
+      "shortcutName": "Mavikent Site Yönetimi",
+      "deleteAppDataOnUninstall": true
     },
     "publish": {
       "provider": "github",

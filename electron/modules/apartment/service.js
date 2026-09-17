@@ -12,7 +12,6 @@ const DUPLICATE_ACTIVE_MESSAGE = "Bu numarada bir daire zaten var.";
 
 const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
 
-// All four endpoints refuse a removed or archived building.
 function checkBuildingUsable(buildingId) {
   const building = getDb().prepare(`SELECT is_active FROM buildings WHERE id = ? AND is_removed = 0`).get(buildingId);
 
@@ -75,11 +74,8 @@ function hasPaymentThisMonth(apartmentId, year, month) {
     .get(apartmentId, year, month);
 }
 
-// Never touches residents or past months. An amount is only written when the caller sends one, so
-// editing an apartment from the building view leaves the dues alone. When it is sent, the caller
-// also says whether the current month follows it, and even then only while no payment has been
-// collected: lowering due_amount under paid_amount breaks the CHECK on dues, and rewriting a month
-// the user already collected for would corrupt their record.
+// Never touches residents or past months. An amount is written only when the caller sends one, and then
+// only for a month with no payment: a lower amount breaks the CHECK on dues and rewrites a closed month.
 function updateApartment(payload) {
   try {
     const buildingError = checkBuildingUsable(payload.buildingId);

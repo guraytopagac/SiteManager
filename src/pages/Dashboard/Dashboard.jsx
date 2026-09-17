@@ -1,3 +1,6 @@
+// The dashboard of the selected building, in three bands: context, status and actions. Each tile is the
+// single entry point of its page, so no action is listed twice. The account page is the one exception.
+
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
@@ -7,6 +10,7 @@ import { formatCurrency } from "@/utils/currency";
 import { formatMonthYear, getCurrentYear, getCurrentMonth } from "@/utils/date";
 import {
   FiAlertTriangle,
+  FiBriefcase,
   FiChevronRight,
   FiClock,
   FiDollarSign,
@@ -36,6 +40,8 @@ function ActionTile({ icon, label, onClick }) {
   );
 }
 
+// A button, not a figure, so the dashboard also offers the next move. The affordance is a quiet chevron, and
+// nothing is lost if it goes unnoticed, since the named tile below leads to the same page.
 function MetricTile({ className, icon, label, ariaLabel, onOpen, children }) {
   return (
     <button className={className} type="button" onClick={onOpen} aria-label={ariaLabel}>
@@ -53,6 +59,8 @@ function MetricTile({ className, icon, label, ariaLabel, onOpen, children }) {
   );
 }
 
+// Only the status band turns into this block. A screen carrying the navigation must not empty itself over a
+// failed read, or the user would be stranded on the dashboard.
 function StatusError({ onRetry }) {
   return (
     <div className="db-state" role="alert">
@@ -93,6 +101,7 @@ function StatusEmpty({ onAdd }) {
 
 function StatusMetrics({ stats, navigate }) {
   const hasRate = stats.collections !== null;
+  const hasFund = stats.severance !== null;
 
   return (
     <div className="db-metrics">
@@ -134,6 +143,19 @@ function StatusMetrics({ stats, navigate }) {
       >
         <span className="db-metric-value">{formatCurrency(stats.delays)}</span>
       </MetricTile>
+
+      <MetricTile
+        className={hasFund ? "db-metric db-metric--fund" : "db-metric db-metric--neutral"}
+        icon={<FiBriefcase />}
+        label="Tazminat Kasası"
+        ariaLabel="Tazminat kasası, kasa sayfasını aç"
+        onOpen={() => navigate("/severance-fund")}
+      >
+        <span className={hasFund ? "db-metric-value" : "db-metric-value db-metric-value--blank"}>
+          {hasFund ? formatCurrency(stats.severance) : "—"}
+        </span>
+        {hasFund ? null : <span className="db-metric-meta">Kasa başlatılmadı</span>}
+      </MetricTile>
     </div>
   );
 }
@@ -144,6 +166,8 @@ function Dashboard() {
   const [res, reload] = useIpcData("getStats", { buildingId: building.id });
   const stats = res.success ? res.data : null;
   const period = formatMonthYear(getCurrentYear(), getCurrentMonth());
+  // All three figures are checked: money can be recorded before any apartment exists, and a book with cash
+  // in it must keep showing that figure instead of an invitation to add an apartment.
   const isEmptyBook = Boolean(stats) && stats.collections === null && stats.cash === 0 && stats.delays === 0;
 
   return (
@@ -183,6 +207,13 @@ function Dashboard() {
             <ActionTile icon={<FiList />} label="Gelir ve Gider" onClick={() => navigate("/transactions")} />
             <ActionTile icon={<FiFileText />} label="Raporlar" onClick={() => navigate("/reports")} />
             <ActionTile icon={<FiUser />} label="Profilim" onClick={() => navigate("/profile")} />
+          </div>
+        </div>
+
+        <div className="db-group">
+          <div className="db-group-label">Personel İşlemleri</div>
+          <div className="db-actions">
+            <ActionTile icon={<FiBriefcase />} label="Tazminat Kasası" onClick={() => navigate("/severance-fund")} />
           </div>
         </div>
       </section>

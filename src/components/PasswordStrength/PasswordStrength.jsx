@@ -7,6 +7,8 @@ const RULE_ICONS = { valid: FiCheck, pending: FiMinus, failed: FiX };
 const RULE_ICON_SIZE = 14;
 
 function PasswordStrength({ password, confirmPassword }) {
+  // Memoised because scoring walks the string several times and this renders on every keystroke of two
+  // fields at once.
   const { meter, rules } = useMemo(() => evaluatePassword(password, confirmPassword), [password, confirmPassword]);
   const segments = Array.from({ length: meter.max }, (_, index) => index + 1);
 

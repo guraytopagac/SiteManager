@@ -1,3 +1,6 @@
+// Period summaries and the printed report. Not a list page: the rows belong to the dues page and the
+// ledger, so the screen summarises and the row by row listing is in the saved file.
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   FiAlertTriangle,
@@ -22,6 +25,7 @@ import { showDialog } from "@/utils/dialog";
 import { buildReportHtml } from "./ReportsPdf/buildReportHtml";
 import { categoryLabel, collectionRate, groupByCategory } from "./ReportsPdf/reportFigures";
 
+// One table drives the pills, the arrow step, the document title and the file name, so they cannot differ.
 const SCOPES = [
   {
     key: "month",
@@ -70,6 +74,7 @@ function TotalCell({ tone, label, value, isBlank }) {
   );
 }
 
+// Stays in place with three dashes when the read fails, so a screen carrying the navigation never empties.
 function Totals({ report }) {
   const isBlank = !report;
   const income = report ? report.totalIncome : 0;
@@ -95,6 +100,8 @@ function MissingNotice({ icon, tone, text }) {
   );
 }
 
+// Two empty states in two tones: no apartments at all, and every apartment paid. The status is coloured
+// text rather than a chip, since the panel holds no other pill shape.
 function MissingList({ dues }) {
   if (dues.length === 0) {
     return <MissingNotice icon={<FiCalendar />} tone="muted" text="Rapor edilecek daire bulunmuyor." />;
@@ -186,6 +193,7 @@ function BarGroup({ label, rows, total, tone, emptyLabel }) {
   );
 }
 
+// Grouped here, since the service already returns the rows. The share is the row fill, not a column.
 function DistributionPanel({ report }) {
   const incomeRows = useMemo(() => (report ? groupByCategory(report.incomes) : []), [report]);
   const expenseRows = useMemo(() => (report ? groupByCategory(report.expenses) : []), [report]);
@@ -231,6 +239,8 @@ function ErrorPanel({ message, onRetry }) {
   );
 }
 
+// The arrows step by the scope's unit and stop at the selector's bounds, the real limit is in the handler.
+// A field the scope ignores is disabled rather than hidden, so the bar keeps its shape.
 function PeriodStepper({ scope, year, month, onChange }) {
   const isMonthly = scope.key === "month";
   const isYearly = scope.key === "year";
@@ -290,6 +300,8 @@ function PeriodStepper({ scope, year, month, onChange }) {
   );
 }
 
+// Offers all three reports regardless of the view, so nobody switches scope to see what a download holds.
+// Same stance as the account menu: no ARIA menu role, and Escape hands focus back to the trigger.
 function ExportMenu({ year, month, isExporting, onExport }) {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef(null);
@@ -393,6 +405,7 @@ function Reports() {
     }
   };
 
+  // Each entry re-reads its own scope, since the menu offers scopes the view is not showing.
   const handleExport = async (scope) => {
     setIsExporting(true);
     try {

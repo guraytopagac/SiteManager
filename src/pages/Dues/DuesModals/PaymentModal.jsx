@@ -1,3 +1,6 @@
+// Collection for one apartment and one month: summary, entry form and payment history. The right column
+// stays out of the row measurement, so the form alone sets the height as payments accumulate.
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiCheck, FiPaperclip, FiUpload, FiX } from "react-icons/fi";
 import "./DuesModals.css";
@@ -15,6 +18,8 @@ function formatFileSize(bytes) {
   return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
+// The file is read here and crosses as bytes, so the bridge gains no file system capability. Type and size
+// are left to the handler, the accept list only narrows the picker.
 async function toReceiptPayload(file) {
   return { name: file.name, data: new Uint8Array(await file.arrayBuffer()) };
 }
@@ -40,6 +45,8 @@ function PaymentSummary({ due, remaining }) {
   );
 }
 
+// Every action of an entry sits in one bottom strip. A cancelled payment keeps only the button that opens
+// its receipt, and a read failure shows in the list's own place since the box is already open.
 function PaymentHistory({ history, loading, errorMessage, onCancel, onOpenReceipt, onAttachReceipt }) {
   return (
     <>
@@ -130,6 +137,8 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
   const [historyError, setHistoryError] = useState("");
   const [historyLoading, setHistoryLoading] = useState(true);
 
+  // An effect rather than the suspending reader: a modal opening is not a transition, so a suspense boundary
+  // would delay the whole box by its minimum placeholder span for a query that takes milliseconds.
   const fetchHistory = useCallback(async () => {
     try {
       const res = await window.electronAPI.getPaymentHistory({ dueId: due.id, buildingId: building.id });
@@ -144,6 +153,7 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
       setHistoryError(UNEXPECTED_ERROR_MESSAGE);
     }
 
+    // Only true on the first read, so a refresh after a payment keeps the existing entries in place.
     setHistoryLoading(false);
   }, [due.id, building.id]);
 
@@ -233,6 +243,8 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
     formReceiptRef.current.value = "";
   };
 
+  // One hidden input serves the whole history, with the target payment held in a ref. The value is cleared
+  // before opening, so picking the same file twice still fires a change.
   const handleAttachReceipt = (paymentId) => {
     receiptTargetRef.current = paymentId;
     historyReceiptRef.current.value = "";

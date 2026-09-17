@@ -1,3 +1,6 @@
+// Changing the password, with the same reveal button, caps lock badge and strength meter as every other entry.
+// Only length and matching are checked here, the rest is the service's answer. Errors show inside the box.
+
 import { useRef, useState } from "react";
 import { FiKey, FiLock, FiX } from "react-icons/fi";
 import "./ProfileModals.css";
@@ -25,6 +28,9 @@ function PasswordModal({ userId, username, onClose }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const firstFieldRef = useRef(null);
 
+  // Focus is given when the opening animation ends, not through autofocus: focusing in the same frame starts
+  // the floating label transition inside a moving box, which stutters with hardware acceleration off. Only the
+  // box's own animation counts, and a field the user already clicked keeps its focus.
   const focusFirstField = (e) => {
     if (e.target !== e.currentTarget || e.currentTarget.contains(document.activeElement)) return;
     firstFieldRef.current.focus();
