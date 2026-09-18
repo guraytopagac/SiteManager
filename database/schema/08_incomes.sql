@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS incomes (
   -- The dues category is kept for recordPayment. The handler rejects it on manual entry.
   category TEXT NOT NULL DEFAULT 'other' CHECK(
     category IN (
-      'dues', 'rent', 'parking', 'utility_share', 'special_fee', 'penalty', 'other'
+      'dues', 'rent', 'parking', 'utility_share', 'special_fee', 'penalty', 'interest', 'other'
     )
   ),
   is_cancelled INTEGER NOT NULL DEFAULT 0 CHECK(is_cancelled IN (0, 1)),

@@ -35,36 +35,76 @@ export const PAYMENT_METHOD_LABELS = {
   other: "Diğer",
 };
 
-// Six slots by design: the chips form a three by two grid and a seventh entry opens a third row. Labels name
-// where the money came from and never reuse the monthly fee wording, which would promise an accrual.
-export const INCOME_CATEGORIES = [
-  { value: "rent", label: "Ortak Alan Kirası" },
-  { value: "parking", label: "Otopark" },
-  { value: "utility_share", label: "Su / Isı Payı" },
-  { value: "special_fee", label: "Ortak Harcama" },
-  { value: "penalty", label: "Gecikme Bedeli" },
-  { value: "other", label: "Diğer" },
+// Labels name where the money came from and never reuse the monthly fee wording, which would promise an accrual.
+// Category lists are grouped for the picker, a group without a label prints its options loose. Within a group
+// the order is alphabetical. The catch-all is in no group, the picker prints it on a row of its own below them.
+export const OTHER_CATEGORY = { value: "other", label: "Diğer" };
+
+export const INCOME_CATEGORY_GROUPS = [
+  {
+    label: null,
+    categories: [
+      { value: "interest", label: "Faiz Geliri" },
+      { value: "penalty", label: "Gecikme Bedeli" },
+      { value: "rent", label: "Ortak Alan Kirası" },
+      { value: "special_fee", label: "Ortak Harcama" },
+      { value: "parking", label: "Otopark" },
+      { value: "utility_share", label: "Su / Isı Payı" },
+    ],
+  },
 ];
 
-// Mirrors EXPENSE_CATEGORIES in financial/handlers.js, same six slot rule as the income list.
-export const EXPENSE_CATEGORIES = [
-  { value: "maintenance", label: "Bakım / Onarım" },
-  { value: "cleaning", label: "Temizlik" },
-  { value: "utility", label: "Faturalar" },
-  { value: "heating", label: "Isınma / Yakıt" },
-  { value: "staff", label: "Personel" },
-  { value: "other", label: "Diğer" },
+// Mirrors EXPENSE_CATEGORIES in financial/handlers.js. The list is long enough to need groups. The value
+// utility predates the split of the bills and now reads as the other bills, staff as the salary.
+export const EXPENSE_CATEGORY_GROUPS = [
+  {
+    label: "Faturalar",
+    categories: [
+      { value: "utility", label: "Diğer Faturalar" },
+      { value: "electricity", label: "Elektrik" },
+      { value: "heating", label: "Isınma / Yakıt" },
+      { value: "water", label: "Su" },
+    ],
+  },
+  {
+    label: "Bina ve Bakım",
+    categories: [
+      { value: "elevator", label: "Asansör" },
+      { value: "garden", label: "Bahçe / Peyzaj" },
+      { value: "maintenance", label: "Bakım / Onarım" },
+      { value: "equipment", label: "Demirbaş / Yatırım" },
+      { value: "cleaning", label: "Temizlik" },
+    ],
+  },
+  {
+    label: "Personel",
+    categories: [
+      { value: "staff", label: "Personel Maaşı" },
+      { value: "staff_insurance", label: "Personel SGK" },
+      { value: "severance_fund", label: "Tazminat Aktarımı" },
+    ],
+  },
+  {
+    label: "Yönetim",
+    categories: [
+      { value: "bank_fee", label: "Banka Masrafı" },
+      { value: "building_insurance", label: "Bina Sigortası" },
+      { value: "legal", label: "Hukuk / Avukatlık" },
+      { value: "office", label: "Kırtasiye / Büro" },
+      { value: "management", label: "Yönetim / Denetim Ücreti" },
+    ],
+  },
 ];
 
 // Derived rather than written out: the same label prints on the selection chip and in the table cell, and two
 // hand-kept copies drift the moment one of them is renamed.
-// The last two are never picked by hand: the fund transfer is written by the severance fund and the payout
-// is a list row of its own, not an expense record.
+// The payout is never picked by hand, it is a list row of its own, not an expense record.
 export const TRANSACTION_CATEGORY_LABELS = Object.fromEntries([
   ["dues", "Aidat"],
-  ...INCOME_CATEGORIES.map((category) => [category.value, category.label]),
-  ...EXPENSE_CATEGORIES.map((category) => [category.value, category.label]),
-  ["severance_fund", "Tazminat Aktarımı"],
+  ...[...INCOME_CATEGORY_GROUPS, ...EXPENSE_CATEGORY_GROUPS].flatMap((group) =>
+    group.categories.map((category) => [category.value, category.label]),
+  ),
+  [OTHER_CATEGORY.value, OTHER_CATEGORY.label],
   ["severance_payout", "Tazminat Ödemesi"],
 ]);
 

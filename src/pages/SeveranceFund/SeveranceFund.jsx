@@ -1,5 +1,6 @@
-// The severance fund of the building: money moved out of the main cash every month to pay the staff's
-// severance when they leave. Until the fund is started the page is only the start form.
+// The severance fund of the building: money moved out of the main cash to pay the staff's severance when they
+// leave. Transfers are entered by hand on the transactions page. Until the fund is started the page is only the
+// start form.
 
 import { useState } from "react";
 import {
@@ -7,17 +8,16 @@ import {
   FiArrowDownCircle,
   FiArrowUpCircle,
   FiBriefcase,
-  FiEdit2,
   FiRefreshCw,
   FiRepeat,
   FiUserPlus,
+  FiUsers,
 } from "react-icons/fi";
 import "./SeveranceFund.css";
 import PageHeader from "@/components/PageHeader/PageHeader";
 import Pager from "@/components/Pager/Pager";
 import DetailModal from "./SeveranceFundModals/DetailModal";
 import EmployeeModal from "./SeveranceFundModals/EmployeeModal";
-import FundSettingsModal from "./SeveranceFundModals/FundSettingsModal";
 import PayoutModal from "./SeveranceFundModals/PayoutModal";
 import { useIpcData } from "@/hooks/useIpcData";
 import { usePagination } from "@/hooks/usePagination";
@@ -25,7 +25,7 @@ import { useCurrentBuilding, useSession } from "@/hooks/useSession";
 import { UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import { formatCurrency, formatSignedCurrency } from "@/utils/currency";
 import { showDialog } from "@/utils/dialog";
-import { formatDate, formatMonthYear, getCurrentMonth, getCurrentYear } from "@/utils/date";
+import { formatDate } from "@/utils/date";
 
 // The payout column is not called an estimate, since a paid employee shows the paid amount there.
 const COLUMNS = ["Görev", "Çalışan", "İşe Giriş", "Çalışılan Gün", "Brüt Ücret", "Tazminat", "İşlem"];
@@ -34,19 +34,14 @@ const COLUMNS = ["Görev", "Çalışan", "İşe Giriş", "Çalışılan Gün", "
 const PAGE_SIZE = 5;
 
 const MAX_OPENING_BALANCE = 100000000;
-const MAX_MONTHLY_AMOUNT = 1000000;
 
 // Title and icon of each movement type.
 const MOVEMENT_TYPES = {
   opening: { title: "Açılış bakiyesi", icon: <FiBriefcase /> },
-  monthly: { title: "Aylık aktarım", icon: <FiRepeat /> },
+  transfer: { title: "Ana kasadan aktarım", icon: <FiRepeat /> },
   top_up: { title: "Ana kasadan ek aktarım", icon: <FiArrowUpCircle /> },
   payout: { title: "Tazminat ödemesi", icon: <FiArrowDownCircle /> },
 };
-
-function nextPeriod(year, month) {
-  return month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
-}
 
 // A typed 12.345 is never sent as is.
 function roundToCents(value) {
@@ -87,52 +82,22 @@ function ErrorPanel({ title, body, onRetry }) {
   );
 }
 
-// Only this month or next month can be picked, so no past month is charged to the main cash.
 function FundStartForm({ building, onStarted }) {
-  const thisYear = getCurrentYear();
-  const thisMonth = getCurrentMonth();
-  const nextMonth = nextPeriod(thisYear, thisMonth);
-
   const [openingBalanceInput, setOpeningBalanceInput] = useState("");
-  const [monthlyAmountInput, setMonthlyAmountInput] = useState("");
-  const [startsThisMonth, setStartsThisMonth] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const startChoices = [
-    {
-      value: true,
-      title: "Bu ay",
-      body: `İlk aktarım ${formatMonthYear(thisYear, thisMonth)} için hemen yapılır.`,
-    },
-    {
-      value: false,
-      title: "Gelecek ay",
-      body: `İlk aktarım ${formatMonthYear(nextMonth.year, nextMonth.month)} ayında yapılır.`,
-    },
-  ];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const openingBalance = openingBalanceInput === "" ? 0 : roundToCents(openingBalanceInput);
-    const monthlyAmount = roundToCents(monthlyAmountInput);
     if (!Number.isFinite(openingBalance) || openingBalance < 0) {
       showDialog.warning("Geçersiz Tutar", "Açılış bakiyesi 0 ya da daha büyük olmalıdır.");
-      return;
-    }
-    if (!Number.isFinite(monthlyAmount) || monthlyAmount <= 0) {
-      showDialog.warning("Geçersiz Tutar", "Aylık aktarım tutarı 0'dan büyük olmalıdır.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const res = await window.electronAPI.setupSeveranceFund({
-        buildingId: building.id,
-        openingBalance,
-        monthlyAmount,
-        startsThisMonth,
-      });
+      const res = await window.electronAPI.setupSeveranceFund({ buildingId: building.id, openingBalance });
       if (res.success) {
         showDialog.toast(res.message);
         onStarted();
@@ -156,8 +121,8 @@ function FundStartForm({ building, onStarted }) {
           <div>
             <h2 className="sf-setup-title">Tazminat Kasasını Başlat</h2>
             <p className="sf-setup-body">
-              Belirlenen tutar her ay ana kasadan tazminat kasasına aktarılır. Tazminat kasasında daha önce biriken para
-              varsa açılış bakiyesi olarak girilir.
+              Tazminat kasasına aktarım Gelir ve Gider sayfasından, Tazminat Aktarımı kategorisiyle gider girilerek
+              yapılır. Daha önce biriken para varsa açılış bakiyesi olarak girilir.
             </p>
           </div>
         </div>
@@ -178,45 +143,6 @@ function FundStartForm({ building, onStarted }) {
               autoFocus
             />
           </div>
-
-          <div className="sf-field">
-            <label htmlFor="sf-monthly">Aylık Aktarım Tutarı (₺)</label>
-            <input
-              id="sf-monthly"
-              type="number"
-              step="0.01"
-              min="0.01"
-              max={MAX_MONTHLY_AMOUNT}
-              placeholder="Örn. 3500"
-              value={monthlyAmountInput}
-              onChange={(e) => setMonthlyAmountInput(e.target.value)}
-              onKeyDown={(e) => ["e", "E", "-", "+"].includes(e.key) && e.preventDefault()}
-              required
-            />
-          </div>
-
-          <div className="sf-field sf-field--wide">
-            <span className="sf-legend" id="sf-start-label">
-              Başlangıç Ayı
-            </span>
-            <div className="sf-choices" role="radiogroup" aria-labelledby="sf-start-label">
-              {startChoices.map((choice) => (
-                <label
-                  key={choice.title}
-                  className={startsThisMonth === choice.value ? "sf-choice sf-choice--active" : "sf-choice"}
-                >
-                  <input
-                    type="radio"
-                    name="sf-start"
-                    checked={startsThisMonth === choice.value}
-                    onChange={() => setStartsThisMonth(choice.value)}
-                  />
-                  <span className="sf-choice-title">{choice.title}</span>
-                  <span className="sf-choice-body">{choice.body}</span>
-                </label>
-              ))}
-            </div>
-          </div>
         </div>
 
         <button type="submit" className="sf-btn-solid sf-setup-submit" disabled={isSubmitting}>
@@ -227,55 +153,33 @@ function FundStartForm({ building, onStarted }) {
   );
 }
 
-// Every metric carries one line below its figure so the three cells stay the same height. A surplus gets no
-// line of its own, it is already readable from the two figures side by side.
-function SummaryStrip({ fund, totals, employees, onEdit }) {
-  const activeEmployees = employees.filter((employee) => !employee.end_date);
-  const notEligibleCount = activeEmployees.filter((employee) => !employee.is_eligible).length;
-
-  let staffLine = "Aktif çalışan yok";
-  if (activeEmployees.length > 0) {
-    staffLine = `${activeEmployees.length} aktif çalışan`;
-    if (notEligibleCount > 0) {
-      staffLine += ` · ${notEligibleCount} kişi henüz hak kazanmadı`;
-    }
-  }
-
+// Each cell is a single row: mark and label on the left, the figure on the right. Only a shortfall adds a line,
+// a surplus is already readable from the two figures side by side.
+function SummaryStrip({ totals }) {
   return (
     <section className="page-band" aria-label="Tazminat kasası özeti">
       <div className="sf-summary">
         <div className="sf-metric">
-          <span className="sf-metric-label">Tazminat Kasası Bakiyesi</span>
+          <span className="sf-metric-mark" aria-hidden="true">
+            <FiBriefcase />
+          </span>
+          <span className="sf-metric-text">
+            <span className="sf-metric-label">Tazminat Kasası Bakiyesi</span>
+            {totals.shortfall > 0 ? (
+              <span className="sf-metric-meta--danger">Yükümlülüğün {formatCurrency(totals.shortfall)} gerisinde</span>
+            ) : null}
+          </span>
           <span className="sf-metric-value">{formatCurrency(totals.balance)}</span>
-          {totals.shortfall > 0 ? (
-            <span className="sf-metric-meta sf-metric-meta--danger">
-              Yükümlülüğün {formatCurrency(totals.shortfall)} gerisinde
-            </span>
-          ) : (
-            <span className="sf-metric-meta">{formatDate(fund.startedOn)} tarihinde başlatıldı</span>
-          )}
         </div>
 
         <div className="sf-metric">
-          <span className="sf-metric-label">Tahmini Yükümlülük</span>
+          <span className="sf-metric-mark" aria-hidden="true">
+            <FiUsers />
+          </span>
+          <span className="sf-metric-text">
+            <span className="sf-metric-label">Tahmini Yükümlülük</span>
+          </span>
           <span className="sf-metric-value">{formatCurrency(totals.liability)}</span>
-          <span className="sf-metric-meta">{staffLine}</span>
-        </div>
-
-        <div className="sf-metric">
-          <span className="sf-metric-label">
-            Aylık Aktarım
-            <button type="button" className="sf-metric-edit" onClick={onEdit}>
-              <FiEdit2 aria-hidden="true" />
-              Düzenle
-            </button>
-          </span>
-          <span className="sf-metric-value">{formatCurrency(fund.monthlyAmount)}</span>
-          <span className="sf-metric-meta">
-            {fund.monthlyAmount > 0
-              ? `Sonraki aktarım ${formatMonthYear(fund.nextTransfer.year, fund.nextTransfer.month)}`
-              : "Aktarım durduruldu"}
-          </span>
         </div>
       </div>
     </section>
@@ -368,7 +272,6 @@ function EmployeesPanel({ employees, onAdd, onDetail }) {
 function MovementItem({ movement, onCancel }) {
   const type = MOVEMENT_TYPES[movement.type];
   const isPayout = movement.type === "payout";
-  const isYear = Boolean(movement.year);
 
   return (
     <li className={movement.is_cancelled ? "sf-movement sf-movement--cancelled" : "sf-movement"}>
@@ -376,11 +279,9 @@ function MovementItem({ movement, onCancel }) {
         {type.icon}
       </span>
       <div className="sf-movement-main">
-        <span className="sf-movement-title">{isYear ? "Aylık aktarımlar" : type.title}</span>
+        <span className="sf-movement-title">{type.title}</span>
         {isPayout ? <span className="sf-movement-person">{movement.employee_name}</span> : null}
-        <span className="sf-movement-date">
-          {isYear ? `${movement.year} · ${movement.count} ay` : formatDate(movement.date)}
-        </span>
+        <span className="sf-movement-date">{formatDate(movement.date)}</span>
         {isPayout && movement.top_up_amount ? (
           <span className="sf-movement-note">{formatCurrency(movement.top_up_amount)} ana kasadan eklendi.</span>
         ) : null}
@@ -408,33 +309,7 @@ function MovementItem({ movement, onCancel }) {
   );
 }
 
-// Monthly transfers are the same row twelve times a year and would bury the payouts, so each year is
-// folded into one row at the place of its newest transfer. The single months stay listed on the
-// transactions page. Sums are added in cents so the total never picks up a float residue.
-function groupMonthlyByYear(movements) {
-  const years = new Map();
-  const rows = [];
-  for (const movement of movements) {
-    if (movement.type !== "monthly") {
-      rows.push(movement);
-      continue;
-    }
-    const year = Number(movement.date.slice(0, 4));
-    let row = years.get(year);
-    if (!row) {
-      row = { key: `monthly-${year}`, type: "monthly", year, count: 0, cents: 0 };
-      years.set(year, row);
-      rows.push(row);
-    }
-    row.count += 1;
-    row.cents += Math.round(movement.amount * 100);
-  }
-  return rows.map((row) => (row.year ? { ...row, amount: row.cents / 100 } : row));
-}
-
 function MovementsPanel({ movements, onCancelPayout }) {
-  const rows = groupMonthlyByYear(movements);
-
   return (
     <section className="sf-panel sf-movements-panel" aria-label="Tazminat kasası hareketleri">
       <div className="sf-panel-head">
@@ -444,11 +319,11 @@ function MovementsPanel({ movements, onCancelPayout }) {
       {movements.length === 0 ? (
         <div className="sf-empty">
           <span className="sf-empty-title">Henüz hareket yok</span>
-          <span className="sf-empty-body">İlk aylık aktarım yapıldığında burada listelenir.</span>
+          <span className="sf-empty-body">Gelir ve Gider sayfasından yapılan aktarımlar burada listelenir.</span>
         </div>
       ) : (
         <ul className="sf-movements">
-          {rows.map((movement) => (
+          {movements.map((movement) => (
             <MovementItem key={movement.key} movement={movement} onCancel={() => onCancelPayout(movement)} />
           ))}
         </ul>
@@ -462,7 +337,6 @@ function SeveranceFund() {
   const building = useCurrentBuilding();
   const { overview, errorMessage, reload } = useSeveranceFund(building.id);
 
-  const [isFundSettingsOpen, setIsFundSettingsOpen] = useState(false);
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   // null while adding a new employee.
   const [editedEmployee, setEditedEmployee] = useState(null);
@@ -508,12 +382,7 @@ function SeveranceFund() {
 
     return (
       <>
-        <SummaryStrip
-          fund={overview.fund}
-          totals={overview.totals}
-          employees={overview.employees}
-          onEdit={() => setIsFundSettingsOpen(true)}
-        />
+        <SummaryStrip totals={overview.totals} />
 
         <section className="page-band sf-split-band" aria-label="Çalışanlar ve hareketler">
           <div className="sf-split">
@@ -547,18 +416,6 @@ function SeveranceFund() {
           onPay={() => {
             setDetailTarget(null);
             setPayoutTarget(detailTarget);
-          }}
-        />
-      )}
-
-      {isFundSettingsOpen && overview && (
-        <FundSettingsModal
-          building={building}
-          fund={overview.fund}
-          onClose={() => setIsFundSettingsOpen(false)}
-          onSaved={() => {
-            setIsFundSettingsOpen(false);
-            reload();
           }}
         />
       )}

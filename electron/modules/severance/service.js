@@ -1,14 +1,10 @@
-// Severance fund rules. The fund is filled from the main cash every month and pays the staff's severance
-// when they leave. Transfers and payouts are never deleted, a payout is cancelled instead.
+// Severance fund rules. The fund is filled by transfers from the main cash, entered by hand as expenses on
+// the transactions page, and pays the staff's severance when they leave. Payouts are never deleted, a payout
+// is cancelled instead.
 const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
-const {
-  daysBetween,
-  ensureSeveranceTransfers,
-  withSeveranceEstimate,
-  severanceBalance,
-} = require("../shared/severanceFund");
-const { TR_NOW_SQL, currentPeriod, fromPeriod, trToday } = require("../shared/trTime");
+const { daysBetween, withSeveranceEstimate, severanceBalance } = require("../shared/severanceFund");
+const { TR_NOW_SQL, trToday } = require("../shared/trTime");
 
 const COLUMN_LABELS = {
   full_name: "Ad soyad",
@@ -64,7 +60,7 @@ function buildMovements(fund, transfers, payouts) {
   const movements = [
     ...transfers.map((transfer) => ({
       key: `transfer-${transfer.id}`,
-      type: transfer.is_top_up ? "top_up" : "monthly",
+      type: transfer.is_top_up ? "top_up" : "transfer",
       date: transfer.date,
       amount: transfer.amount,
       is_cancelled: transfer.is_cancelled,
@@ -96,13 +92,8 @@ function buildMovements(fund, transfers, payouts) {
 function getOverview(payload) {
   const { buildingId } = payload;
   try {
-    ensureSeveranceTransfers(buildingId);
-
     const fund = getDb()
-      .prepare(
-        `SELECT opening_balance, monthly_amount, transferred_through, date(created_at) AS started_on
-         FROM severance_funds WHERE building_id = ?`,
-      )
+      .prepare(`SELECT opening_balance, date(created_at) AS started_on FROM severance_funds WHERE building_id = ?`)
       .get(buildingId);
     if (!fund) return { success: true, data: null };
 
@@ -124,7 +115,7 @@ function getOverview(payload) {
           : withSeveranceEstimate(employee, asOf),
       );
 
-    // A transfer a payout points at is that payout's top-up, every other one is a monthly transfer.
+    // A transfer a payout points at is that payout's top-up, every other one was entered by hand.
     const transfers = getDb()
       .prepare(
         `SELECT e.id, e.amount, e.date, e.is_cancelled, e.created_at, p.id IS NOT NULL AS is_top_up
@@ -154,10 +145,7 @@ function getOverview(payload) {
       data: {
         fund: {
           openingBalance: fund.opening_balance,
-          monthlyAmount: fund.monthly_amount,
           startedOn: fund.started_on,
-          // The first month not written yet, so the amount set today is first moved in that month.
-          nextTransfer: fromPeriod(fund.transferred_through + 1),
         },
         totals: {
           balance,
@@ -175,22 +163,20 @@ function getOverview(payload) {
   }
 }
 
-// The marker starts one month before the first transfer, so this month or next month is written first.
+// The fund starts with its opening balance only. Money reaches it through the transfers entered by hand.
 function setupFund(payload) {
-  const { buildingId, openingBalance, monthlyAmount, startsThisMonth } = payload;
+  const { buildingId, openingBalance } = payload;
   try {
     const blocker = buildingWriteBlocker(buildingId);
     if (blocker) return blocker;
     if (hasFund(buildingId)) return { success: false, message: "Bu binanın tazminat kasası zaten başlatılmış." };
 
-    const transferredThrough = startsThisMonth ? currentPeriod() - 1 : currentPeriod();
     getDb()
       .prepare(
-        `INSERT INTO severance_funds (building_id, opening_balance, monthly_amount, transferred_through, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
+        `INSERT INTO severance_funds (building_id, opening_balance, created_at, updated_at)
+         VALUES (?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
       )
-      .run(buildingId, openingBalance, monthlyAmount, transferredThrough);
-    ensureSeveranceTransfers(buildingId);
+      .run(buildingId, openingBalance);
 
     return { success: true, message: "Tazminat kasası başlatıldı." };
   } catch (err) {
@@ -199,21 +185,16 @@ function setupFund(payload) {
   }
 }
 
-// The months up to this one are written first, so a new amount only reaches the months after it.
 function updateFund(payload) {
-  const { buildingId, openingBalance, monthlyAmount } = payload;
+  const { buildingId, openingBalance } = payload;
   try {
     const blocker = buildingWriteBlocker(buildingId);
     if (blocker) return blocker;
     if (!hasFund(buildingId)) return { success: false, message: "Tazminat kasası henüz başlatılmamış." };
 
-    ensureSeveranceTransfers(buildingId);
     getDb()
-      .prepare(
-        `UPDATE severance_funds SET opening_balance = ?, monthly_amount = ?, updated_at = ${TR_NOW_SQL}
-         WHERE building_id = ?`,
-      )
-      .run(openingBalance, monthlyAmount, buildingId);
+      .prepare(`UPDATE severance_funds SET opening_balance = ?, updated_at = ${TR_NOW_SQL} WHERE building_id = ?`)
+      .run(openingBalance, buildingId);
 
     return { success: true, message: "Tazminat kasası ayarları güncellendi." };
   } catch (err) {
@@ -313,13 +294,13 @@ function recordPayout(payload) {
       return { success: false, message: "Ayrılış tarihi işe giriş tarihinden önce olamaz." };
     }
 
-    ensureSeveranceTransfers(buildingId);
     const shortfallCents = roundCents(amount) - Math.max(roundCents(severanceBalance(buildingId)), 0);
     const topUpAmount = shortfallCents > 0 ? shortfallCents / 100 : 0;
     if (topUpAmount > MAX_TOP_UP) {
       return {
         success: false,
-        message: "Kasada eksik kalan tutar 1.000.000₺'yi aşıyor. Önce aylık aktarımla kasayı güçlendirin.",
+        message:
+          "Kasada eksik kalan tutar 1.000.000₺'yi aşıyor. Önce Gelir ve Gider sayfasından tazminat kasasına aktarım yapın.",
       };
     }
 

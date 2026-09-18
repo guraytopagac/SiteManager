@@ -3,7 +3,7 @@
 const { getDb } = require("../../../database/db");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
 const { RESIDENT_NAME_FOR_PERIOD_SQL, periodCutoff } = require("../shared/residentPeriod");
-const { estimatedLiability, ensureSeveranceTransfers, severanceBalance } = require("../shared/severanceFund");
+const { estimatedLiability, severanceBalance } = require("../shared/severanceFund");
 const { createdPeriodSql, monthBounds, toPeriod, trToday } = require("../shared/trTime");
 
 // The natural apartment order. This text has to stay identical to the copies in dues/service.js and
@@ -154,8 +154,6 @@ function getReportData(payload) {
   const { buildingId, scope, year, month } = payload;
   try {
     ensureMonthlyDues(buildingId);
-    // The fund transfer is an expense, so it is written before the cash rows are read.
-    ensureSeveranceTransfers(buildingId);
 
     const range = reportRange(scope, year, month);
 

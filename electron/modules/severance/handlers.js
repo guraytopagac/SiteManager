@@ -22,7 +22,7 @@ function validateNotFutureDate(value, message) {
   return null;
 }
 
-// The limits match the severance_funds CHECKs.
+// The limit matches the severance_funds CHECK.
 function validateFundFields(payload) {
   if (!Number.isFinite(payload.openingBalance) || payload.openingBalance < 0) {
     return fail("Geçersiz açılış bakiyesi.");
@@ -30,18 +30,7 @@ function validateFundFields(payload) {
   if (payload.openingBalance > 100000000) {
     return fail("Açılış bakiyesi 100.000.000₺'yi aşamaz.");
   }
-  if (!Number.isFinite(payload.monthlyAmount) || payload.monthlyAmount < 0) {
-    return fail("Geçersiz aylık aktarım tutarı.");
-  }
-  if (payload.monthlyAmount > 1000000) {
-    return fail("Aylık aktarım tutarı 1.000.000₺'yi aşamaz.");
-  }
   return null;
-}
-
-// Only this month or next month can start the fund, so no past month is charged to the main cash.
-function validateStartMonth(payload) {
-  return typeof payload.startsThisMonth === "boolean" ? null : fail("Geçersiz başlangıç ayı.");
 }
 
 function validateEmployeeScope(payload) {
@@ -119,7 +108,7 @@ function registerSeveranceHandlers(ipcMain) {
   handle(CH.SEVERANCE.GET_OVERVIEW, validateBuildingScope, severanceService.getOverview);
   handle(
     CH.SEVERANCE.SETUP_FUND,
-    (payload) => validateBuildingScope(payload) ?? validateFundFields(payload) ?? validateStartMonth(payload),
+    (payload) => validateBuildingScope(payload) ?? validateFundFields(payload),
     severanceService.setupFund,
   );
   handle(

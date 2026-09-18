@@ -2,7 +2,7 @@
 const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
 const { periodCutoff, RESIDENT_NAME_FOR_PERIOD_SQL } = require("../shared/residentPeriod");
-const { ensureSeveranceTransfers } = require("../shared/severanceFund");
+const { severanceBalance } = require("../shared/severanceFund");
 const { TR_NOW_SQL, monthBounds } = require("../shared/trTime");
 
 // Only NOT NULL columns belong here, since the resolver reads a label on the UNIQUE and NOT NULL branches
@@ -14,10 +14,11 @@ const COLUMN_LABELS = {
 };
 
 // Only incomes have the dues link and only expenses carry the severance transfers, so the two tables
-// read different columns before cancelling.
+// read different columns before cancelling. A transfer a payout points at is that payout's top-up.
 const CANCEL_SELECT = {
   incomes: "is_cancelled, due_payment_id",
-  expenses: "is_cancelled, category",
+  expenses: `is_cancelled, category, amount,
+             EXISTS (SELECT 1 FROM severance_payouts p WHERE p.top_up_expense_id = expenses.id) AS is_top_up`,
 };
 
 // Columns only one table takes on insert. The names are fixed here and each value is read from the
@@ -62,8 +63,45 @@ function insertRecord(table, payload, label) {
   return { success: true, id: result.lastInsertRowid, message: `${label} eklendi.` };
 }
 
-// Soft cancel. An income tied to a dues payment can only be cancelled through cancelPayment, and a
-// severance transfer only through the severance module.
+function roundCents(value) {
+  return Math.round(value * 100);
+}
+
+// A transfer into the severance fund needs a started fund to land in, and the building must still be in use.
+function transferBlocker(buildingId) {
+  const building = getDb().prepare(`SELECT is_active FROM buildings WHERE id = ? AND is_removed = 0`).get(buildingId);
+  if (!building) return { success: false, message: "Bina bulunamadı." };
+  if (building.is_active === 0) {
+    return { success: false, message: "Silinen bir binada tazminat kasası işlemi yapılamaz." };
+  }
+  if (severanceBalance(buildingId) === null) {
+    return {
+      success: false,
+      message: "Tazminat kasası henüz başlatılmamış. Önce Tazminat Kasası sayfasından kasayı başlatın.",
+    };
+  }
+  return null;
+}
+
+// A plain transfer can be cancelled here, a top-up only together with its payout. The fund must still
+// cover what it already paid out, so a cancel that would push the balance below zero is refused.
+function transferCancelBlocker(record, buildingId) {
+  if (record.is_top_up) {
+    return {
+      success: false,
+      message: "Tazminat ödemesine bağlı ek aktarım yalnızca ödeme iptali üzerinden iptal edilebilir.",
+    };
+  }
+  if (roundCents(severanceBalance(buildingId)) < roundCents(record.amount)) {
+    return {
+      success: false,
+      message: "Bu aktarım iptal edilirse tazminat kasasının bakiyesi eksiye düşer.",
+    };
+  }
+  return null;
+}
+
+// Soft cancel. An income tied to a dues payment can only be cancelled through cancelPayment.
 function cancelRecord(table, payload, label) {
   const { id, buildingId, userId, reason } = payload;
   const record = getDb()
@@ -72,7 +110,8 @@ function cancelRecord(table, payload, label) {
   if (!record) return { success: false, message: "Kayıt bulunamadı." };
   if (record.is_cancelled) return { success: false, message: "Bu kayıt zaten iptal edilmiş." };
   if (record.category === "severance_fund") {
-    return { success: false, message: "Tazminat kasası aktarımları bu sayfadan iptal edilemez." };
+    const blocker = transferCancelBlocker(record, buildingId);
+    if (blocker) return blocker;
   }
   if (record.due_payment_id != null) {
     return {
@@ -97,9 +136,6 @@ function cancelRecord(table, payload, label) {
 function getTransactions(payload) {
   const { buildingId, period } = payload;
   try {
-    // The monthly fund transfer is an expense, so it is written before the list is read.
-    ensureSeveranceTransfers(buildingId);
-
     const hasPeriod = Boolean(period);
     const dateFilter = hasPeriod ? "AND date >= ? AND date < ?" : "";
 
@@ -308,9 +344,12 @@ function saveVoucherInfo(payload) {
 const addIncome = withDbError("addIncome", "Gelir ekleme", (payload) =>
   insertRecord("incomes", payload, "Gelir kaydı"),
 );
-const addExpense = withDbError("addExpense", "Gider ekleme", (payload) =>
-  insertRecord("expenses", payload, "Gider kaydı"),
-);
+const addExpense = withDbError("addExpense", "Gider ekleme", (payload) => {
+  if (payload.category === "severance_fund") {
+    return transferBlocker(payload.buildingId) ?? insertRecord("expenses", payload, "Tazminat kasası aktarımı");
+  }
+  return insertRecord("expenses", payload, "Gider kaydı");
+});
 const cancelIncome = withDbError("cancelIncome", "Gelir iptali", (payload) =>
   cancelRecord("incomes", payload, "Gelir kaydı"),
 );

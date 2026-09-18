@@ -7,6 +7,19 @@ const RELEASE_NOTES_SEEN_KEY = "releaseNotesSeenVersion";
 
 const RELEASE_NOTES = [
   {
+    version: "2.0.2",
+    date: "2026-09-18",
+    title: "Elle tazminat aktarımı ve genişleyen kategoriler",
+    changes: [
+      "Tazminat kasasına aktarım artık otomatik yapılmıyor. Aktarım, Gelir ve Gider sayfasından Tazminat Aktarımı kategorisiyle istenen zamanda ve istenen tutarda giriliyor.",
+      "Elle girilen tazminat aktarımı Gelir ve Gider sayfasından iptal edilebiliyor.",
+      "Tazminat Kasası sayfası sadeleştirildi. Özet şeridinde kasa bakiyesi ve tahmini yükümlülük yer alıyor, çalışan detayları ayrı bir pencerede gösteriliyor.",
+      "Gider kategorileri genişletildi. Elektrik, su, asansör, personel sigortası, bina sigortası, banka masrafı gibi kalemler eklendi. Gelir tarafına faiz geliri eklendi.",
+      "Kayıt penceresinde kategori listesi sürekli açık duruyor ve kategori seçimi zorunlu oldu.",
+      "Tazminat kasası ölçümü panodan kaldırıldı.",
+    ],
+  },
+  {
     version: "2.0.1",
     date: "2026-09-17",
     title: "Tazminat kasası",
@@ -38,24 +51,6 @@ const RELEASE_NOTES = [
       "Kişi adları kaydedilirken Türkçe yazım kurallarıyla biçimleniyor.",
       "Dönem seçicilerindeki yıl listesi hesabın açıldığı yıldan başlıyor.",
       "Sayfalar verisi hazır olmadan boş çizilmiyor. Dönem değiştirildiğinde ve kayıt sonrasında listeler yerinde yenileniyor.",
-    ],
-  },
-  {
-    version: "1.9.0",
-    date: "2026-09-11",
-    title: "Malik ve kiracı kayıtları, bina görünümü ve yenilenen gelir gider sayfası",
-    changes: [
-      "Sakinler sayfası yeniden tasarlandı. Daire listesine doluluk süzgeçleri, arama ve dönem seçicisi eklendi, seçilen dairenin bilgileri sağdaki panelde görünüyor.",
-      "Bir dairede malik ve kiracı kaydı birlikte tutulabiliyor. Dairede fiilen kimin oturduğu ayrıca işaretleniyor, yalnızca iletişim için girilmiş malik daireyi dolu göstermiyor.",
-      "Kiracı çıkışı ve malik devri tek adımda yapılıyor. Yerine gelen kişi aynı pencerede kaydediliyor, ileri tarihli devir planlanabiliyor, planlanan devir düzenlenebiliyor ya da iptal edilebiliyor.",
-      "Geçmiş bir ay görüntülendiğinde o ayda dairede kim oturuyorduysa o kişi gösteriliyor. Aidat listesi, sakin listesi ve raporlar aynı kurala uyuyor.",
-      "Sakin geçmişi yenilendi. Kayıtlar tarih sırasıyla listeleniyor ve karta tıklandığında o kişinin iletişim bilgileri açılıyor.",
-      "Telefon numarası yazılırken otomatik gruplanıyor. Dairede yaşayan kişi sayısı isteğe bağlı oldu ve bilinmiyorsa boş bırakılabiliyor.",
-      "Bina Görünümü sayfası eklendi. Daireler bina cephesi olarak çiziliyor, daire ekleme, düzenleme ve silme bu sayfada toplandı.",
-      "Aidat Takibi yenilendi. Daire aidatı tek tek ya da toplu güncelleniyor ve değişikliğin hangi aydan geçerli olacağı soruluyor.",
-      "Gelir ve gider işlemleri tek sayfada birleşti. Kayıt girişi pencereye taşındı, tür süzgeci, arama, sayfalama ve dönem net özeti eklendi.",
-      "İptal edilen gelir ve gider kayıtları listede işaretleniyor. Detay düğmesi iptal nedenini ve iptal tarihini gösteriyor.",
-      "Kayıt bulunmayan geçmiş aylarda listeler artık kayıtların başladığı aya yönlendiriyor.",
     ],
   },
 ];

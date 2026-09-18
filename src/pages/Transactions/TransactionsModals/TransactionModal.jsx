@@ -6,8 +6,9 @@ import { FiX } from "react-icons/fi";
 import "./TransactionsModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import {
-  EXPENSE_CATEGORIES,
-  INCOME_CATEGORIES,
+  EXPENSE_CATEGORY_GROUPS,
+  INCOME_CATEGORY_GROUPS,
+  OTHER_CATEGORY,
   PAYMENT_METHOD_LABELS,
   UNEXPECTED_ERROR_MESSAGE,
 } from "@/utils/constants";
@@ -27,7 +28,8 @@ const TYPES = {
     descriptionPlaceholder: "Örn. Çatı katı deposu kirası",
     submitLabel: "Geliri Kaydet",
     errorMessage: "Gelir kaydedilemedi.",
-    categories: INCOME_CATEGORIES,
+    categoryGroups: INCOME_CATEGORY_GROUPS,
+    otherHint: "Listede olmayan gelirler",
     asksPaymentMethod: true,
   },
   expense: {
@@ -38,21 +40,59 @@ const TYPES = {
     descriptionPlaceholder: "Örn. Çevre aydınlatma ampul değişimi",
     submitLabel: "Gideri Kaydet",
     errorMessage: "Gider kaydedilemedi.",
-    categories: EXPENSE_CATEGORIES,
+    categoryGroups: EXPENSE_CATEGORY_GROUPS,
+    otherHint: "Listede olmayan giderler",
     asksPaymentMethod: false,
   },
 };
 
-function counterClass(length) {
-  if (length >= MAX_DESCRIPTION_LENGTH - 10) return "tx-md-counter tx-md-counter--danger";
-  if (length >= MAX_DESCRIPTION_LENGTH - 50) return "tx-md-counter tx-md-counter--warning";
-  return "tx-md-counter";
+// Every category stays in view in its own column of the modal. A dropdown of eighteen items could not fit the
+// modal vertically: floating above the form it ran off the screen, placed in the flow it made the modal jump in
+// size. The catch-all sits apart below the groups, so it reads as the answer for what the list does not cover.
+function CategoryList({ labelId, value, onChange, groups, otherHint }) {
+  const renderOption = (option) => (
+    <button
+      key={option.value}
+      type="button"
+      className={option.value === value ? "tx-pick-option tx-pick-option--active" : "tx-pick-option"}
+      aria-pressed={option.value === value}
+      onClick={() => onChange(option.value)}
+    >
+      {option.label}
+    </button>
+  );
+
+  const isGrouped = groups.some((group) => group.label);
+
+  return (
+    <div className="tx-pick-panel" role="group" aria-labelledby={labelId}>
+      <div className={isGrouped ? "tx-pick-groups tx-pick-groups--columns" : "tx-pick-groups"}>
+        {groups.map((group) => (
+          <div key={group.label ?? "loose"} className="tx-pick-group">
+            {group.label ? <span className="tx-pick-group-title">{group.label}</span> : null}
+            {group.categories.map(renderOption)}
+          </div>
+        ))}
+      </div>
+      <div className="tx-pick-other">
+        <button
+          type="button"
+          className={value === OTHER_CATEGORY.value ? "tx-pick-option tx-pick-option--active" : "tx-pick-option"}
+          aria-pressed={value === OTHER_CATEGORY.value}
+          onClick={() => onChange(OTHER_CATEGORY.value)}
+        >
+          {OTHER_CATEGORY.label}
+          <span className="tx-pick-other-hint">{otherHint}</span>
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function TransactionModal({ type, building, onClose, onSaved }) {
   const text = TYPES[type];
   const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("other");
+  const [category, setCategory] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [date, setDate] = useState(() => getToday());
   const [description, setDescription] = useState("");
@@ -64,6 +104,11 @@ function TransactionModal({ type, building, onClose, onSaved }) {
     const enteredAmount = Math.round(Number(amount) * 100) / 100;
     if (!Number.isFinite(enteredAmount) || enteredAmount <= 0) {
       showDialog.warning("Geçersiz Tutar", text.amountWarning);
+      return;
+    }
+
+    if (category === "") {
+      showDialog.warning("Kategori Seçilmedi", "Kayıt için bir kategori seçin.");
       return;
     }
 
@@ -108,7 +153,7 @@ function TransactionModal({ type, building, onClose, onSaved }) {
 
   return (
     <div className="tx-md-overlay">
-      <form className="tx-md-box" onSubmit={handleSubmit}>
+      <form className="tx-md-box tx-md-box--split" onSubmit={handleSubmit}>
         <div className="tx-md-head">
           <div className="tx-md-identity">
             <h2 className="tx-md-title">{text.title}</h2>
@@ -127,59 +172,42 @@ function TransactionModal({ type, building, onClose, onSaved }) {
           </button>
         </div>
 
-        <div className="tx-md-body">
-          <div className="tx-md-form-grid">
-            <div className="tx-md-field">
-              <label htmlFor="tx-amount">{text.amountLabel}</label>
-              <input
-                id="tx-amount"
-                type="number"
-                step="0.01"
-                min="0.01"
-                max={MAX_AMOUNT}
-                placeholder={text.amountPlaceholder}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                onKeyDown={(e) => ["e", "E", "-", "+"].includes(e.key) && e.preventDefault()}
-                required
-                autoFocus
-              />
-            </div>
+        <div className="tx-md-body tx-md-split">
+          <div className="tx-md-main">
+            <div className="tx-md-form-grid">
+              <div className="tx-md-field">
+                <label htmlFor="tx-amount">{text.amountLabel}</label>
+                <input
+                  id="tx-amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  max={MAX_AMOUNT}
+                  placeholder={text.amountPlaceholder}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  onKeyDown={(e) => ["e", "E", "-", "+"].includes(e.key) && e.preventDefault()}
+                  required
+                  autoFocus
+                />
+              </div>
 
-            <div className="tx-md-field">
-              <label htmlFor="tx-date">Tarih</label>
-              <input
-                id="tx-date"
-                type="date"
-                value={date}
-                min={getMinDate()}
-                max={getToday()}
-                onChange={(e) => setDate(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="tx-md-field tx-md-field--wide">
-              <span className="tx-md-legend" id="tx-category-label">
-                Kategori
-              </span>
-              <div className="tx-cat-list" role="radiogroup" aria-labelledby="tx-category-label">
-                {text.categories.map((option) => (
-                  <label key={option.value} className={category === option.value ? "tx-cat tx-cat--active" : "tx-cat"}>
-                    <input
-                      type="radio"
-                      name="tx-category"
-                      checked={category === option.value}
-                      onChange={() => setCategory(option.value)}
-                    />
-                    {option.label}
-                  </label>
-                ))}
+              <div className="tx-md-field">
+                <label htmlFor="tx-date">Tarih</label>
+                <input
+                  id="tx-date"
+                  type="date"
+                  value={date}
+                  min={getMinDate()}
+                  max={getToday()}
+                  onChange={(e) => setDate(e.target.value)}
+                  required
+                />
               </div>
             </div>
 
             {text.asksPaymentMethod ? (
-              <div className="tx-md-field tx-md-field--wide">
+              <div className="tx-md-field">
                 <span className="tx-md-legend" id="tx-method-label">
                   Ödeme Şekli
                 </span>
@@ -199,7 +227,7 @@ function TransactionModal({ type, building, onClose, onSaved }) {
               </div>
             ) : null}
 
-            <div className="tx-md-field tx-md-field--wide">
+            <div className="tx-md-field tx-md-field--grow">
               <label htmlFor="tx-description">Açıklama (isteğe bağlı)</label>
               <textarea
                 id="tx-description"
@@ -208,10 +236,20 @@ function TransactionModal({ type, building, onClose, onSaved }) {
                 placeholder={text.descriptionPlaceholder}
                 maxLength={MAX_DESCRIPTION_LENGTH}
               />
-              <span className={counterClass(description.length)}>
-                {description.length}/{MAX_DESCRIPTION_LENGTH}
-              </span>
             </div>
+          </div>
+
+          <div className="tx-md-side">
+            <span className="tx-md-legend" id="tx-category-label">
+              Kategori
+            </span>
+            <CategoryList
+              labelId="tx-category-label"
+              value={category}
+              onChange={setCategory}
+              groups={text.categoryGroups}
+              otherHint={text.otherHint}
+            />
           </div>
 
           <button type="submit" className="tx-md-btn-solid tx-md-submit" disabled={isSubmitting}>

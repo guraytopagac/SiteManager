@@ -1,6 +1,6 @@
 // Everything that can be done to one record. A cancelled record offers nothing, and an income created by a
-// collection can only be cancelled through that collection, so a note names the route instead. Severance fund
-// rows offer nothing either: both belong to the fund page.
+// collection can only be cancelled through that collection, so a note names the route instead. A payout
+// belongs to the fund page and offers nothing, a transfer into the fund can be cancelled but prints no voucher.
 
 import { FiX } from "react-icons/fi";
 import "./TransactionsModals.css";
@@ -29,23 +29,17 @@ const TYPES = {
 const DUES_INCOME_NOTE =
   "Bu kayıt bir aidat tahsilatından oluşturuldu ve buradan iptal edilemez. Geri almak için Aidat Takibi sayfasından ilgili tahsilatı iptal edin.";
 
-const FUND_TRANSFER_NOTE =
-  "Bu kayıt ana kasadan tazminat kasasına yapılan bir aktarımdır ve buradan iptal edilemez. Aktarım tutarı Tazminat Kasası sayfasından yönetilir.";
+const FUND_TRANSFER_NOTE = "Bu kayıt ana kasadan tazminat kasasına yapılan bir aktarımdır.";
 
 const FUND_PAYOUT_NOTE =
   "Bu ödeme tazminat kasasından yapıldı ve ana kasanın toplamına girmez. Ödemeyi iptal etmek için Tazminat Kasası sayfasını kullanın.";
-
-function fundNote(transaction) {
-  if (transaction.type === "severance_payout") return FUND_PAYOUT_NOTE;
-  if (transaction.category === "severance_fund") return FUND_TRANSFER_NOTE;
-  return null;
-}
 
 function DetailModal({ transaction, building, onClose, onCreateDocument, onCancel }) {
   const text = TYPES[transaction.type];
   const isCancelled = Boolean(transaction.is_cancelled);
   const isDuesIncome = transaction.category === "dues";
-  const fundText = fundNote(transaction);
+  const isFundPayout = transaction.type === "severance_payout";
+  const isFundTransfer = transaction.category === "severance_fund";
 
   useEscapeKey(onClose);
 
@@ -81,16 +75,19 @@ function DetailModal({ transaction, building, onClose, onCreateDocument, onCance
           </dl>
 
           {isDuesIncome && !isCancelled ? <p className="tx-detail-note">{DUES_INCOME_NOTE}</p> : null}
-          {fundText && !isCancelled ? <p className="tx-detail-note">{fundText}</p> : null}
+          {isFundPayout && !isCancelled ? <p className="tx-detail-note">{FUND_PAYOUT_NOTE}</p> : null}
+          {isFundTransfer && !isCancelled ? <p className="tx-detail-note">{FUND_TRANSFER_NOTE}</p> : null}
 
-          {isCancelled || fundText ? null : (
+          {isCancelled || isFundPayout ? null : (
             <div className="tx-md-actions">
-              <button type="button" className="tx-md-btn-solid" onClick={onCreateDocument}>
-                {text.documentLabel}
-              </button>
+              {isFundTransfer ? null : (
+                <button type="button" className="tx-md-btn-solid" onClick={onCreateDocument}>
+                  {text.documentLabel}
+                </button>
+              )}
               {isDuesIncome ? null : (
                 <button type="button" className="tx-md-btn-danger" onClick={onCancel}>
-                  {text.cancelLabel}
+                  {isFundTransfer ? "Aktarımı İptal Et" : text.cancelLabel}
                 </button>
               )}
             </div>

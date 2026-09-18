@@ -156,7 +156,6 @@
 
 .sf-setup-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
@@ -169,12 +168,7 @@
   gap: 7px;
 }
 
-.sf-field--wide {
-  grid-column: 1 / -1;
-}
-
-.sf-field label,
-.sf-legend {
+.sf-field label {
   color: var(--text-secondary);
   font-size: 1rem;
   font-weight: 600;
@@ -202,66 +196,9 @@
   color: var(--text-disabled);
 }
 
-.sf-choices {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.sf-choice {
-  position: relative;
-  display: grid;
-  gap: 4px;
-  padding: 14px 16px;
-  border: 1px solid var(--border-default);
-  border-radius: 12px;
-  background: var(--card-background-1);
-  cursor: pointer;
-  transition:
-    border-color 0.15s ease,
-    background-color 0.15s ease;
-}
-
-.sf-choice:hover {
-  border-color: var(--text-secondary);
-}
-
-.sf-choice--active {
-  border-color: var(--button-color);
-  background: var(--accent-tint);
-}
-
-.sf-choice:has(input:focus-visible) {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--button-color) 18%, transparent);
-}
-
-.sf-choice input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.sf-choice-title {
-  color: var(--text-color);
-  font-size: 1rem;
-  font-weight: 650;
-}
-
-.sf-choice--active .sf-choice-title {
-  color: var(--button-color);
-}
-
-.sf-choice-body {
-  color: var(--text-secondary);
-  font-size: 1rem;
-  line-height: 1.4;
-}
-
 .sf-summary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   border: 1px solid var(--border-default);
   border-radius: 14px;
   background: var(--background-color-1);
@@ -269,21 +206,39 @@
 
 .sf-metric {
   display: grid;
-  align-content: start;
-  gap: 4px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
   min-width: 0;
-  padding: 16px 20px;
+  padding: 14px 20px;
 }
 
 .sf-metric + .sf-metric {
   border-left: 1px solid var(--border-default);
 }
 
+.sf-metric-mark {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--accent-tint);
+  color: var(--button-color);
+}
+
+.sf-metric-mark svg {
+  width: 19px;
+  height: 19px;
+}
+
+.sf-metric-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
 .sf-metric-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 28px;
   color: var(--text-secondary);
   font-size: 1rem;
   font-weight: 600;
@@ -291,7 +246,7 @@
 
 .sf-metric-value {
   color: var(--text-color);
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 750;
   line-height: 1.15;
   letter-spacing: -0.02em;
@@ -299,42 +254,10 @@
   white-space: nowrap;
 }
 
-.sf-metric-meta {
-  color: var(--text-secondary);
-  font-size: 1rem;
-}
-
 .sf-metric-meta--danger {
   color: var(--color-danger-text);
-  font-weight: 600;
-}
-
-.sf-metric-edit {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  margin-left: auto;
-  padding: 0 10px;
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  background: var(--card-background-1);
-  color: var(--text-secondary);
-  font: inherit;
   font-size: 1rem;
   font-weight: 600;
-  cursor: pointer;
-}
-
-.sf-metric-edit:hover {
-  border-color: var(--button-color);
-  color: var(--button-color);
-  opacity: 1;
-}
-
-.sf-metric-edit svg {
-  width: 14px;
-  height: 14px;
 }
 
 .sf-split-band {

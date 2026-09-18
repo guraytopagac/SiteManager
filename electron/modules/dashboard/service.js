@@ -1,8 +1,7 @@
 // The dashboard numbers. Cash covers all time, the collection rate covers this month, and the
-// delay covers past months only. The severance fund balance is its own figure and never part of cash.
+// delay covers past months only.
 const { getDb } = require("../../../database/db");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
-const { ensureSeveranceTransfers, severanceBalance } = require("../shared/severanceFund");
 const { trYearMonth } = require("../shared/trTime");
 
 // Counts active apartments only, so the debt of an inactive apartment stays out of the cards.
@@ -37,10 +36,8 @@ function getStats(payload) {
   try {
     const { year, month } = trYearMonth();
 
-    // Accrue before reading, or this month would be missing from the numbers. The fund transfer is an
-    // expense, so it has to be written before cash is read as well.
+    // Accrue before reading, or this month would be missing from the numbers.
     ensureMonthlyDues(buildingId);
-    ensureSeveranceTransfers(buildingId);
 
     const { totalIncome, totalExpense, totalDue, totalPaid, totalOverdue } = fetchStats(buildingId, year, month);
 
@@ -51,8 +48,6 @@ function getStats(payload) {
         // null instead of 0 when there is nothing to measure, so the UI can show a dash.
         collections: totalDue > 0 ? Math.round((totalPaid / totalDue) * 100) : null,
         delays: totalOverdue,
-        // null when the building has not started a fund.
-        severance: severanceBalance(buildingId),
       },
     };
   } catch (err) {

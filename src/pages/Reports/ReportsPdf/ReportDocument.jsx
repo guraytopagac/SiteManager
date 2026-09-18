@@ -133,8 +133,8 @@ function PdfSeveranceSummary({ severance }) {
     <PdfSection title="Tazminat Kasası" keepTogether>
       <PdfSummary cells={cells} />
       <p className="note">
-        Rapor tarihindeki tahmini tazminat yükümlülüğü {formatCurrency(severance.liability)}. Aylık aktarımlar gider
-        hareketlerinde yer alır, kasadan yapılan ödemeler ana kasanın toplamına girmez.
+        Rapor tarihindeki tahmini tazminat yükümlülüğü {formatCurrency(severance.liability)}. Tazminat kasasına yapılan
+        aktarımlar gider hareketlerinde yer alır, kasadan yapılan ödemeler ana kasanın toplamına girmez.
       </p>
     </PdfSection>
   );

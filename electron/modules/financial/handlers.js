@@ -14,16 +14,34 @@ const {
 } = require("../shared/validate");
 const financialService = require("./service");
 
-// The dues and severance_fund categories are valid in the schema but not here, because only recordPayment
-// and the severance transfers may write them.
+// The dues category is valid in the schema but not here, because only recordPayment may write it. A
+// severance_fund expense is a transfer from the main cash into the severance fund, entered by hand.
 // Both lists match the schema CHECKs and the selects on the matching pages.
-const MANUAL_INCOME_CATEGORIES = ["rent", "parking", "utility_share", "special_fee", "penalty", "other"];
-const EXPENSE_CATEGORIES = ["maintenance", "cleaning", "utility", "heating", "staff", "other"];
+const MANUAL_INCOME_CATEGORIES = ["rent", "parking", "utility_share", "special_fee", "penalty", "interest", "other"];
+const EXPENSE_CATEGORIES = [
+  "electricity",
+  "water",
+  "utility",
+  "heating",
+  "elevator",
+  "garden",
+  "maintenance",
+  "equipment",
+  "cleaning",
+  "staff",
+  "staff_insurance",
+  "severance_fund",
+  "bank_fee",
+  "building_insurance",
+  "legal",
+  "office",
+  "management",
+  "other",
+];
 
 const DOCUMENT_TYPES = ["income", "expense"];
 
-// Trims, turns an empty description into null and sets the default category, so the service
-// needs no fallback of its own.
+// Trims and turns an empty description into null. The category gets no default, an empty one is rejected.
 function normalizeFinancialData(payload) {
   if (typeof payload.description === "string") {
     payload.description = payload.description.trim();
@@ -33,9 +51,6 @@ function normalizeFinancialData(payload) {
   }
   if (typeof payload.category === "string") {
     payload.category = payload.category.trim();
-  }
-  if (payload.category == null || payload.category === "") {
-    payload.category = "other";
   }
 }
 
@@ -79,6 +94,9 @@ function validateRecordFields(payload, allowedCategories) {
     if (payload.description.length > 500) {
       return fail("Açıklama en fazla 500 karakter olabilir.");
     }
+  }
+  if (payload.category == null || payload.category === "") {
+    return fail("Kategori seçilmelidir.");
   }
   if (!allowedCategories.includes(payload.category)) {
     return fail("Geçersiz kategori.");

@@ -1,40 +1,6 @@
-// The severance fund parts more than one module reads: the monthly transfers, the balance and the
-// liability estimate. A transfer is an expense of the severance_fund category and has no table of its own.
-// Like the dues accrual there is no timer, missing months are written when a page that shows money is opened.
+// The severance fund parts more than one module reads: the balance and the liability estimate. A transfer is
+// an expense of the severance_fund category and has no table of its own, the manager enters it by hand.
 const { getDb } = require("../../../database/db");
-const { TR_NOW_SQL, currentPeriod, fromPeriod, monthBounds } = require("./trTime");
-
-// Writes the transfers from the month after transferred_through up to this month and moves the marker in the
-// same transaction, so a month is never written twice. A zero amount writes nothing but still moves the
-// marker, so a paused month is never filled in later with a newer amount. Called before every read.
-function ensureSeveranceTransfers(buildingId) {
-  const fund = getDb()
-    .prepare(`SELECT monthly_amount, transferred_through FROM severance_funds WHERE building_id = ?`)
-    .get(buildingId);
-  if (!fund) return;
-
-  const endPeriod = currentPeriod();
-  if (fund.transferred_through >= endPeriod) return;
-
-  const db = getDb();
-  const insertTransfer = db.prepare(
-    `INSERT INTO expenses (building_id, amount, date, description, category, created_at, updated_at)
-     VALUES (?, ?, ?, NULL, 'severance_fund', ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
-  );
-
-  db.transaction(() => {
-    if (fund.monthly_amount > 0) {
-      for (let period = fund.transferred_through + 1; period <= endPeriod; period++) {
-        const { year, month } = fromPeriod(period);
-        // The first day of the month, so the transfer falls into that month on every page.
-        insertTransfer.run(buildingId, fund.monthly_amount, monthBounds(year, month).start);
-      }
-    }
-    db.prepare(
-      `UPDATE severance_funds SET transferred_through = ?, updated_at = ${TR_NOW_SQL} WHERE building_id = ?`,
-    ).run(endPeriod, buildingId);
-  })();
-}
 
 // Opening balance plus live transfers minus live payouts. With a date, only what happened before that day
 // counts, and the opening balance counts from the day the fund was started. Null when there is no fund.
@@ -85,4 +51,4 @@ function estimatedLiability(buildingId, asOf) {
     .reduce((sum, employee) => sum + withSeveranceEstimate(employee, asOf).liability, 0);
 }
 
-module.exports = { daysBetween, ensureSeveranceTransfers, estimatedLiability, severanceBalance, withSeveranceEstimate };
+module.exports = { daysBetween, estimatedLiability, severanceBalance, withSeveranceEstimate };

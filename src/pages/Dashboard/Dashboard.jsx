@@ -101,7 +101,6 @@ function StatusEmpty({ onAdd }) {
 
 function StatusMetrics({ stats, navigate }) {
   const hasRate = stats.collections !== null;
-  const hasFund = stats.severance !== null;
 
   return (
     <div className="db-metrics">
@@ -142,19 +141,6 @@ function StatusMetrics({ stats, navigate }) {
         onOpen={() => navigate("/dues")}
       >
         <span className="db-metric-value">{formatCurrency(stats.delays)}</span>
-      </MetricTile>
-
-      <MetricTile
-        className={hasFund ? "db-metric db-metric--fund" : "db-metric db-metric--neutral"}
-        icon={<FiBriefcase />}
-        label="Tazminat Kasası"
-        ariaLabel="Tazminat kasası, kasa sayfasını aç"
-        onOpen={() => navigate("/severance-fund")}
-      >
-        <span className={hasFund ? "db-metric-value" : "db-metric-value db-metric-value--blank"}>
-          {hasFund ? formatCurrency(stats.severance) : "—"}
-        </span>
-        {hasFund ? null : <span className="db-metric-meta">Kasa başlatılmadı</span>}
       </MetricTile>
     </div>
   );

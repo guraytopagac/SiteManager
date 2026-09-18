@@ -62,7 +62,7 @@
 
 .db-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   overflow: hidden;
   border: 1px solid var(--border-default);
   border-radius: 14px;
@@ -157,11 +157,6 @@
   color: var(--text-secondary);
 }
 
-.db-metric--fund .db-metric-mark {
-  background: var(--accent-tint);
-  color: var(--button-color);
-}
-
 .db-metric--delay .db-metric-mark {
   background: color-mix(in srgb, var(--amount-negative) 20%, transparent);
   color: var(--amount-negative);
@@ -171,7 +166,7 @@
   display: block;
   margin: 0;
   color: var(--text-color);
-  font-size: 1.85rem;
+  font-size: 2.15rem;
   font-weight: 750;
   line-height: 1.1;
   letter-spacing: -0.02em;
