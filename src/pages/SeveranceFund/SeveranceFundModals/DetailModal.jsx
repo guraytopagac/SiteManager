@@ -1,6 +1,7 @@
 // Everything about one employee and what can be done to them. The table row stays one line, so the details
 // cut from it (leaving date, the eligibility sentence, whether an amount was paid) are spelled out here.
-// A payout is offered only while the employee has not left, and it is cancelled from the movements list.
+// A payout is offered only while the employee has not left and the fund is started, and it is cancelled from the
+// movements list.
 
 import { FiX } from "react-icons/fi";
 import "./SeveranceFundModals.css";
@@ -9,7 +10,7 @@ import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { formatCurrency } from "@/utils/currency";
 import { formatDate } from "@/utils/date";
 
-function DetailModal({ employee, building, onClose, onEdit, onPay }) {
+function DetailModal({ employee, building, canPay, onClose, onEdit, onPay }) {
   const hasLeft = Boolean(employee.end_date);
 
   useEscapeKey(onClose);
@@ -58,13 +59,17 @@ function DetailModal({ employee, building, onClose, onEdit, onPay }) {
             <DetailRow label="Çalışılan Gün" value={`${employee.worked_days.toLocaleString("tr-TR")} gün`} />
             <DetailRow label="Brüt Ücret" value={formatCurrency(employee.gross_wage)} />
             {payoutRow}
+            <DetailRow
+              label="Açık Avans"
+              value={employee.advance_balance > 0 ? formatCurrency(employee.advance_balance) : "Yok"}
+            />
           </dl>
 
           <div className="sf-md-actions">
             <button type="button" className="sf-md-btn-outline" onClick={onEdit}>
               Çalışanı Düzenle
             </button>
-            {hasLeft ? null : (
+            {hasLeft || !canPay ? null : (
               <button type="button" className="sf-btn-solid" onClick={onPay}>
                 Tazminatı Öde
               </button>

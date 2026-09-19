@@ -110,6 +110,7 @@
 }
 
 .tx-md-field input,
+.tx-md-field select,
 .tx-md-field textarea {
   width: 100%;
   height: 46px;
@@ -132,6 +133,7 @@
 }
 
 .tx-md-field input:focus,
+.tx-md-field select:focus,
 .tx-md-field textarea:focus {
   border-color: var(--button-color);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--button-color) 18%, transparent);
@@ -319,95 +321,14 @@
   padding: 0 6px;
 }
 
-.tx-doc-list {
-  display: grid;
-  margin: 0;
-  border-top: 1px solid var(--border-default);
-}
-
-.tx-doc-row {
-  display: grid;
-  grid-template-columns: 190px minmax(0, 1fr);
-  align-items: center;
-  gap: 14px;
-  min-height: 46px;
-  padding: 7px 0;
-  border-bottom: 1px solid var(--border-default);
-}
-
-.tx-doc-row dt,
-.tx-doc-row dt label {
-  color: var(--text-secondary);
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.tx-doc-row dd {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-  color: var(--text-color);
-  font-size: 1rem;
-  overflow-wrap: anywhere;
-}
-
-.tx-doc-row--total dt,
-.tx-doc-row--total dd {
-  color: var(--text-color);
-  font-weight: 700;
-}
-
-.tx-doc-row input,
-.tx-doc-row textarea {
-  width: 100%;
-  height: 42px;
-  padding: 0 12px;
-  border: 1px solid var(--border-default);
-  border-radius: 10px;
-  background: var(--background-color-1);
-  color: var(--text-color);
-  font: inherit;
-  font-size: 1rem;
-  outline: none;
-}
-
-.tx-doc-row textarea {
-  height: auto;
-  min-height: 72px;
-  max-height: 120px;
-  padding: 10px 12px;
-  resize: vertical;
-}
-
-.tx-doc-row input:focus,
-.tx-doc-row textarea:focus {
-  border-color: var(--button-color);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--button-color) 18%, transparent);
-}
-
-.tx-doc-row input::placeholder,
-.tx-doc-row textarea::placeholder {
-  color: var(--text-disabled);
-}
-
-.tx-doc-note {
-  margin: 12px 0 0;
-  color: var(--text-secondary);
-  font-size: 1rem;
+.tx-account-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .tx-md-hint {
   margin: 0;
   color: var(--text-secondary);
   font-size: 1rem;
-}
-
-.tx-md-status {
-  margin: 0;
-  padding: 18px 0;
-  color: var(--text-secondary);
-  font-size: 1rem;
-  text-align: center;
 }
 
 .tx-detail-list {

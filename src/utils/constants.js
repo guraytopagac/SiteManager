@@ -35,6 +35,12 @@ export const PAYMENT_METHOD_LABELS = {
   other: "Diğer",
 };
 
+// Mirrors CASH_ACCOUNTS in electron/modules/shared/validate.js.
+export const CASH_ACCOUNT_LABELS = {
+  cash: "Nakit",
+  bank: "Banka",
+};
+
 // Labels name where the money came from and never reuse the monthly fee wording, which would promise an accrual.
 // Category lists are grouped for the picker, a group without a label prints its options loose. Within a group
 // the order is alphabetical. The catch-all is in no group, the picker prints it on a row of its own below them.
@@ -44,6 +50,7 @@ export const INCOME_CATEGORY_GROUPS = [
   {
     label: null,
     categories: [
+      { value: "advance_repayment", label: "Avans İadesi" },
       { value: "interest", label: "Faiz Geliri" },
       { value: "penalty", label: "Gecikme Bedeli" },
       { value: "rent", label: "Ortak Alan Kirası" },
@@ -79,6 +86,7 @@ export const EXPENSE_CATEGORY_GROUPS = [
   {
     label: "Personel",
     categories: [
+      { value: "staff_advance", label: "Personel Avansı" },
       { value: "staff", label: "Personel Maaşı" },
       { value: "staff_insurance", label: "Personel SGK" },
       { value: "severance_fund", label: "Tazminat Aktarımı" },
@@ -96,17 +104,27 @@ export const EXPENSE_CATEGORY_GROUPS = [
   },
 ];
 
+// The two categories that name an employee: the advance given and its repayment. The record modal asks for
+// the employee on them, the detail modal names the employee and prints no document.
+export const ADVANCE_CATEGORIES = ["staff_advance", "advance_repayment"];
+
 // Derived rather than written out: the same label prints on the selection chip and in the table cell, and two
 // hand-kept copies drift the moment one of them is renamed.
-// The payout is never picked by hand, it is a list row of its own, not an expense record.
-export const TRANSACTION_CATEGORY_LABELS = Object.fromEntries([
-  ["dues", "Aidat"],
-  ...[...INCOME_CATEGORY_GROUPS, ...EXPENSE_CATEGORY_GROUPS].flatMap((group) =>
-    group.categories.map((category) => [category.value, category.label]),
-  ),
-  [OTHER_CATEGORY.value, OTHER_CATEGORY.label],
-  ["severance_payout", "Tazminat Ödemesi"],
-]);
+// The payout and the two transfers are never picked by hand, they are list rows of their own, not records
+// of a category.
+export const TRANSACTION_CATEGORY_LABELS = {
+  dues: "Aidat",
+  [OTHER_CATEGORY.value]: OTHER_CATEGORY.label,
+  severance_payout: "Tazminat Ödemesi",
+  to_bank: "Bankaya Yatırma",
+  to_cash: "Bankadan Çekme",
+};
+
+for (const group of [...INCOME_CATEGORY_GROUPS, ...EXPENSE_CATEGORY_GROUPS]) {
+  for (const category of group.categories) {
+    TRANSACTION_CATEGORY_LABELS[category.value] = category.label;
+  }
+}
 
 export const DUES_STATUS_LABELS = {
   unpaid: "Ödenmedi",

@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS incomes (
   -- The dues category is kept for recordPayment. The handler rejects it on manual entry.
   category TEXT NOT NULL DEFAULT 'other' CHECK(
     category IN (
-      'dues', 'rent', 'parking', 'utility_share', 'special_fee', 'penalty', 'interest', 'other'
+      'dues', 'rent', 'parking', 'utility_share', 'special_fee', 'penalty', 'interest', 'advance_repayment', 'other'
     )
   ),
   is_cancelled INTEGER NOT NULL DEFAULT 0 CHECK(is_cancelled IN (0, 1)),
@@ -29,6 +29,12 @@ CREATE TABLE IF NOT EXISTS incomes (
   -- Written for manual income only, when the income is entered. A dues income reads its method from
   -- the payment row. Rows entered before the column existed stay NULL and print no method.
   payment_method TEXT CHECK(payment_method IS NULL OR payment_method IN ('cash', 'bank_transfer', 'card', 'other')),
+  -- The part of the main cash the money landed in. It follows the payment method: a bank transfer or a card
+  -- goes to the bank, the rest stays in hand. The default only serves the column added to an existing table.
+  account TEXT NOT NULL DEFAULT 'cash' CHECK(account IN ('cash', 'bank')),
+  -- The employee paying back an advance. Set for that category and for no other.
+  employee_id INTEGER,
+  CHECK((category = 'advance_repayment') = (employee_id IS NOT NULL)),
   -- The four cancel fields are either all NULL or all filled.
   CHECK(
     (is_cancelled = 0 AND cancelled_at IS NULL AND cancel_reason IS NULL AND cancelled_by IS NULL) OR
@@ -36,12 +42,14 @@ CREATE TABLE IF NOT EXISTS incomes (
   ),
   FOREIGN KEY(building_id) REFERENCES buildings(id) ON DELETE RESTRICT,
   FOREIGN KEY(due_payment_id) REFERENCES due_payments(id) ON DELETE RESTRICT,
-  FOREIGN KEY(cancelled_by) REFERENCES users(id) ON DELETE RESTRICT
+  FOREIGN KEY(cancelled_by) REFERENCES users(id) ON DELETE RESTRICT,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE RESTRICT
 );
 
 CREATE INDEX IF NOT EXISTS idx_incomes_building_date ON incomes(building_id, date);
 -- Partial index for the common case. Reports and totals read only non-cancelled rows.
 CREATE INDEX IF NOT EXISTS idx_incomes_active_only ON incomes(building_id, date) WHERE is_cancelled = 0;
+CREATE INDEX IF NOT EXISTS idx_incomes_employee ON incomes(employee_id) WHERE employee_id IS NOT NULL;
 
 CREATE TRIGGER IF NOT EXISTS trg_incomes_prevent_update_after_cancel
   BEFORE UPDATE ON incomes FOR EACH ROW

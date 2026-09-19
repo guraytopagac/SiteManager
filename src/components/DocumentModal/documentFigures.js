@@ -1,5 +1,5 @@
-// Values the screen and the printed document both need. They live beside the document, since the page
-// imports the document and keeping them there would create an import loop.
+// Values the modal and the printed document both need. They sit beside the document so the modal and the
+// document read one copy instead of each other.
 
 import { TRANSACTION_CATEGORY_LABELS } from "@/utils/constants";
 import { formatMonthYear } from "@/utils/date";

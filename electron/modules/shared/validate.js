@@ -9,6 +9,10 @@ const APARTMENT_TYPES = ["0+1", "1+1", "2+1", "3+1", "4+1"];
 // PAYMENT_METHOD_LABELS in src/utils/constants.js.
 const PAYMENT_METHODS = ["cash", "bank_transfer", "card", "other"];
 
+// The two accounts of the main cash, used by financial and severance. Same list as the account CHECKs and
+// CASH_ACCOUNT_LABELS in src/utils/constants.js.
+const CASH_ACCOUNTS = ["cash", "bank"];
+
 // Path separators and the characters Windows does not allow in a file name.
 const FILE_NAME_RE = /[\\/:*?"<>|]/;
 
@@ -71,6 +75,11 @@ function validateCancelReason(payload) {
   return null;
 }
 
+// Used by financial and severance, both with the same sentence.
+function validateCashAccount(value) {
+  return CASH_ACCOUNTS.includes(value) ? null : fail("Geçersiz hesap.");
+}
+
 // Used by dues and report. The future-period message differs per domain, so it is a parameter.
 function validatePeriod(payload, futureMessage) {
   if (!isValidYear(payload.year) || !isValidMonth(payload.month)) {
@@ -111,6 +120,7 @@ function isValidEmail(value) {
 
 module.exports = {
   APARTMENT_TYPES,
+  CASH_ACCOUNTS,
   PAYMENT_METHODS,
   fail,
   isValidDate,
@@ -122,6 +132,7 @@ module.exports = {
   validateApartmentType,
   validateBuildingScope,
   validateCancelReason,
+  validateCashAccount,
   validateDueAmount,
   validateId,
   validatePayload,

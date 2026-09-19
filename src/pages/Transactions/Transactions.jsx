@@ -1,32 +1,34 @@
 // The cash ledger: income and expense records, their cancellation and the documents printed from them.
-// Entry lives in a modal opened from the rail, the only place it can be opened from.
+// Entry lives in a modal opened from the rail, the only place it can be opened from. The rail also shows how
+// the main cash splits into cash on hand and the bank, and moves money between the two.
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   FiAlertTriangle,
   FiArrowDownCircle,
   FiArrowUpCircle,
   FiCalendar,
-  FiEye,
-  FiFileText,
+  FiCreditCard,
+  FiDollarSign,
   FiRefreshCw,
+  FiRepeat,
   FiSearch,
   FiSkipBack,
   FiTrendingUp,
 } from "react-icons/fi";
 import "./Transactions.css";
+import DocumentModal from "@/components/DocumentModal/DocumentModal";
 import PageHeader from "@/components/PageHeader/PageHeader";
 import Pager from "@/components/Pager/Pager";
 import PeriodSelector from "@/components/PeriodSelector/PeriodSelector";
 import SearchBox from "@/components/SearchBox/SearchBox";
 import DetailModal from "./TransactionsModals/DetailModal";
-import DocumentModal from "./TransactionsModals/DocumentModal";
 import TransactionModal from "./TransactionsModals/TransactionModal";
+import TransferModal from "./TransactionsModals/TransferModal";
 import { useIpcData } from "@/hooks/useIpcData";
 import { usePagination } from "@/hooks/usePagination";
 import { useCurrentBuilding, useSession } from "@/hooks/useSession";
-import { TRANSACTION_CATEGORY_LABELS, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
+import { CASH_ACCOUNT_LABELS, TRANSACTION_CATEGORY_LABELS, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import { formatCurrency, formatSignedCurrency } from "@/utils/currency";
 import { showDialog } from "@/utils/dialog";
 import { clampMonth, formatDate, formatMonthYear, getCurrentMonth, getCurrentYear, toPeriod } from "@/utils/date";
@@ -44,10 +46,19 @@ const FILTER_PILLS = [
 
 const EMPTY_TOTALS = { totalIncome: 0, totalExpense: 0, net: 0 };
 
-// A fund payout is money going out, so the expense pill lists it even though the totals leave it out.
+const EMPTY_BALANCES = { cash: 0, bank: 0 };
+
+// A fund payout is money going out, so the expense pill lists it even though the totals leave it out. A
+// transfer between cash and bank is neither and only shows under all.
 function filterType(transaction) {
   return transaction.type === "severance_payout" ? "expense" : transaction.type;
 }
+
+const CANCEL_TEXT = {
+  income: { title: "Geliri İptal Et", method: "cancelIncome" },
+  expense: { title: "Gideri İptal Et", method: "cancelExpense" },
+  transfer: { title: "Aktarımı İptal Et", method: "cancelCashTransfer" },
+};
 
 function useTransactions(buildingId, year, month) {
   const [res, loadTransactions] = useIpcData("getTransactions", { buildingId, period: { year, month } });
@@ -55,6 +66,7 @@ function useTransactions(buildingId, year, month) {
   return {
     transactions: res.success ? res.data : [],
     totals: res.success ? res.totals : EMPTY_TOTALS,
+    balances: res.success ? res.balances : EMPTY_BALANCES,
     start: res.success ? res.start : null,
     errorMessage: res.success ? "" : res.message || "İşlem listesi alınamadı.",
     loadTransactions,
@@ -95,9 +107,11 @@ function TableShell({ overlay, spacerCount = 0, children }) {
   );
 }
 
-// A fund payout is listed but never counted, so it takes no sign and no colour.
+// A fund payout and a transfer are listed but never counted, so they take no sign.
 function rowAmount(transaction) {
-  if (transaction.type === "severance_payout") return formatCurrency(transaction.amount);
+  if (transaction.type === "severance_payout" || transaction.type === "transfer") {
+    return formatCurrency(transaction.amount);
+  }
   return formatSignedCurrency(transaction.type === "income" ? transaction.amount : -transaction.amount);
 }
 
@@ -107,19 +121,38 @@ function rowClass(transaction) {
   return undefined;
 }
 
+// Stands in for the empty description of an advance or its repayment. Null for every other record.
+function advanceSentence(transaction) {
+  if (transaction.description || !transaction.employee_name) return null;
+  const amount = formatCurrency(transaction.amount);
+  return transaction.category === "staff_advance"
+    ? `${transaction.employee_name} adındaki çalışana ${amount} avans ödemesi yapılmıştır.`
+    : `${transaction.employee_name} adındaki çalışan ${amount} avans iadesi yapmıştır.`;
+}
+
+// An advance or a repayment leads with the employee's name, so the row says whose money it is. Without a
+// description of its own it reads as a full sentence instead.
+function rowDescription(transaction) {
+  if (!transaction.employee_name) return transaction.description;
+  return transaction.description
+    ? `${transaction.employee_name} · ${transaction.description}`
+    : advanceSentence(transaction);
+}
+
 // No type column: the amount carries its own sign and colour. A cancelled record says so as a prefix in the
 // description, and the flag is 0 or 1 from the database, so a conditional is used: React prints a bare zero.
 function TransactionRow({ transaction, onOpen }) {
   const isFundPayout = transaction.type === "severance_payout";
+  const description = rowDescription(transaction);
 
   return (
     <tr className={rowClass(transaction)}>
       <td className="tx-date">{formatDate(transaction.date)}</td>
       <td className="tx-category">{TRANSACTION_CATEGORY_LABELS[transaction.category] ?? transaction.category}</td>
-      <td className="tx-desc" title={transaction.description || undefined}>
+      <td className="tx-desc" title={description || undefined}>
         {transaction.is_cancelled ? <span className="tx-cancelled-tag">İptal edildi ·</span> : null}
         {isFundPayout && !transaction.is_cancelled ? <span className="tx-fund-tag">Tazminat kasasından ·</span> : null}
-        {transaction.description || "—"}
+        {description || "—"}
       </td>
       <td className={`tx-amount tx-amount--${transaction.type}`}>{rowAmount(transaction)}</td>
       <td>
@@ -227,20 +260,31 @@ function ActionsCard({ onAdd }) {
   );
 }
 
-function PagesCard({ onNavigate }) {
+const ACCOUNT_ICONS = {
+  cash: <FiDollarSign />,
+  bank: <FiCreditCard />,
+};
+
+// Today's split of the main cash, whatever period the list shows. A balance can go below zero when the
+// split of older records is off, so it is printed with its sign and a transfer corrects it.
+function AccountsCard({ balances, hasError, onTransfer }) {
   return (
-    <section className="tx-card tx-pages" aria-label="İlgili sayfalar">
-      <span className="tx-card-title">İlgili Sayfalar</span>
-      <div className="tx-shortcuts">
-        <button type="button" className="tx-shortcut" onClick={() => onNavigate("/dues")}>
-          <FiEye aria-hidden="true" />
-          Aidat Takibi
-        </button>
-        <button type="button" className="tx-shortcut" onClick={() => onNavigate("/reports")}>
-          <FiFileText aria-hidden="true" />
-          Raporlar
-        </button>
+    <section className="tx-card tx-accounts" aria-label="Ana kasa">
+      <span className="tx-card-title">Ana Kasa</span>
+      <div className="tx-account-rows">
+        {Object.entries(CASH_ACCOUNT_LABELS).map(([account, label]) => (
+          <div key={account} className="tx-account-row">
+            <span className="tx-account-mark" aria-hidden="true">
+              {ACCOUNT_ICONS[account]}
+            </span>
+            <span className="tx-account-label">{label}</span>
+            <b className={balances[account] < 0 ? "tx-net--negative" : undefined}>
+              {hasError ? "—" : formatCurrency(balances[account])}
+            </b>
+          </div>
+        ))}
       </div>
+      <CardAction icon={<FiRepeat />} label="Aktarım Yap" onClick={onTransfer} />
     </section>
   );
 }
@@ -261,7 +305,7 @@ function TransactionsControlBar({
       acc[filterType(transaction)] += 1;
       return acc;
     },
-    { all: transactions.length, income: 0, expense: 0 },
+    { all: transactions.length, income: 0, expense: 0, transfer: 0 },
   );
 
   return (
@@ -298,7 +342,6 @@ function TransactionsControlBar({
 }
 
 function Transactions() {
-  const navigate = useNavigate();
   const session = useSession();
   const building = useCurrentBuilding();
 
@@ -307,10 +350,11 @@ function Transactions() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [addType, setAddType] = useState(null);
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [detailTarget, setDetailTarget] = useState(null);
   const [documentTarget, setDocumentTarget] = useState(null);
 
-  const { transactions, totals, start, errorMessage, loadTransactions } = useTransactions(
+  const { transactions, totals, balances, start, errorMessage, loadTransactions } = useTransactions(
     building.id,
     selectedYear,
     selectedMonth,
@@ -337,14 +381,12 @@ function Transactions() {
 
   // Reports whether the record was cancelled, so the detail modal closes only on success.
   const handleCancel = async (transaction) => {
-    const reason = await showDialog.cancelReason(`${transaction.type === "income" ? "Geliri" : "Gideri"} İptal Et`);
+    const cancelText = CANCEL_TEXT[transaction.type];
+    const reason = await showDialog.cancelReason(cancelText.title);
     if (!reason) return false;
 
-    const cancelTransaction =
-      transaction.type === "income" ? window.electronAPI.cancelIncome : window.electronAPI.cancelExpense;
-
     try {
-      const res = await cancelTransaction({
+      const res = await window.electronAPI[cancelText.method]({
         id: transaction.id,
         buildingId: building.id,
         userId: session.id,
@@ -379,7 +421,7 @@ function Transactions() {
     if (typeFilter !== "all" && filterType(transaction) !== typeFilter) return false;
     if (!term) return true;
     const categoryLabel = TRANSACTION_CATEGORY_LABELS[transaction.category] ?? transaction.category;
-    return searchKey(transaction.description).includes(term) || searchKey(categoryLabel).includes(term);
+    return searchKey(rowDescription(transaction)).includes(term) || searchKey(categoryLabel).includes(term);
   });
 
   const {
@@ -461,7 +503,7 @@ function Transactions() {
 
   return (
     <div className="transactions-container">
-      <PageHeader title="Gelir ve Gider" />
+      <PageHeader title="Kasa Defteri" />
 
       <TransactionsControlBar
         transactions={transactions}
@@ -486,7 +528,11 @@ function Transactions() {
               hasSeverancePayouts={transactions.some((transaction) => transaction.type === "severance_payout")}
             />
             <ActionsCard onAdd={setAddType} />
-            <PagesCard onNavigate={navigate} />
+            <AccountsCard
+              balances={balances}
+              hasError={Boolean(errorMessage)}
+              onTransfer={() => setIsTransferOpen(true)}
+            />
           </div>
 
           <Pager currentPage={currentPage} pageCount={pageCount} onChange={setPage} />
@@ -505,9 +551,23 @@ function Transactions() {
         />
       )}
 
+      {isTransferOpen && (
+        <TransferModal
+          building={building}
+          userId={session.id}
+          balances={balances}
+          onClose={() => setIsTransferOpen(false)}
+          onSaved={() => {
+            setIsTransferOpen(false);
+            loadTransactions();
+          }}
+        />
+      )}
+
       {detailTarget && (
         <DetailModal
           transaction={detailTarget}
+          description={detailTarget.description ?? advanceSentence(detailTarget)}
           building={building}
           onClose={() => setDetailTarget(null)}
           onCreateDocument={openDocument}

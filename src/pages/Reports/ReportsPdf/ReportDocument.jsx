@@ -107,9 +107,16 @@ function PdfCashSummary({ data }) {
           { label: "Dönem Sonu Kasa", value: formatCurrency(opening + net), tone: balanceTone(opening + net) },
         ];
 
+  // The whole ledger ends today, a dated range at its last day.
+  const { cash, bank } = data.closingAccounts;
+  const when = opening === null ? "Bugün" : "Dönem sonunda";
+
   return (
     <PdfSection title="Kasa Özeti" keepTogether>
       <PdfSummary cells={cells} />
+      <p className="note">
+        {when} kasanın {formatCurrency(cash)} tutarı elde nakit, {formatCurrency(bank)} tutarı bankadadır.
+      </p>
     </PdfSection>
   );
 }

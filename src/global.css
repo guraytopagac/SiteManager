@@ -271,7 +271,8 @@ body {
 .tx-md-overlay,
 .bv-md-overlay,
 .pf-md-overlay,
-.sf-md-overlay {
+.sf-md-overlay,
+.doc-md-overlay {
   animation: modalOverlayIn 0.16s ease-out backwards;
 }
 
@@ -280,7 +281,8 @@ body {
 .tx-md-box,
 .bv-md-box,
 .pf-md-box,
-.sf-md-box {
+.sf-md-box,
+.doc-md-box {
   animation: modalBoxIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 

@@ -2,7 +2,14 @@ const { CHANNELS: CH } = require("../../ipc/channels");
 const { createHandle } = require("../../ipc/createHandle");
 const { formatPersonName } = require("../shared/personName");
 const { trToday } = require("../shared/trTime");
-const { fail, isValidDate, validateBuildingScope, validateCancelReason, validateId } = require("../shared/validate");
+const {
+  fail,
+  isValidDate,
+  validateBuildingScope,
+  validateCancelReason,
+  validateCashAccount,
+  validateId,
+} = require("../shared/validate");
 const severanceService = require("./service");
 
 // Trims an optional text field and turns an empty or missing value into null.
@@ -83,9 +90,11 @@ function validatePayoutFields(payload) {
   if (payload.note !== null && (typeof payload.note !== "string" || payload.note.length > 300)) {
     return fail("Not en fazla 300 karakter olabilir.");
   }
+  // The account pays a top-up only when the fund is short, but the service decides that, so it is always sent.
   return (
     validateNotFutureDate(payload.date, "Geçersiz ödeme tarihi.") ??
-    validateNotFutureDate(payload.end_date, "Geçersiz ayrılış tarihi.")
+    validateNotFutureDate(payload.end_date, "Geçersiz ayrılış tarihi.") ??
+    validateCashAccount(payload.top_up_account)
   );
 }
 
@@ -106,6 +115,7 @@ function registerSeveranceHandlers(ipcMain) {
   const handle = createHandle(ipcMain, "severance");
 
   handle(CH.SEVERANCE.GET_OVERVIEW, validateBuildingScope, severanceService.getOverview);
+  handle(CH.SEVERANCE.GET_EMPLOYEES, validateBuildingScope, severanceService.getEmployees);
   handle(
     CH.SEVERANCE.SETUP_FUND,
     (payload) => validateBuildingScope(payload) ?? validateFundFields(payload),

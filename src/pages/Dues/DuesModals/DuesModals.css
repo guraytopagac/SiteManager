@@ -38,24 +38,58 @@
   color: var(--danger);
 }
 
-.du-paid-notice {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 22px;
-  padding: 16px 18px;
-  border: 1px solid color-mix(in srgb, var(--success) 32%, transparent);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--success) 15%, transparent);
-  color: var(--color-success-text);
-  font-size: 1rem;
-  font-weight: 600;
+.du-pay-entry {
+  display: grid;
 }
 
-.du-paid-notice svg {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
+.du-pay-entry > * {
+  grid-area: 1 / 1;
+}
+
+.du-pay-form--blank {
+  visibility: hidden;
+}
+
+.du-paid-notice {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 28px 24px;
+  border: 1px solid color-mix(in srgb, var(--success) 32%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--success) 10%, transparent);
+  text-align: center;
+}
+
+.du-paid-mark {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--success) 20%, transparent);
+  color: var(--color-success-text);
+}
+
+.du-paid-mark svg {
+  width: 28px;
+  height: 28px;
+}
+
+.du-paid-title {
+  margin: 0;
+  color: var(--color-success-text);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.du-paid-body {
+  max-width: 320px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
 }
 
 .du-history {
@@ -459,7 +493,6 @@
 }
 
 .du-pay-main {
-  min-height: 360px;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -478,6 +511,19 @@
   color: var(--text-secondary);
   font-size: 1rem;
   font-weight: 650;
+}
+
+.du-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 34px;
+  margin-bottom: 14px;
+}
+
+.du-history-head .du-md-section-title {
+  margin: 0;
 }
 
 .du-md-form-grid {

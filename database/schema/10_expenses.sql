@@ -10,12 +10,12 @@ CREATE TABLE IF NOT EXISTS expenses (
   ),
   description TEXT CHECK(description IS NULL OR (length(trim(description)) > 0 AND length(description) <= 500)),
   -- The severance_fund category is a transfer into the severance fund, entered by hand or written as the
-  -- top-up of a payout.
+  -- top-up of a payout. A staff_advance is money lent to an employee and paid back as an income.
   category TEXT NOT NULL DEFAULT 'other' CHECK(
     category IN (
       'electricity', 'water', 'utility', 'heating',
       'elevator', 'garden', 'maintenance', 'equipment', 'cleaning',
-      'staff', 'staff_insurance', 'severance_fund',
+      'staff', 'staff_insurance', 'staff_advance', 'severance_fund',
       'bank_fee', 'building_insurance', 'legal', 'office', 'management',
       'other'
     )
@@ -29,18 +29,26 @@ CREATE TABLE IF NOT EXISTS expenses (
   -- Printed on the expense voucher. A vendor can be a firm, so the name allows more than a person's.
   vendor_name TEXT CHECK(vendor_name IS NULL OR (length(trim(vendor_name)) > 0 AND length(vendor_name) <= 100)),
   vendor_address TEXT CHECK(vendor_address IS NULL OR (length(trim(vendor_address)) > 0 AND length(vendor_address) <= 300)),
+  -- The part of the main cash the money was paid from. The default only serves the column added to an
+  -- existing table.
+  account TEXT NOT NULL DEFAULT 'cash' CHECK(account IN ('cash', 'bank')),
+  -- The employee an advance was given to. Set for that category and for no other.
+  employee_id INTEGER,
+  CHECK((category = 'staff_advance') = (employee_id IS NOT NULL)),
   -- The four cancel fields are either all NULL or all filled.
   CHECK(
     (is_cancelled = 0 AND cancelled_at IS NULL AND cancel_reason IS NULL AND cancelled_by IS NULL) OR
     (is_cancelled = 1 AND cancelled_at IS NOT NULL AND cancel_reason IS NOT NULL AND cancelled_by IS NOT NULL)
   ),
   FOREIGN KEY(building_id) REFERENCES buildings(id) ON DELETE RESTRICT,
-  FOREIGN KEY(cancelled_by) REFERENCES users(id) ON DELETE RESTRICT
+  FOREIGN KEY(cancelled_by) REFERENCES users(id) ON DELETE RESTRICT,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE RESTRICT
 );
 
 CREATE INDEX IF NOT EXISTS idx_expenses_building_date ON expenses(building_id, date);
 -- Partial index for the common case. Reports and totals read only non-cancelled rows.
 CREATE INDEX IF NOT EXISTS idx_expenses_active_only ON expenses(building_id, date) WHERE is_cancelled = 0;
+CREATE INDEX IF NOT EXISTS idx_expenses_employee ON expenses(employee_id) WHERE employee_id IS NOT NULL;
 
 CREATE TRIGGER IF NOT EXISTS trg_expenses_prevent_update_after_cancel
   BEFORE UPDATE ON expenses FOR EACH ROW

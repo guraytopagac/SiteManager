@@ -409,7 +409,7 @@
 
 .rp-miss-row {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) 132px auto;
+  grid-template-columns: 96px minmax(0, 1fr) 132px 112px;
   align-items: center;
   gap: 14px;
   padding: 0 10px;
@@ -441,6 +441,7 @@
 .rp-miss-status {
   font-size: 1rem;
   font-weight: 600;
+  text-align: center;
   white-space: nowrap;
 }
 
@@ -456,6 +457,7 @@
   font-size: 1rem;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
+  text-align: right;
   white-space: nowrap;
 }
 

@@ -55,6 +55,14 @@
 - **Öneri:** Dokunulmayabilir. Ele alınacaksa yol, `status` kolonunu tümden kaldırıp okuma sorgularında `CASE` ile türetmektir. Bu her okuma sorgusunu ve `COALESCE(d.status, 'unpaid')` desenini yeniden yazmayı gerektirir, kazancı bir kolonluk depolamadır. Karşılığı düşük.
 - **Doğrulama:** `grep -n "calcDueStatus" electron/modules/dues/service.js` ve `grep -n "status = CASE" database/schema/05_dues.sql`
 
+### R2. Yeniden adlandırılan iki sayfanın iç adları eski kaldı 🟡
+
+- **Kanıt:** Arayüzde `Gelir ve Gider` sayfası `Kasa Defteri`, `Tazminat Kasası` sayfası `Personel` oldu. Değişiklik yalnızca kullanıcıya görünen metindedir. Rotalar (`/transactions`, `/severance-fund`), sayfa klasörleri ve bileşen adları (`Transactions`, `SeveranceFund`, `TransactionsModals/`, `SeveranceFundModals/`), CSS önekleri (`tx-*`, `sf-*`) ve kabuk sınıfları (`.transactions-container`, `.severance-container`) eski adları taşır.
+- **Neden önemli:** Kodda sayfayı arayan biri ekrandaki adla bulamaz. `CLAUDE.md` iki adı da anarak bu açığı kapatıyor, ama ikili adlandırma zamanla karışıklık üretir.
+- **Öneri:** Rota, klasör, bileşen, CSS öneki ve kabuk sınıfını yeni adlara çevir (ör. `/ledger` + `Ledger` + `lg-*`, `/staff` + `Staff` + `st-*`). Rotaya `navigate` ile giden her yer (Dashboard kartları ve ölçümleri, `Dues` ile `BuildingView`'un kısayolları), `App.jsx`'teki lazy import ve rota, `global.css`'in sayfa kabuğu ile modal animasyonu listeleri ve `CLAUDE.md`'nin ilgili bölümleri birlikte değişir. `severance` IPC domain'i ve `modules/severance/` klasörü tazminat kasasının iş mantığını taşıdığı için yerinde kalabilir.
+- **Karar gerekiyor:** Yeni iç adlar. Çok dosyaya dokunan bir refactor olduğu için `CLAUDE.md` §3 gereği önce onay alınmalıdır.
+- **Doğrulama:** `grep -rn "/transactions\|/severance-fund" src --include=*.jsx`
+
 ---
 
 ## 4. Güvenlik Yüzeyi

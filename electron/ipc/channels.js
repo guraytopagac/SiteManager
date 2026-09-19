@@ -56,6 +56,8 @@ const CHANNELS = {
     GET_TRANSACTIONS: "financial:get-transactions",
     CANCEL_INCOME: "financial:cancel-income",
     CANCEL_EXPENSE: "financial:cancel-expense",
+    ADD_TRANSFER: "financial:add-transfer",
+    CANCEL_TRANSFER: "financial:cancel-transfer",
     GET_DOCUMENT: "financial:get-document",
     SAVE_DOCUMENT_INFO: "financial:save-document-info",
   },
@@ -77,6 +79,7 @@ const CHANNELS = {
 
   SEVERANCE: {
     GET_OVERVIEW: "severance:get-overview",
+    GET_EMPLOYEES: "severance:get-employees",
     SETUP_FUND: "severance:setup-fund",
     UPDATE_FUND: "severance:update-fund",
     ADD_EMPLOYEE: "severance:add-employee",

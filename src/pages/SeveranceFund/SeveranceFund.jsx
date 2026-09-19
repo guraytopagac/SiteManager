@@ -1,6 +1,7 @@
-// The severance fund of the building: money moved out of the main cash to pay the staff's severance when they
-// leave. Transfers are entered by hand on the transactions page. Until the fund is started the page is only the
-// start form.
+// The staff page of the building: the employees with their open advances, and the severance fund that pays
+// them when they leave. Transfers into the fund are entered by hand on the ledger page. The employees are listed
+// from the start, the fund summary and movements appear once the fund is started and the start form stands in
+// for them until then.
 
 import { useState } from "react";
 import {
@@ -27,8 +28,9 @@ import { formatCurrency, formatSignedCurrency } from "@/utils/currency";
 import { showDialog } from "@/utils/dialog";
 import { formatDate } from "@/utils/date";
 
-// The payout column is not called an estimate, since a paid employee shows the paid amount there.
-const COLUMNS = ["Görev", "Çalışan", "İşe Giriş", "Çalışılan Gün", "Brüt Ücret", "Tazminat", "İşlem"];
+// The payout column is not called an estimate, since a paid employee shows the paid amount there. The worked
+// days gave their column to the open advance and are still read in the detail modal.
+const COLUMNS = ["Görev", "Çalışan", "İşe Giriş", "Brüt Ücret", "Açık Avans", "Tazminat", "İşlem"];
 
 // Five rows fit the panel of the tallest shell even when every row is a leaver with two lines.
 const PAGE_SIZE = 5;
@@ -48,16 +50,12 @@ function roundToCents(value) {
   return Math.round(Number(value) * 100) / 100;
 }
 
-function formatDays(days) {
-  return `${days.toLocaleString("tr-TR")} gün`;
-}
-
 function useSeveranceFund(buildingId) {
   const [res, reload] = useIpcData("getSeveranceOverview", { buildingId });
 
   return {
     overview: res.success ? res.data : null,
-    errorMessage: res.success ? "" : res.message || "Tazminat kasası bilgileri alınamadı.",
+    errorMessage: res.success ? "" : res.message || "Personel bilgileri alınamadı.",
     reload,
   };
 }
@@ -121,7 +119,7 @@ function FundStartForm({ building, onStarted }) {
           <div>
             <h2 className="sf-setup-title">Tazminat Kasasını Başlat</h2>
             <p className="sf-setup-body">
-              Tazminat kasasına aktarım Gelir ve Gider sayfasından, Tazminat Aktarımı kategorisiyle gider girilerek
+              Tazminat kasasına aktarım Kasa Defteri sayfasından, Tazminat Aktarımı kategorisiyle gider girilerek
               yapılır. Daha önce biriken para varsa açılış bakiyesi olarak girilir.
             </p>
           </div>
@@ -140,7 +138,6 @@ function FundStartForm({ building, onStarted }) {
               value={openingBalanceInput}
               onChange={(e) => setOpeningBalanceInput(e.target.value)}
               onKeyDown={(e) => ["e", "E", "-", "+"].includes(e.key) && e.preventDefault()}
-              autoFocus
             />
           </div>
         </div>
@@ -209,8 +206,14 @@ function EmployeeRow({ employee, onDetail }) {
       <td title={employee.role || undefined}>{employee.role || "—"}</td>
       <td title={employee.full_name}>{employee.full_name}</td>
       <td>{formatDate(employee.start_date)}</td>
-      <td className="sf-number">{formatDays(employee.worked_days)}</td>
       <td className="sf-number">{formatCurrency(employee.gross_wage)}</td>
+      <td>
+        {employee.advance_balance > 0 ? (
+          <span className="sf-advance">{formatCurrency(employee.advance_balance)}</span>
+        ) : (
+          <span className="sf-muted">—</span>
+        )}
+      </td>
       <td>{estimateCell}</td>
       <td>
         <button type="button" className="sf-row-btn" onClick={onDetail}>
@@ -237,9 +240,7 @@ function EmployeesPanel({ employees, onAdd, onDetail }) {
       {employees.length === 0 ? (
         <div className="sf-empty">
           <span className="sf-empty-title">Kayıtlı çalışan yok</span>
-          <span className="sf-empty-body">
-            Tahmini tazminat, eklenen çalışanların ücreti ve çalışma süresinden hesaplanır.
-          </span>
+          <span className="sf-empty-body">Çalışan eklendiğinde avansları ve tahmini tazminatı burada izlenir.</span>
         </div>
       ) : (
         <div className="sf-table-scroll">
@@ -319,7 +320,7 @@ function MovementsPanel({ movements, onCancelPayout }) {
       {movements.length === 0 ? (
         <div className="sf-empty">
           <span className="sf-empty-title">Henüz hareket yok</span>
-          <span className="sf-empty-body">Gelir ve Gider sayfasından yapılan aktarımlar burada listelenir.</span>
+          <span className="sf-empty-body">Kasa Defteri sayfasından yapılan aktarımlar burada listelenir.</span>
         </div>
       ) : (
         <ul className="sf-movements">
@@ -373,25 +374,23 @@ function SeveranceFund() {
 
   const renderBody = () => {
     if (errorMessage) {
-      return <ErrorPanel title="Tazminat kasası okunamadı" body={errorMessage} onRetry={reload} />;
+      return <ErrorPanel title="Personel bilgileri okunamadı" body={errorMessage} onRetry={reload} />;
     }
 
-    if (!overview) {
-      return <FundStartForm building={building} onStarted={reload} />;
-    }
+    const hasFund = Boolean(overview.fund);
 
     return (
       <>
-        <SummaryStrip totals={overview.totals} />
+        {hasFund ? <SummaryStrip totals={overview.totals} /> : <FundStartForm building={building} onStarted={reload} />}
 
         <section className="page-band sf-split-band" aria-label="Çalışanlar ve hareketler">
-          <div className="sf-split">
+          <div className={hasFund ? "sf-split" : "sf-split sf-split--single"}>
             <EmployeesPanel
               employees={overview.employees}
               onAdd={() => openEmployeeModal(null)}
               onDetail={setDetailTarget}
             />
-            <MovementsPanel movements={overview.movements} onCancelPayout={cancelPayout} />
+            {hasFund ? <MovementsPanel movements={overview.movements} onCancelPayout={cancelPayout} /> : null}
           </div>
         </section>
       </>
@@ -400,7 +399,7 @@ function SeveranceFund() {
 
   return (
     <div className="severance-container">
-      <PageHeader title="Tazminat Kasası" />
+      <PageHeader title="Personel" />
 
       {renderBody()}
 
@@ -408,6 +407,7 @@ function SeveranceFund() {
         <DetailModal
           employee={detailTarget}
           building={building}
+          canPay={Boolean(overview?.fund)}
           onClose={() => setDetailTarget(null)}
           onEdit={() => {
             setDetailTarget(null);
@@ -432,7 +432,7 @@ function SeveranceFund() {
         />
       )}
 
-      {payoutTarget && overview && (
+      {payoutTarget && overview?.fund && (
         <PayoutModal
           building={building}
           employee={payoutTarget}

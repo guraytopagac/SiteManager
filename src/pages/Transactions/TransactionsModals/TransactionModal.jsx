@@ -1,17 +1,22 @@
 // Records one income or one expense, the type arriving as a prop. Everything that differs lives in the table
-// below, so the only comparison against the type is the line that picks the endpoint.
+// below, so the only comparison against the type is the line that picks the endpoint. An income asks how it
+// was paid and its account follows from that, an expense asks which account paid it. An advance and its
+// repayment also name the employee, and saving without one is refused.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./TransactionsModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import {
+  ADVANCE_CATEGORIES,
+  CASH_ACCOUNT_LABELS,
   EXPENSE_CATEGORY_GROUPS,
   INCOME_CATEGORY_GROUPS,
   OTHER_CATEGORY,
   PAYMENT_METHOD_LABELS,
   UNEXPECTED_ERROR_MESSAGE,
 } from "@/utils/constants";
+import { formatCurrency } from "@/utils/currency";
 import { showDialog } from "@/utils/dialog";
 import { getMinDate, getToday } from "@/utils/date";
 
@@ -30,7 +35,20 @@ const TYPES = {
     errorMessage: "Gelir kaydedilemedi.",
     categoryGroups: INCOME_CATEGORY_GROUPS,
     otherHint: "Listede olmayan gelirler",
-    asksPaymentMethod: true,
+    employee: {
+      label: "Avansı İade Eden Çalışan",
+      placeholder: "Çalışan seçin",
+      emptyNote: "Açık avansı olan bir çalışan bulunmuyor.",
+      // Only someone who still owes can pay back, and the open amount helps pick the right figure.
+      isListed: (employee) => employee.advance_balance > 0,
+      optionLabel: (employee) => `${employee.full_name} · açık avans ${formatCurrency(employee.advance_balance)}`,
+    },
+    choice: {
+      legend: "Ödeme Şekli",
+      field: "payment_method",
+      labels: PAYMENT_METHOD_LABELS,
+      listClass: "tx-method-list",
+    },
   },
   expense: {
     title: "Gider Ekle",
@@ -42,7 +60,18 @@ const TYPES = {
     errorMessage: "Gider kaydedilemedi.",
     categoryGroups: EXPENSE_CATEGORY_GROUPS,
     otherHint: "Listede olmayan giderler",
-    asksPaymentMethod: false,
+    employee: {
+      label: "Avans Verilen Çalışan",
+      placeholder: "Çalışan seçin",
+      emptyNote: "Kayıtlı çalışan bulunmuyor. Önce Personel sayfasından çalışan ekleyin.",
+      // An advance goes to someone still working there.
+      isListed: (employee) => !employee.end_date,
+      optionLabel: (employee) =>
+        employee.advance_balance > 0
+          ? `${employee.full_name} · açık avans ${formatCurrency(employee.advance_balance)}`
+          : employee.full_name,
+    },
+    choice: { legend: "Ödeme Tipi", field: "account", labels: CASH_ACCOUNT_LABELS, listClass: "tx-account-list" },
   },
 };
 
@@ -93,10 +122,32 @@ function TransactionModal({ type, building, onClose, onSaved }) {
   const text = TYPES[type];
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [choice, setChoice] = useState("cash");
   const [date, setDate] = useState(() => getToday());
   const [description, setDescription] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
+  const [employees, setEmployees] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isAdvance = ADVANCE_CATEGORIES.includes(category);
+  const listedEmployees = employees?.filter(text.employee.isListed) ?? [];
+
+  // Read once when the modal opens, like the other modal lists, so the box opens without waiting for it.
+  useEffect(() => {
+    let isActive = true;
+    window.electronAPI
+      .getSeveranceEmployees({ buildingId: building.id })
+      .then((res) => {
+        if (isActive) setEmployees(res.success ? res.data : []);
+      })
+      .catch((err) => {
+        console.error("[TransactionModal] getSeveranceEmployees:", err);
+        if (isActive) setEmployees([]);
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [building.id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -109,6 +160,11 @@ function TransactionModal({ type, building, onClose, onSaved }) {
 
     if (category === "") {
       showDialog.warning("Kategori Seçilmedi", "Kayıt için bir kategori seçin.");
+      return;
+    }
+
+    if (isAdvance && employeeId === "") {
+      showDialog.warning("Çalışan Seçilmedi", "Avans kaydı için bir çalışan seçin.");
       return;
     }
 
@@ -127,12 +183,18 @@ function TransactionModal({ type, building, onClose, onSaved }) {
         category,
         date,
         description: description.trim(),
-        ...(text.asksPaymentMethod ? { payment_method: paymentMethod } : {}),
+        [text.choice.field]: choice,
+        employee_id: isAdvance ? Number(employeeId) : null,
       });
 
       if (res.success) {
         showDialog.toast(res.message);
         onSaved();
+      } else if (res.code === "REPAYMENT_EXCEEDS_ADVANCE") {
+        showDialog.warning(
+          "Tutar Fazla",
+          `İade tutarı çalışanın açık avansından fazla olamaz. Açık avans: ${formatCurrency(res.remaining)}`,
+        );
       } else {
         showDialog.error("Hata", res.message || text.errorMessage);
       }
@@ -206,24 +268,44 @@ function TransactionModal({ type, building, onClose, onSaved }) {
               </div>
             </div>
 
-            {text.asksPaymentMethod ? (
+            <div className="tx-md-field">
+              <span className="tx-md-legend" id="tx-choice-label">
+                {text.choice.legend}
+              </span>
+              <div
+                className={`tx-cat-list ${text.choice.listClass}`}
+                role="radiogroup"
+                aria-labelledby="tx-choice-label"
+              >
+                {Object.entries(text.choice.labels).map(([value, label]) => (
+                  <label key={value} className={choice === value ? "tx-cat tx-cat--active" : "tx-cat"}>
+                    <input type="radio" name="tx-choice" checked={choice === value} onChange={() => setChoice(value)} />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {isAdvance ? (
               <div className="tx-md-field">
-                <span className="tx-md-legend" id="tx-method-label">
-                  Ödeme Şekli
-                </span>
-                <div className="tx-cat-list tx-method-list" role="radiogroup" aria-labelledby="tx-method-label">
-                  {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
-                    <label key={value} className={paymentMethod === value ? "tx-cat tx-cat--active" : "tx-cat"}>
-                      <input
-                        type="radio"
-                        name="tx-method"
-                        checked={paymentMethod === value}
-                        onChange={() => setPaymentMethod(value)}
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
+                <label htmlFor="tx-employee">{text.employee.label}</label>
+                {employees !== null && listedEmployees.length === 0 ? (
+                  <p className="tx-md-hint">{text.employee.emptyNote}</p>
+                ) : (
+                  <select
+                    id="tx-employee"
+                    value={employeeId}
+                    onChange={(e) => setEmployeeId(e.target.value)}
+                    disabled={employees === null}
+                  >
+                    <option value="">{employees === null ? "Yükleniyor..." : text.employee.placeholder}</option>
+                    {listedEmployees.map((employee) => (
+                      <option key={employee.id} value={employee.id}>
+                        {text.employee.optionLabel(employee)}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             ) : null}
 

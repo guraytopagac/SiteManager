@@ -1,6 +1,7 @@
 // Report data for one month, one year or the whole ledger. It only reads, and it never rounds
 // money. That is the renderer's job.
 const { getDb } = require("../../../database/db");
+const { cashBalances } = require("../shared/cashAccounts");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
 const { RESIDENT_NAME_FOR_PERIOD_SQL, periodCutoff } = require("../shared/residentPeriod");
 const { estimatedLiability, severanceBalance } = require("../shared/severanceFund");
@@ -185,6 +186,8 @@ function getReportData(payload) {
         openingBalance,
         monthlyDues,
         severance: fetchSeverance(buildingId, range),
+        // The split of the main cash when the range ends. The whole ledger ends today.
+        closingAccounts: cashBalances(buildingId, range.end ?? undefined),
       },
     };
   } catch (err) {

@@ -59,6 +59,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getTransactions: (payload) => safeInvoke(CH.FINANCIAL.GET_TRANSACTIONS, payload),
   cancelIncome: (payload) => safeInvoke(CH.FINANCIAL.CANCEL_INCOME, payload),
   cancelExpense: (payload) => safeInvoke(CH.FINANCIAL.CANCEL_EXPENSE, payload),
+  addCashTransfer: (payload) => safeInvoke(CH.FINANCIAL.ADD_TRANSFER, payload),
+  cancelCashTransfer: (payload) => safeInvoke(CH.FINANCIAL.CANCEL_TRANSFER, payload),
   getDocument: (payload) => safeInvoke(CH.FINANCIAL.GET_DOCUMENT, payload),
   saveDocumentInfo: (payload) => safeInvoke(CH.FINANCIAL.SAVE_DOCUMENT_INFO, payload),
 
@@ -74,6 +76,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   cancelScheduledMoveOut: (payload) => safeInvoke(CH.RESIDENT.CANCEL_MOVE_OUT, payload),
 
   getSeveranceOverview: (payload) => safeInvoke(CH.SEVERANCE.GET_OVERVIEW, payload),
+  getSeveranceEmployees: (payload) => safeInvoke(CH.SEVERANCE.GET_EMPLOYEES, payload),
   setupSeveranceFund: (payload) => safeInvoke(CH.SEVERANCE.SETUP_FUND, payload),
   updateSeveranceFund: (payload) => safeInvoke(CH.SEVERANCE.UPDATE_FUND, payload),
   addEmployee: (payload) => safeInvoke(CH.SEVERANCE.ADD_EMPLOYEE, payload),

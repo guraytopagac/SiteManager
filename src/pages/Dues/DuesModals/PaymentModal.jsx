@@ -2,8 +2,9 @@
 // stays out of the row measurement, so the form alone sets the height as payments accumulate.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FiCheck, FiPaperclip, FiUpload, FiX } from "react-icons/fi";
+import { FiCheck, FiFileText, FiPaperclip, FiUpload, FiX } from "react-icons/fi";
 import "./DuesModals.css";
+import DocumentModal from "@/components/DocumentModal/DocumentModal";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { showDialog } from "@/utils/dialog";
 import { EMPTY_RESIDENT_LABEL, PAYMENT_METHOD_LABELS, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
@@ -46,11 +47,20 @@ function PaymentSummary({ due, remaining }) {
 }
 
 // Every action of an entry sits in one bottom strip. A cancelled payment keeps only the button that opens
-// its receipt, and a read failure shows in the list's own place since the box is already open.
-function PaymentHistory({ history, loading, errorMessage, onCancel, onOpenReceipt, onAttachReceipt }) {
+// its receipt, and a read failure shows in the list's own place since the box is already open. The printed
+// receipt covers the whole month rather than one payment, so its button heads the list instead of a card.
+function PaymentHistory({ history, loading, errorMessage, onCancel, onOpenReceipt, onAttachReceipt, onCreateReceipt }) {
   return (
     <>
-      <h3 className="du-md-section-title">Ödeme Geçmişi</h3>
+      <div className="du-history-head">
+        <h3 className="du-md-section-title">Ödeme Geçmişi</h3>
+        {onCreateReceipt ? (
+          <button type="button" className="du-history-action" onClick={onCreateReceipt}>
+            <FiFileText aria-hidden="true" />
+            Makbuz Oluştur
+          </button>
+        ) : null}
+      </div>
       {loading ? (
         <p className="du-history-empty">Yükleniyor...</p>
       ) : errorMessage ? (
@@ -136,6 +146,7 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
   const [history, setHistory] = useState([]);
   const [historyError, setHistoryError] = useState("");
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [receiptIncomeId, setReceiptIncomeId] = useState(null);
 
   // An effect rather than the suspending reader: a modal opening is not a transition, so a suspense boundary
   // would delay the whole box by its minimum placeholder span for a query that takes milliseconds.
@@ -284,12 +295,16 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
     }
   };
 
+  // The document modal listens for Escape too, and one key press must close only that top layer.
   const handleClose = () => {
-    if (isSubmitting) return;
+    if (isSubmitting || receiptIncomeId) return;
     onClose();
   };
 
   useEscapeKey(handleClose);
+
+  // Any live payment of the month opens the same receipt, since the document gathers all of them.
+  const liveIncomeId = history.find((payment) => !payment.cancel_reason && payment.income_id != null)?.income_id;
 
   const remaining = due.due_amount - due.paid_amount;
   const isPaid = due.status === "paid";
@@ -297,163 +312,187 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
   const scope = `Daire ${due.apartment_no} · ${due.resident_name || EMPTY_RESIDENT_LABEL} · ${period}`;
 
   return (
-    <div className="du-md-overlay">
-      <form className="du-md-box du-md-box--wide" onSubmit={handleSubmit}>
-        <div className="du-md-head">
-          <div className="du-md-identity">
-            <h2 className="du-md-title">Aidat Tahsilatı</h2>
-            <span className="du-md-scope" title={scope}>
-              {scope}
-            </span>
+    <>
+      <div className="du-md-overlay">
+        <form className="du-md-box du-md-box--wide" onSubmit={handleSubmit}>
+          <div className="du-md-head">
+            <div className="du-md-identity">
+              <h2 className="du-md-title">Aidat Tahsilatı</h2>
+              <span className="du-md-scope" title={scope}>
+                {scope}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="du-md-close"
+              onClick={handleClose}
+              disabled={isSubmitting}
+              aria-label="Kapat"
+            >
+              <FiX />
+            </button>
           </div>
-          <button
-            type="button"
-            className="du-md-close"
-            onClick={handleClose}
-            disabled={isSubmitting}
-            aria-label="Kapat"
-          >
-            <FiX />
-          </button>
-        </div>
 
-        <div className="du-md-body du-pay-body">
-          <div className="du-pay-main">
-            <PaymentSummary due={due} remaining={remaining} />
+          <div className="du-md-body du-pay-body">
+            <div className="du-pay-main">
+              <PaymentSummary due={due} remaining={remaining} />
 
-            {isPaid ? (
-              <div className="du-paid-notice">
-                <FiCheck aria-hidden="true" />
-                Bu aya ait aidat tamamen ödenmiştir.
-              </div>
-            ) : (
-              <>
-                <h3 className="du-md-section-title">Ödeme Ekle</h3>
-                <div className="du-md-form-grid">
-                  <div className="du-md-field">
-                    <label htmlFor="payment-method">Ödeme Yöntemi</label>
-                    <select
-                      id="payment-method"
-                      value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                    >
-                      {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="du-md-field">
-                    <label htmlFor="payment-amount">Ödenen Tutar (₺)</label>
-                    <input
-                      id="payment-amount"
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      max={remaining}
-                      placeholder={`Maks. ${formatCurrency(remaining)}`}
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      required
-                      autoFocus
-                    />
-                  </div>
-                  <div className="du-md-field">
-                    <label htmlFor="payment-date">Ödeme Tarihi</label>
-                    <input
-                      id="payment-date"
-                      type="date"
-                      value={paymentDate}
-                      onChange={(e) => setPaymentDate(e.target.value)}
-                      required
-                      min={getMinDate()}
-                      max={getToday()}
-                    />
-                  </div>
-                  <div className="du-md-field">
-                    <label htmlFor="payment-collector">Tahsil Eden</label>
-                    <input
-                      id="payment-collector"
-                      type="text"
-                      maxLength={60}
-                      placeholder="Parayı teslim alan kişi"
-                      value={collector}
-                      onChange={(e) => setCollector(e.target.value)}
-                    />
-                  </div>
-                  <div className="du-md-field du-md-field--wide">
-                    <label htmlFor="payment-note">Açıklama</label>
-                    <textarea
-                      id="payment-note"
-                      placeholder="İsteğe bağlı not"
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                    />
-                  </div>
-                  <div className="du-md-field du-md-field--wide">
-                    <label htmlFor="payment-receipt">
-                      Dekont <span className="du-md-optional">(isteğe bağlı)</span>
-                    </label>
-                    <input
-                      id="payment-receipt"
-                      ref={formReceiptRef}
-                      type="file"
-                      accept={RECEIPT_ACCEPT}
-                      onChange={(e) => setReceiptFile(e.target.files[0] ?? null)}
-                      hidden
-                    />
-                    <div className="du-receipt-picker">
-                      <button
-                        type="button"
-                        className="du-receipt-trigger"
-                        onClick={() => formReceiptRef.current.click()}
+              {/* The form stays mounted once the month is paid and is only hidden, so the left column that
+                  sizes the box keeps its height and the notice takes the same cell. */}
+              <div className="du-pay-entry">
+                <div className={isPaid ? "du-pay-form du-pay-form--blank" : "du-pay-form"} inert={isPaid}>
+                  <h3 className="du-md-section-title">Ödeme Ekle</h3>
+                  <div className="du-md-form-grid">
+                    <div className="du-md-field">
+                      <label htmlFor="payment-method">Ödeme Yöntemi</label>
+                      <select
+                        id="payment-method"
+                        value={paymentMethod}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
                       >
-                        <FiUpload aria-hidden="true" />
-                        Dosya Seç
-                      </button>
-                      {receiptFile ? (
-                        <span className="du-receipt-chip" title={receiptFile.name}>
-                          <FiPaperclip aria-hidden="true" />
-                          <span className="du-receipt-name">{receiptFile.name}</span>
-                          <span className="du-receipt-size">{formatFileSize(receiptFile.size)}</span>
-                          <button
-                            type="button"
-                            className="du-receipt-clear"
-                            onClick={clearReceiptFile}
-                            aria-label="Seçilen dekontu kaldır"
-                          >
-                            <FiX />
-                          </button>
-                        </span>
-                      ) : (
-                        <span className="du-receipt-hint">PDF, JPG, PNG veya WEBP · en fazla 5 MB</span>
-                      )}
+                        {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="du-md-field">
+                      <label htmlFor="payment-amount">Ödenen Tutar (₺)</label>
+                      <input
+                        id="payment-amount"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        max={remaining}
+                        placeholder={`Maks. ${formatCurrency(remaining)}`}
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        required
+                        autoFocus
+                      />
+                    </div>
+                    <div className="du-md-field">
+                      <label htmlFor="payment-date">Ödeme Tarihi</label>
+                      <input
+                        id="payment-date"
+                        type="date"
+                        value={paymentDate}
+                        onChange={(e) => setPaymentDate(e.target.value)}
+                        required
+                        min={getMinDate()}
+                        max={getToday()}
+                      />
+                    </div>
+                    <div className="du-md-field">
+                      <label htmlFor="payment-collector">Tahsil Eden</label>
+                      <input
+                        id="payment-collector"
+                        type="text"
+                        maxLength={60}
+                        placeholder="Parayı teslim alan kişi"
+                        value={collector}
+                        onChange={(e) => setCollector(e.target.value)}
+                      />
+                    </div>
+                    <div className="du-md-field du-md-field--wide">
+                      <label htmlFor="payment-note">Açıklama</label>
+                      <textarea
+                        id="payment-note"
+                        placeholder="İsteğe bağlı not"
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                      />
+                    </div>
+                    <div className="du-md-field du-md-field--wide">
+                      <label htmlFor="payment-receipt">
+                        Dekont <span className="du-md-optional">(isteğe bağlı)</span>
+                      </label>
+                      <input
+                        id="payment-receipt"
+                        ref={formReceiptRef}
+                        type="file"
+                        accept={RECEIPT_ACCEPT}
+                        onChange={(e) => setReceiptFile(e.target.files[0] ?? null)}
+                        hidden
+                      />
+                      <div className="du-receipt-picker">
+                        <button
+                          type="button"
+                          className="du-receipt-trigger"
+                          onClick={() => formReceiptRef.current.click()}
+                        >
+                          <FiUpload aria-hidden="true" />
+                          Dosya Seç
+                        </button>
+                        {receiptFile ? (
+                          <span className="du-receipt-chip" title={receiptFile.name}>
+                            <FiPaperclip aria-hidden="true" />
+                            <span className="du-receipt-name">{receiptFile.name}</span>
+                            <span className="du-receipt-size">{formatFileSize(receiptFile.size)}</span>
+                            <button
+                              type="button"
+                              className="du-receipt-clear"
+                              onClick={clearReceiptFile}
+                              aria-label="Seçilen dekontu kaldır"
+                            >
+                              <FiX />
+                            </button>
+                          </span>
+                        ) : (
+                          <span className="du-receipt-hint">PDF, JPG, PNG veya WEBP · en fazla 5 MB</span>
+                        )}
+                      </div>
                     </div>
                   </div>
+
+                  <button type="submit" className="du-md-btn-solid du-md-submit" disabled={isSubmitting}>
+                    {isSubmitting ? "Kaydediliyor..." : "Ödemeyi Kaydet"}
+                  </button>
                 </div>
 
-                <button type="submit" className="du-md-btn-solid du-md-submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Kaydediliyor..." : "Ödemeyi Kaydet"}
-                </button>
-              </>
-            )}
-          </div>
+                {isPaid ? (
+                  <div className="du-paid-notice">
+                    <span className="du-paid-mark">
+                      <FiCheck aria-hidden="true" />
+                    </span>
+                    <p className="du-paid-title">Bu aya ait aidat tamamen ödenmiştir.</p>
+                    <p className="du-paid-body">Bir ödeme iptal edilirse ödeme formu yeniden açılır.</p>
+                  </div>
+                ) : null}
+              </div>
+            </div>
 
-          <div className="du-pay-side">
-            <PaymentHistory
-              history={history}
-              loading={historyLoading}
-              errorMessage={historyError}
-              onCancel={handleCancel}
-              onOpenReceipt={handleOpenReceipt}
-              onAttachReceipt={handleAttachReceipt}
-            />
-            <input ref={historyReceiptRef} type="file" accept={RECEIPT_ACCEPT} onChange={handleReceiptPicked} hidden />
+            <div className="du-pay-side">
+              <PaymentHistory
+                history={history}
+                loading={historyLoading}
+                errorMessage={historyError}
+                onCancel={handleCancel}
+                onOpenReceipt={handleOpenReceipt}
+                onAttachReceipt={handleAttachReceipt}
+                onCreateReceipt={liveIncomeId ? () => setReceiptIncomeId(liveIncomeId) : null}
+              />
+              <input
+                ref={historyReceiptRef}
+                type="file"
+                accept={RECEIPT_ACCEPT}
+                onChange={handleReceiptPicked}
+                hidden
+              />
+            </div>
           </div>
-        </div>
-      </form>
-    </div>
+        </form>
+      </div>
+      {receiptIncomeId ? (
+        <DocumentModal
+          transaction={{ id: receiptIncomeId, type: "income" }}
+          building={building}
+          onClose={() => setReceiptIncomeId(null)}
+          onSaved={() => setReceiptIncomeId(null)}
+        />
+      ) : null}
+    </>
   );
 }
 

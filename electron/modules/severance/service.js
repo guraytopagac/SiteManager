@@ -4,6 +4,7 @@
 const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
 const { daysBetween, withSeveranceEstimate, severanceBalance } = require("../shared/severanceFund");
+const { advanceBalances, hasAdvanceRecords } = require("../shared/staffAdvances");
 const { TR_NOW_SQL, trToday } = require("../shared/trTime");
 
 const COLUMN_LABELS = {
@@ -88,16 +89,17 @@ function buildMovements(fund, transfers, payouts) {
   return movements;
 }
 
-// data is null until the fund is started, so the page can show the start form.
+// The staff page. The employees are listed whether or not the fund is started. Until it is, fund and totals are
+// null and there are no movements, so the page shows the start form in their place.
 function getOverview(payload) {
   const { buildingId } = payload;
   try {
     const fund = getDb()
       .prepare(`SELECT opening_balance, date(created_at) AS started_on FROM severance_funds WHERE building_id = ?`)
       .get(buildingId);
-    if (!fund) return { success: true, data: null };
 
     const asOf = trToday();
+    const advances = advanceBalances(buildingId);
     const employees = getDb()
       .prepare(
         `SELECT e.id, e.full_name, e.role, e.start_date, e.gross_wage, e.end_date,
@@ -113,7 +115,12 @@ function getOverview(payload) {
         employee.end_date
           ? { ...employee, worked_days: daysBetween(employee.start_date, employee.end_date) }
           : withSeveranceEstimate(employee, asOf),
-      );
+      )
+      .map((employee) => ({ ...employee, advance_balance: advances.get(employee.id) ?? 0 }));
+
+    if (!fund) {
+      return { success: true, data: { fund: null, totals: null, employees, movements: [] } };
+    }
 
     // A transfer a payout points at is that payout's top-up, every other one was entered by hand.
     const transfers = getDb()
@@ -159,7 +166,27 @@ function getOverview(payload) {
     };
   } catch (err) {
     console.error("[severance.service] getOverview:", err);
-    return { success: false, message: "Tazminat kasası bilgileri alınamadı." };
+    return { success: false, message: "Personel bilgileri alınamadı." };
+  }
+}
+
+// The staff with their open advance, for the employee picker of the ledger. Working employees come first. It
+// does not need a started fund.
+function getEmployees(payload) {
+  const { buildingId } = payload;
+  try {
+    const advances = advanceBalances(buildingId);
+    const employees = getDb()
+      .prepare(
+        `SELECT id, full_name, role, end_date FROM employees WHERE building_id = ?
+         ORDER BY (end_date IS NULL) DESC, full_name COLLATE NOCASE ASC, id ASC`,
+      )
+      .all(buildingId)
+      .map((employee) => ({ ...employee, advance_balance: advances.get(employee.id) ?? 0 }));
+    return { success: true, data: employees };
+  } catch (err) {
+    console.error("[severance.service] getEmployees:", err);
+    return { success: false, message: "Çalışan listesi alınamadı." };
   }
 }
 
@@ -269,6 +296,9 @@ function deleteEmployee(payload) {
     if (employee.payout_count > 0) {
       return { success: false, message: "Ödeme kaydı olan bir çalışan silinemez." };
     }
+    if (hasAdvanceRecords(employeeId)) {
+      return { success: false, message: "Avans kaydı olan bir çalışan silinemez." };
+    }
 
     getDb().prepare(`DELETE FROM employees WHERE id = ? AND building_id = ?`).run(employeeId, buildingId);
     return { success: true, message: `${employee.full_name} silindi.` };
@@ -281,7 +311,16 @@ function deleteEmployee(payload) {
 // When the fund is short, the difference is moved from the main cash in the same transaction, so the
 // fund never goes below zero. The amounts are compared in whole cents.
 function recordPayout(payload) {
-  const { buildingId, employeeId, userId, amount, date, end_date: endDate, note } = payload;
+  const {
+    buildingId,
+    employeeId,
+    userId,
+    amount,
+    date,
+    end_date: endDate,
+    note,
+    top_up_account: topUpAccount,
+  } = payload;
   try {
     const blocker = buildingWriteBlocker(buildingId);
     if (blocker) return blocker;
@@ -300,7 +339,7 @@ function recordPayout(payload) {
       return {
         success: false,
         message:
-          "Kasada eksik kalan tutar 1.000.000₺'yi aşıyor. Önce Gelir ve Gider sayfasından tazminat kasasına aktarım yapın.",
+          "Kasada eksik kalan tutar 1.000.000₺'yi aşıyor. Önce Kasa Defteri sayfasından tazminat kasasına aktarım yapın.",
       };
     }
 
@@ -310,10 +349,10 @@ function recordPayout(payload) {
       if (topUpAmount > 0) {
         topUpExpenseId = db
           .prepare(
-            `INSERT INTO expenses (building_id, amount, date, description, category, created_at, updated_at)
-             VALUES (?, ?, ?, NULL, 'severance_fund', ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
+            `INSERT INTO expenses (building_id, amount, date, description, category, account, created_at, updated_at)
+             VALUES (?, ?, ?, NULL, 'severance_fund', ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
           )
-          .run(buildingId, topUpAmount, date).lastInsertRowid;
+          .run(buildingId, topUpAmount, date, topUpAccount).lastInsertRowid;
       }
 
       db.prepare(
@@ -376,6 +415,7 @@ function cancelPayout(payload) {
 
 module.exports = {
   getOverview,
+  getEmployees,
   setupFund,
   updateFund,
   addEmployee,

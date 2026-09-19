@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const { app, shell } = require("electron");
 const { getDb } = require("../../../database/db");
+const { accountForMethod } = require("../shared/cashAccounts");
 const { createDbErrorResolver } = require("../shared/dbError");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
 const { RESIDENT_NAME_FOR_PERIOD_SQL, periodCutoff } = require("../shared/residentPeriod");
@@ -144,13 +145,22 @@ function recordPayment(payload) {
           collected_by,
         );
 
-      // The matching income row. This is the only place a dues income is written.
+      // The matching income row. This is the only place a dues income is written. Its account follows the
+      // payment method, the same rule a manual income uses.
       getDb()
         .prepare(
-          `INSERT INTO incomes (amount, date, description, category, building_id, due_payment_id, created_at, updated_at)
-           VALUES (?, ?, ?, 'dues', ?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
+          `INSERT INTO incomes
+             (amount, date, description, category, building_id, due_payment_id, account, created_at, updated_at)
+           VALUES (?, ?, ?, 'dues', ?, ?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
         )
-        .run(amount, payment_date, `Aidat Ödemesi - Daire ${apartment.apartment_no}`, apartment.building_id, paymentId);
+        .run(
+          amount,
+          payment_date,
+          `Aidat Ödemesi - Daire ${apartment.apartment_no}`,
+          apartment.building_id,
+          paymentId,
+          accountForMethod(payment_method),
+        );
 
       const newPaidAmount = (roundCents(due.paid_amount) + amountCents) / 100;
       getDb()
@@ -232,12 +242,13 @@ function getPaymentHistory(payload) {
         `SELECT dp.id, dp.amount, dp.payment_method, dp.payment_date, dp.note, dp.created_at,
                 dp.receipt_name,
                 COALESCE(dp.collector_name, u.manager_name) AS collector_name,
-                pc.cancel_reason, pc.cancelled_at
+                pc.cancel_reason, pc.cancelled_at, i.id AS income_id
          FROM due_payments dp
          JOIN users u ON dp.collected_by = u.id
          JOIN dues d ON dp.due_id = d.id
          JOIN apartments a ON d.apartment_id = a.id
          LEFT JOIN payment_cancellations pc ON pc.payment_id = dp.id
+         LEFT JOIN incomes i ON i.due_payment_id = dp.id
          WHERE dp.due_id = ? AND a.building_id = ?
          ORDER BY dp.created_at DESC, dp.id DESC`,
       )

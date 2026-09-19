@@ -7,6 +7,19 @@ const RELEASE_NOTES_SEEN_KEY = "releaseNotesSeenVersion";
 
 const RELEASE_NOTES = [
   {
+    version: "2.0.3",
+    date: "2026-09-19",
+    title: "Nakit ve banka hesapları, personel avansı",
+    changes: [
+      "Ana kasa Nakit ve Banka olarak ikiye ayrıldı. Gelirin hesabı ödeme şeklinden belirleniyor, giderde ödeme tipi soruluyor.",
+      "Nakit ile banka arasında aktarım yapılabiliyor. Aktarım gelir ya da gider sayılmıyor ve gerektiğinde iptal edilebiliyor.",
+      "Personel avansı eklendi. Çalışana verilen avans gider, geri ödemesi avans iadesi olarak kaydediliyor ve açık avans çalışan listesinde görünüyor.",
+      "Gelir ve Gider sayfasının adı Kasa Defteri, Tazminat Kasası sayfasının adı Personel oldu. Panodaki işlemler iki grupta toplandı.",
+      "Aidat makbuzu tahsilat penceresinden de oluşturulabiliyor.",
+      "Rapor PDF'inin kasa özeti dönem sonundaki nakit ve banka tutarlarını gösteriyor.",
+    ],
+  },
+  {
     version: "2.0.2",
     date: "2026-09-18",
     title: "Elle tazminat aktarımı ve genişleyen kategoriler",
@@ -30,27 +43,6 @@ const RELEASE_NOTES = [
       "Tazminat ödemesi kasadan yapılıyor. Kasa yetmezse eksik tutar ana kasadan ekleniyor, ödeme gerektiğinde iptal edilebiliyor.",
       "Pano, Gelir ve Gider sayfası ve raporlar tazminat kasasını gösteriyor.",
       "Uygulama kaldırıldığında bu bilgisayardaki uygulama verisi de siliniyor. Verilerin korunması için kaldırmadan önce yedek alınmalıdır.",
-    ],
-  },
-  {
-    version: "2.0.0",
-    date: "2026-09-16",
-    title: "Tahsilat makbuzu, gider pusulası ve yenilenen raporlar",
-    changes: [
-      "Tahsilat makbuzu ve gider pusulası eklendi. Gelir ve gider kaydının detayından PDF belge oluşturulup bilgisayara kaydedilebiliyor.",
-      "Belge oluşturulurken ödeyen, hizmeti veren ve adres bilgileri girilebiliyor. Belgeye basılacak bilgilerin tamamı kaydetmeden önce listeleniyor ve tutar yazıyla da yazılıyor.",
-      "Aidat makbuzu dairenin o ayının tamamını kapsıyor. Ay içinde farklı yöntemlerle alınan tahsilatlar tek makbuzda toplanıyor.",
-      "Raporlar sayfası yeniden tasarlandı. Dönem toplamları, aidat tahsilatı ve gelir gider dağılımı ekranda özet olarak görünüyor.",
-      "Rapor kapsamı aylık, yıllık ve tüm zamanlar olarak seçiliyor ve dönem ok tuşlarıyla adımlanıyor. İndirme menüsü üç raporu birden sunuyor.",
-      "Rapor PDF'i yeniden yazıldı. Devreden kasa, yıllık raporda aylık döküm, sayfa altbilgisi ve imza alanı eklendi.",
-      "Profil sayfası yeniden tasarlandı. Şifre değiştirme ve hesap devri kendi pencerelerine taşındı.",
-      "Hesap devri artık bir devir dosyası oluşturuyor. Yeni yönetici başka bir bilgisayarda bu dosyayı kurulum ekranından yükleyerek kaldığı yerden devam edebiliyor.",
-      "Kurulum ekranına dosyadan yükleme bağlantısı eklendi. Bilgisayar değiştiren yönetici yedeğini buradan geri yükleyebiliyor.",
-      "Gelir kaydına ödeme şekli eklendi. Gelir kategorileri gözden geçirildi, su ve ısı payı eklendi.",
-      "Gelir ve gider açıklaması isteğe bağlı oldu.",
-      "Kişi adları kaydedilirken Türkçe yazım kurallarıyla biçimleniyor.",
-      "Dönem seçicilerindeki yıl listesi hesabın açıldığı yıldan başlıyor.",
-      "Sayfalar verisi hazır olmadan boş çizilmiyor. Dönem değiştirildiğinde ve kayıt sonrasında listeler yerinde yenileniyor.",
     ],
   },
 ];

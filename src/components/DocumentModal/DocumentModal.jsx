@@ -3,16 +3,11 @@
 
 import { useEffect, useState } from "react";
 import { FiX } from "react-icons/fi";
-import "./TransactionsModals.css";
+import "./DocumentModal.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useSession } from "@/hooks/useSession";
-import { buildTransactionDocumentHtml } from "@/pages/Transactions/TransactionsPdf/buildTransactionDocumentHtml";
-import {
-  documentFileName,
-  receiptDescription,
-  receiptPayerName,
-  voucherDescription,
-} from "@/pages/Transactions/TransactionsPdf/documentFigures";
+import { buildTransactionDocumentHtml } from "./buildTransactionDocumentHtml";
+import { documentFileName, receiptDescription, receiptPayerName, voucherDescription } from "./documentFigures";
 import { PAYMENT_METHOD_LABELS, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import { formatCurrency, formatCurrencyInWords } from "@/utils/currency";
 import { formatDate } from "@/utils/date";
@@ -33,7 +28,7 @@ const TYPES = {
 
 function DocRow({ label, htmlFor, isTotal, children }) {
   return (
-    <div className={isTotal ? "tx-doc-row tx-doc-row--total" : "tx-doc-row"}>
+    <div className={isTotal ? "doc-row doc-row--total" : "doc-row"}>
       <dt>{htmlFor ? <label htmlFor={htmlFor}>{label}</label> : label}</dt>
       <dd>{children}</dd>
     </div>
@@ -205,25 +200,25 @@ function DocumentModal({ transaction, building, onClose, onSaved }) {
   const renderBody = () => {
     if (loadError) {
       return (
-        <p className="tx-md-status" role="alert">
+        <p className="doc-md-status" role="alert">
           {loadError}
         </p>
       );
     }
 
     if (!record) {
-      return <p className="tx-md-status">Yükleniyor...</p>;
+      return <p className="doc-md-status">Yükleniyor...</p>;
     }
 
     return (
       <>
-        <dl className="tx-doc-list">{isReceipt ? renderReceiptRows() : renderVoucherRows()}</dl>
+        <dl className="doc-list">{isReceipt ? renderReceiptRows() : renderVoucherRows()}</dl>
         {isDuesReceipt ? (
-          <p className="tx-doc-note">
+          <p className="doc-note">
             Ödeyen o ayın daire sakinidir. Dairenin bu aya yaptığı bütün tahsilatlar tek makbuzda birleşir.
           </p>
         ) : null}
-        <button type="submit" className="tx-md-btn-solid tx-md-submit" disabled={isSubmitting}>
+        <button type="submit" className="doc-md-btn-solid doc-md-submit" disabled={isSubmitting}>
           {isSubmitting ? "Hazırlanıyor..." : "PDF Oluştur"}
         </button>
       </>
@@ -231,18 +226,18 @@ function DocumentModal({ transaction, building, onClose, onSaved }) {
   };
 
   return (
-    <div className="tx-md-overlay">
-      <form className="tx-md-box" onSubmit={handleSubmit}>
-        <div className="tx-md-head">
-          <div className="tx-md-identity">
-            <h2 className="tx-md-title">{text.title}</h2>
-            <span className="tx-md-scope" title={building.name}>
+    <div className="doc-md-overlay">
+      <form className="doc-md-box" onSubmit={handleSubmit}>
+        <div className="doc-md-head">
+          <div className="doc-md-identity">
+            <h2 className="doc-md-title">{text.title}</h2>
+            <span className="doc-md-scope" title={building.name}>
               {building.name}
             </span>
           </div>
           <button
             type="button"
-            className="tx-md-close"
+            className="doc-md-close"
             onClick={handleClose}
             disabled={isSubmitting}
             aria-label="Kapat"
@@ -251,7 +246,7 @@ function DocumentModal({ transaction, building, onClose, onSaved }) {
           </button>
         </div>
 
-        <div className="tx-md-body">{renderBody()}</div>
+        <div className="doc-md-body">{renderBody()}</div>
       </form>
     </div>
   );

@@ -1,11 +1,12 @@
 // Pays an employee's severance out of the fund. When the amount is above the balance the difference comes
-// from the main cash in the same step, so the user is told the figure before and asked to confirm it.
+// from the main cash in the same step, so the user is told the figure before and asked to confirm it, and
+// picks which account of the main cash pays it. An open advance is only mentioned, it is never deducted.
 
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./SeveranceFundModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import { UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
+import { CASH_ACCOUNT_LABELS, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import { formatCurrency } from "@/utils/currency";
 import { showDialog } from "@/utils/dialog";
 import { getToday } from "@/utils/date";
@@ -23,6 +24,7 @@ function PayoutModal({ building, employee, balance, userId, onClose, onSaved }) 
   const [date, setDate] = useState(() => getToday());
   const [endDate, setEndDate] = useState(() => getToday());
   const [note, setNote] = useState("");
+  const [topUpAccount, setTopUpAccount] = useState("bank");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const shortfallCents = amountInput === "" ? 0 : toCents(amountInput) - Math.max(toCents(balance), 0);
@@ -43,7 +45,7 @@ function PayoutModal({ building, employee, balance, userId, onClose, onSaved }) 
     if (shortfall > 0) {
       const confirmed = await showDialog.confirm(
         "Tazminat Kasası Yetersiz",
-        `Tazminat kasasında ${formatCurrency(balance)} var. Eksik kalan ${formatCurrency(shortfall)} ana kasadan aktarılacak.`,
+        `Tazminat kasasında ${formatCurrency(balance)} var. Eksik kalan ${formatCurrency(shortfall)} ana kasanın ${CASH_ACCOUNT_LABELS[topUpAccount]} hesabından aktarılacak.`,
         "Vazgeç",
         "Ödemeyi Kaydet",
       );
@@ -60,6 +62,7 @@ function PayoutModal({ building, employee, balance, userId, onClose, onSaved }) 
         date,
         end_date: endDate,
         note: note.trim(),
+        top_up_account: topUpAccount,
       });
       if (res.success) {
         showDialog.toast(res.message);
@@ -133,12 +136,34 @@ function PayoutModal({ building, employee, balance, userId, onClose, onSaved }) 
               <span className="sf-md-hint">
                 Tahmini tazminat yasal tavanı, ihbar tazminatını ve kesintileri içermez.
               </span>
+              {employee.advance_balance > 0 ? (
+                <span className="sf-md-hint">
+                  Çalışanın {formatCurrency(employee.advance_balance)} açık avansı var. Tutardan kendiliğinden düşülmez.
+                </span>
+              ) : null}
               {shortfall > 0 ? (
                 <span className="sf-md-warning">
                   Tazminat kasası yetmiyor. Eksik kalan {formatCurrency(shortfall)} ana kasadan aktarılacak.
                 </span>
               ) : null}
             </div>
+
+            {shortfall > 0 ? (
+              <div className="sf-md-field sf-md-field--wide">
+                <label htmlFor="sf-md-top-up-account">Eksik Tutarın Çıkacağı Hesap</label>
+                <select
+                  id="sf-md-top-up-account"
+                  value={topUpAccount}
+                  onChange={(e) => setTopUpAccount(e.target.value)}
+                >
+                  {Object.entries(CASH_ACCOUNT_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
 
             <div className="sf-md-field">
               <label htmlFor="sf-md-end-date">Ayrılış Tarihi</label>

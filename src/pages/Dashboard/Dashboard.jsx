@@ -1,5 +1,6 @@
 // The dashboard of the selected building, in three bands: context, status and actions. Each tile is the
-// single entry point of its page, so no action is listed twice. The account page is the one exception.
+// single entry point of its page, so no action is listed twice. The account page has no tile, the account menu
+// in the corner already opens it.
 
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
@@ -10,6 +11,7 @@ import { formatCurrency } from "@/utils/currency";
 import { formatMonthYear, getCurrentYear, getCurrentMonth } from "@/utils/date";
 import {
   FiAlertTriangle,
+  FiBookOpen,
   FiBriefcase,
   FiChevronRight,
   FiClock,
@@ -18,11 +20,9 @@ import {
   FiFileText,
   FiGrid,
   FiHome,
-  FiList,
   FiPlus,
   FiRefreshCw,
   FiTrendingUp,
-  FiUser,
   FiUsers,
 } from "react-icons/fi";
 
@@ -179,7 +179,7 @@ function Dashboard() {
 
       <section className="db-band" aria-label="İşlemler">
         <div className="db-group">
-          <div className="db-group-label">Daire İşlemleri</div>
+          <div className="db-group-label">Daireler</div>
           <div className="db-actions">
             <ActionTile icon={<FiEye />} label="Aidat Takibi" onClick={() => navigate("/dues")} />
             <ActionTile icon={<FiGrid />} label="Bina Görünümü" onClick={() => navigate("/building-view")} />
@@ -188,18 +188,11 @@ function Dashboard() {
         </div>
 
         <div className="db-group">
-          <div className="db-group-label">Diğer İşlemler</div>
+          <div className="db-group-label">Kasa ve Personel</div>
           <div className="db-actions">
-            <ActionTile icon={<FiList />} label="Gelir ve Gider" onClick={() => navigate("/transactions")} />
+            <ActionTile icon={<FiBookOpen />} label="Kasa Defteri" onClick={() => navigate("/transactions")} />
+            <ActionTile icon={<FiBriefcase />} label="Personel" onClick={() => navigate("/severance-fund")} />
             <ActionTile icon={<FiFileText />} label="Raporlar" onClick={() => navigate("/reports")} />
-            <ActionTile icon={<FiUser />} label="Profilim" onClick={() => navigate("/profile")} />
-          </div>
-        </div>
-
-        <div className="db-group">
-          <div className="db-group-label">Personel İşlemleri</div>
-          <div className="db-actions">
-            <ActionTile icon={<FiBriefcase />} label="Tazminat Kasası" onClick={() => navigate("/severance-fund")} />
           </div>
         </div>
       </section>

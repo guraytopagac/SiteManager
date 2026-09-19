@@ -10,6 +10,7 @@ const {
   isValidYear,
   validateBuildingScope,
   validateCancelReason,
+  validateCashAccount,
   validateId,
 } = require("../shared/validate");
 const financialService = require("./service");
@@ -17,7 +18,16 @@ const financialService = require("./service");
 // The dues category is valid in the schema but not here, because only recordPayment may write it. A
 // severance_fund expense is a transfer from the main cash into the severance fund, entered by hand.
 // Both lists match the schema CHECKs and the selects on the matching pages.
-const MANUAL_INCOME_CATEGORIES = ["rent", "parking", "utility_share", "special_fee", "penalty", "interest", "other"];
+const MANUAL_INCOME_CATEGORIES = [
+  "rent",
+  "parking",
+  "utility_share",
+  "special_fee",
+  "penalty",
+  "interest",
+  "advance_repayment",
+  "other",
+];
 const EXPENSE_CATEGORIES = [
   "electricity",
   "water",
@@ -30,6 +40,7 @@ const EXPENSE_CATEGORIES = [
   "cleaning",
   "staff",
   "staff_insurance",
+  "staff_advance",
   "severance_fund",
   "bank_fee",
   "building_insurance",
@@ -40,6 +51,9 @@ const EXPENSE_CATEGORIES = [
 ];
 
 const DOCUMENT_TYPES = ["income", "expense"];
+
+// The two categories that name an employee. The schema CHECKs tie employee_id to them.
+const EMPLOYEE_CATEGORIES = ["staff_advance", "advance_repayment"];
 
 // Trims and turns an empty description into null. The category gets no default, an empty one is rejected.
 function normalizeFinancialData(payload) {
@@ -104,6 +118,20 @@ function validateRecordFields(payload, allowedCategories) {
   return null;
 }
 
+// An advance or a repayment has to name the employee, every other record must not.
+function validateEmployeeLink(payload) {
+  if (payload.employee_id === undefined) {
+    payload.employee_id = null;
+  }
+  if (!EMPLOYEE_CATEGORIES.includes(payload.category)) {
+    return payload.employee_id === null ? null : fail("Bu kategoride çalışan seçilemez.");
+  }
+  if (payload.employee_id === null) {
+    return fail("Çalışan seçilmelidir.");
+  }
+  return validateId(payload.employee_id, "çalışan ID");
+}
+
 function validatePaymentMethod(value) {
   return PAYMENT_METHODS.includes(value) ? null : fail("Geçersiz ödeme şekli.");
 }
@@ -114,12 +142,42 @@ function validateIncomeFields(payload) {
   if (payload.category === "dues") {
     return fail("Aidat gelirleri elle eklenemez; daire üzerinden tahsil edilir.");
   }
-  return validateRecordFields(payload, MANUAL_INCOME_CATEGORIES) ?? validatePaymentMethod(payload.payment_method);
+  return (
+    validateRecordFields(payload, MANUAL_INCOME_CATEGORIES) ??
+    validateEmployeeLink(payload) ??
+    validatePaymentMethod(payload.payment_method)
+  );
 }
 
+// An expense says which account paid it. An income needs no account, its payment method decides.
 function validateExpenseFields(payload) {
   normalizeFinancialData(payload);
-  return validateRecordFields(payload, EXPENSE_CATEGORIES);
+  return (
+    validateRecordFields(payload, EXPENSE_CATEGORIES) ??
+    validateEmployeeLink(payload) ??
+    validateCashAccount(payload.account)
+  );
+}
+
+// A transfer between cash and bank. The limits match the CHECKs of cash_transfers.
+function validateTransferFields(payload) {
+  normalizeOptionalText(payload, "description");
+  if (!Number.isFinite(payload.amount) || payload.amount <= 0) {
+    return fail("Geçersiz tutar.");
+  }
+  if (payload.amount > 1000000) {
+    return fail("Tutar 1.000.000₺'yi aşamaz.");
+  }
+  if (!isValidDate(payload.date)) {
+    return fail("Geçersiz tarih.");
+  }
+  if (payload.date > trToday()) {
+    return fail("İleri bir tarih seçilemez.");
+  }
+  return (
+    validateCashAccount(payload.to_account) ??
+    validateOptionalText(payload.description, 300, "Açıklama en fazla 300 karakter olabilir.")
+  );
 }
 
 // Checks the optional period of getTransactions, where null means all time. Not the same as
@@ -210,6 +268,17 @@ function registerFinancialHandlers(ipcMain) {
     CH.FINANCIAL.CANCEL_EXPENSE,
     (payload) => validateCancelScope(payload) ?? validateCancelReason(payload),
     financialService.cancelExpense,
+  );
+  handle(
+    CH.FINANCIAL.ADD_TRANSFER,
+    (payload) =>
+      validateBuildingScope(payload) ?? validateId(payload.userId, "kullanıcı ID") ?? validateTransferFields(payload),
+    financialService.addTransfer,
+  );
+  handle(
+    CH.FINANCIAL.CANCEL_TRANSFER,
+    (payload) => validateCancelScope(payload) ?? validateCancelReason(payload),
+    financialService.cancelTransfer,
   );
   handle(CH.FINANCIAL.GET_DOCUMENT, validateDocumentScope, financialService.getDocument);
   handle(
