@@ -21,50 +21,81 @@ const DOWNLOAD_STALL_TIMEOUT_MS = 60000;
 const CHECK_TIMED_OUT_MESSAGE = `No response from the update server within ${CHECK_TIMEOUT_MS / 1000}s.`;
 const DOWNLOAD_STALLED_MESSAGE = `Update download made no progress for ${DOWNLOAD_STALL_TIMEOUT_MS / 1000}s.`;
 
+// The endings the event bridge below can report. The one that happened is an `outcome`.
+const UPDATE_OUTCOMES = { NONE: "none", DOWNLOADED: "downloaded", SKIPPED: "skipped" };
+
 let isUpdateFlowActive = false;
 
-// Startup flow, packaged builds only. It uses events and talks to the splash window.
-// Every path resolves, so a slow or missing connection cannot block startup.
-function runStartupUpdateFlow() {
+// Startup flow, packaged builds only. The bridge below reports an outcome and this decides what it
+// means, so every path here is plain sequential code that always returns.
+async function runStartupUpdateFlow() {
+  setSplashStatus("Güncellemeler kontrol ediliyor");
+
+  const outcome = await watchForUpdate();
+
+  if (outcome === UPDATE_OUTCOMES.SKIPPED) {
+    setSplashStatus("Güncelleme kontrol edilemedi, atlanıyor", true);
+    setSplashProgress(1, { mode: "error" });
+    return;
+  }
+  if (outcome !== UPDATE_OUTCOMES.DOWNLOADED) return;
+
+  setSplashProgress(-1);
+  sendToSplash("splash:update-downloaded", {});
+
+  if (!(await askToRestart())) return;
+
+  try {
+    autoUpdater.quitAndInstall(true, true);
+  } catch (err) {
+    // Startup has to go on, or the splash would stay open for good.
+    console.error("[Updater] Restart to install failed:", err);
+  }
+}
+
+// Turns the update events into a single outcome and streams the progress to the splash on the way.
+// Every path settles and unbinds, so a slow or missing connection cannot block startup.
+function watchForUpdate() {
   return new Promise((resolve) => {
-    let finished = false;
     let idleTimeout = null;
+    // Binding through the helper below is what guarantees every listener is also removed.
+    const listeners = [];
 
-    const continueStartup = () => {
-      if (finished) return;
-      finished = true;
+    const listen = (event, handler) => {
+      listeners.push([event, handler]);
+      autoUpdater.on(event, handler);
+    };
+
+    const finish = (outcome) => {
       clearTimeout(idleTimeout);
-      for (const [event, handler] of eventHandlers) {
-        autoUpdater.removeListener(event, handler);
-      }
-      resolve();
+      for (const [event, handler] of listeners) autoUpdater.removeListener(event, handler);
+      resolve(outcome);
     };
 
-    // Every give-up path lands here, so this is where the outcome gets logged. The error
-    // path passes no reason, because it has already logged the error object itself.
-    const skipUpdate = (reason) => {
-      if (reason) console.warn(`[Updater] ${reason} Skipping the update and continuing startup.`);
-      setSplashStatus("Güncelleme kontrol edilemedi, atlanıyor", true);
-      setSplashProgress(1, { mode: "error" });
-      continueStartup();
-    };
-
+    // Re-armed on every sign of life, so a download that keeps moving never trips it.
     const waitForProgress = (ms, giveUpReason) => {
       clearTimeout(idleTimeout);
-      idleTimeout = setTimeout(() => skipUpdate(giveUpReason), ms);
+      idleTimeout = setTimeout(() => {
+        console.warn(`[Updater] ${giveUpReason} Skipping the update and continuing startup.`);
+        finish(UPDATE_OUTCOMES.SKIPPED);
+      }, ms);
     };
 
-    const onError = (err) => {
+    listen("update-not-available", () => finish(UPDATE_OUTCOMES.NONE));
+    listen("update-downloaded", () => finish(UPDATE_OUTCOMES.DOWNLOADED));
+
+    // The error object is logged here, so the give-up path does not have to repeat it.
+    listen("error", (err) => {
       console.error("[Updater] Update error:", err);
-      skipUpdate();
-    };
+      finish(UPDATE_OUTCOMES.SKIPPED);
+    });
 
-    const onUpdateAvailable = (info) => {
+    listen("update-available", (info) => {
       waitForProgress(DOWNLOAD_STALL_TIMEOUT_MS, DOWNLOAD_STALLED_MESSAGE);
       sendToSplash("splash:update-available", { version: info.version });
-    };
+    });
 
-    const onDownloadProgress = (progress) => {
+    listen("download-progress", (progress) => {
       waitForProgress(DOWNLOAD_STALL_TIMEOUT_MS, DOWNLOAD_STALLED_MESSAGE);
       setSplashProgress(progress.percent / 100);
       sendToSplash("splash:download-progress", {
@@ -73,37 +104,7 @@ function runStartupUpdateFlow() {
         total: progress.total,
         bytesPerSecond: progress.bytesPerSecond,
       });
-    };
-
-    const onUpdateDownloaded = async () => {
-      clearTimeout(idleTimeout);
-      setSplashProgress(-1);
-      sendToSplash("splash:update-downloaded", {});
-
-      const userWantsRestart = await askToRestart();
-      if (userWantsRestart) {
-        try {
-          autoUpdater.quitAndInstall(true, true);
-          return;
-        } catch (err) {
-          // Startup has to go on, or the splash would stay open for good.
-          console.error("[Updater] Restart to install failed:", err);
-        }
-      }
-      continueStartup();
-    };
-
-    const eventHandlers = [
-      ["update-not-available", continueStartup],
-      ["error", onError],
-      ["update-available", onUpdateAvailable],
-      ["download-progress", onDownloadProgress],
-      ["update-downloaded", onUpdateDownloaded],
-    ];
-
-    for (const [event, handler] of eventHandlers) {
-      autoUpdater.on(event, handler);
-    }
+    });
 
     waitForProgress(CHECK_TIMEOUT_MS, CHECK_TIMED_OUT_MESSAGE);
     // The rejection is dropped on purpose. The same failure also arrives through the error event.
@@ -111,14 +112,12 @@ function runStartupUpdateFlow() {
   });
 }
 
+// The question is asked inside the splash window, so a splash that is already gone means no.
 function askToRestart() {
-  return new Promise((resolve) => {
-    const splash = getSplashWindow();
-    if (!splash || splash.isDestroyed()) {
-      resolve(false);
-      return;
-    }
+  const splash = getSplashWindow();
+  if (!splash || splash.isDestroyed()) return Promise.resolve(false);
 
+  return new Promise((resolve) => {
     const finish = (restart) => {
       ipcMain.removeListener("splash:restart-choice", onChoice);
       splash.removeListener("closed", onClosed);
@@ -132,60 +131,57 @@ function askToRestart() {
   });
 }
 
+// Every box in the menu flow is an OK-only notice, except the restart prompt.
+function notifyUpdate(parentWindow, { type = "info", title = "Güncelleme", message, detail }) {
+  return dialog.showMessageBox(parentWindow, { type, title, message, detail, buttons: ["Tamam"] });
+}
+
 // Menu flow. It uses no event listeners, because autoUpdater events are global and the
 // startup flow removes all of them.
 async function runOnDemandUpdateFlow(mainWindow) {
   if (isUpdateFlowActive) {
-    await dialog.showMessageBox(mainWindow, {
-      type: "info",
-      title: "Güncelleme",
+    await notifyUpdate(mainWindow, {
       message: "Güncelleme işlemi sürüyor.",
       detail: "Mevcut kontrol veya indirme tamamlanana kadar bekleyin.",
-      buttons: ["Tamam"],
     });
     return;
   }
 
   isUpdateFlowActive = true;
   let isDownloading = false;
+  let checkTimer = null;
 
   try {
-    // Our own timeout. The one in electron-updater waits for a socket event Electron never sends,
-    // so a stuck request would leave isUpdateFlowActive true for good.
+    // The limit is ours. The one in electron-updater waits for a socket event Electron never
+    // sends, so a stuck request would leave the flow flag true for good.
     const timedOut = new Promise((_resolve, reject) => {
-      setTimeout(() => reject(new Error(CHECK_TIMED_OUT_MESSAGE)), CHECK_TIMEOUT_MS);
+      checkTimer = setTimeout(() => reject(new Error(CHECK_TIMED_OUT_MESSAGE)), CHECK_TIMEOUT_MS);
     });
-
     const result = await Promise.race([autoUpdater.checkForUpdates(), timedOut]);
 
     if (!result?.downloadPromise) {
-      await dialog.showMessageBox(mainWindow, {
-        type: "info",
-        title: "Güncelleme",
+      await notifyUpdate(mainWindow, {
         message: "Uygulamanız güncel.",
         detail: `Kullandığınız sürüm (${app.getVersion()}) şu an mevcut olan en son sürüm.`,
-        buttons: ["Tamam"],
       });
       return;
     }
 
-    // Handled before the box opens and read after it closes. Otherwise a failure while the box is
-    // open would show up as an unhandled rejection.
     isDownloading = true;
-    const download = result.downloadPromise.then(
+    // The rejection handler goes on before the box opens. A failure that lands while a modal
+    // is open would otherwise surface as an unhandled rejection.
+    const downloadFailure = result.downloadPromise.then(
       () => null,
       (err) => err,
     );
 
-    await dialog.showMessageBox(mainWindow, {
-      type: "info",
+    await notifyUpdate(mainWindow, {
       title: "Güncelleme Bulundu",
       message: "Yeni sürüm indiriliyor.",
       detail: "İndirme tamamlandığında yeniden başlatma seçeneği sunulacak.",
-      buttons: ["Tamam"],
     });
 
-    const downloadError = await download;
+    const downloadError = await downloadFailure;
     if (downloadError) throw downloadError;
 
     const { response } = await dialog.showMessageBox(mainWindow, {
@@ -198,19 +194,16 @@ async function runOnDemandUpdateFlow(mainWindow) {
       cancelId: 1,
     });
 
-    if (response === 0) {
-      autoUpdater.quitAndInstall(true, true);
-    }
+    if (response === 0) autoUpdater.quitAndInstall(true, true);
   } catch (err) {
     console.error("[Updater] On-demand update check failed:", err);
-    await dialog.showMessageBox(mainWindow, {
+    await notifyUpdate(mainWindow, {
       type: "warning",
-      title: "Güncelleme",
       message: isDownloading ? "Güncelleme indirilemedi." : "Güncelleme kontrolü şu an kullanılamıyor.",
       detail: "İnternet bağlantınızı kontrol edip daha sonra tekrar deneyin.",
-      buttons: ["Tamam"],
     });
   } finally {
+    clearTimeout(checkTimer);
     isUpdateFlowActive = false;
   }
 }

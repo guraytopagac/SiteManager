@@ -5,7 +5,7 @@ import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./DuesModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import { showDialog } from "@/utils/dialog";
+import { showDialog } from "@/components/Dialog/dialogStore";
 import { MAX_DUE_AMOUNT } from "@/utils/constants";
 import { formatCurrency } from "@/utils/currency";
 
@@ -27,9 +27,9 @@ function BulkUpdateModal({ building, onClose, onSaved }) {
       : "Yeni tutar gelecek ayın tahakkukunda geçerli olacak.";
     const confirmed = await showDialog.confirm(
       "Toplu Aidat Güncelleme",
-      {
-        html: `Tüm dairelerin aidat tutarı <b>${formatCurrency(dueAmount)}</b> olarak güncellenecek. ${periodNote}`,
-      },
+      <>
+        Tüm dairelerin aidat tutarı <b>{formatCurrency(dueAmount)}</b> olarak güncellenecek. {periodNote}
+      </>,
       "Vazgeç",
       "Evet, Güncelle",
     );

@@ -9,6 +9,7 @@ const {
   validateCancelReason,
   validateCashAccount,
   validateId,
+  validateOpeningBalance,
 } = require("../shared/validate");
 const severanceService = require("./service");
 
@@ -26,17 +27,6 @@ function normalizeOptionalText(payload, field) {
 function validateNotFutureDate(value, message) {
   if (!isValidDate(value)) return fail(message);
   if (value > trToday()) return fail("İleri bir tarih seçilemez.");
-  return null;
-}
-
-// The limit matches the severance_funds CHECK.
-function validateFundFields(payload) {
-  if (!Number.isFinite(payload.openingBalance) || payload.openingBalance < 0) {
-    return fail("Geçersiz açılış bakiyesi.");
-  }
-  if (payload.openingBalance > 100000000) {
-    return fail("Açılış bakiyesi 100.000.000₺'yi aşamaz.");
-  }
   return null;
 }
 
@@ -118,12 +108,12 @@ function registerSeveranceHandlers(ipcMain) {
   handle(CH.SEVERANCE.GET_EMPLOYEES, validateBuildingScope, severanceService.getEmployees);
   handle(
     CH.SEVERANCE.SETUP_FUND,
-    (payload) => validateBuildingScope(payload) ?? validateFundFields(payload),
+    (payload) => validateBuildingScope(payload) ?? validateOpeningBalance(payload.openingBalance),
     severanceService.setupFund,
   );
   handle(
     CH.SEVERANCE.UPDATE_FUND,
-    (payload) => validateBuildingScope(payload) ?? validateFundFields(payload),
+    (payload) => validateBuildingScope(payload) ?? validateOpeningBalance(payload.openingBalance),
     severanceService.updateFund,
   );
   handle(

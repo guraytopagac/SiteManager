@@ -62,6 +62,12 @@ const CHANNELS = {
     SAVE_DOCUMENT_INFO: "financial:save-document-info",
   },
 
+  INVESTMENT: {
+    GET_OVERVIEW: "investment:get-overview",
+    SETUP_FUND: "investment:setup-fund",
+    UPDATE_FUND: "investment:update-fund",
+  },
+
   REPORT: {
     GET_DATA: "report:get-data",
     SAVE_FILE: "report:save-file",

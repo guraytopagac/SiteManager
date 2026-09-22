@@ -4,18 +4,13 @@
 import { useState } from "react";
 import { FiDatabase, FiDownload, FiEdit2, FiKey, FiLock, FiRefreshCw, FiRepeat, FiUserCheck } from "react-icons/fi";
 import "./Profile.css";
+import { showDialog } from "@/components/Dialog/dialogStore";
 import PageHeader from "@/components/PageHeader/PageHeader";
 import { useSession, setSession } from "@/hooks/useSession";
-import { showDialog } from "@/utils/dialog";
+import EmailModal from "./ProfileModals/EmailModal";
 import PasswordModal from "./ProfileModals/PasswordModal";
+import RecoveryCodeModal from "./ProfileModals/RecoveryCodeModal";
 import TransferModal from "./ProfileModals/TransferModal";
-
-function validateEmail(value) {
-  if (!value) return null;
-  if (value.length < 5 || value.length > 254) return "Geçerli bir e-posta adresi girin.";
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) return "Geçerli bir e-posta adresi girin.";
-  return null;
-}
 
 function initialsOf(name) {
   const words = name.trim().split(/\s+/);
@@ -47,6 +42,8 @@ function Profile() {
   const session = useSession();
 
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
+  const [isEmailOpen, setIsEmailOpen] = useState(false);
+  const [isRecoveryOpen, setIsRecoveryOpen] = useState(false);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [backupRunning, setBackupRunning] = useState(false);
 
@@ -68,53 +65,6 @@ function Profile() {
     }
 
     setBackupRunning(false);
-  };
-
-  const handleUpdateEmail = async () => {
-    const email = await showDialog.prompt({
-      title: "E-posta Adresi",
-      text: "Boş bırakırsanız kayıtlı adres kaldırılır.",
-      inputLabel: "E-posta (isteğe bağlı)",
-      inputPlaceholder: "ornek@site.com",
-      inputValue: session.email || "",
-      confirmButtonText: "Kaydet",
-      validate: validateEmail,
-    });
-    if (email === null) return;
-
-    try {
-      const res = await window.electronAPI.updateEmail({ userId: session.id, email });
-      if (res.success) {
-        setSession({ ...session, email: res.email });
-        showDialog.toast(res.message);
-      } else {
-        showDialog.error("Hata", res.message);
-      }
-    } catch (err) {
-      console.error("[Profile] updateEmail:", err);
-      showDialog.error("Hata", "E-posta adresi güncellenemedi.");
-    }
-  };
-
-  const handleRegenerateRecovery = async () => {
-    const password = await showDialog.passwordPrompt({
-      title: "Yeni Kurtarma Kodu Üret",
-      text: "Yeni kod üretildiğinde eski kod geçersiz olur.",
-      confirmButtonText: "Oluştur",
-    });
-    if (!password) return;
-
-    try {
-      const res = await window.electronAPI.regenerateRecoveryCode({ password });
-      if (res.success) {
-        await showDialog.regeneratedCode(res.recoveryCode);
-      } else {
-        showDialog.error("Hata", res.message);
-      }
-    } catch (err) {
-      console.error("[Profile] regenerateRecoveryCode:", err);
-      showDialog.error("Hata", "Yeni kurtarma kodu üretilemedi.");
-    }
   };
 
   return (
@@ -150,7 +100,7 @@ function Profile() {
               ) : (
                 <span className="pf-cell-value pf-cell-value--blank">Eklenmedi</span>
               )}
-              <button type="button" className="pf-inline-btn" onClick={handleUpdateEmail}>
+              <button type="button" className="pf-inline-btn" onClick={() => setIsEmailOpen(true)}>
                 {session.email ? "Düzenle" : "Ekle"}
               </button>
             </span>
@@ -174,7 +124,7 @@ function Profile() {
             text="Şifre unutulduğunda giriş ekranından bu kodla yeni şifre belirlenir. Yeni kod üretilince eskisi geçersiz olur."
             actionIcon={<FiRefreshCw />}
             actionLabel="Yeni Kod Üret"
-            onAction={handleRegenerateRecovery}
+            onAction={() => setIsRecoveryOpen(true)}
           />
           <ActionCard
             icon={<FiDatabase />}
@@ -200,6 +150,19 @@ function Profile() {
       {isPasswordOpen && (
         <PasswordModal userId={session.id} username={session.username} onClose={() => setIsPasswordOpen(false)} />
       )}
+      {isEmailOpen && (
+        <EmailModal
+          userId={session.id}
+          username={session.username}
+          email={session.email}
+          onClose={() => setIsEmailOpen(false)}
+          onSaved={(email) => {
+            setSession({ ...session, email });
+            setIsEmailOpen(false);
+          }}
+        />
+      )}
+      {isRecoveryOpen && <RecoveryCodeModal username={session.username} onClose={() => setIsRecoveryOpen(false)} />}
       {isTransferOpen && (
         <TransferModal userId={session.id} username={session.username} onClose={() => setIsTransferOpen(false)} />
       )}

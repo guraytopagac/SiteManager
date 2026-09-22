@@ -18,11 +18,6 @@ const NODE_ONLY_MODULES = ["electron", "fs", "path", "better-sqlite3"].map((name
   message: "The renderer has no Node access. Go through window.electronAPI.",
 }));
 
-const SWEETALERT = {
-  name: "sweetalert2",
-  message: "Dialogs go through src/utils/dialog.js.",
-};
-
 function restrictedImports(paths) {
   return ["error", { paths, patterns: ["node:*"] }];
 }
@@ -51,14 +46,6 @@ export default defineConfig([
     },
     rules: {
       ...commonRules,
-      "no-restricted-imports": restrictedImports([...NODE_ONLY_MODULES, SWEETALERT]),
-    },
-  },
-  {
-    // The one file allowed to pull in the dialog library. It gets its own block so the exemption does not
-    // quietly drop the Node restrictions along with it.
-    files: ["src/utils/dialog.js"],
-    rules: {
       "no-restricted-imports": restrictedImports(NODE_ONLY_MODULES),
     },
   },

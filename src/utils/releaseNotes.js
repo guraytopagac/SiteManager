@@ -1,11 +1,23 @@
-// Release notes for the footer dialog. Only the last three releases stay in the list: a new entry goes to the
+// Release notes for the footer modal. Only the last three releases stay in the list: a new entry goes to the
 // front and the oldest one is deleted. Each version string must match package.json.
-
-import { formatDate } from "./date";
 
 const RELEASE_NOTES_SEEN_KEY = "releaseNotesSeenVersion";
 
-const RELEASE_NOTES = [
+export const RELEASE_NOTES = [
+  {
+    version: "2.1.0",
+    date: "2026-09-22",
+    title: "Yatırım aidatı",
+    changes: [
+      "Yatırım Aidatı sayfası eklendi. Çatı, asansör, mantolama gibi büyük işler için aylık aidatın üstüne toplanan katkı daire bazında takip ediliyor.",
+      "Yatırım katkısının muhatabı dairenin malikidir. Liste, tahsilat penceresi ve makbuz o dönemin malikini gösteriyor.",
+      "Toplanan para ana kasaya giriyor. Fondan yapılan harcama gider kaydında Yatırım fonundan işaretiyle ayrılıyor ve fon bakiyesinden düşüyor.",
+      "Fonun aylık tutarı değiştirilebiliyor, toplama istenildiği zaman durdurulup yeniden başlatılabiliyor.",
+      "Rapor PDF'ine Yatırım Fonu bölümü eklendi. Dönem başı bakiye, fona giren, fondan harcanan ve dönem sonu bakiye gösteriliyor.",
+      "Profil sayfasının şifre değiştirme, kurtarma kodu, e-posta ve hesap devri işlemleri kendi pencerelerine taşındı.",
+      "Uygulama içindeki bilgi ve onay kutuları yenilendi. Başarı bildirimleri artık kutu yerine kısa süreli bildirim olarak gösteriliyor.",
+    ],
+  },
   {
     version: "2.0.3",
     date: "2026-09-19",
@@ -32,45 +44,10 @@ const RELEASE_NOTES = [
       "Tazminat kasası ölçümü panodan kaldırıldı.",
     ],
   },
-  {
-    version: "2.0.1",
-    date: "2026-09-17",
-    title: "Tazminat kasası",
-    changes: [
-      "Tazminat Kasası sayfası eklendi. Kapıcı, bahçıvan ve güvenlik gibi bina çalışanlarının kıdem tazminatı için ayrılan para takip edilebiliyor.",
-      "Belirlenen aylık tutar her ay ana kasadan tazminat kasasına gider olarak aktarılıyor. Kasa açılış bakiyesiyle başlatılabiliyor.",
-      "Çalışanlar işe giriş tarihi ve brüt ücretiyle kaydediliyor, her çalışan için tahmini tazminat hesaplanıyor.",
-      "Tazminat ödemesi kasadan yapılıyor. Kasa yetmezse eksik tutar ana kasadan ekleniyor, ödeme gerektiğinde iptal edilebiliyor.",
-      "Pano, Gelir ve Gider sayfası ve raporlar tazminat kasasını gösteriyor.",
-      "Uygulama kaldırıldığında bu bilgisayardaki uygulama verisi de siliniyor. Verilerin korunması için kaldırmadan önce yedek alınmalıdır.",
-    ],
-  },
 ];
 
-// The release-note-* classes live in global.css, because the owner of a style is the module that builds the
-// markup, not the component that opens the dialog.
-const renderRelease = (release, currentVersion) => {
-  const isCurrent = release.version === currentVersion;
-  return `
-      <section class="release-note">
-        <h3 class="release-note-version">
-          <span>
-            v${release.version}: ${release.title}
-            ${isCurrent ? '<span class="release-note-badge">Şu anki sürüm</span>' : ""}
-          </span>
-          <time class="release-note-date" datetime="${release.date}">${formatDate(release.date)}</time>
-        </h3>
-        <ul class="release-note-list">
-          ${release.changes.map((change) => `<li>${change}</li>`).join("")}
-        </ul>
-      </section>`;
-};
-
-export const renderReleaseNotesHtml = (currentVersion) =>
-  `<div class="release-notes">${RELEASE_NOTES.map((release) => renderRelease(release, currentVersion)).join("")}</div>`;
-
-// The running version has to exist in the list, so a build whose notes were not written yet never opens the
-// dialog on its own.
+// The running version has to exist in the list, so a build whose notes were not written yet never marks the
+// version button on its own.
 export const hasUnseenReleaseNotes = (version) =>
   RELEASE_NOTES.some((release) => release.version === version) &&
   localStorage.getItem(RELEASE_NOTES_SEEN_KEY) !== version;

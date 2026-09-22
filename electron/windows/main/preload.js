@@ -64,6 +64,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getDocument: (payload) => safeInvoke(CH.FINANCIAL.GET_DOCUMENT, payload),
   saveDocumentInfo: (payload) => safeInvoke(CH.FINANCIAL.SAVE_DOCUMENT_INFO, payload),
 
+  getInvestmentOverview: (payload) => safeInvoke(CH.INVESTMENT.GET_OVERVIEW, payload),
+  setupInvestmentFund: (payload) => safeInvoke(CH.INVESTMENT.SETUP_FUND, payload),
+  updateInvestmentFund: (payload) => safeInvoke(CH.INVESTMENT.UPDATE_FUND, payload),
+
   getReportData: (payload) => safeInvoke(CH.REPORT.GET_DATA, payload),
   saveReportFile: (payload) => safeInvoke(CH.REPORT.SAVE_FILE, payload),
 

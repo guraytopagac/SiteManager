@@ -43,6 +43,31 @@ function createSplashWindow() {
   splashWindow.on("closed", () => (splashWindow = null));
 }
 
+// Waits for did-finish-load instead of asking the renderer, because a send made before the
+// listeners exist is dropped without a trace.
+function waitForSplashReady() {
+  return new Promise((resolve) => {
+    const timeoutId = setTimeout(() => {
+      console.warn(
+        `[Splash] did-finish-load not received, continuing via fallback after ${SPLASH_READY_TIMEOUT_MS / 1000}s.`,
+      );
+      resolve();
+    }, SPLASH_READY_TIMEOUT_MS);
+
+    splashWindow.webContents.once("did-finish-load", () => {
+      clearTimeout(timeoutId);
+      resolve();
+    });
+  });
+}
+
+// The only way in. The two steps always belong together, and a status message sent between them
+// would be dropped.
+async function openSplash() {
+  createSplashWindow();
+  await waitForSplashReady();
+}
+
 // Exported as is, because autoUpdater sends the other splash:* channels itself.
 function sendToSplash(channel, data) {
   if (splashWindow && !splashWindow.isDestroyed()) {
@@ -86,9 +111,12 @@ function closeSplashAndShowMain(mainWindow) {
   }
 }
 
-// Waits for ready-to-show, with a short extra pause in dev. The fallback timer is the safety net.
-// Without it, a renderer that never loads would leave the user on a frozen splash.
+// Announces what it is waiting for, then waits for ready-to-show with a short extra pause in dev.
+// The fallback timer is the safety net. Without it, a renderer that never loads would leave the
+// user on a frozen splash.
 function closeSplashWhenMainReady(mainWindow, isDev) {
+  setSplashStatus("Uygulama yükleniyor");
+
   let isRevealed = false;
   let fallbackTimer = null;
 
@@ -113,32 +141,11 @@ function getSplashWindow() {
   return splashWindow;
 }
 
-// Runs before any status message. It waits for did-finish-load instead of asking the renderer,
-// because a send made before the listeners exist is dropped without a trace.
-function waitForSplashReady() {
-  return new Promise((resolve) => {
-    if (!splashWindow) return resolve();
-
-    const timeoutId = setTimeout(() => {
-      console.warn(
-        `[Splash] did-finish-load not received, continuing via fallback after ${SPLASH_READY_TIMEOUT_MS / 1000}s.`,
-      );
-      resolve();
-    }, SPLASH_READY_TIMEOUT_MS);
-
-    splashWindow.webContents.once("did-finish-load", () => {
-      clearTimeout(timeoutId);
-      resolve();
-    });
-  });
-}
-
 module.exports = {
-  createSplashWindow,
+  openSplash,
   sendToSplash,
   setSplashStatus,
   setSplashProgress,
   closeSplashWhenMainReady,
   getSplashWindow,
-  waitForSplashReady,
 };

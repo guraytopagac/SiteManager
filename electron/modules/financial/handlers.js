@@ -15,9 +15,15 @@ const {
 } = require("../shared/validate");
 const financialService = require("./service");
 
-// The dues category is valid in the schema but not here, because only recordPayment may write it. A
-// severance_fund expense is a transfer from the main cash into the severance fund, entered by hand.
+// The two collected categories are valid in the schema but not here, because only recordPayment writes
+// them: one for the monthly dues and one for the investment fund. A severance_fund expense is a transfer
+// from the main cash into the severance fund, entered by hand.
 // Both lists match the schema CHECKs and the selects on the matching pages.
+const COLLECTED_INCOME_CATEGORIES = ["dues", "investment_dues"];
+
+// Neither of these belongs to the investment fund: a severance transfer and a staff advance are each
+// booked against a ledger of their own. Same rule as the CHECK on expenses.
+const FUND_LOCKED_CATEGORIES = ["severance_fund", "staff_advance"];
 const MANUAL_INCOME_CATEGORIES = [
   "rent",
   "parking",
@@ -139,7 +145,7 @@ function validatePaymentMethod(value) {
 // A manual income has to say how it was paid, because its receipt has no payment row to read it from.
 function validateIncomeFields(payload) {
   normalizeFinancialData(payload);
-  if (payload.category === "dues") {
+  if (COLLECTED_INCOME_CATEGORIES.includes(payload.category)) {
     return fail("Aidat gelirleri elle eklenemez; daire üzerinden tahsil edilir.");
   }
   return (
@@ -149,13 +155,31 @@ function validateIncomeFields(payload) {
   );
 }
 
+// Whether the investment fund paid for the expense. The flag is optional because leaving it out means the
+// main cash paid, which is the ordinary case, and the service turns it into the 0 or 1 the column holds.
+function validateInvestmentFlag(payload) {
+  if (payload.is_investment == null) {
+    payload.is_investment = 0;
+    return null;
+  }
+  if (typeof payload.is_investment !== "boolean") {
+    return fail("Geçersiz yatırım fonu bilgisi.");
+  }
+  payload.is_investment = payload.is_investment ? 1 : 0;
+  if (payload.is_investment === 1 && FUND_LOCKED_CATEGORIES.includes(payload.category)) {
+    return fail("Bu kalem yatırım fonundan ödenemez.");
+  }
+  return null;
+}
+
 // An expense says which account paid it. An income needs no account, its payment method decides.
 function validateExpenseFields(payload) {
   normalizeFinancialData(payload);
   return (
     validateRecordFields(payload, EXPENSE_CATEGORIES) ??
     validateEmployeeLink(payload) ??
-    validateCashAccount(payload.account)
+    validateCashAccount(payload.account) ??
+    validateInvestmentFlag(payload)
   );
 }
 

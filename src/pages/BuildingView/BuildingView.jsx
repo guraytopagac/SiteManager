@@ -17,13 +17,13 @@ import {
 } from "react-icons/fi";
 import "./BuildingView.css";
 import DetailRow from "@/components/DetailRow/DetailRow";
+import { showDialog } from "@/components/Dialog/dialogStore";
 import PageHeader from "@/components/PageHeader/PageHeader";
 import PeriodSelector from "@/components/PeriodSelector/PeriodSelector";
 import AddModal from "./BuildingViewModals/AddModal";
 import EditModal from "./BuildingViewModals/EditModal";
 import { useIpcData } from "@/hooks/useIpcData";
 import { useCurrentBuilding } from "@/hooks/useSession";
-import { showDialog } from "@/utils/dialog";
 import {
   DUES_STATUS_LABELS,
   DUES_STATUS_ORDER,
@@ -57,7 +57,9 @@ function groupByFloor(units) {
 async function deleteApartmentFlow(unit, buildingId, onDone) {
   const confirmed = await showDialog.confirmDanger(
     "Daireyi Sil",
-    { html: `<b>Daire ${unit.apartment_no}</b> silinecek. Bu işlem geri alınamaz.` },
+    <>
+      <b>Daire {unit.apartment_no}</b> silinecek. Bu işlem geri alınamaz.
+    </>,
     "Vazgeç",
     "Evet, Sil",
   );
@@ -70,7 +72,9 @@ async function deleteApartmentFlow(unit, buildingId, onDone) {
     if (res.code === "HAS_UNPAID_DUES") {
       const forced = await showDialog.confirmDanger(
         "Ödenmemiş Aidat Var",
-        { html: `<b>Daire ${unit.apartment_no}</b> için <b>${formatCurrency(res.unpaidTotal)}</b> borç görünüyor.` },
+        <>
+          <b>Daire {unit.apartment_no}</b> için <b>{formatCurrency(res.unpaidTotal)}</b> borç görünüyor.
+        </>,
         "Vazgeç",
         "Yine de Sil",
       );

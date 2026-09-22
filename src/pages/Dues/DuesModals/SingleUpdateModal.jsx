@@ -5,7 +5,7 @@ import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./DuesModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import { showDialog } from "@/utils/dialog";
+import { showDialog } from "@/components/Dialog/dialogStore";
 import { MAX_DUE_AMOUNT } from "@/utils/constants";
 import { formatCurrency } from "@/utils/currency";
 import { searchKey } from "@/utils/searchKey";

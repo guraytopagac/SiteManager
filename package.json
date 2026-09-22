@@ -1,7 +1,7 @@
 {
   "name": "mavikent-site-yonetimi",
   "private": true,
-  "version": "2.0.3",
+  "version": "2.1.0",
   "description": "Mavikent Site Yönetimi Uygulaması",
   "author": "Güray Topağaç",
   "type": "commonjs",
@@ -84,7 +84,6 @@
     "react-dom": "^19.2.6",
     "react-icons": "^5.6.0",
     "react-router-dom": "^7.15.1",
-    "sweetalert2": "^11.26.25",
     "vite": "^8.0.12",
     "wait-on": "^8.0.3"
   }

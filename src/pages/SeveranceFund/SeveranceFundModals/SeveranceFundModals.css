@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: var(--swal-backdrop);
+  background: var(--overlay-backdrop);
 }
 
 .sf-md-box {

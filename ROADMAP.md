@@ -79,8 +79,8 @@
 ### V2. `index.html` CSP'sinde `style-src 'unsafe-inline'` 🟡
 
 - **Kanıt:** `grep -o "style-src[^;]*" index.html` → `style-src 'self' 'unsafe-inline'`
-- **Neden böyle:** SweetAlert2 ve React inline style üretir. Splash ve kılavuz pencerelerinin CSP'si bu izni **taşımaz** (`default-src 'none'` tabanlı), yani sapma yalnızca ana penceredir.
-- **Öneri:** Nonce ya da hash tabanlı politikaya geçiş, kullanılan kütüphanelerin inline style üretimi nedeniyle kolay değil. Ölçmeden dokunma, ölçüldüğünde sonucu bu maddenin yerine yaz.
+- **Neden böyle:** React inline style üretir ve uygulama geometriyi böyle geçirir. Splash ve kılavuz pencerelerinin CSP'si bu izni **taşımaz** (`default-src 'none'` tabanlı), yani sapma yalnızca ana penceredir.
+- **Öneri:** Nonce ya da hash tabanlı politikaya geçiş, React'in inline style prop'ları nedeniyle kolay değil. Ölçmeden dokunma, ölçüldüğünde sonucu bu maddenin yerine yaz.
 - **Doğrulama:** `grep -o "style-src[^;]*" index.html`
 
 ### V3. Renderer hatalarında yapısal stack trace yok 🟡
@@ -101,14 +101,6 @@
 - **Muaf olanlar (düzeltme gerekmez):** `AuthField.css` (floated etiket ve Caps Lock rozeti) ile `global.css` (sürüm rozeti). İkisinde çıkan sonuçlar belgeli istisnalardır.
 - **Gerçek borç:** Kalan sayfa CSS dosyaları. Yoğunlukları yukarıdaki komutla ölçülür, sayı buraya yazılmaz.
 - **Kural:** **Toplu sweep yapma.** Yoğun tablo sayfalarında satır yüksekliği ve sütun genişliği değişir, her sayfa iki temada gözle doğrulanmalıdır. Bir sayfaya dokunulduğunda o sayfa yükseltilir.
-
-### U2. SweetAlert diyaloglarının modale taşınması 🔴
-
-- **Karar:** Kullanıcı isteğiyle, form taşıyan diyalogların çoğu sayfa modallerine (`<Sayfa>Modals/`) taşınacak. İlk adım atıldı: şifre değiştirme ve hesap devri `ProfileModals/` altındadır.
-- **Neden:** SweetAlert girdi kutuları oturum ekranlarının alan dilini (`AuthField`, Caps Lock rozeti, göster/gizle, alan içi hata) taşımıyor. Birden fazla alan gerektiren akışlar da art arda diyaloglara bölünüyor, kullanıcı bir adımda vazgeçince önceki girdiler kayboluyor.
-- **Adaylar:** `showDialog.prompt` (e-posta), `showDialog.passwordPrompt` (kurtarma kodu üretimi) ve `showDialog.cancelReason` (ödeme, gelir ve gider iptali) çağrıları.
-- **Karar gerekiyor:** Hangi diyaloglar SweetAlert'te kalacak. Öneri: `toast`, `confirm`/`confirmDanger`, `error` ve bir kez gösterilen kod diyalogları (`codeDialog`) kalır, çünkü form taşımazlar. Taşıma bittiğinde `dialog.js`'ten kullanılmayan metodlar silinir ve `CLAUDE.md` §11'in dialog bölümü güncellenir.
-- **Doğrulama:** `grep -rn "showDialog\.\(prompt\|passwordPrompt\|cancelReason\)" src`
 
 ### U3. Binanın adresi tutulmuyor, belgelerde adres satırı yok 🟡
 

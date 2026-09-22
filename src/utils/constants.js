@@ -11,6 +11,10 @@ export const MAX_BUILDING_NAME_LENGTH = 60;
 // UI counterpart of the schema CHECK on apartments.due_amount, used as the max attribute of three amount inputs.
 export const MAX_DUE_AMOUNT = 50000;
 
+// The opening balance a fund can be started with. Same limit as the two opening_balance CHECKs, read by
+// the severance page and the investment page.
+export const MAX_OPENING_BALANCE = 100000000;
+
 // is_occupant travels as a form field rather than a separate state, so ResidentFieldset needs only form and
 // setForm from either modal.
 export const EMPTY_RESIDENT_FORM = {
@@ -114,6 +118,7 @@ export const ADVANCE_CATEGORIES = ["staff_advance", "advance_repayment"];
 // of a category.
 export const TRANSACTION_CATEGORY_LABELS = {
   dues: "Aidat",
+  investment_dues: "Yatırım Aidatı",
   [OTHER_CATEGORY.value]: OTHER_CATEGORY.label,
   severance_payout: "Tazminat Ödemesi",
   to_bank: "Bankaya Yatırma",
@@ -138,6 +143,10 @@ export const DUES_STATUS_ORDER = ["paid", "partial", "unpaid"];
 
 // Two separate facts, never one label: a role with no record at all versus a record whose name was left blank.
 export const EMPTY_RESIDENT_LABEL = "Sakin yok";
+
+// An apartment with no owner row for the month being viewed. Read by the investment list and by the
+// payment modal, which names the owner when it collects a fund contribution.
+export const EMPTY_OWNER_LABEL = "Malik yok";
 
 export const UNNAMED_RESIDENT_LABEL = "Adı girilmemiş";
 

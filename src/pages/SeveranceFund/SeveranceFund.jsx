@@ -15,6 +15,8 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import "./SeveranceFund.css";
+import CancelReasonModal from "@/components/SharedModals/CancelReasonModal/CancelReasonModal";
+import { showDialog } from "@/components/Dialog/dialogStore";
 import PageHeader from "@/components/PageHeader/PageHeader";
 import Pager from "@/components/Pager/Pager";
 import DetailModal from "./SeveranceFundModals/DetailModal";
@@ -23,9 +25,8 @@ import PayoutModal from "./SeveranceFundModals/PayoutModal";
 import { useIpcData } from "@/hooks/useIpcData";
 import { usePagination } from "@/hooks/usePagination";
 import { useCurrentBuilding, useSession } from "@/hooks/useSession";
-import { UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
+import { MAX_OPENING_BALANCE, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import { formatCurrency, formatSignedCurrency } from "@/utils/currency";
-import { showDialog } from "@/utils/dialog";
 import { formatDate } from "@/utils/date";
 
 // The payout column is not called an estimate, since a paid employee shows the paid amount there. The worked
@@ -34,8 +35,6 @@ const COLUMNS = ["Görev", "Çalışan", "İşe Giriş", "Brüt Ücret", "Açık
 
 // Five rows fit the panel of the tallest shell even when every row is a leaver with two lines.
 const PAGE_SIZE = 5;
-
-const MAX_OPENING_BALANCE = 100000000;
 
 // Title and icon of each movement type.
 const MOVEMENT_TYPES = {
@@ -343,33 +342,34 @@ function SeveranceFund() {
   const [editedEmployee, setEditedEmployee] = useState(null);
   const [payoutTarget, setPayoutTarget] = useState(null);
   const [detailTarget, setDetailTarget] = useState(null);
+  const [cancelTarget, setCancelTarget] = useState(null);
 
   const openEmployeeModal = (employee) => {
     setEditedEmployee(employee);
     setIsEmployeeModalOpen(true);
   };
 
-  const cancelPayout = async (movement) => {
-    const reason = await showDialog.cancelReason("Tazminat Ödemesini İptal Et");
-    if (!reason) return;
-
+  // Reports whether the payout was cancelled, so the reason box stays open when the service refuses.
+  const cancelPayout = async (reason) => {
     try {
       const res = await window.electronAPI.cancelSeverancePayout({
         buildingId: building.id,
-        payoutId: movement.id,
+        payoutId: cancelTarget.id,
         userId: session.id,
         reason,
       });
       if (res.success) {
         showDialog.toast(res.message);
+        setCancelTarget(null);
         reload();
-      } else {
-        showDialog.error("Hata", res.message);
+        return true;
       }
+      showDialog.error("Hata", res.message);
     } catch (err) {
       console.error("[SeveranceFund] cancelSeverancePayout:", err);
       showDialog.error("Hata", UNEXPECTED_ERROR_MESSAGE);
     }
+    return false;
   };
 
   const renderBody = () => {
@@ -390,7 +390,7 @@ function SeveranceFund() {
               onAdd={() => openEmployeeModal(null)}
               onDetail={setDetailTarget}
             />
-            {hasFund ? <MovementsPanel movements={overview.movements} onCancelPayout={cancelPayout} /> : null}
+            {hasFund ? <MovementsPanel movements={overview.movements} onCancelPayout={setCancelTarget} /> : null}
           </div>
         </section>
       </>
@@ -443,6 +443,15 @@ function SeveranceFund() {
             setPayoutTarget(null);
             reload();
           }}
+        />
+      )}
+
+      {cancelTarget && (
+        <CancelReasonModal
+          title="Tazminat Ödemesini İptal Et"
+          scope={`${cancelTarget.employee_name} · ${formatCurrency(cancelTarget.amount)}`}
+          onClose={() => setCancelTarget(null)}
+          onConfirm={cancelPayout}
         />
       )}
     </div>

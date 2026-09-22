@@ -1,7 +1,7 @@
 // The printed report, in a fixed order of sections. It never loads the application stylesheet and always
 // prints on light paper, so its colours are literal. Page breaks are declared in its CSS.
 
-import { DUES_STATUS_LABELS, EMPTY_RESIDENT_LABEL } from "@/utils/constants";
+import { CASH_ACCOUNT_LABELS, DUES_STATUS_LABELS, EMPTY_RESIDENT_LABEL } from "@/utils/constants";
 import { formatCurrency, formatSignedCurrency } from "@/utils/currency";
 import { formatDate, formatMonthYear, getCurrentMonth, getCurrentYear, getToday } from "@/utils/date";
 import { floorLabel } from "@/utils/floorLabel";
@@ -14,7 +14,11 @@ function buildFinanceRows(data) {
   ].sort((a, b) => a.date.localeCompare(b.date));
 }
 
+const ACCOUNT_KEYS = ["cash", "bank"];
+
 const balanceTone = (value) => (value < -0.005 ? "negative" : undefined);
+
+const sumAccounts = (part) => part.cash + part.bank;
 
 const cellOf = (cell) => (cell !== null && typeof cell === "object" ? cell : { content: cell });
 
@@ -107,17 +111,59 @@ function PdfCashSummary({ data }) {
           { label: "Dönem Sonu Kasa", value: formatCurrency(opening + net), tone: balanceTone(opening + net) },
         ];
 
-  // The whole ledger ends today, a dated range at its last day.
-  const { cash, bank } = data.closingAccounts;
-  const when = opening === null ? "Bugün" : "Dönem sonunda";
-
   return (
     <PdfSection title="Kasa Özeti" keepTogether>
       <PdfSummary cells={cells} />
-      <p className="note">
-        {when} kasanın {formatCurrency(cash)} tutarı elde nakit, {formatCurrency(bank)} tutarı bankadadır.
-      </p>
+      <PdfAccountFlow accounts={data.accounts} />
     </PdfSection>
+  );
+}
+
+// The same cash, followed account by account, so every row reads opening + income - expense + transfer =
+// closing. A transfer keeps its sign but no tone: it neither earns nor spends, it only moves the split, and
+// its column is dropped when the range holds none. The whole ledger has no opening, so that column goes too.
+function PdfAccountFlow({ accounts }) {
+  const { opening, income, expense, transfer, closing } = accounts;
+  const hasTransfers = transfer.cash !== 0 || transfer.bank !== 0;
+
+  const head = [
+    "Hesap",
+    ...(opening ? ["Dönem Başı"] : []),
+    "Giren",
+    "Çıkan",
+    ...(hasTransfers ? ["Aktarım"] : []),
+    opening ? "Dönem Sonu" : "Kasa",
+  ];
+
+  const cellsOf = (openingValue, incomeValue, expenseValue, transferValue, closingValue) => [
+    ...(opening ? [{ content: formatCurrency(openingValue), tone: balanceTone(openingValue) }] : []),
+    { content: formatSignedCurrency(incomeValue), tone: "positive" },
+    { content: formatSignedCurrency(-expenseValue), tone: "negative" },
+    ...(hasTransfers ? [formatSignedCurrency(transferValue)] : []),
+    { content: formatCurrency(closingValue), tone: balanceTone(closingValue) },
+  ];
+
+  return (
+    <PdfTable
+      className="flow"
+      head={head}
+      rows={ACCOUNT_KEYS.map((key) => [
+        CASH_ACCOUNT_LABELS[key],
+        ...cellsOf(opening?.[key], income[key], expense[key], transfer[key], closing[key]),
+      ])}
+      total={[
+        "Toplam",
+        ...cellsOf(
+          opening ? sumAccounts(opening) : null,
+          sumAccounts(income),
+          sumAccounts(expense),
+          sumAccounts(transfer),
+          sumAccounts(closing),
+        ),
+      ]}
+      right={head.map((_, index) => index).slice(1)}
+      widths={["30mm"]}
+    />
   );
 }
 
@@ -142,6 +188,36 @@ function PdfSeveranceSummary({ severance }) {
       <p className="note">
         Rapor tarihindeki tahmini tazminat yükümlülüğü {formatCurrency(severance.liability)}. Tazminat kasasına yapılan
         aktarımlar gider hareketlerinde yer alır, kasadan yapılan ödemeler ana kasanın toplamına girmez.
+      </p>
+    </PdfSection>
+  );
+}
+
+// Only printed when the building has a fund. The four cells follow the money, the note follows the charge:
+// a contribution raised this period may be paid in the next one, so the two lines answer different questions.
+function PdfInvestmentSummary({ investment }) {
+  const cells = [
+    ...(investment.startBalance === null
+      ? []
+      : [{ label: "Dönem Başı Bakiye", value: formatCurrency(investment.startBalance) }]),
+    { label: "Fona Giren", value: formatSignedCurrency(investment.inflow), tone: "positive" },
+    { label: "Fondan Harcanan", value: formatSignedCurrency(-investment.spent), tone: "negative" },
+    {
+      label: investment.startBalance === null ? "Fon Bakiyesi" : "Dönem Sonu Bakiye",
+      value: formatCurrency(investment.endBalance),
+    },
+  ];
+
+  return (
+    <PdfSection title="Yatırım Fonu" keepTogether>
+      <PdfSummary cells={cells} />
+      <p className="note">
+        {investment.accrued === 0
+          ? "Bu dönemde tahakkuk etmiş yatırım aidatı yok."
+          : `Bu dönemin yatırım aidatı tahakkuku ${formatCurrency(investment.accrued)}, tahsil edilen ${formatCurrency(
+              investment.collected,
+            )} (${formatRate(collectionRate(investment.accrued, investment.collected))}).`}{" "}
+        Yatırım aidatı tahsilatları gelir hareketlerinde, fondan yapılan harcamalar gider hareketlerinde yer alır.
       </p>
     </PdfSection>
   );
@@ -269,10 +345,11 @@ function PdfMovements({ data }) {
   return (
     <PdfSection title="Gelir ve Gider Hareketleri">
       <PdfTable
-        head={["Tarih", "Tür", "Kategori", "Açıklama", "Tutar"]}
+        head={["Tarih", "Tür", "Hesap", "Kategori", "Açıklama", "Tutar"]}
         rows={rows.map((row) => [
           formatDate(row.date),
           isIncome(row) ? "Gelir" : "Gider",
+          CASH_ACCOUNT_LABELS[row.account],
           categoryLabel(row.category),
           row.description || "—",
           {
@@ -280,10 +357,30 @@ function PdfMovements({ data }) {
             tone: isIncome(row) ? "positive" : "negative",
           },
         ])}
-        total={[{ content: "Net", colSpan: 4 }, formatSignedCurrency(data.totalIncome - data.totalExpense)]}
+        total={[{ content: "Net", colSpan: 5 }, formatSignedCurrency(data.totalIncome - data.totalExpense)]}
         empty="Bu dönemde gelir veya gider kaydı yok."
-        right={[4]}
-        widths={["30mm", "16mm", "30mm", null, "32mm"]}
+        right={[5]}
+        widths={["30mm", "15mm", "16mm", "28mm", null, "32mm"]}
+      />
+    </PdfSection>
+  );
+}
+
+// Only printed when the range holds a transfer. It carries no total: the two directions cancel out, so one
+// would state nothing. The amounts stay unsigned, the direction is in the label.
+function PdfTransfers({ transfers }) {
+  return (
+    <PdfSection title="Hesaplar Arası Aktarımlar">
+      <PdfTable
+        head={["Tarih", "İşlem", "Açıklama", "Tutar"]}
+        rows={transfers.map((row) => [
+          formatDate(row.date),
+          categoryLabel(row.category),
+          row.description || "—",
+          formatCurrency(row.amount),
+        ])}
+        right={[3]}
+        widths={["30mm", "36mm", null, "32mm"]}
       />
     </PdfSection>
   );
@@ -332,10 +429,12 @@ function ReportDocument({ data, year, title, buildingName, managerName }) {
       </header>
       <PdfCashSummary data={data} />
       {data.severance ? <PdfSeveranceSummary severance={data.severance} /> : null}
+      {data.investment ? <PdfInvestmentSummary investment={data.investment} /> : null}
       <PdfDuesSummary data={data} />
       <PdfDistribution data={data} />
       {data.monthlyDues ? <PdfMonthlyBreakdown data={data} year={year} /> : null}
       <PdfMovements data={data} />
+      {data.transfers.length > 0 ? <PdfTransfers transfers={data.transfers} /> : null}
       <PdfDuesTable data={data} />
       <div className="signature">
         <span className="signature-role">Site Yöneticisi</span>

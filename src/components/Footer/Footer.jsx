@@ -3,15 +3,16 @@
 
 import { useEffect, useState } from "react";
 import { FiSun, FiMoon } from "react-icons/fi";
+import ReleaseNotesModal from "@/components/SharedModals/ReleaseNotesModal/ReleaseNotesModal";
 import { toggleTheme, useTheme } from "@/hooks/useTheme";
-import { showDialog } from "@/utils/dialog";
 import { getCurrentYear } from "@/utils/date";
-import { hasUnseenReleaseNotes, markReleaseNotesSeen, renderReleaseNotesHtml } from "@/utils/releaseNotes";
+import { hasUnseenReleaseNotes, markReleaseNotesSeen } from "@/utils/releaseNotes";
 import "./Footer.css";
 
 function Footer() {
   const [version, setVersion] = useState(null);
   const [hasUnseen, setHasUnseen] = useState(false);
+  const [isNotesOpen, setIsNotesOpen] = useState(false);
   const theme = useTheme();
 
   useEffect(() => {
@@ -29,7 +30,7 @@ function Footer() {
   const showReleaseNotes = () => {
     markReleaseNotesSeen(version);
     setHasUnseen(false);
-    showDialog.releaseNotes(renderReleaseNotesHtml(version));
+    setIsNotesOpen(true);
   };
 
   return (
@@ -59,6 +60,7 @@ function Footer() {
           </button>
         )}
       </div>
+      {isNotesOpen && <ReleaseNotesModal version={version} onClose={() => setIsNotesOpen(false)} />}
     </footer>
   );
 }

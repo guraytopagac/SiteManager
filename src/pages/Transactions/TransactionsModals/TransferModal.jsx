@@ -7,7 +7,7 @@ import "./TransactionsModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { CASH_ACCOUNT_LABELS, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import { formatCurrency } from "@/utils/currency";
-import { showDialog } from "@/utils/dialog";
+import { showDialog } from "@/components/Dialog/dialogStore";
 import { getMinDate, getToday } from "@/utils/date";
 
 const MAX_AMOUNT = 1000000;

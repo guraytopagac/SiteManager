@@ -5,7 +5,7 @@ import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./BuildingViewModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import { showDialog } from "@/utils/dialog";
+import { showDialog } from "@/components/Dialog/dialogStore";
 import { APARTMENT_TYPES } from "@/utils/constants";
 
 function EditModal({ apartment, building, onClose, onSaved }) {

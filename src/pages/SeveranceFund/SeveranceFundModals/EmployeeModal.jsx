@@ -6,7 +6,7 @@ import { FiX } from "react-icons/fi";
 import "./SeveranceFundModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
-import { showDialog } from "@/utils/dialog";
+import { showDialog } from "@/components/Dialog/dialogStore";
 import { getToday } from "@/utils/date";
 
 const MAX_WAGE = 1000000;

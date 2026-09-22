@@ -2,6 +2,7 @@
 // the transactions page, and pays the staff's severance when they leave. Payouts are never deleted, a payout
 // is cancelled instead.
 const { getDb } = require("../../../database/db");
+const { accountBlocker } = require("../shared/cashAccounts");
 const { createDbErrorResolver } = require("../shared/dbError");
 const { daysBetween, withSeveranceEstimate, severanceBalance } = require("../shared/severanceFund");
 const { advanceBalances, hasAdvanceRecords } = require("../shared/staffAdvances");
@@ -309,7 +310,8 @@ function deleteEmployee(payload) {
 }
 
 // When the fund is short, the difference is moved from the main cash in the same transaction, so the
-// fund never goes below zero. The amounts are compared in whole cents.
+// fund never goes below zero. The account paying that difference must hold it, so a payout the main cash
+// cannot cover is refused whole. The amounts are compared in whole cents.
 function recordPayout(payload) {
   const {
     buildingId,
@@ -341,6 +343,10 @@ function recordPayout(payload) {
         message:
           "Kasada eksik kalan tutar 1.000.000₺'yi aşıyor. Önce Kasa Defteri sayfasından tazminat kasasına aktarım yapın.",
       };
+    }
+    if (topUpAmount > 0) {
+      const blocker = accountBlocker(buildingId, topUpAccount, topUpAmount);
+      if (blocker) return blocker;
     }
 
     const db = getDb();

@@ -8,13 +8,7 @@ const registerIpcHandlers = require("./ipc");
 // Must stay at the top of the file. This module calls electron-serve, which registers a
 // custom scheme, and that only works before the app is ready.
 const { createMainWindow, getMainWindow } = require("./windows/main");
-const {
-  createSplashWindow,
-  setSplashStatus,
-  closeSplashWhenMainReady,
-  getSplashWindow,
-  waitForSplashReady,
-} = require("./windows/splash");
+const { openSplash, setSplashStatus, closeSplashWhenMainReady, getSplashWindow } = require("./windows/splash");
 
 const isDev = !app.isPackaged;
 
@@ -48,23 +42,16 @@ async function startApp() {
   }
 
   try {
-    // This wait is required. A send made before did-finish-load is dropped without a trace.
-    createSplashWindow();
-    await waitForSplashReady();
+    await openSplash();
 
     // Runs before the migrations, so a release with a broken migration can still be updated.
-    if (!isDev) {
-      setSplashStatus("Güncellemeler kontrol ediliyor");
-      await runStartupUpdateFlow();
-    }
+    if (!isDev) await runStartupUpdateFlow();
 
     setSplashStatus("Veriler hazırlanıyor");
     runMigrations(db);
     registerIpcHandlers(ipcMain);
 
-    setSplashStatus("Uygulama yükleniyor");
-    const mainWindow = createMainWindow(isDev);
-    closeSplashWhenMainReady(mainWindow, isDev);
+    closeSplashWhenMainReady(createMainWindow(isDev), isDev);
   } catch (err) {
     console.error("[Main] Startup failed:", err);
     showFatalError(

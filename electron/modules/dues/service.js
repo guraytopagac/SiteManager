@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const { app, shell } = require("electron");
 const { getDb } = require("../../../database/db");
-const { accountForMethod } = require("../shared/cashAccounts");
+const { accountCancelBlocker, accountForMethod } = require("../shared/cashAccounts");
 const { createDbErrorResolver } = require("../shared/dbError");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
 const { RESIDENT_NAME_FOR_PERIOD_SQL, periodCutoff } = require("../shared/residentPeriod");
@@ -20,6 +20,21 @@ const COLUMN_LABELS = {
 };
 
 const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
+
+// The two charges a payment can settle. They differ in where the money is booked and in what the income row
+// says, everything else about taking a payment is the same.
+const DUE_TYPES = {
+  regular: {
+    category: "dues",
+    describe: (apartmentNo) => `Aidat Ödemesi - Daire ${apartmentNo}`,
+    missing: "Bu dönem için aidat tahakkuku bulunamadı.",
+  },
+  investment: {
+    category: "investment_dues",
+    describe: (apartmentNo) => `Yatırım Aidatı Ödemesi - Daire ${apartmentNo}`,
+    missing: "Bu dönemde yatırım aidatı tahakkuk etmemiş, ödeme alınamaz.",
+  },
+};
 
 // Money is compared in whole cents, so a floating point remainder cannot move a limit.
 function roundCents(value) {
@@ -61,7 +76,7 @@ function getDuesForMonth(payload) {
                 COALESCE(d.status, 'unpaid') AS status,
                 ${RESIDENT_NAME_FOR_PERIOD_SQL} AS resident_name
          FROM apartments a
-         LEFT JOIN dues d ON d.apartment_id = a.id AND d.year = ? AND d.month = ?
+         LEFT JOIN dues d ON d.apartment_id = a.id AND d.year = ? AND d.month = ? AND d.due_type = 'regular'
          WHERE a.building_id = ? AND a.is_active = 1 AND ${createdPeriodSql("a.")} <= ?
          ORDER BY (a.apartment_no GLOB '[0-9]*') DESC,
                   CAST(a.apartment_no AS INTEGER) ASC,
@@ -86,8 +101,11 @@ function getDuesForMonth(payload) {
   }
 }
 
+// Takes a payment against one apartment and month. dueType says which of the two charges it settles, and
+// the handler has already checked that it is one of them.
 function recordPayment(payload) {
-  const { apartmentId, buildingId, year, month, paymentData } = payload;
+  const { apartmentId, buildingId, year, month, dueType, paymentData } = payload;
+  const charge = DUE_TYPES[dueType];
   try {
     const apartment = getDb()
       .prepare(
@@ -101,15 +119,26 @@ function recordPayment(payload) {
       return { success: false, message: "Daire bu dönemde henüz kayıtlı değildi, ödeme alınamaz." };
     }
 
-    // Accrues only this apartment and month, not the whole history of the building. The amount is
-    // copied here too, so that rule lives in two places.
-    getDb()
-      .prepare(`INSERT OR IGNORE INTO dues (apartment_id, year, month, due_amount) VALUES (?, ?, ?, ?)`)
-      .run(apartmentId, year, month, apartment.due_amount);
+    // The monthly charge is accrued here when it is missing, for this apartment and month alone rather than
+    // for the whole history of the building. The amount is copied here too, so that rule lives in two places.
+    // An investment charge is never accrued here: a missing row means the fund was not collecting that
+    // month, which is an answer rather than a gap to fill.
+    if (dueType === "regular") {
+      getDb()
+        .prepare(
+          `INSERT OR IGNORE INTO dues (apartment_id, year, month, due_type, due_amount)
+           VALUES (?, ?, ?, 'regular', ?)`,
+        )
+        .run(apartmentId, year, month, apartment.due_amount);
+    }
 
     const due = getDb()
-      .prepare(`SELECT id, due_amount, paid_amount FROM dues WHERE apartment_id = ? AND year = ? AND month = ?`)
-      .get(apartmentId, year, month);
+      .prepare(
+        `SELECT id, due_amount, paid_amount FROM dues
+         WHERE apartment_id = ? AND year = ? AND month = ? AND due_type = ?`,
+      )
+      .get(apartmentId, year, month, dueType);
+    if (!due) return { success: false, message: charge.missing };
 
     const remainingCents = floorCents(due.due_amount - due.paid_amount);
     const amountCents = roundCents(paymentData.amount);
@@ -145,18 +174,19 @@ function recordPayment(payload) {
           collected_by,
         );
 
-      // The matching income row. This is the only place a dues income is written. Its account follows the
-      // payment method, the same rule a manual income uses.
+      // The matching income row. This is the only place a dues or investment income is written. Its account
+      // follows the payment method, the same rule a manual income uses.
       getDb()
         .prepare(
           `INSERT INTO incomes
              (amount, date, description, category, building_id, due_payment_id, account, created_at, updated_at)
-           VALUES (?, ?, ?, 'dues', ?, ?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
         )
         .run(
           amount,
           payment_date,
-          `Aidat Ödemesi - Daire ${apartment.apartment_no}`,
+          charge.describe(apartment.apartment_no),
+          charge.category,
           apartment.building_id,
           paymentId,
           accountForMethod(payment_method),
@@ -180,10 +210,11 @@ function cancelPayment(payload) {
   try {
     const payment = getDb()
       .prepare(
-        `SELECT dp.id, dp.due_id, dp.amount, d.due_amount
+        `SELECT dp.id, dp.due_id, dp.amount, d.due_amount, i.amount AS income_amount, i.account AS income_account
          FROM due_payments dp
          JOIN dues d ON dp.due_id = d.id
          JOIN apartments a ON d.apartment_id = a.id
+         LEFT JOIN incomes i ON i.due_payment_id = dp.id AND i.is_cancelled = 0
          WHERE dp.id = ? AND a.building_id = ?`,
       )
       .get(paymentId, buildingId);
@@ -193,6 +224,12 @@ function cancelPayment(payload) {
       .prepare(`SELECT id FROM payment_cancellations WHERE payment_id = ?`)
       .get(paymentId);
     if (alreadyCancelled) return { success: false, message: "Bu ödeme zaten iptal edilmiş." };
+
+    // Cancelling takes the collected money back out of the account it landed in, which may not go below zero.
+    if (payment.income_account) {
+      const blocker = accountCancelBlocker(buildingId, payment.income_account, payment.income_amount);
+      if (blocker) return blocker;
+    }
 
     getDb().transaction(() => {
       getDb()

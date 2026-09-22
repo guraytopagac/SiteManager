@@ -18,11 +18,11 @@ import {
 import "./Dues.css";
 import PageHeader from "@/components/PageHeader/PageHeader";
 import Pager from "@/components/Pager/Pager";
+import PaymentModal from "@/components/SharedModals/PaymentModal/PaymentModal";
 import PeriodSelector from "@/components/PeriodSelector/PeriodSelector";
 import SearchBox from "@/components/SearchBox/SearchBox";
 import UnitCell from "@/components/UnitCell/UnitCell";
 import BulkUpdateModal from "./DuesModals/BulkUpdateModal";
-import PaymentModal from "./DuesModals/PaymentModal";
 import SingleUpdateModal from "./DuesModals/SingleUpdateModal";
 import { useIpcData } from "@/hooks/useIpcData";
 import { usePagination } from "@/hooks/usePagination";
@@ -441,6 +441,7 @@ function Dues() {
       {selectedDue && (
         <PaymentModal
           due={selectedDue}
+          dueType="regular"
           year={selectedYear}
           month={selectedMonth}
           session={session}

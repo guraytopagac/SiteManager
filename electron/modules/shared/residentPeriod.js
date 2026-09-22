@@ -38,6 +38,8 @@ function residentForPeriodSql(column, roleFilter, rolePriority = "") {
 const RESIDENT_NAME_FOR_PERIOD_SQL = residentForPeriodSql("r.full_name", OCCUPANT_FILTER, OCCUPANT_PRIORITY);
 const RESIDENT_ID_FOR_PERIOD_SQL = residentForPeriodSql("r.id", OCCUPANT_FILTER, OCCUPANT_PRIORITY);
 const OWNER_ID_FOR_PERIOD_SQL = residentForPeriodSql("r.id", OWNER_FILTER);
+// The investment list asks for the owner by name, since the fund contribution is owed by the owner.
+const OWNER_NAME_FOR_PERIOD_SQL = residentForPeriodSql("r.full_name", OWNER_FILTER);
 
 // The same tenant-first rule without the month filter, for the one caller that asks about today. Summing
 // every occupant row would count an owner who rented the flat out next to the tenant.
@@ -51,6 +53,7 @@ const ACTIVE_OCCUPANT_ID_SQL = `(
 module.exports = {
   ACTIVE_OCCUPANT_ID_SQL,
   OWNER_ID_FOR_PERIOD_SQL,
+  OWNER_NAME_FOR_PERIOD_SQL,
   periodCutoff,
   RESIDENT_ID_FOR_PERIOD_SQL,
   RESIDENT_NAME_FOR_PERIOD_SQL,

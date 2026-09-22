@@ -2,7 +2,7 @@
 // overlay deliberately closes nothing, so Escape and the close button are the only two ways out.
 
 import { useEffect, useRef } from "react";
-import { isDialogOpen } from "@/utils/dialog";
+import { isDialogOpen } from "@/components/Dialog/dialogStore";
 
 export function useEscapeKey(onEscape) {
   // Read through a ref because the caller's close function is rebuilt on every keystroke, and binding the

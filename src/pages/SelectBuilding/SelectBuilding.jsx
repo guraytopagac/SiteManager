@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import "./SelectBuilding.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
+import { showDialog } from "@/components/Dialog/dialogStore";
 import { useIpcData } from "@/hooks/useIpcData";
 import { useSession, setCurrentBuilding, clearCurrentBuilding, useCurrentBuilding } from "@/hooks/useSession";
-import { showDialog } from "@/utils/dialog";
 import { MAX_BUILDING_NAME_LENGTH } from "@/utils/constants";
 import { FiHome, FiPlus, FiAlertCircle, FiChevronRight, FiEdit2, FiTrash2 } from "react-icons/fi";
 

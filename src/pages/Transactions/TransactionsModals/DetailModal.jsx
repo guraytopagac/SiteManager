@@ -1,8 +1,10 @@
 // Everything that can be done to one record. A cancelled record offers nothing, and an income created by a
-// collection can only be cancelled through that collection, so a note names the route instead. A payout
-// belongs to the fund page and offers nothing, a transfer into the fund can be cancelled but prints no voucher.
-// A transfer between cash and bank prints nothing either, it only moves money inside the main cash, and an
-// advance or its repayment names the employee and prints nothing as well.
+// collection can only be cancelled through that collection, so a note names the route instead: the dues page
+// for a monthly charge, the investment page for a fund contribution. An expense paid out of the investment
+// fund says so and is cancelled here like any other. A payout belongs to the fund page and offers nothing, a
+// transfer into the severance fund can be cancelled but prints no voucher. A transfer between cash and bank
+// prints nothing either, it only moves money inside the main cash, and an advance or its repayment names the
+// employee and prints nothing as well.
 
 import { FiX } from "react-icons/fi";
 import "./TransactionsModals.css";
@@ -32,8 +34,13 @@ const TYPES = {
   },
 };
 
-const DUES_INCOME_NOTE =
-  "Bu kayıt bir aidat tahsilatından oluşturuldu ve buradan iptal edilemez. Geri almak için Aidat Takibi sayfasından ilgili tahsilatı iptal edin.";
+const COLLECTED_INCOME_NOTES = {
+  dues: "Bu kayıt bir aidat tahsilatından oluşturuldu ve buradan iptal edilemez. Geri almak için Aidat Takibi sayfasından ilgili tahsilatı iptal edin.",
+  investment_dues:
+    "Bu kayıt bir yatırım aidatı tahsilatından oluşturuldu ve buradan iptal edilemez. Geri almak için Yatırım Aidatı sayfasından ilgili tahsilatı iptal edin.",
+};
+
+const INVESTMENT_EXPENSE_NOTE = "Bu gider yatırım fonundan ödendi ve fonun bakiyesinden düşülür.";
 
 const FUND_TRANSFER_NOTE = "Bu kayıt ana kasadan tazminat kasasına yapılan bir aktarımdır.";
 
@@ -43,7 +50,8 @@ const FUND_PAYOUT_NOTE =
 function DetailModal({ transaction, description, building, onClose, onCreateDocument, onCancel }) {
   const text = TYPES[transaction.type];
   const isCancelled = Boolean(transaction.is_cancelled);
-  const isDuesIncome = transaction.category === "dues";
+  const collectedNote = COLLECTED_INCOME_NOTES[transaction.category];
+  const isInvestmentExpense = transaction.is_investment === 1;
   const isFundPayout = transaction.type === "severance_payout";
   const isFundTransfer = transaction.category === "severance_fund";
   const isAdvance = ADVANCE_CATEGORIES.includes(transaction.category);
@@ -78,13 +86,15 @@ function DetailModal({ transaction, description, building, onClose, onCreateDocu
             />
             <DetailRow label="Tutar" value={formatCurrency(transaction.amount)} />
             {hasAccount ? <DetailRow label="Ödeme Tipi" value={CASH_ACCOUNT_LABELS[transaction.account]} /> : null}
+            {isInvestmentExpense ? <DetailRow label="Ödeme Kaynağı" value="Yatırım fonu" /> : null}
             {isAdvance ? <DetailRow label="Çalışan" value={transaction.employee_name} /> : null}
             <DetailRow label={transaction.type === "severance_payout" ? "Çalışan" : "Açıklama"} value={description} />
             {isCancelled ? <DetailRow label="İptal Tarihi" value={formatDate(transaction.cancelled_at)} /> : null}
             {isCancelled ? <DetailRow label="İptal Nedeni" value={transaction.cancel_reason} /> : null}
           </dl>
 
-          {isDuesIncome && !isCancelled ? <p className="tx-detail-note">{DUES_INCOME_NOTE}</p> : null}
+          {collectedNote && !isCancelled ? <p className="tx-detail-note">{collectedNote}</p> : null}
+          {isInvestmentExpense && !isCancelled ? <p className="tx-detail-note">{INVESTMENT_EXPENSE_NOTE}</p> : null}
           {isFundPayout && !isCancelled ? <p className="tx-detail-note">{FUND_PAYOUT_NOTE}</p> : null}
           {isFundTransfer && !isCancelled ? <p className="tx-detail-note">{FUND_TRANSFER_NOTE}</p> : null}
 
@@ -95,7 +105,7 @@ function DetailModal({ transaction, description, building, onClose, onCreateDocu
                   {text.documentLabel}
                 </button>
               ) : null}
-              {isDuesIncome ? null : (
+              {collectedNote ? null : (
                 <button type="button" className="tx-md-btn-danger" onClick={onCancel}>
                   {isFundTransfer ? "Aktarımı İptal Et" : text.cancelLabel}
                 </button>

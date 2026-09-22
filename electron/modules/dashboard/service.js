@@ -4,7 +4,9 @@ const { getDb } = require("../../../database/db");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
 const { trYearMonth } = require("../shared/trTime");
 
-// Counts active apartments only, so the debt of an inactive apartment stays out of the cards.
+// Counts active apartments only, so the debt of an inactive apartment stays out of the cards, and the
+// monthly charge only: the investment fund is read on its own page and never moves these two cards.
+// Cash is the exception and covers both, since a fund contribution really does land in the main cash.
 function fetchStats(buildingId, year, month) {
   const { totalIncome, totalExpense } = getDb()
     .prepare(
@@ -23,7 +25,7 @@ function fetchStats(buildingId, year, month) {
                            THEN d.due_amount - d.paid_amount END), 0) AS totalOverdue
        FROM dues d
        JOIN apartments a ON d.apartment_id = a.id
-       WHERE a.building_id = ? AND a.is_active = 1`,
+       WHERE a.building_id = ? AND a.is_active = 1 AND d.due_type = 'regular'`,
     )
     .get(year, month, year, month, year, year, month, buildingId);
 

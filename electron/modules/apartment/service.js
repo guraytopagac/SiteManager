@@ -2,6 +2,7 @@
 const { getDb } = require("../../../database/db");
 const { createDbErrorResolver } = require("../shared/dbError");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
+const { ensureInvestmentDues } = require("../shared/investmentFund");
 const { TR_NOW_SQL, trToday, trYearMonth } = require("../shared/trTime");
 
 // Only apartment_no can produce a named message, because it is the one column in a UNIQUE index.
@@ -70,7 +71,10 @@ function addApartment(payload) {
 
 function hasPaymentThisMonth(apartmentId, year, month) {
   return !!getDb()
-    .prepare(`SELECT 1 FROM dues WHERE apartment_id = ? AND year = ? AND month = ? AND paid_amount > 0`)
+    .prepare(
+      `SELECT 1 FROM dues
+       WHERE apartment_id = ? AND year = ? AND month = ? AND due_type = 'regular' AND paid_amount > 0`,
+    )
     .get(apartmentId, year, month);
 }
 
@@ -107,7 +111,7 @@ function updateApartment(payload) {
       const accrued = getDb()
         .prepare(
           `UPDATE dues SET due_amount = ?, updated_at = ${TR_NOW_SQL}
-           WHERE apartment_id = ? AND year = ? AND month = ? AND paid_amount = 0`,
+           WHERE apartment_id = ? AND year = ? AND month = ? AND due_type = 'regular' AND paid_amount = 0`,
         )
         .run(dueAmount, payload.id, year, month).changes;
 
@@ -165,8 +169,10 @@ function deleteApartment(payload) {
     }
 
     if (payload.force !== true) {
-      // Accrue first, or a month that has not been created yet would look paid.
+      // Accrue first, or a month that has not been created yet would look paid. Both charges are
+      // weighed: a fund contribution is a debt of the apartment just as the monthly dues are.
       ensureMonthlyDues(payload.buildingId);
+      ensureInvestmentDues(payload.buildingId);
 
       const { unpaidTotal } = db
         .prepare(
@@ -211,7 +217,8 @@ function countPaidThisMonth(buildingId, year, month) {
     .prepare(
       `SELECT COUNT(*) AS total FROM dues d
        JOIN apartments a ON a.id = d.apartment_id
-       WHERE a.building_id = ? AND a.is_active = 1 AND d.year = ? AND d.month = ? AND d.paid_amount > 0`,
+       WHERE a.building_id = ? AND a.is_active = 1 AND d.due_type = 'regular'
+         AND d.year = ? AND d.month = ? AND d.paid_amount > 0`,
     )
     .get(buildingId, year, month).total;
 }
@@ -241,7 +248,7 @@ function bulkUpdateDueAmount(payload) {
       getDb()
         .prepare(
           `UPDATE dues SET due_amount = ?, updated_at = ${TR_NOW_SQL}
-           WHERE year = ? AND month = ? AND paid_amount = 0
+           WHERE year = ? AND month = ? AND due_type = 'regular' AND paid_amount = 0
              AND apartment_id IN (SELECT id FROM apartments WHERE building_id = ? AND is_active = 1)`,
         )
         .run(payload.amount, year, month, payload.buildingId);

@@ -11,7 +11,7 @@ import { documentFileName, receiptDescription, receiptPayerName, voucherDescript
 import { PAYMENT_METHOD_LABELS, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import { formatCurrency, formatCurrencyInWords } from "@/utils/currency";
 import { formatDate } from "@/utils/date";
-import { showDialog } from "@/utils/dialog";
+import { showDialog } from "@/components/Dialog/dialogStore";
 
 const TYPES = {
   income: {

@@ -17,7 +17,9 @@ import {
   FiTrendingUp,
 } from "react-icons/fi";
 import "./Transactions.css";
-import DocumentModal from "@/components/DocumentModal/DocumentModal";
+import CancelReasonModal from "@/components/SharedModals/CancelReasonModal/CancelReasonModal";
+import { showDialog } from "@/components/Dialog/dialogStore";
+import DocumentModal from "@/components/SharedModals/DocumentModal/DocumentModal";
 import PageHeader from "@/components/PageHeader/PageHeader";
 import Pager from "@/components/Pager/Pager";
 import PeriodSelector from "@/components/PeriodSelector/PeriodSelector";
@@ -30,7 +32,6 @@ import { usePagination } from "@/hooks/usePagination";
 import { useCurrentBuilding, useSession } from "@/hooks/useSession";
 import { CASH_ACCOUNT_LABELS, TRANSACTION_CATEGORY_LABELS, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import { formatCurrency, formatSignedCurrency } from "@/utils/currency";
-import { showDialog } from "@/utils/dialog";
 import { clampMonth, formatDate, formatMonthYear, getCurrentMonth, getCurrentYear, toPeriod } from "@/utils/date";
 import { searchKey } from "@/utils/searchKey";
 
@@ -152,6 +153,9 @@ function TransactionRow({ transaction, onOpen }) {
       <td className="tx-desc" title={description || undefined}>
         {transaction.is_cancelled ? <span className="tx-cancelled-tag">İptal edildi ·</span> : null}
         {isFundPayout && !transaction.is_cancelled ? <span className="tx-fund-tag">Tazminat kasasından ·</span> : null}
+        {transaction.is_investment === 1 && !transaction.is_cancelled ? (
+          <span className="tx-investment-tag">Yatırım fonundan ·</span>
+        ) : null}
         {description || "—"}
       </td>
       <td className={`tx-amount tx-amount--${transaction.type}`}>{rowAmount(transaction)}</td>
@@ -353,6 +357,7 @@ function Transactions() {
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [detailTarget, setDetailTarget] = useState(null);
   const [documentTarget, setDocumentTarget] = useState(null);
+  const [cancelTarget, setCancelTarget] = useState(null);
 
   const { transactions, totals, balances, start, errorMessage, loadTransactions } = useTransactions(
     building.id,
@@ -379,21 +384,20 @@ function Transactions() {
   // quiet one in the middle look alike. The first recorded month tells them apart.
   const isBeforeStart = Boolean(start) && toPeriod(selectedYear, selectedMonth) < toPeriod(start.year, start.month);
 
-  // Reports whether the record was cancelled, so the detail modal closes only on success.
-  const handleCancel = async (transaction) => {
-    const cancelText = CANCEL_TEXT[transaction.type];
-    const reason = await showDialog.cancelReason(cancelText.title);
-    if (!reason) return false;
-
+  // Reports whether the record was cancelled, so the reason box stays open when the service refuses and the
+  // detail behind it closes only on success.
+  const cancelTransaction = async (reason) => {
     try {
-      const res = await window.electronAPI[cancelText.method]({
-        id: transaction.id,
+      const res = await window.electronAPI[CANCEL_TEXT[cancelTarget.type].method]({
+        id: cancelTarget.id,
         buildingId: building.id,
         userId: session.id,
         reason,
       });
       if (res.success) {
         showDialog.toast(res.message);
+        setCancelTarget(null);
+        setDetailTarget(null);
         loadTransactions();
         return true;
       }
@@ -403,12 +407,6 @@ function Transactions() {
       showDialog.error("Hata", UNEXPECTED_ERROR_MESSAGE);
     }
     return false;
-  };
-
-  const cancelFromDetail = async () => {
-    if (await handleCancel(detailTarget)) {
-      setDetailTarget(null);
-    }
   };
 
   const openDocument = () => {
@@ -543,6 +541,7 @@ function Transactions() {
         <TransactionModal
           type={addType}
           building={building}
+          balances={balances}
           onClose={() => setAddType(null)}
           onSaved={() => {
             setAddType(null);
@@ -569,9 +568,12 @@ function Transactions() {
           transaction={detailTarget}
           description={detailTarget.description ?? advanceSentence(detailTarget)}
           building={building}
-          onClose={() => setDetailTarget(null)}
+          onClose={() => {
+            // The reason box sits on top, and one Escape must close only that layer.
+            if (!cancelTarget) setDetailTarget(null);
+          }}
           onCreateDocument={openDocument}
-          onCancel={cancelFromDetail}
+          onCancel={() => setCancelTarget(detailTarget)}
         />
       )}
 
@@ -581,6 +583,15 @@ function Transactions() {
           building={building}
           onClose={() => setDocumentTarget(null)}
           onSaved={() => setDocumentTarget(null)}
+        />
+      )}
+
+      {cancelTarget && (
+        <CancelReasonModal
+          title={CANCEL_TEXT[cancelTarget.type].title}
+          scope={`${TRANSACTION_CATEGORY_LABELS[cancelTarget.category] ?? cancelTarget.category} · ${formatCurrency(cancelTarget.amount)}`}
+          onClose={() => setCancelTarget(null)}
+          onConfirm={cancelTransaction}
         />
       )}
     </div>

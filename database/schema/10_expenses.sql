@@ -32,9 +32,16 @@ CREATE TABLE IF NOT EXISTS expenses (
   -- The part of the main cash the money was paid from. The default only serves the column added to an
   -- existing table.
   account TEXT NOT NULL DEFAULT 'cash' CHECK(account IN ('cash', 'bank')),
+  -- Marks an expense paid out of the investment fund. It does not change the category, a roof job stays a
+  -- maintenance expense: the flag only says which pot the money came from. The default only serves the
+  -- column added to an existing table.
+  is_investment INTEGER NOT NULL DEFAULT 0 CHECK(is_investment IN (0, 1)),
   -- The employee an advance was given to. Set for that category and for no other.
   employee_id INTEGER,
   CHECK((category = 'staff_advance') = (employee_id IS NOT NULL)),
+  -- Neither a transfer into the severance fund nor a staff advance comes out of the investment fund,
+  -- both belong to a ledger of their own.
+  CHECK(is_investment = 0 OR category NOT IN ('severance_fund', 'staff_advance')),
   -- The four cancel fields are either all NULL or all filled.
   CHECK(
     (is_cancelled = 0 AND cancelled_at IS NULL AND cancel_reason IS NULL AND cancelled_by IS NULL) OR

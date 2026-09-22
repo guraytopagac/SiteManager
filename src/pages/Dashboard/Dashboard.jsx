@@ -20,6 +20,7 @@ import {
   FiFileText,
   FiGrid,
   FiHome,
+  FiPieChart,
   FiPlus,
   FiRefreshCw,
   FiTrendingUp,
@@ -184,6 +185,7 @@ function Dashboard() {
             <ActionTile icon={<FiEye />} label="Aidat Takibi" onClick={() => navigate("/dues")} />
             <ActionTile icon={<FiGrid />} label="Bina Görünümü" onClick={() => navigate("/building-view")} />
             <ActionTile icon={<FiUsers />} label="Sakinler" onClick={() => navigate("/residents")} />
+            <ActionTile icon={<FiPieChart />} label="Yatırım Aidatı" onClick={() => navigate("/investment")} />
           </div>
         </div>
 

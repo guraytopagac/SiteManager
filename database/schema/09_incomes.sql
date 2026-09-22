@@ -11,10 +11,12 @@ CREATE TABLE IF NOT EXISTS incomes (
     date <= '2100-12-31'
   ),
   description TEXT CHECK(description IS NULL OR (length(trim(description)) > 0 AND length(description) <= 500)),
-  -- The dues category is kept for recordPayment. The handler rejects it on manual entry.
+  -- The dues and investment_dues categories are written only by recordPayment, one for the monthly dues
+  -- and one for the investment fund. The handler rejects both on manual entry.
   category TEXT NOT NULL DEFAULT 'other' CHECK(
     category IN (
-      'dues', 'rent', 'parking', 'utility_share', 'special_fee', 'penalty', 'interest', 'advance_repayment', 'other'
+      'dues', 'investment_dues', 'rent', 'parking', 'utility_share', 'special_fee', 'penalty', 'interest',
+      'advance_repayment', 'other'
     )
   ),
   is_cancelled INTEGER NOT NULL DEFAULT 0 CHECK(is_cancelled IN (0, 1)),

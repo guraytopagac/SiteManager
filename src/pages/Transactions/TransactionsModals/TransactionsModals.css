@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: var(--swal-backdrop);
+  background: var(--overlay-backdrop);
 }
 
 .tx-md-box {
@@ -403,4 +403,69 @@
 .tx-md-submit {
   width: 100%;
   margin-top: 22px;
+}
+
+.tx-switch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 11px;
+  background: var(--background-color-1);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.tx-switch--on {
+  border-color: var(--button-color);
+  background: var(--accent-tint);
+  color: var(--button-color);
+}
+
+.tx-switch:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.tx-switch:focus-visible {
+  outline: 3px solid var(--accent-focus-ring);
+  outline-offset: 2px;
+}
+
+.tx-switch-track {
+  display: block;
+  flex-shrink: 0;
+  width: 42px;
+  height: 24px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--border-default);
+  transition: background-color 0.15s ease;
+}
+
+.tx-switch--on .tx-switch-track {
+  background: var(--button-color);
+}
+
+.tx-switch-knob {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--card-background-1);
+  transition: transform 0.15s ease;
+}
+
+.tx-switch--on .tx-switch-knob {
+  transform: translateX(18px);
 }

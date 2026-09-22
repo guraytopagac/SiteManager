@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiChevronDown, FiLogOut, FiRepeat, FiUser } from "react-icons/fi";
 import { useSession, clearSession } from "@/hooks/useSession";
-import { showDialog } from "@/utils/dialog";
+import { showDialog } from "@/components/Dialog/dialogStore";
 import "./AccountMenu.css";
 
 function MenuItem({ icon: Icon, label, danger, onClick }) {
@@ -23,7 +23,8 @@ function MenuItem({ icon: Icon, label, danger, onClick }) {
 
 function AccountMenu() {
   const navigate = useNavigate();
-  const session = useSession();
+  // No fallback chain: the column is NOT NULL and this renders only under the authenticated guard.
+  const { managerName } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef(null);
   const triggerRef = useRef(null);
@@ -63,9 +64,6 @@ function AccountMenu() {
     navigate(path, options);
   };
 
-  // No fallback chain: the column is NOT NULL and this renders only under the authenticated guard.
-  const label = session.managerName;
-
   return (
     <div className="account-menu" ref={wrapperRef}>
       <button
@@ -79,8 +77,8 @@ function AccountMenu() {
         <span className="account-menu-avatar">
           <FiUser size={16} />
         </span>
-        <span className="account-menu-label" title={label}>
-          {label}
+        <span className="account-menu-label" title={managerName}>
+          {managerName}
         </span>
         <FiChevronDown className={`account-menu-caret${isOpen ? " account-menu-caret--open" : ""}`} size={16} />
       </button>

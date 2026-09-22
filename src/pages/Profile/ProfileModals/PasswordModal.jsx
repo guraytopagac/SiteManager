@@ -5,10 +5,10 @@ import { useRef, useState } from "react";
 import { FiKey, FiLock, FiX } from "react-icons/fi";
 import "./ProfileModals.css";
 import AuthField from "@/components/AuthField/AuthField";
+import { showDialog } from "@/components/Dialog/dialogStore";
 import PasswordStrength from "@/components/PasswordStrength/PasswordStrength";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
-import { showDialog } from "@/utils/dialog";
 import { MIN_PASSWORD_LENGTH } from "@/utils/passwordPolicy";
 
 const ERROR_ID = "password-modal-error";

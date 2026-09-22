@@ -1,8 +1,9 @@
 // Income and expense rules. A record is never deleted, only cancelled.
 const { getDb } = require("../../../database/db");
-const { accountForMethod, cashBalances } = require("../shared/cashAccounts");
+const { accountBlocker, accountCancelBlocker, accountForMethod, cashBalances } = require("../shared/cashAccounts");
 const { createDbErrorResolver } = require("../shared/dbError");
-const { periodCutoff, RESIDENT_NAME_FOR_PERIOD_SQL } = require("../shared/residentPeriod");
+const { investmentBalance } = require("../shared/investmentFund");
+const { OWNER_NAME_FOR_PERIOD_SQL, periodCutoff, RESIDENT_NAME_FOR_PERIOD_SQL } = require("../shared/residentPeriod");
 const { severanceBalance } = require("../shared/severanceFund");
 const { advanceBalance } = require("../shared/staffAdvances");
 const { TR_NOW_SQL, monthBounds } = require("../shared/trTime");
@@ -19,17 +20,27 @@ const COLUMN_LABELS = {
 // different columns before cancelling. A transfer a payout points at is that payout's top-up. A transfer
 // between the two accounts of the main cash has neither. An advance carries the employee it was given to.
 const CANCEL_SELECT = {
-  cash_transfers: "is_cancelled",
-  incomes: "is_cancelled, due_payment_id",
+  cash_transfers: "is_cancelled, amount, to_account AS account",
+  incomes: "is_cancelled, due_payment_id, amount, account",
   expenses: `is_cancelled, category, amount, employee_id,
              EXISTS (SELECT 1 FROM severance_payouts p WHERE p.top_up_expense_id = expenses.id) AS is_top_up`,
 };
+
+// Cancelling one of these takes back money the account received, so the balance answers for it first.
+// Cancelling an expense only puts money back and needs no check.
+const CANCEL_TAKES_FROM_ACCOUNT = ["incomes", "cash_transfers"];
 
 // Columns only one table takes on insert. The names are fixed here and each value is read from the
 // validated payload under the same key, so nothing from the renderer reaches the SQL text.
 const EXTRA_INSERT_COLUMNS = {
   incomes: ["payment_method", "account", "employee_id"],
-  expenses: ["account", "employee_id"],
+  expenses: ["account", "employee_id", "is_investment"],
+};
+
+// The label each category takes in its success message. Everything else is a plain expense.
+const EXPENSE_LABELS = {
+  severance_fund: "Tazminat kasası aktarımı",
+  staff_advance: "Personel avansı",
 };
 
 const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
@@ -71,17 +82,36 @@ function roundCents(value) {
   return Math.round(value * 100);
 }
 
-// A transfer into the severance fund needs a started fund to land in, and the building must still be in use.
-function transferBlocker(buildingId) {
+// The two questions both fund blockers ask before they look at the fund itself.
+function buildingInUse(buildingId, scopeMessage) {
   const building = getDb().prepare(`SELECT is_active FROM buildings WHERE id = ? AND is_removed = 0`).get(buildingId);
   if (!building) return { success: false, message: "Bina bulunamadı." };
-  if (building.is_active === 0) {
-    return { success: false, message: "Silinen bir binada tazminat kasası işlemi yapılamaz." };
-  }
+  if (building.is_active === 0) return { success: false, message: scopeMessage };
+  return null;
+}
+
+// A transfer into the severance fund needs a started fund to land in, and the building must still be in use.
+function transferBlocker(buildingId) {
+  const blocker = buildingInUse(buildingId, "Silinen bir binada tazminat kasası işlemi yapılamaz.");
+  if (blocker) return blocker;
   if (severanceBalance(buildingId) === null) {
     return {
       success: false,
       message: "Tazminat kasası henüz başlatılmamış. Önce Personel sayfasından kasayı başlatın.",
+    };
+  }
+  return null;
+}
+
+// An expense paid out of the investment fund needs a started fund to draw on. The balance itself is not
+// checked: the fund may go negative, because the money really did leave the main cash.
+function investmentBlocker(buildingId) {
+  const blocker = buildingInUse(buildingId, "Silinen bir binada yatırım aidatı işlemi yapılamaz.");
+  if (blocker) return blocker;
+  if (investmentBalance(buildingId) === null) {
+    return {
+      success: false,
+      message: "Yatırım aidatı henüz başlatılmamış. Önce Yatırım Aidatı sayfasından başlatın.",
     };
   }
   return null;
@@ -155,6 +185,17 @@ function advanceCancelBlocker(record, buildingId) {
   return null;
 }
 
+// What the category itself asks, before the account paying for it is asked whether it can.
+function categoryBlocker(payload) {
+  if (payload.is_investment === 1) {
+    const blocker = investmentBlocker(payload.buildingId);
+    if (blocker) return blocker;
+  }
+  if (payload.category === "severance_fund") return transferBlocker(payload.buildingId);
+  if (payload.category === "staff_advance") return advanceBlocker(payload);
+  return null;
+}
+
 // Soft cancel. An income tied to a dues payment can only be cancelled through cancelPayment.
 function cancelRecord(table, payload, label) {
   const { id, buildingId, userId, reason } = payload;
@@ -176,6 +217,10 @@ function cancelRecord(table, payload, label) {
       success: false,
       message: "Aidat ödemesine bağlı gelirler yalnızca ödeme iptali üzerinden iptal edilebilir.",
     };
+  }
+  if (CANCEL_TAKES_FROM_ACCOUNT.includes(table)) {
+    const blocker = accountCancelBlocker(buildingId, record.account, record.amount);
+    if (blocker) return blocker;
   }
 
   getDb()
@@ -210,25 +255,25 @@ function getTransactions(payload) {
     const transactions = getDb()
       .prepare(
         `SELECT id, amount, date, description, category, 'income' AS type, created_at,
-                is_cancelled, cancelled_at, cancel_reason, account, 0 AS sort_rank,
+                is_cancelled, cancelled_at, cancel_reason, account, 0 AS sort_rank, 0 AS is_investment,
                 (SELECT full_name FROM employees WHERE id = incomes.employee_id) AS employee_name
          FROM incomes WHERE building_id = ? ${dateFilter}
          UNION ALL
          SELECT id, amount, date, description, category, 'expense' AS type, created_at,
-                is_cancelled, cancelled_at, cancel_reason, account, 0 AS sort_rank,
+                is_cancelled, cancelled_at, cancel_reason, account, 0 AS sort_rank, is_investment,
                 (SELECT full_name FROM employees WHERE id = expenses.employee_id) AS employee_name
          FROM expenses WHERE building_id = ? ${dateFilter}
          UNION ALL
          SELECT id, amount, date, full_name AS description, 'severance_payout' AS category, 'severance_payout' AS type,
                 created_at, is_cancelled, cancelled_at, cancel_reason, NULL AS account, 1 AS sort_rank,
-                NULL AS employee_name
+                0 AS is_investment, NULL AS employee_name
          FROM (SELECT p.*, e.full_name FROM severance_payouts p JOIN employees e ON e.id = p.employee_id)
          WHERE building_id = ? ${dateFilter}
          UNION ALL
          SELECT id, amount, date, description,
                 CASE to_account WHEN 'bank' THEN 'to_bank' ELSE 'to_cash' END AS category, 'transfer' AS type,
                 created_at, is_cancelled, cancelled_at, cancel_reason, to_account AS account, 0 AS sort_rank,
-                NULL AS employee_name
+                0 AS is_investment, NULL AS employee_name
          FROM cash_transfers WHERE building_id = ? ${dateFilter}
          ORDER BY date DESC, created_at DESC, sort_rank DESC, id DESC`,
       )
@@ -288,12 +333,13 @@ function documentBlocker(record) {
 }
 
 // The resident of the paid month rather than today's, so a receipt printed later still names the
-// person who lived there then.
+// person who lived there then. A fund contribution is owed by the owner, so its receipt names the owner.
 function residentNameForPaidMonth(receipt) {
   if (receipt.apartment_id == null) return null;
   const cutoff = periodCutoff(receipt.year, receipt.month);
+  const nameSql = receipt.due_type === "investment" ? OWNER_NAME_FOR_PERIOD_SQL : RESIDENT_NAME_FOR_PERIOD_SQL;
   return getDb()
-    .prepare(`SELECT ${RESIDENT_NAME_FOR_PERIOD_SQL} AS full_name FROM apartments a WHERE a.id = ?`)
+    .prepare(`SELECT ${nameSql} AS full_name FROM apartments a WHERE a.id = ?`)
     .get(cutoff, cutoff, receipt.apartment_id).full_name;
 }
 
@@ -318,7 +364,7 @@ function readReceipt(id, buildingId) {
   const receipt = getDb()
     .prepare(
       `SELECT i.id, i.amount, i.date, i.description, i.category, i.is_cancelled, i.payer_name, i.payment_method,
-              dp.due_id, d.apartment_id, a.apartment_no, d.year, d.month
+              dp.due_id, d.apartment_id, a.apartment_no, d.year, d.month, d.due_type
        FROM incomes i
        LEFT JOIN due_payments dp ON dp.id = i.due_payment_id
        LEFT JOIN dues d ON d.id = dp.due_id
@@ -426,13 +472,8 @@ const addIncome = withDbError("addIncome", "Gelir ekleme", (payload) => {
   return insertRecord("incomes", record, "Gelir kaydı");
 });
 const addExpense = withDbError("addExpense", "Gider ekleme", (payload) => {
-  if (payload.category === "severance_fund") {
-    return transferBlocker(payload.buildingId) ?? insertRecord("expenses", payload, "Tazminat kasası aktarımı");
-  }
-  if (payload.category === "staff_advance") {
-    return advanceBlocker(payload) ?? insertRecord("expenses", payload, "Personel avansı");
-  }
-  return insertRecord("expenses", payload, "Gider kaydı");
+  const blocker = categoryBlocker(payload) ?? accountBlocker(payload.buildingId, payload.account, payload.amount);
+  return blocker ?? insertRecord("expenses", payload, EXPENSE_LABELS[payload.category] ?? "Gider kaydı");
 });
 const cancelIncome = withDbError("cancelIncome", "Gelir iptali", (payload) =>
   cancelRecord("incomes", payload, "Gelir kaydı"),
@@ -440,10 +481,13 @@ const cancelIncome = withDbError("cancelIncome", "Gelir iptali", (payload) =>
 const cancelExpense = withDbError("cancelExpense", "Gider iptali", (payload) =>
   cancelRecord("expenses", payload, "Gider kaydı"),
 );
-// A deposit or a withdrawal is not checked against the source balance: the split of the records entered
-// before the accounts existed is a guess, and a transfer is how the manager corrects it.
+// The money comes out of the other account, which must hold it like any other payment does.
 const addTransfer = withDbError("addTransfer", "Aktarım", (payload) => {
   const { buildingId, userId, to_account: toAccount, amount, date, description } = payload;
+  const source = toAccount === "bank" ? "cash" : "bank";
+  const blocker = accountBlocker(buildingId, source, amount);
+  if (blocker) return blocker;
+
   const result = getDb()
     .prepare(
       `INSERT INTO cash_transfers (building_id, to_account, amount, date, description, recorded_by, created_at, updated_at)

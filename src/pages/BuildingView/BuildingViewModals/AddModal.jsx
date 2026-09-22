@@ -5,7 +5,7 @@ import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./BuildingViewModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import { showDialog } from "@/utils/dialog";
+import { showDialog } from "@/components/Dialog/dialogStore";
 import { APARTMENT_TYPES, MAX_DUE_AMOUNT } from "@/utils/constants";
 
 function AddModal({ building, initialFloor, onClose, onSaved }) {

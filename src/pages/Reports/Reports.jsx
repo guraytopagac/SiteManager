@@ -14,6 +14,7 @@ import {
   FiRefreshCw,
 } from "react-icons/fi";
 import "./Reports.css";
+import { showDialog } from "@/components/Dialog/dialogStore";
 import PageHeader from "@/components/PageHeader/PageHeader";
 import PeriodSelector from "@/components/PeriodSelector/PeriodSelector";
 import { useIpcData } from "@/hooks/useIpcData";
@@ -21,7 +22,6 @@ import { useCurrentBuilding, useSession } from "@/hooks/useSession";
 import { DUES_STATUS_LABELS, EMPTY_RESIDENT_LABEL, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import { formatCurrency, formatSignedCurrency } from "@/utils/currency";
 import { clampMonth, formatMonthYear, getCurrentMonth, getCurrentYear, getYearOptions, toPeriod } from "@/utils/date";
-import { showDialog } from "@/utils/dialog";
 import { buildReportHtml } from "./ReportsPdf/buildReportHtml";
 import { categoryLabel, collectionRate, groupByCategory } from "./ReportsPdf/reportFigures";
 

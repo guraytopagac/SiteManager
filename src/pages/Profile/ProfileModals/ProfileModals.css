@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: var(--swal-backdrop);
+  background: var(--overlay-backdrop);
 }
 
 .pf-md-box {
@@ -169,6 +169,134 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.pf-md-field {
+  display: grid;
+  gap: 7px;
+}
+
+.pf-md-field label {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.pf-md-field input {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 11px;
+  background: var(--background-color-1);
+  color: var(--text-color);
+  font: inherit;
+  font-size: 1rem;
+  outline: none;
+}
+
+.pf-md-field input:focus {
+  border-color: var(--button-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--button-color) 18%, transparent);
+}
+
+.pf-md-field input::placeholder {
+  color: var(--text-disabled);
+}
+
+.pf-md-hint,
+.pf-md-note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.pf-md-code {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--button-color) 32%, transparent);
+  border-radius: 14px;
+  background: var(--accent-tint);
+}
+
+.pf-md-code-label {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.pf-md-code-value {
+  color: var(--text-color);
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  word-break: break-all;
+  text-align: center;
+  user-select: all;
+}
+
+.pf-md-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  background: var(--background-color-1);
+  color: var(--text-color);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pf-md-copy:hover {
+  border-color: var(--button-color);
+  color: var(--button-color);
+  opacity: 1;
+}
+
+.pf-md-copy-label {
+  min-width: 96px;
+  text-align: left;
+}
+
+.pf-md-facts {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: var(--background-color-1);
+}
+
+.pf-md-fact {
+  display: grid;
+  gap: 3px;
+}
+
+.pf-md-fact dt {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.pf-md-fact dd {
+  margin: 0;
+  color: var(--text-color);
+  font-size: 1rem;
+}
+
+.pf-md-path {
+  font-family: "Consolas", "Courier New", monospace;
+  word-break: break-all;
 }
 
 .pf-md-error {

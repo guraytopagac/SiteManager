@@ -1,17 +1,41 @@
-// Collection for one apartment and one month: summary, entry form and payment history. The right column
-// stays out of the row measurement, so the form alone sets the height as payments accumulate.
+// Collection for one apartment and one month: summary, entry form and payment history. Both charges are
+// collected here, dueType says which one, and the wording follows it. The right column stays out of the row
+// measurement, so the form alone sets the height as payments accumulate.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiCheck, FiFileText, FiPaperclip, FiUpload, FiX } from "react-icons/fi";
-import "./DuesModals.css";
-import DocumentModal from "@/components/DocumentModal/DocumentModal";
+import "./PaymentModal.css";
+import CancelReasonModal from "@/components/SharedModals/CancelReasonModal/CancelReasonModal";
+import { showDialog } from "@/components/Dialog/dialogStore";
+import DocumentModal from "@/components/SharedModals/DocumentModal/DocumentModal";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import { showDialog } from "@/utils/dialog";
-import { EMPTY_RESIDENT_LABEL, PAYMENT_METHOD_LABELS, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
+import {
+  EMPTY_OWNER_LABEL,
+  EMPTY_RESIDENT_LABEL,
+  PAYMENT_METHOD_LABELS,
+  UNEXPECTED_ERROR_MESSAGE,
+} from "@/utils/constants";
 import { formatCurrency } from "@/utils/currency";
 import { formatDate, formatMonthYear, getMinDate, getToday } from "@/utils/date";
 
 const RECEIPT_ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp";
+
+// Everything that reads differently per charge. The monthly dues are owed by whoever lives in the flat, the
+// fund contribution by its owner, so even the person named in the scope line comes from here.
+const CHARGE_TYPES = {
+  regular: {
+    title: "Aidat Tahsilatı",
+    summaryLabel: "Aidat",
+    paidTitle: "Bu aya ait aidat tamamen ödenmiştir.",
+    personOf: (due) => due.resident_name || EMPTY_RESIDENT_LABEL,
+  },
+  investment: {
+    title: "Yatırım Aidatı Tahsilatı",
+    summaryLabel: "Yatırım Aidatı",
+    paidTitle: "Bu aya ait yatırım aidatı tamamen ödenmiştir.",
+    personOf: (due) => due.owner_name || EMPTY_OWNER_LABEL,
+  },
+};
 
 function formatFileSize(bytes) {
   const megabytes = bytes / (1024 * 1024);
@@ -25,20 +49,20 @@ async function toReceiptPayload(file) {
   return { name: file.name, data: new Uint8Array(await file.arrayBuffer()) };
 }
 
-function PaymentSummary({ due, remaining }) {
+function PaymentSummary({ due, remaining, label }) {
   return (
-    <div className="du-sum">
-      <div className="du-sum-item">
-        <span className="du-sum-label">Aidat</span>
-        <span className="du-sum-value">{formatCurrency(due.due_amount)}</span>
+    <div className="pay-sum">
+      <div className="pay-sum-item">
+        <span className="pay-sum-label">{label}</span>
+        <span className="pay-sum-value">{formatCurrency(due.due_amount)}</span>
       </div>
-      <div className="du-sum-item">
-        <span className="du-sum-label">Ödenen</span>
-        <span className="du-sum-value du-sum-value--paid">{formatCurrency(due.paid_amount)}</span>
+      <div className="pay-sum-item">
+        <span className="pay-sum-label">Ödenen</span>
+        <span className="pay-sum-value pay-sum-value--paid">{formatCurrency(due.paid_amount)}</span>
       </div>
-      <div className="du-sum-item">
-        <span className="du-sum-label">Kalan</span>
-        <span className={remaining > 0 ? "du-sum-value du-sum-value--due" : "du-sum-value du-sum-value--paid"}>
+      <div className="pay-sum-item">
+        <span className="pay-sum-label">Kalan</span>
+        <span className={remaining > 0 ? "pay-sum-value pay-sum-value--due" : "pay-sum-value pay-sum-value--paid"}>
           {formatCurrency(remaining)}
         </span>
       </div>
@@ -52,52 +76,52 @@ function PaymentSummary({ due, remaining }) {
 function PaymentHistory({ history, loading, errorMessage, onCancel, onOpenReceipt, onAttachReceipt, onCreateReceipt }) {
   return (
     <>
-      <div className="du-history-head">
-        <h3 className="du-md-section-title">Ödeme Geçmişi</h3>
+      <div className="pay-history-head">
+        <h3 className="pay-md-section-title">Ödeme Geçmişi</h3>
         {onCreateReceipt ? (
-          <button type="button" className="du-history-action" onClick={onCreateReceipt}>
+          <button type="button" className="pay-history-action" onClick={onCreateReceipt}>
             <FiFileText aria-hidden="true" />
             Makbuz Oluştur
           </button>
         ) : null}
       </div>
       {loading ? (
-        <p className="du-history-empty">Yükleniyor...</p>
+        <p className="pay-history-empty">Yükleniyor...</p>
       ) : errorMessage ? (
-        <p className="du-history-empty">{errorMessage}</p>
+        <p className="pay-history-empty">{errorMessage}</p>
       ) : history.length === 0 ? (
-        <p className="du-history-empty">Henüz ödeme kaydı yok.</p>
+        <p className="pay-history-empty">Henüz ödeme kaydı yok.</p>
       ) : (
-        <ul className="du-history">
+        <ul className="pay-history">
           {history.map((payment) => (
             <li
               key={payment.id}
-              className={payment.cancel_reason ? "du-history-item du-history-item--cancelled" : "du-history-item"}
+              className={payment.cancel_reason ? "pay-history-item pay-history-item--cancelled" : "pay-history-item"}
             >
-              <div className="du-history-top">
-                <span className="du-history-amount">{formatCurrency(payment.amount)}</span>
-                <span className="du-history-method">{PAYMENT_METHOD_LABELS[payment.payment_method]}</span>
-                <span className="du-history-date">{formatDate(payment.payment_date)}</span>
+              <div className="pay-history-top">
+                <span className="pay-history-amount">{formatCurrency(payment.amount)}</span>
+                <span className="pay-history-method">{PAYMENT_METHOD_LABELS[payment.payment_method]}</span>
+                <span className="pay-history-date">{formatDate(payment.payment_date)}</span>
               </div>
               {payment.note && (
-                <p className="du-history-note">
-                  Açıklama: <span className="du-history-value">{payment.note}</span>
+                <p className="pay-history-note">
+                  Açıklama: <span className="pay-history-value">{payment.note}</span>
                 </p>
               )}
               {payment.cancel_reason && (
-                <div className="du-history-cancel-reason">
+                <div className="pay-history-cancel-reason">
                   İptal: {payment.cancel_reason} ({formatDate(payment.cancelled_at)})
                 </div>
               )}
-              <p className="du-history-collector">
-                Tahsil eden: <span className="du-history-value">{payment.collector_name}</span>
+              <p className="pay-history-collector">
+                Tahsil eden: <span className="pay-history-value">{payment.collector_name}</span>
               </p>
               {(payment.receipt_name || !payment.cancel_reason) && (
-                <div className="du-history-actions">
+                <div className="pay-history-actions">
                   {payment.receipt_name && (
                     <button
                       type="button"
-                      className="du-history-action"
+                      className="pay-history-action"
                       onClick={() => onOpenReceipt(payment.id)}
                       title={payment.receipt_name}
                     >
@@ -106,7 +130,7 @@ function PaymentHistory({ history, loading, errorMessage, onCancel, onOpenReceip
                     </button>
                   )}
                   {!payment.cancel_reason && (
-                    <button type="button" className="du-history-action" onClick={() => onAttachReceipt(payment.id)}>
+                    <button type="button" className="pay-history-action" onClick={() => onAttachReceipt(payment.id)}>
                       <FiUpload aria-hidden="true" />
                       {payment.receipt_name ? "Değiştir" : "Dekont Ekle"}
                     </button>
@@ -114,7 +138,7 @@ function PaymentHistory({ history, loading, errorMessage, onCancel, onOpenReceip
                   {!payment.cancel_reason && (
                     <button
                       type="button"
-                      className="du-history-action du-history-action--cancel"
+                      className="pay-history-action pay-history-action--cancel"
                       onClick={() => onCancel(payment.id)}
                     >
                       İptal Et
@@ -130,7 +154,8 @@ function PaymentHistory({ history, loading, errorMessage, onCancel, onOpenReceip
   );
 }
 
-function PaymentModal({ due, year, month, session, building, onClose, onPaymentSaved }) {
+function PaymentModal({ due, dueType, year, month, session, building, onClose, onPaymentSaved }) {
+  const charge = CHARGE_TYPES[dueType];
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [paymentDate, setPaymentDate] = useState(getToday());
@@ -147,6 +172,7 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
   const [historyError, setHistoryError] = useState("");
   const [historyLoading, setHistoryLoading] = useState(true);
   const [receiptIncomeId, setReceiptIncomeId] = useState(null);
+  const [cancelTarget, setCancelTarget] = useState(null);
 
   // An effect rather than the suspending reader: a modal opening is not a transition, so a suspense boundary
   // would delay the whole box by its minimum placeholder span for a query that takes milliseconds.
@@ -191,6 +217,7 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
         buildingId: building.id,
         year,
         month,
+        dueType,
         paymentData: {
           amount: paymentAmount,
           payment_method: paymentMethod,
@@ -223,14 +250,11 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
     }
   };
 
-  const handleCancel = async (paymentId) => {
-    const reason = await showDialog.cancelReason("Ödemeyi İptal Et");
-
-    if (!reason) return;
-
+  // Reports whether the payment was cancelled, so the reason box stays open when the service refuses.
+  const cancelPayment = async (reason) => {
     try {
       const res = await window.electronAPI.cancelPayment({
-        paymentId,
+        paymentId: cancelTarget,
         buildingId: building.id,
         userId: session.id,
         reason,
@@ -238,15 +262,17 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
 
       if (res.success) {
         showDialog.toast(res.message);
+        setCancelTarget(null);
         onPaymentSaved();
         fetchHistory();
-      } else {
-        showDialog.error("Hata", res.message);
+        return true;
       }
+      showDialog.error("Hata", res.message);
     } catch (err) {
       console.error("[PaymentModal] cancelPayment:", err);
       showDialog.error("Hata", "Ödeme iptal edilemedi.");
     }
+    return false;
   };
 
   const clearReceiptFile = () => {
@@ -295,9 +321,9 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
     }
   };
 
-  // The document modal listens for Escape too, and one key press must close only that top layer.
+  // The document and cancel boxes listen for Escape too, and one key press must close only that top layer.
   const handleClose = () => {
-    if (isSubmitting || receiptIncomeId) return;
+    if (isSubmitting || receiptIncomeId || cancelTarget) return;
     onClose();
   };
 
@@ -309,22 +335,22 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
   const remaining = due.due_amount - due.paid_amount;
   const isPaid = due.status === "paid";
   const period = formatMonthYear(due.year, due.month);
-  const scope = `Daire ${due.apartment_no} · ${due.resident_name || EMPTY_RESIDENT_LABEL} · ${period}`;
+  const scope = `Daire ${due.apartment_no} · ${charge.personOf(due)} · ${period}`;
 
   return (
     <>
-      <div className="du-md-overlay">
-        <form className="du-md-box du-md-box--wide" onSubmit={handleSubmit}>
-          <div className="du-md-head">
-            <div className="du-md-identity">
-              <h2 className="du-md-title">Aidat Tahsilatı</h2>
-              <span className="du-md-scope" title={scope}>
+      <div className="pay-md-overlay">
+        <form className="pay-md-box pay-md-box--wide" onSubmit={handleSubmit}>
+          <div className="pay-md-head">
+            <div className="pay-md-identity">
+              <h2 className="pay-md-title">{charge.title}</h2>
+              <span className="pay-md-scope" title={scope}>
                 {scope}
               </span>
             </div>
             <button
               type="button"
-              className="du-md-close"
+              className="pay-md-close"
               onClick={handleClose}
               disabled={isSubmitting}
               aria-label="Kapat"
@@ -333,17 +359,17 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
             </button>
           </div>
 
-          <div className="du-md-body du-pay-body">
-            <div className="du-pay-main">
-              <PaymentSummary due={due} remaining={remaining} />
+          <div className="pay-md-body pay-body">
+            <div className="pay-main">
+              <PaymentSummary due={due} remaining={remaining} label={charge.summaryLabel} />
 
               {/* The form stays mounted once the month is paid and is only hidden, so the left column that
                   sizes the box keeps its height and the notice takes the same cell. */}
-              <div className="du-pay-entry">
-                <div className={isPaid ? "du-pay-form du-pay-form--blank" : "du-pay-form"} inert={isPaid}>
-                  <h3 className="du-md-section-title">Ödeme Ekle</h3>
-                  <div className="du-md-form-grid">
-                    <div className="du-md-field">
+              <div className="pay-entry">
+                <div className={isPaid ? "pay-form pay-form--blank" : "pay-form"} inert={isPaid}>
+                  <h3 className="pay-md-section-title">Ödeme Ekle</h3>
+                  <div className="pay-md-form-grid">
+                    <div className="pay-md-field">
                       <label htmlFor="payment-method">Ödeme Yöntemi</label>
                       <select
                         id="payment-method"
@@ -357,7 +383,7 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
                         ))}
                       </select>
                     </div>
-                    <div className="du-md-field">
+                    <div className="pay-md-field">
                       <label htmlFor="payment-amount">Ödenen Tutar (₺)</label>
                       <input
                         id="payment-amount"
@@ -372,7 +398,7 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
                         autoFocus
                       />
                     </div>
-                    <div className="du-md-field">
+                    <div className="pay-md-field">
                       <label htmlFor="payment-date">Ödeme Tarihi</label>
                       <input
                         id="payment-date"
@@ -384,7 +410,7 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
                         max={getToday()}
                       />
                     </div>
-                    <div className="du-md-field">
+                    <div className="pay-md-field">
                       <label htmlFor="payment-collector">Tahsil Eden</label>
                       <input
                         id="payment-collector"
@@ -395,7 +421,7 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
                         onChange={(e) => setCollector(e.target.value)}
                       />
                     </div>
-                    <div className="du-md-field du-md-field--wide">
+                    <div className="pay-md-field pay-md-field--wide">
                       <label htmlFor="payment-note">Açıklama</label>
                       <textarea
                         id="payment-note"
@@ -404,9 +430,9 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
                         onChange={(e) => setNote(e.target.value)}
                       />
                     </div>
-                    <div className="du-md-field du-md-field--wide">
+                    <div className="pay-md-field pay-md-field--wide">
                       <label htmlFor="payment-receipt">
-                        Dekont <span className="du-md-optional">(isteğe bağlı)</span>
+                        Dekont <span className="pay-md-optional">(isteğe bağlı)</span>
                       </label>
                       <input
                         id="payment-receipt"
@@ -416,23 +442,23 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
                         onChange={(e) => setReceiptFile(e.target.files[0] ?? null)}
                         hidden
                       />
-                      <div className="du-receipt-picker">
+                      <div className="pay-receipt-picker">
                         <button
                           type="button"
-                          className="du-receipt-trigger"
+                          className="pay-receipt-trigger"
                           onClick={() => formReceiptRef.current.click()}
                         >
                           <FiUpload aria-hidden="true" />
                           Dosya Seç
                         </button>
                         {receiptFile ? (
-                          <span className="du-receipt-chip" title={receiptFile.name}>
+                          <span className="pay-receipt-chip" title={receiptFile.name}>
                             <FiPaperclip aria-hidden="true" />
-                            <span className="du-receipt-name">{receiptFile.name}</span>
-                            <span className="du-receipt-size">{formatFileSize(receiptFile.size)}</span>
+                            <span className="pay-receipt-name">{receiptFile.name}</span>
+                            <span className="pay-receipt-size">{formatFileSize(receiptFile.size)}</span>
                             <button
                               type="button"
-                              className="du-receipt-clear"
+                              className="pay-receipt-clear"
                               onClick={clearReceiptFile}
                               aria-label="Seçilen dekontu kaldır"
                             >
@@ -440,35 +466,35 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
                             </button>
                           </span>
                         ) : (
-                          <span className="du-receipt-hint">PDF, JPG, PNG veya WEBP · en fazla 5 MB</span>
+                          <span className="pay-receipt-hint">PDF, JPG, PNG veya WEBP · en fazla 5 MB</span>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  <button type="submit" className="du-md-btn-solid du-md-submit" disabled={isSubmitting}>
+                  <button type="submit" className="pay-md-btn-solid pay-md-submit" disabled={isSubmitting}>
                     {isSubmitting ? "Kaydediliyor..." : "Ödemeyi Kaydet"}
                   </button>
                 </div>
 
                 {isPaid ? (
-                  <div className="du-paid-notice">
-                    <span className="du-paid-mark">
+                  <div className="pay-paid-notice">
+                    <span className="pay-paid-mark">
                       <FiCheck aria-hidden="true" />
                     </span>
-                    <p className="du-paid-title">Bu aya ait aidat tamamen ödenmiştir.</p>
-                    <p className="du-paid-body">Bir ödeme iptal edilirse ödeme formu yeniden açılır.</p>
+                    <p className="pay-paid-title">{charge.paidTitle}</p>
+                    <p className="pay-paid-body">Bir ödeme iptal edilirse ödeme formu yeniden açılır.</p>
                   </div>
                 ) : null}
               </div>
             </div>
 
-            <div className="du-pay-side">
+            <div className="pay-side">
               <PaymentHistory
                 history={history}
                 loading={historyLoading}
                 errorMessage={historyError}
-                onCancel={handleCancel}
+                onCancel={setCancelTarget}
                 onOpenReceipt={handleOpenReceipt}
                 onAttachReceipt={handleAttachReceipt}
                 onCreateReceipt={liveIncomeId ? () => setReceiptIncomeId(liveIncomeId) : null}
@@ -490,6 +516,14 @@ function PaymentModal({ due, year, month, session, building, onClose, onPaymentS
           building={building}
           onClose={() => setReceiptIncomeId(null)}
           onSaved={() => setReceiptIncomeId(null)}
+        />
+      ) : null}
+      {cancelTarget ? (
+        <CancelReasonModal
+          title="Ödemeyi İptal Et"
+          scope={scope}
+          onClose={() => setCancelTarget(null)}
+          onConfirm={cancelPayment}
         />
       ) : null}
     </>

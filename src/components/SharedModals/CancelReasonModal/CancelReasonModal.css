@@ -1,0 +1,159 @@
+.cr-md-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--overlay-backdrop);
+}
+
+.cr-md-box {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 520px;
+  max-height: calc(100vh - 60px);
+  border: 1px solid var(--border-default);
+  border-radius: 18px;
+  background: var(--card-background-1);
+  box-shadow: 0 24px 60px var(--shadow-deep);
+}
+
+.cr-md-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.cr-md-identity {
+  min-width: 0;
+}
+
+.cr-md-title {
+  margin: 0;
+  color: var(--text-color);
+  font-size: 1.45rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.cr-md-scope {
+  display: block;
+  margin-top: 6px;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cr-md-close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.cr-md-close svg {
+  width: 19px;
+  height: 19px;
+}
+
+.cr-md-close:hover:not(:disabled) {
+  border-color: var(--border-default);
+  color: var(--text-color);
+  opacity: 1;
+}
+
+.cr-md-close:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cr-md-body {
+  display: grid;
+  gap: 14px;
+  overflow-y: auto;
+  padding: 22px 24px;
+}
+
+.cr-md-field {
+  display: grid;
+  gap: 7px;
+}
+
+.cr-md-field label {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.cr-md-field textarea {
+  width: 100%;
+  min-height: 110px;
+  max-height: 180px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 11px;
+  background: var(--background-color-1);
+  color: var(--text-color);
+  font: inherit;
+  font-size: 1rem;
+  outline: none;
+  resize: vertical;
+}
+
+.cr-md-field textarea:focus {
+  border-color: var(--button-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--button-color) 18%, transparent);
+}
+
+.cr-md-field textarea::placeholder {
+  color: var(--text-disabled);
+}
+
+.cr-md-error {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--danger-border);
+  border-radius: 11px;
+  background: var(--danger-soft);
+  color: var(--color-danger-text);
+  font-size: 1rem;
+}
+
+.cr-md-submit {
+  height: 46px;
+  margin-top: 4px;
+  border: 1px solid var(--danger-border);
+  border-radius: 11px;
+  background: var(--danger-soft);
+  color: var(--color-danger-text);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.cr-md-submit:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 22%, transparent);
+  opacity: 1;
+}
+
+.cr-md-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

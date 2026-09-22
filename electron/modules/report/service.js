@@ -1,8 +1,9 @@
 // Report data for one month, one year or the whole ledger. It only reads, and it never rounds
 // money. That is the renderer's job.
 const { getDb } = require("../../../database/db");
-const { cashBalances } = require("../shared/cashAccounts");
+const { cashBalances, cashFlow } = require("../shared/cashAccounts");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
+const { investmentBalance } = require("../shared/investmentFund");
 const { RESIDENT_NAME_FOR_PERIOD_SQL, periodCutoff } = require("../shared/residentPeriod");
 const { estimatedLiability, severanceBalance } = require("../shared/severanceFund");
 const { createdPeriodSql, monthBounds, toPeriod, trToday } = require("../shared/trTime");
@@ -34,8 +35,26 @@ function fetchRange(table, buildingId, { start, end }) {
 
   return getDb()
     .prepare(
-      `SELECT id, amount, date, description, category
+      `SELECT id, amount, date, description, category, account
        FROM ${table}
+       WHERE building_id = ? AND is_cancelled = 0 ${dateFilter}
+       ORDER BY date ASC, id ASC`,
+    )
+    .all(...params);
+}
+
+// The account transfers of one range. They are neither income nor expense, so they stay out of every total
+// and are listed on their own. The category mirrors the one the ledger gives them, so both screens label a
+// transfer with the same words.
+function fetchTransfers(buildingId, { start, end }) {
+  const dateFilter = start === null ? "" : "AND date >= ? AND date < ?";
+  const params = start === null ? [buildingId] : [buildingId, start, end];
+
+  return getDb()
+    .prepare(
+      `SELECT id, amount, date, description,
+              CASE to_account WHEN 'bank' THEN 'to_bank' ELSE 'to_cash' END AS category
+       FROM cash_transfers
        WHERE building_id = ? AND is_cancelled = 0 ${dateFilter}
        ORDER BY date ASC, id ASC`,
     )
@@ -59,15 +78,15 @@ function fetchOpeningBalance(buildingId, start) {
     .get(buildingId, start, buildingId, start).balance;
 }
 
-// The yearly report's month by month dues line. Only active apartments count, like every other
-// dues figure in the report.
+// The yearly report's month by month dues line. Only active apartments count, like every other dues
+// figure in the report, and only the monthly charge: the fund has a section of its own.
 function fetchMonthlyDues(buildingId, year) {
   return getDb()
     .prepare(
       `SELECT d.month, SUM(d.due_amount) AS due_amount, SUM(d.paid_amount) AS paid_amount
        FROM dues d
        JOIN apartments a ON a.id = d.apartment_id
-       WHERE a.building_id = ? AND a.is_active = 1 AND d.year = ?
+       WHERE a.building_id = ? AND a.is_active = 1 AND d.year = ? AND d.due_type = 'regular'
        GROUP BY d.month
        ORDER BY d.month ASC`,
     )
@@ -85,7 +104,7 @@ function fetchMonthDues(buildingId, year, month, cutoff) {
               COALESCE(d.paid_amount, 0) AS paid_amount,
               COALESCE(d.status, 'unpaid') AS status
        FROM apartments a
-       LEFT JOIN dues d ON d.apartment_id = a.id AND d.year = ? AND d.month = ?
+       LEFT JOIN dues d ON d.apartment_id = a.id AND d.year = ? AND d.month = ? AND d.due_type = 'regular'
        WHERE a.building_id = ? AND a.is_active = 1 AND ${createdPeriodSql("a.")} <= ?
        ${UNIT_ORDER_SQL}`,
     )
@@ -111,7 +130,7 @@ function fetchAggregatedDues(buildingId, year, cutoff) {
                 ELSE 'unpaid'
               END AS status
        FROM apartments a
-       JOIN dues d ON d.apartment_id = a.id ${yearFilter}
+       JOIN dues d ON d.apartment_id = a.id AND d.due_type = 'regular' ${yearFilter}
        WHERE a.building_id = ? AND a.is_active = 1
        GROUP BY a.id
        ${UNIT_ORDER_SQL}`,
@@ -151,6 +170,49 @@ function fetchSeverance(buildingId, { start, end }) {
   };
 }
 
+// The investment fund's own section, built the way the severance one is: the balances are taken on both
+// edges of the range, so whatever entered the fund in between is their difference plus what it paid for. The
+// accrual is counted by period rather than by date, because a charge belongs to the month it was raised
+// however late it is paid, and that keeps the balance line and the accrual line answering different questions.
+function fetchInvestment(buildingId, { start, end }, scope, year, month) {
+  const fund = getDb()
+    .prepare(`SELECT date(created_at) AS started_on FROM investment_funds WHERE building_id = ?`)
+    .get(buildingId);
+  if (!fund || (end !== null && fund.started_on >= end)) return null;
+
+  const endBalance = investmentBalance(buildingId, end ?? undefined);
+  const startBalance = start === null ? 0 : investmentBalance(buildingId, start);
+
+  const dateFilter = start === null ? "" : "AND date >= ? AND date < ?";
+  const spentParams = start === null ? [buildingId] : [buildingId, start, end];
+  const { spent } = getDb()
+    .prepare(
+      `SELECT COALESCE(SUM(amount), 0) AS spent FROM expenses
+       WHERE building_id = ? AND is_investment = 1 AND is_cancelled = 0 ${dateFilter}`,
+    )
+    .get(...spentParams);
+
+  const periodFilter = scope === "month" ? "AND d.year = ? AND d.month = ?" : scope === "year" ? "AND d.year = ?" : "";
+  const periodParams = scope === "month" ? [year, month] : scope === "year" ? [year] : [];
+  const { accrued, collected } = getDb()
+    .prepare(
+      `SELECT COALESCE(SUM(d.due_amount), 0) AS accrued, COALESCE(SUM(d.paid_amount), 0) AS collected
+       FROM dues d
+       JOIN apartments a ON a.id = d.apartment_id
+       WHERE a.building_id = ? AND a.is_active = 1 AND d.due_type = 'investment' ${periodFilter}`,
+    )
+    .get(buildingId, ...periodParams);
+
+  return {
+    startBalance: start === null ? null : startBalance,
+    inflow: endBalance - startBalance + spent,
+    spent,
+    endBalance,
+    accrued,
+    collected,
+  };
+}
+
 function getReportData(payload) {
   const { buildingId, scope, year, month } = payload;
   try {
@@ -185,9 +247,16 @@ function getReportData(payload) {
         totalPaid,
         openingBalance,
         monthlyDues,
+        transfers: fetchTransfers(buildingId, range),
         severance: fetchSeverance(buildingId, range),
-        // The split of the main cash when the range ends. The whole ledger ends today.
-        closingAccounts: cashBalances(buildingId, range.end ?? undefined),
+        investment: fetchInvestment(buildingId, range, scope, year, month),
+        // The main cash followed account by account, so opening + income - expense + transfer = closing on
+        // every row. The whole ledger has nothing before it, so it gets no opening, and it ends today.
+        accounts: {
+          opening: range.start === null ? null : cashBalances(buildingId, range.start),
+          ...cashFlow(buildingId, range.start, range.end),
+          closing: cashBalances(buildingId, range.end ?? undefined),
+        },
       },
     };
   } catch (err) {

@@ -1,0 +1,752 @@
+.investment-container {
+  width: 1200px;
+  margin: 0 auto;
+  padding: 24px 40px 26px;
+}
+
+.iv-card {
+  padding: 18px 20px 20px;
+  border: 1px solid var(--border-default);
+  border-radius: 16px;
+  background: var(--background-color-1);
+}
+
+.iv-card-title {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.iv-card-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: var(--card-background-1);
+  color: var(--text-color);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.iv-card-action:hover {
+  border-color: var(--button-color);
+  background: var(--accent-tint);
+  color: var(--button-color);
+  opacity: 1;
+}
+
+.iv-card-action-mark {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--accent-tint);
+  color: var(--button-color);
+}
+
+.iv-card-action-mark svg {
+  width: 19px;
+  height: 19px;
+}
+
+.iv-card-action-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iv-control-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.iv-control-row .ps-wrapper {
+  flex-shrink: 0;
+  width: 272px;
+  margin-left: 10px;
+}
+
+.iv-pill {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 8px;
+  height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--border-default);
+  border-radius: 11px;
+  background: var(--background-color-1);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.iv-pill:hover {
+  border-color: var(--text-secondary);
+  color: var(--text-color);
+}
+
+.iv-pill:focus-visible {
+  outline: 3px solid var(--accent-focus-ring);
+  outline-offset: 2px;
+}
+
+.iv-pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.iv-pill-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+.iv-pill--paid .iv-pill-dot {
+  color: var(--success);
+}
+
+.iv-pill--partial .iv-pill-dot {
+  color: var(--warning);
+}
+
+.iv-pill--unpaid .iv-pill-dot {
+  color: var(--danger);
+}
+
+.iv-pill--active {
+  border-color: var(--button-color);
+  background: var(--accent-tint);
+  color: var(--button-color);
+}
+
+.iv-pill--active .iv-pill-count {
+  opacity: 1;
+}
+
+.iv-fund {
+  display: grid;
+  gap: 12px;
+}
+
+.iv-fund-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.iv-fund-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.iv-fund-mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--accent-tint);
+  color: var(--button-color);
+}
+
+.iv-fund-mark svg {
+  width: 17px;
+  height: 17px;
+}
+
+.iv-fund-value {
+  margin-left: auto;
+  color: var(--text-color);
+  font-size: 1.35rem;
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.iv-fund-value--negative {
+  color: var(--amount-negative);
+}
+
+.iv-fund-rows {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-default);
+}
+
+.iv-fund-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.iv-fund-row b {
+  color: var(--text-color);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.iv-fund-note {
+  color: var(--color-warning-text);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.iv-collect {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.iv-collect-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.iv-collect-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.iv-collect-mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--accent-tint);
+  color: var(--button-color);
+}
+
+.iv-collect-mark svg {
+  width: 17px;
+  height: 17px;
+}
+
+.iv-collect-value {
+  margin-left: auto;
+  color: var(--button-color);
+  font-size: 1.5rem;
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.iv-collect-value--blank {
+  color: var(--text-secondary);
+}
+
+.iv-collect-meter {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border-default);
+  overflow: hidden;
+}
+
+.iv-collect-meter--blank {
+  visibility: hidden;
+}
+
+.iv-collect-meter span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--button-color);
+  transition: width 0.4s ease;
+}
+
+.iv-collect-amounts {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.iv-list-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 272px;
+  gap: 12px 20px;
+}
+
+.iv-list-main {
+  display: grid;
+  min-width: 0;
+}
+
+.iv-rail {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 12px;
+}
+
+.iv-pages {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 14px;
+}
+
+.iv-shortcuts {
+  display: grid;
+  grid-auto-rows: minmax(36px, 1fr);
+  gap: 10px;
+}
+
+.iv-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: 11px;
+  background: var(--card-background-1);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.iv-shortcut:hover {
+  border-color: var(--button-color);
+  background: var(--accent-tint);
+  color: var(--button-color);
+}
+
+.iv-shortcut svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.iv-table-surface {
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  background: var(--background-color-1);
+}
+
+.iv-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.iv-table th:nth-child(1) {
+  width: 96px;
+}
+
+.iv-table th:nth-child(3) {
+  width: 222px;
+}
+
+.iv-table th:nth-child(4) {
+  width: 178px;
+}
+
+.iv-table th:nth-child(5) {
+  width: 132px;
+}
+
+.iv-table thead th {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.iv-table th,
+.iv-table td {
+  text-align: center;
+}
+
+.iv-table tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-default);
+  font-size: 1rem;
+  vertical-align: middle;
+}
+
+.iv-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.iv-table tbody .iv-row-spacer td {
+  border-bottom-color: transparent;
+  visibility: hidden;
+}
+
+.iv-table tbody tr:not(.iv-row-spacer):hover {
+  background: color-mix(in srgb, var(--button-color) 6%, transparent);
+}
+
+.iv-table tbody td.iv-owner {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iv-owner-empty {
+  color: var(--text-secondary);
+}
+
+.iv-pay-cell {
+  display: grid;
+  gap: 7px;
+  width: 190px;
+  margin-inline: auto;
+}
+
+.iv-pay-amounts {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.iv-pay-paid {
+  font-weight: 650;
+}
+
+.iv-pay-due {
+  color: var(--text-secondary);
+}
+
+.iv-pay-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border-default);
+  overflow: hidden;
+}
+
+.iv-pay-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.iv-pay-track--paid > span {
+  background: var(--success);
+}
+
+.iv-pay-track--partial > span {
+  background: var(--warning);
+}
+
+.iv-pay-track--unpaid > span {
+  background: var(--danger);
+}
+
+.iv-status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 146px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.iv-status-chip--paid {
+  border: 1px solid color-mix(in srgb, var(--success) 32%, transparent);
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--color-success-text);
+}
+
+.iv-status-chip--partial {
+  border: 1px solid color-mix(in srgb, var(--warning) 32%, transparent);
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--color-warning-text);
+}
+
+.iv-status-chip--unpaid {
+  border: 1px solid color-mix(in srgb, var(--danger) 32%, transparent);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: var(--color-danger-text);
+}
+
+.iv-primary-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  background: var(--card-background-1);
+  color: var(--text-color);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.iv-primary-pill:hover {
+  border-color: var(--button-color);
+  background: var(--accent-tint);
+  color: var(--button-color);
+  opacity: 1;
+}
+
+.iv-primary-pill--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.iv-table-placeholder {
+  position: relative;
+}
+
+.iv-placeholder-body {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding: 0 24px;
+}
+
+.iv-state {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 18px 16px;
+  justify-items: start;
+}
+
+.iv-state-mark {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+
+.iv-state-mark svg {
+  width: 22px;
+  height: 22px;
+}
+
+.iv-state-mark--accent {
+  background: var(--accent-tint);
+  color: var(--button-color);
+}
+
+.iv-state-mark--muted {
+  background: var(--border-default);
+  color: var(--text-secondary);
+}
+
+.iv-state-text {
+  min-width: 260px;
+}
+
+.iv-state-title {
+  display: block;
+  color: var(--text-color);
+  font-size: 1.1rem;
+  font-weight: 650;
+}
+
+.iv-state-body {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.iv-state-action {
+  display: inline-flex;
+  grid-column: 2;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--border-default);
+  border-radius: 11px;
+  background: var(--card-background-1);
+  color: var(--text-color);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.iv-state-action:hover {
+  border-color: var(--button-color);
+  color: var(--button-color);
+  opacity: 1;
+}
+
+.iv-state-action svg {
+  width: 18px;
+  height: 18px;
+}
+
+.iv-setup {
+  display: grid;
+  gap: 22px;
+  padding: 26px 28px 28px;
+  border: 1px solid var(--border-default);
+  border-radius: 16px;
+  background: var(--background-color-1);
+}
+
+.iv-setup-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.iv-setup-mark {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  background: var(--accent-tint);
+  color: var(--button-color);
+}
+
+.iv-setup-mark svg {
+  width: 22px;
+  height: 22px;
+}
+
+.iv-setup-title {
+  margin: 0 0 6px;
+  color: var(--text-color);
+  font-size: 1.3rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.iv-setup-body {
+  max-width: 720px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.iv-setup-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 16px;
+}
+
+.iv-field {
+  display: grid;
+  gap: 7px;
+}
+
+.iv-field label {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.iv-field input {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 11px;
+  background: var(--card-background-1);
+  color: var(--text-color);
+  font: inherit;
+  font-size: 1rem;
+  outline: none;
+}
+
+.iv-field input:focus {
+  border-color: var(--button-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--button-color) 18%, transparent);
+}
+
+.iv-field input::placeholder {
+  color: var(--text-disabled);
+}
+
+.iv-setup-submit {
+  height: 46px;
+  padding: 0 32px;
+  border: 1px solid var(--button-color);
+  border-radius: 11px;
+  background: var(--accent-tint);
+  color: var(--button-color);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.iv-setup-submit:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--button-color) 22%, transparent);
+  opacity: 1;
+}
+
+.iv-setup-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

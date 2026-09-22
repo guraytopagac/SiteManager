@@ -5,7 +5,7 @@ import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./ResidentsModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import { showDialog } from "@/utils/dialog";
+import { showDialog } from "@/components/Dialog/dialogStore";
 import { EMPTY_RESIDENT_FORM, RESIDENT_TYPE_LABELS, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import { phoneDigits } from "@/utils/phoneNumber";
 import ResidentFieldset from "./ResidentFieldset";

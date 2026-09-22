@@ -1,7 +1,8 @@
 // Records one income or one expense, the type arriving as a prop. Everything that differs lives in the table
 // below, so the only comparison against the type is the line that picks the endpoint. An income asks how it
 // was paid and its account follows from that, an expense asks which account paid it. An advance and its
-// repayment also name the employee, and saving without one is refused.
+// repayment also name the employee, and saving without one is refused. Neither account may go below zero,
+// so the expense form shows what the picked one holds before the service refuses the record.
 
 import { useEffect, useState } from "react";
 import { FiX } from "react-icons/fi";
@@ -17,7 +18,7 @@ import {
   UNEXPECTED_ERROR_MESSAGE,
 } from "@/utils/constants";
 import { formatCurrency } from "@/utils/currency";
-import { showDialog } from "@/utils/dialog";
+import { showDialog } from "@/components/Dialog/dialogStore";
 import { getMinDate, getToday } from "@/utils/date";
 
 const MAX_AMOUNT = 1000000;
@@ -71,9 +72,28 @@ const TYPES = {
           ? `${employee.full_name} · açık avans ${formatCurrency(employee.advance_balance)}`
           : employee.full_name,
     },
-    choice: { legend: "Ödeme Tipi", field: "account", labels: CASH_ACCOUNT_LABELS, listClass: "tx-account-list" },
+    choice: {
+      legend: "Ödeme Tipi",
+      field: "account",
+      labels: CASH_ACCOUNT_LABELS,
+      listClass: "tx-account-list",
+      // Same sentence the transfer modal writes for its source account.
+      hint: (account, balances) =>
+        `${CASH_ACCOUNT_LABELS[account]} hesabında şu an ${formatCurrency(balances[account])} görünüyor.`,
+    },
+    // Only an expense can be paid out of the investment fund, so an income carries no such field.
+    fund: {
+      legend: "Ödeme Kaynağı",
+      onLabel: "Yatırım fonundan",
+      offLabel: "Ana kasadan",
+      lockedNote: "Bu kalem yatırım fonundan ödenemez.",
+    },
   },
 };
+
+// A severance transfer and a staff advance belong to a ledger of their own, so neither can come out of the
+// investment fund. The schema and the handler refuse it too, this only keeps the switch from offering it.
+const FUND_LOCKED_CATEGORIES = ["severance_fund", ...ADVANCE_CATEGORIES];
 
 // Every category stays in view in its own column of the modal. A dropdown of eighteen items could not fit the
 // modal vertically: floating above the form it ran off the screen, placed in the flow it made the modal jump in
@@ -118,7 +138,7 @@ function CategoryList({ labelId, value, onChange, groups, otherHint }) {
   );
 }
 
-function TransactionModal({ type, building, onClose, onSaved }) {
+function TransactionModal({ type, building, balances, onClose, onSaved }) {
   const text = TYPES[type];
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
@@ -127,6 +147,7 @@ function TransactionModal({ type, building, onClose, onSaved }) {
   const [description, setDescription] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [employees, setEmployees] = useState(null);
+  const [fundChecked, setFundChecked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isAdvance = ADVANCE_CATEGORIES.includes(category);
@@ -148,6 +169,11 @@ function TransactionModal({ type, building, onClose, onSaved }) {
       isActive = false;
     };
   }, [building.id]);
+
+  // Kept apart from the derived value below: switching to a locked category turns the switch off without
+  // forgetting what was picked before it.
+  const isFundLocked = FUND_LOCKED_CATEGORIES.includes(category);
+  const isFromFund = fundChecked && !isFundLocked;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -185,6 +211,7 @@ function TransactionModal({ type, building, onClose, onSaved }) {
         description: description.trim(),
         [text.choice.field]: choice,
         employee_id: isAdvance ? Number(employeeId) : null,
+        ...(text.fund ? { is_investment: isFromFund } : {}),
       });
 
       if (res.success) {
@@ -284,7 +311,28 @@ function TransactionModal({ type, building, onClose, onSaved }) {
                   </label>
                 ))}
               </div>
+              {text.choice.hint ? <p className="tx-md-hint">{text.choice.hint(choice, balances)}</p> : null}
             </div>
+
+            {text.fund ? (
+              <div className="tx-md-field">
+                <span className="tx-md-legend">{text.fund.legend}</span>
+                <button
+                  type="button"
+                  className={isFromFund ? "tx-switch tx-switch--on" : "tx-switch"}
+                  role="switch"
+                  aria-checked={isFromFund}
+                  onClick={() => setFundChecked((value) => !value)}
+                  disabled={isFundLocked}
+                >
+                  <span className="tx-switch-track" aria-hidden="true">
+                    <span className="tx-switch-knob" />
+                  </span>
+                  {isFromFund ? text.fund.onLabel : text.fund.offLabel}
+                </button>
+                {isFundLocked ? <span className="tx-md-hint">{text.fund.lockedNote}</span> : null}
+              </div>
+            ) : null}
 
             {isAdvance ? (
               <div className="tx-md-field">

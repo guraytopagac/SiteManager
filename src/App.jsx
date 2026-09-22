@@ -3,6 +3,7 @@
 
 import { lazy, Suspense } from "react";
 import { HashRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import DialogHost from "./components/Dialog/DialogHost";
 import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary";
 import Footer from "./components/Footer/Footer";
 import PageLoader from "./components/PageLoader/PageLoader";
@@ -19,6 +20,7 @@ const Transactions = lazy(() => import("./pages/Transactions/Transactions.jsx"))
 const Profile = lazy(() => import("./pages/Profile/Profile.jsx"));
 const Reports = lazy(() => import("./pages/Reports/Reports.jsx"));
 const SeveranceFund = lazy(() => import("./pages/SeveranceFund/SeveranceFund.jsx"));
+const Investment = lazy(() => import("./pages/Investment/Investment.jsx"));
 const SelectBuilding = lazy(() => import("./pages/SelectBuilding/SelectBuilding.jsx"));
 const NewBuilding = lazy(() => import("./pages/NewBuilding/NewBuilding.jsx"));
 
@@ -86,6 +88,7 @@ function App() {
                 <Route path="/transactions" element={<Transactions />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/severance-fund" element={<SeveranceFund />} />
+                <Route path="/investment" element={<Investment />} />
               </Route>
             </Route>
 
@@ -94,6 +97,7 @@ function App() {
         </Suspense>
       </ErrorBoundary>
       <Footer />
+      <DialogHost />
     </Router>
   );
 }

@@ -80,6 +80,18 @@ function validateCashAccount(value) {
   return CASH_ACCOUNTS.includes(value) ? null : fail("Geçersiz hesap.");
 }
 
+// Used by severance and investment. Both funds can hold money set aside before they were started,
+// and both say so with the same sentence. The limits match the two opening_balance CHECKs.
+function validateOpeningBalance(value) {
+  if (!Number.isFinite(value) || value < 0) {
+    return fail("Geçersiz açılış bakiyesi.");
+  }
+  if (value > 100000000) {
+    return fail("Açılış bakiyesi 100.000.000₺'yi aşamaz.");
+  }
+  return null;
+}
+
 // Used by dues and report. The future-period message differs per domain, so it is a parameter.
 function validatePeriod(payload, futureMessage) {
   if (!isValidYear(payload.year) || !isValidMonth(payload.month)) {
@@ -135,6 +147,7 @@ module.exports = {
   validateCashAccount,
   validateDueAmount,
   validateId,
+  validateOpeningBalance,
   validatePayload,
   validatePeriod,
 };

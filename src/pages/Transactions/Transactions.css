@@ -407,7 +407,8 @@
   color: var(--text-secondary);
 }
 
-.tx-fund-tag {
+.tx-fund-tag,
+.tx-investment-tag {
   margin-right: 5px;
   color: var(--button-color);
   font-weight: 600;

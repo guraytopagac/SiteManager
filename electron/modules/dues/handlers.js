@@ -18,6 +18,10 @@ const duesService = require("./service");
 
 const FUTURE_PERIOD_MESSAGE = "Gelecek bir dönem için aidat işlemi yapılamaz.";
 
+// The two charges a payment can settle. Same list as the due_type CHECK and the DUE_TYPES table in
+// dues/service.js. A payment has to name one, it is never guessed from the payload.
+const DUE_TYPES = ["regular", "investment"];
+
 // Accepted receipt types, keyed by extension, the same list as the CHECK on receipt_name. A file also has
 // to start with its type's signature, so a renamed executable never reaches the database or the shell.
 const JPEG_SIGNATURE = [{ offset: 0, bytes: [0xff, 0xd8, 0xff] }];
@@ -111,6 +115,10 @@ function validatePaymentData(paymentData) {
   return validateId(paymentData.collected_by, "tahsilat kullanıcısı") ?? validateReceipt(paymentData.receipt);
 }
 
+function validateDueType(value) {
+  return DUE_TYPES.includes(value) ? null : fail("Geçersiz aidat türü.");
+}
+
 function registerDuesHandlers(ipcMain) {
   const handle = createHandle(ipcMain, "dues");
 
@@ -125,6 +133,7 @@ function registerDuesHandlers(ipcMain) {
       validateBuildingScope(payload) ??
       validateId(payload.apartmentId, "daire ID") ??
       validatePeriod(payload, FUTURE_PERIOD_MESSAGE) ??
+      validateDueType(payload.dueType) ??
       validatePaymentData(payload.paymentData),
     duesService.recordPayment,
   );
