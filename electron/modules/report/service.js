@@ -8,10 +8,12 @@ const { RESIDENT_NAME_FOR_PERIOD_SQL, periodCutoff } = require("../shared/reside
 const { estimatedLiability, severanceBalance } = require("../shared/severanceFund");
 const { createdPeriodSql, monthBounds, toPeriod, trToday } = require("../shared/trTime");
 
-// The natural apartment order. This text has to stay identical to the copies in dues/service.js and
-// resident/service.js.
+// The natural apartment order. This text has to stay identical to the copies in dues/service.js,
+// investment/service.js and resident/service.js.
 const UNIT_ORDER_SQL = `ORDER BY (a.apartment_no GLOB '[0-9]*') DESC,
           CAST(a.apartment_no AS INTEGER) ASC,
+          rtrim(a.apartment_no, '0123456789') COLLATE NOCASE ASC,
+          CAST(substr(a.apartment_no, length(rtrim(a.apartment_no, '0123456789')) + 1) AS INTEGER) ASC,
           a.apartment_no COLLATE NOCASE ASC`;
 
 // What a scope covers. start and end bound the cash rows (end is exclusive) and are null for the whole

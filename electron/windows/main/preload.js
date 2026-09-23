@@ -70,6 +70,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   getReportData: (payload) => safeInvoke(CH.REPORT.GET_DATA, payload),
   saveReportFile: (payload) => safeInvoke(CH.REPORT.SAVE_FILE, payload),
+  saveReportExcel: (payload) => safeInvoke(CH.REPORT.SAVE_EXCEL, payload),
 
   getResidentsOverview: (payload) => safeInvoke(CH.RESIDENT.GET_OVERVIEW, payload),
   getResidentHistory: (payload) => safeInvoke(CH.RESIDENT.GET_HISTORY, payload),

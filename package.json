@@ -1,7 +1,7 @@
 {
   "name": "mavikent-site-yonetimi",
   "private": true,
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Mavikent Site Yönetimi Uygulaması",
   "author": "Güray Topağaç",
   "type": "commonjs",
@@ -78,6 +78,7 @@
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
+    "exceljs": "^4.4.0",
     "globals": "^17.6.0",
     "prettier": "3.8.3",
     "react": "^19.2.6",

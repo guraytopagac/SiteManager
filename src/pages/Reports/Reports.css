@@ -164,7 +164,7 @@
   top: calc(100% + 8px);
   right: 0;
   z-index: 30;
-  min-width: 260px;
+  min-width: 360px;
   padding: 6px;
   border: 1px solid var(--border-default);
   border-radius: 12px;
@@ -184,21 +184,12 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  width: 100%;
-  padding: 10px 12px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
+  padding: 10px 8px 10px 12px;
   color: var(--text-color);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
 }
 
-.rp-export-item:hover {
-  background: var(--accent-tint);
-  opacity: 1;
+.rp-export-item + .rp-export-item {
+  border-top: 1px solid var(--border-default);
 }
 
 .rp-export-item > svg {
@@ -210,7 +201,9 @@
 
 .rp-export-item-text {
   display: grid;
+  flex: 1;
   gap: 1px;
+  min-width: 0;
 }
 
 .rp-export-item-title {
@@ -222,6 +215,42 @@
 .rp-export-item-note {
   color: var(--text-secondary);
   font-size: 1rem;
+  white-space: nowrap;
+}
+
+.rp-export-formats {
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.rp-export-format {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-color);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.rp-export-format:hover {
+  border-color: var(--button-color);
+  background: var(--accent-tint);
+  color: var(--button-color);
+  opacity: 1;
+}
+
+.rp-export-format:focus-visible {
+  outline: 3px solid var(--accent-focus-ring);
+  outline-offset: 0;
 }
 
 .rp-sheet {

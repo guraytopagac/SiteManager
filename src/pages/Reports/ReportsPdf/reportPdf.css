@@ -75,6 +75,11 @@ section {
   break-inside: avoid;
 }
 
+section.new-page {
+  margin-top: 0;
+  break-before: page;
+}
+
 h2 {
   margin: 0 0 2mm;
   font-size: 11.5pt;
@@ -117,6 +122,18 @@ table:not(.summary) tbody tr:nth-child(odd) td {
 
 table:not(.summary) tbody tr.total td {
   background: #f1f5f9;
+  font-weight: 700;
+}
+
+tr.band {
+  break-after: avoid;
+}
+
+table:not(.summary) tbody tr.band td {
+  padding: 2.5mm 2mm 2mm;
+  background: #dbeafe;
+  color: #1e3a8a;
+  font-size: 10pt;
   font-weight: 700;
 }
 

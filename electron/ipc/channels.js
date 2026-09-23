@@ -71,6 +71,7 @@ const CHANNELS = {
   REPORT: {
     GET_DATA: "report:get-data",
     SAVE_FILE: "report:save-file",
+    SAVE_EXCEL: "report:save-excel",
   },
 
   RESIDENT: {

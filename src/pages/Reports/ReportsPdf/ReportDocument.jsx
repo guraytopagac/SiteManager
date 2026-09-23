@@ -3,16 +3,18 @@
 
 import { CASH_ACCOUNT_LABELS, DUES_STATUS_LABELS, EMPTY_RESIDENT_LABEL } from "@/utils/constants";
 import { formatCurrency, formatSignedCurrency } from "@/utils/currency";
-import { formatDate, formatMonthYear, getCurrentMonth, getCurrentYear, getToday } from "@/utils/date";
+import { formatDate, formatMonthYear, getToday } from "@/utils/date";
 import { floorLabel } from "@/utils/floorLabel";
-import { categoryLabel, collectionRate, formatRate, groupByCategory } from "./reportFigures";
-
-function buildFinanceRows(data) {
-  return [
-    ...data.incomes.map((r) => ({ ...r, rowType: "income" })),
-    ...data.expenses.map((r) => ({ ...r, rowType: "expense" })),
-  ].sort((a, b) => a.date.localeCompare(b.date));
-}
+import {
+  bankSign,
+  buildBankRows,
+  buildFinanceRows,
+  buildMonthlyFigures,
+  categoryLabel,
+  collectionRate,
+  formatRate,
+  groupByCategory,
+} from "./reportFigures";
 
 const ACCOUNT_KEYS = ["cash", "bank"];
 
@@ -43,7 +45,8 @@ function PdfRow({ cells, right, className, isHead = false }) {
   );
 }
 
-function PdfTable({ head, rows, total, empty, right = [], widths = [], className }) {
+// A row is either a list of cells or a { band } object, which opens a month across the full width.
+function PdfTable({ head, rows, totals = [], empty, right = [], widths = [], className }) {
   return (
     <table className={className}>
       {widths.length > 0 ? (
@@ -64,9 +67,21 @@ function PdfTable({ head, rows, total, empty, right = [], widths = [], className
             </td>
           </tr>
         ) : (
-          rows.map((cells, index) => <PdfRow key={index} cells={cells} right={right} />)
+          rows.map((row, index) =>
+            Array.isArray(row) ? (
+              <PdfRow key={index} cells={row} right={right} />
+            ) : (
+              <tr key={index} className="band">
+                <td colSpan={head.length}>{row.band}</td>
+              </tr>
+            ),
+          )
         )}
-        {rows.length > 0 && total ? <PdfRow cells={total} right={right} className="total" /> : null}
+        {rows.length > 0
+          ? totals.map((cells, index) => (
+              <PdfRow key={`total-${index}`} cells={cells} right={right} className="total" />
+            ))
+          : null}
       </tbody>
     </table>
   );
@@ -82,13 +97,30 @@ function PdfSummary({ cells }) {
   );
 }
 
-function PdfSection({ title, keepTogether = false, children }) {
+// A short section is kept whole and moves to the next page when it does not fit. A long table starts on a
+// page of its own instead, so it never opens with a few rows at the foot of the previous one.
+function PdfSection({ title, keepTogether = false, newPage = false, children }) {
+  const className = [keepTogether ? "keep" : null, newPage ? "new-page" : null].filter(Boolean).join(" ");
   return (
-    <section className={keepTogether ? "keep" : undefined}>
+    <section className={className || undefined}>
       <h2>{title}</h2>
       {children}
     </section>
   );
+}
+
+const monthOf = (row) => row.date.slice(0, 7);
+
+// A long range lists the same kind of row for many pages, so a band opens every month. A range of a single
+// month has nothing to tell apart and gets none.
+function withMonthBands(rows, toCells) {
+  const isSpread = new Set(rows.map(monthOf)).size > 1;
+  return rows.flatMap((row, index) => {
+    const cells = toCells(row);
+    if (!isSpread || (index > 0 && monthOf(rows[index - 1]) === monthOf(row))) return [cells];
+    const band = formatMonthYear(Number(row.date.slice(0, 4)), Number(row.date.slice(5, 7)));
+    return [{ band }, cells];
+  });
 }
 
 // Opens with the balance carried in, since a period report asks where the cash started and ended. An all
@@ -151,15 +183,17 @@ function PdfAccountFlow({ accounts }) {
         CASH_ACCOUNT_LABELS[key],
         ...cellsOf(opening?.[key], income[key], expense[key], transfer[key], closing[key]),
       ])}
-      total={[
-        "Toplam",
-        ...cellsOf(
-          opening ? sumAccounts(opening) : null,
-          sumAccounts(income),
-          sumAccounts(expense),
-          sumAccounts(transfer),
-          sumAccounts(closing),
-        ),
+      totals={[
+        [
+          "Toplam",
+          ...cellsOf(
+            opening ? sumAccounts(opening) : null,
+            sumAccounts(income),
+            sumAccounts(expense),
+            sumAccounts(transfer),
+            sumAccounts(closing),
+          ),
+        ],
       ]}
       right={head.map((_, index) => index).slice(1)}
       widths={["30mm"]}
@@ -209,7 +243,7 @@ function PdfInvestmentSummary({ investment }) {
   ];
 
   return (
-    <PdfSection title="Yatırım Fonu" keepTogether>
+    <PdfSection title="Yatırım Aidatı" keepTogether>
       <PdfSummary cells={cells} />
       <p className="note">
         {investment.accrued === 0
@@ -265,7 +299,7 @@ function PdfCategoryTable({ rows, total, head, empty }) {
         formatCurrency(row.amount),
         formatRate(collectionRate(total, row.amount)),
       ])}
-      total={["Toplam", formatCurrency(total), ""]}
+      totals={[["Toplam", formatCurrency(total), ""]]}
       empty={empty}
       right={[1, 2]}
       widths={[null, null, "14mm"]}
@@ -295,41 +329,31 @@ function PdfDistribution({ data }) {
 }
 
 function PdfMonthlyBreakdown({ data, year }) {
-  const lastMonth = year === getCurrentYear() ? getCurrentMonth() : 12;
-  const sumMonth = (rows, month) =>
-    rows.filter((row) => Number(row.date.slice(5, 7)) === month).reduce((sum, row) => sum + row.amount, 0);
-
-  const rows = Array.from({ length: lastMonth }, (_, index) => {
-    const month = index + 1;
-    const dues = data.monthlyDues.find((row) => row.month === month);
-    const income = sumMonth(data.incomes, month);
-    const expense = sumMonth(data.expenses, month);
-    const due = dues ? dues.due_amount : 0;
-    const paid = dues ? dues.paid_amount : 0;
-    return [
-      formatMonthYear(year, month),
-      formatCurrency(income),
-      formatCurrency(expense),
-      { content: formatSignedCurrency(income - expense), tone: balanceTone(income - expense) },
-      formatCurrency(due),
-      formatCurrency(paid),
-      formatRate(collectionRate(due, paid)),
-    ];
-  });
+  const rows = buildMonthlyFigures(data, year).map(({ month, income, expense, due, paid }) => [
+    formatMonthYear(year, month),
+    formatCurrency(income),
+    formatCurrency(expense),
+    { content: formatSignedCurrency(income - expense), tone: balanceTone(income - expense) },
+    formatCurrency(due),
+    formatCurrency(paid),
+    formatRate(collectionRate(due, paid)),
+  ]);
 
   return (
-    <PdfSection title="Aylık Döküm">
+    <PdfSection title="Aylık Döküm" keepTogether>
       <PdfTable
         head={["Ay", "Gelir", "Gider", "Net", "Tahakkuk", "Tahsil Edilen", "Oran"]}
         rows={rows}
-        total={[
-          "Toplam",
-          formatCurrency(data.totalIncome),
-          formatCurrency(data.totalExpense),
-          formatSignedCurrency(data.totalIncome - data.totalExpense),
-          formatCurrency(data.monthlyDues.reduce((sum, row) => sum + row.due_amount, 0)),
-          formatCurrency(data.monthlyDues.reduce((sum, row) => sum + row.paid_amount, 0)),
-          "",
+        totals={[
+          [
+            "Toplam",
+            formatCurrency(data.totalIncome),
+            formatCurrency(data.totalExpense),
+            formatSignedCurrency(data.totalIncome - data.totalExpense),
+            formatCurrency(data.monthlyDues.reduce((sum, row) => sum + row.due_amount, 0)),
+            formatCurrency(data.monthlyDues.reduce((sum, row) => sum + row.paid_amount, 0)),
+            "",
+          ],
         ]}
         right={[1, 2, 3, 4, 5, 6]}
         widths={[null, null, null, null, null, null, "16mm"]}
@@ -343,10 +367,10 @@ function PdfMovements({ data }) {
   const isIncome = (row) => row.rowType === "income";
 
   return (
-    <PdfSection title="Gelir ve Gider Hareketleri">
+    <PdfSection title="Gelir ve Gider Hareketleri" newPage>
       <PdfTable
         head={["Tarih", "Tür", "Hesap", "Kategori", "Açıklama", "Tutar"]}
-        rows={rows.map((row) => [
+        rows={withMonthBands(rows, (row) => [
           formatDate(row.date),
           isIncome(row) ? "Gelir" : "Gider",
           CASH_ACCOUNT_LABELS[row.account],
@@ -357,7 +381,7 @@ function PdfMovements({ data }) {
             tone: isIncome(row) ? "positive" : "negative",
           },
         ])}
-        total={[{ content: "Net", colSpan: 5 }, formatSignedCurrency(data.totalIncome - data.totalExpense)]}
+        totals={[[{ content: "Net", colSpan: 5 }, formatSignedCurrency(data.totalIncome - data.totalExpense)]]}
         empty="Bu dönemde gelir veya gider kaydı yok."
         right={[5]}
         widths={["30mm", "15mm", "16mm", "28mm", null, "32mm"]}
@@ -366,21 +390,53 @@ function PdfMovements({ data }) {
   );
 }
 
-// Only printed when the range holds a transfer. It carries no total: the two directions cancel out, so one
-// would state nothing. The amounts stay unsigned, the direction is in the label.
-function PdfTransfers({ transfers }) {
+const BANK_ROW_TYPES = {
+  income: { label: "Gelir", tone: "positive" },
+  expense: { label: "Gider", tone: "negative" },
+  transfer: { label: "Aktarım" },
+};
+
+// A transfer carries no tone, as in the account flow, so the net row equals the bank line of that table.
+function PdfBankMovements({ data }) {
+  const rows = buildBankRows(data);
+  const hasTransfers = data.transfers.length > 0;
+  const { income, expense, transfer } = data.accounts;
+  const net = income.bank - expense.bank + transfer.bank;
+
+  const cellsOf = (row) => {
+    const type = BANK_ROW_TYPES[row.rowType];
+    return [
+      formatDate(row.date),
+      type.label,
+      categoryLabel(row.category),
+      row.description || "—",
+      { content: formatSignedCurrency(bankSign(row) * row.amount), tone: type.tone },
+    ];
+  };
+
   return (
-    <PdfSection title="Hesaplar Arası Aktarımlar">
+    <PdfSection title="Banka Hareketleri" newPage>
       <PdfTable
-        head={["Tarih", "İşlem", "Açıklama", "Tutar"]}
-        rows={transfers.map((row) => [
-          formatDate(row.date),
-          categoryLabel(row.category),
-          row.description || "—",
-          formatCurrency(row.amount),
-        ])}
-        right={[3]}
-        widths={["30mm", "36mm", null, "32mm"]}
+        head={["Tarih", "Tür", "Kategori", "Açıklama", "Tutar"]}
+        rows={withMonthBands(rows, cellsOf)}
+        totals={[
+          [
+            { content: "Toplam Gelir", colSpan: 4 },
+            { content: formatSignedCurrency(income.bank), tone: "positive" },
+          ],
+          [
+            { content: "Toplam Gider", colSpan: 4 },
+            { content: formatSignedCurrency(-expense.bank), tone: "negative" },
+          ],
+          ...(hasTransfers ? [[{ content: "Aktarım", colSpan: 4 }, formatSignedCurrency(transfer.bank)]] : []),
+          [
+            { content: "Net", colSpan: 4 },
+            { content: formatSignedCurrency(net), tone: balanceTone(net) },
+          ],
+        ]}
+        empty="Bu dönemde banka hesabına ait hareket yok."
+        right={[4]}
+        widths={["30mm", "17mm", "30mm", null, "32mm"]}
       />
     </PdfSection>
   );
@@ -390,7 +446,7 @@ function PdfDuesTable({ data }) {
   const remainingOf = (row) => row.due_amount - row.paid_amount;
 
   return (
-    <PdfSection title="Daire Bazında Aidat Durumu">
+    <PdfSection title="Daire Bazında Aidat Durumu" newPage>
       <PdfTable
         head={["Daire", "Kat", "Sakin", "Aidat", "Ödenen", "Kalan", "Durum"]}
         rows={data.dues.map((row) => [
@@ -402,12 +458,14 @@ function PdfDuesTable({ data }) {
           { content: formatCurrency(remainingOf(row)), tone: balanceTone(-remainingOf(row)) },
           { content: DUES_STATUS_LABELS[row.status], tone: row.status },
         ])}
-        total={[
-          { content: "Toplam", colSpan: 3 },
-          formatCurrency(data.totalDue),
-          formatCurrency(data.totalPaid),
-          formatCurrency(data.totalDue - data.totalPaid),
-          formatRate(collectionRate(data.totalDue, data.totalPaid)),
+        totals={[
+          [
+            { content: "Toplam", colSpan: 3 },
+            formatCurrency(data.totalDue),
+            formatCurrency(data.totalPaid),
+            formatCurrency(data.totalDue - data.totalPaid),
+            formatRate(collectionRate(data.totalDue, data.totalPaid)),
+          ],
         ]}
         empty="Aidat kaydı bulunamadı."
         right={[3, 4, 5]}
@@ -434,7 +492,7 @@ function ReportDocument({ data, year, title, buildingName, managerName }) {
       <PdfDistribution data={data} />
       {data.monthlyDues ? <PdfMonthlyBreakdown data={data} year={year} /> : null}
       <PdfMovements data={data} />
-      {data.transfers.length > 0 ? <PdfTransfers transfers={data.transfers} /> : null}
+      <PdfBankMovements data={data} />
       <PdfDuesTable data={data} />
       <div className="signature">
         <span className="signature-role">Site Yöneticisi</span>

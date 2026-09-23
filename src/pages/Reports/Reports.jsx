@@ -53,6 +53,11 @@ const SCOPES = [
   },
 ];
 
+const EXPORT_FORMATS = [
+  { key: "pdf", label: "PDF" },
+  { key: "xlsx", label: "Excel" },
+];
+
 function useReport(buildingId, scope, year, month) {
   const [res, loadReport] = useIpcData("getReportData", { buildingId, scope, year, month });
 
@@ -300,7 +305,8 @@ function PeriodStepper({ scope, year, month, onChange }) {
   );
 }
 
-// Offers all three reports regardless of the view, so nobody switches scope to see what a download holds.
+// Offers all three reports regardless of the view, so nobody switches scope to see what a download holds. Each
+// row carries both formats, so the file type is picked in the same click and no hidden choice is remembered.
 // Same stance as the account menu: no ARIA menu role, and Escape hands focus back to the trigger.
 function ExportMenu({ year, month, isExporting, onExport }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -327,9 +333,9 @@ function ExportMenu({ year, month, isExporting, onExport }) {
     };
   }, [isOpen]);
 
-  const handleSelect = (scope) => {
+  const handleSelect = (scope, format) => {
     setIsOpen(false);
-    onExport(scope);
+    onExport(scope, format);
   };
 
   return (
@@ -345,20 +351,33 @@ function ExportMenu({ year, month, isExporting, onExport }) {
         aria-busy={isExporting}
       >
         <FiDownload aria-hidden="true" />
-        PDF İndir
+        Dışa Aktar
         <FiChevronDown className={isOpen ? "rp-export-caret rp-export-caret--open" : "rp-export-caret"} />
       </button>
 
       {isOpen && (
         <div className="rp-export-panel">
           {SCOPES.map((scope) => (
-            <button key={scope.key} type="button" className="rp-export-item" onClick={() => handleSelect(scope)}>
+            <div key={scope.key} className="rp-export-item">
               <FiFileText aria-hidden="true" />
               <span className="rp-export-item-text">
                 <span className="rp-export-item-title">{scope.title(year, month)}</span>
                 <span className="rp-export-item-note">{scope.exportNote}</span>
               </span>
-            </button>
+              <span className="rp-export-formats">
+                {EXPORT_FORMATS.map((format) => (
+                  <button
+                    key={format.key}
+                    type="button"
+                    className="rp-export-format"
+                    onClick={() => handleSelect(scope, format.key)}
+                    aria-label={`${scope.title(year, month)} raporunu ${format.label} olarak kaydet`}
+                  >
+                    {format.label}
+                  </button>
+                ))}
+              </span>
+            </div>
           ))}
         </div>
       )}
@@ -382,7 +401,7 @@ function Reports() {
     setSelectedMonth(clampMonth(year, month));
   };
 
-  const saveReport = async (data, scope) => {
+  const savePdf = async (data, scope) => {
     try {
       const html = buildReportHtml({
         data,
@@ -405,8 +424,32 @@ function Reports() {
     }
   };
 
+  // The workbook library is loaded on first use, so it never slows the page it is not needed on.
+  const saveExcel = async (data, scope) => {
+    try {
+      const { buildReportWorkbook } = await import("./ReportsExcel/buildReportWorkbook");
+      const workbook = await buildReportWorkbook({
+        data,
+        scope,
+        year: selectedYear,
+        month: selectedMonth,
+        buildingName: building.name,
+      });
+      const filename = `rapor_${scope.fileSuffix(selectedYear, selectedMonth)}.xlsx`;
+      const res = await window.electronAPI.saveReportExcel({ filename, data: workbook });
+      if (res.success) {
+        showDialog.toast("Rapor Kaydedildi", res.message);
+      } else if (!res.cancelled) {
+        showDialog.error("Hata", res.message);
+      }
+    } catch (err) {
+      console.error("[Reports] saveReportExcel:", err);
+      showDialog.error("Hata", "Excel dosyası oluşturulurken bir hata oluştu.");
+    }
+  };
+
   // Each entry re-reads its own scope, since the menu offers scopes the view is not showing.
-  const handleExport = async (scope) => {
+  const handleExport = async (scope, format) => {
     setIsExporting(true);
     try {
       const res = await window.electronAPI.getReportData({
@@ -416,7 +459,7 @@ function Reports() {
         month: selectedMonth,
       });
       if (res.success) {
-        await saveReport(res.data, scope);
+        await (format === "xlsx" ? saveExcel : savePdf)(res.data, scope);
       } else {
         showDialog.error("Hata", res.message || "Rapor verileri alınamadı.");
       }

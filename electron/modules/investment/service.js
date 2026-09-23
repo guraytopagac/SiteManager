@@ -69,6 +69,8 @@ function getOverview(payload) {
          WHERE a.building_id = ? AND a.is_active = 1
          ORDER BY (a.apartment_no GLOB '[0-9]*') DESC,
                   CAST(a.apartment_no AS INTEGER) ASC,
+                  rtrim(a.apartment_no, '0123456789') COLLATE NOCASE ASC,
+                  CAST(substr(a.apartment_no, length(rtrim(a.apartment_no, '0123456789')) + 1) AS INTEGER) ASC,
                   a.apartment_no COLLATE NOCASE ASC`,
       )
       .all(cutoff, cutoff, year, month, buildingId);

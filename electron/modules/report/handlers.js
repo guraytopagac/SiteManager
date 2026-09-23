@@ -72,6 +72,26 @@ function validateSaveFileFields(payload) {
   return null;
 }
 
+// Same guard as the page length. An xlsx file is a zip archive, so a payload without the zip signature is
+// not a workbook, whatever its name says.
+const MAX_WORKBOOK_BYTES = 20 * 1024 * 1024;
+const ZIP_SIGNATURE = [0x50, 0x4b, 0x03, 0x04];
+
+function validateExcelFields(payload) {
+  const { filename, data } = payload;
+  if (!isValidFileName(filename) || !filename.toLowerCase().endsWith(".xlsx")) {
+    return fail("Geçersiz dosya adı.");
+  }
+  if (
+    !(data instanceof Uint8Array) ||
+    data.byteLength > MAX_WORKBOOK_BYTES ||
+    !ZIP_SIGNATURE.every((byte, index) => data[index] === byte)
+  ) {
+    return fail("Geçersiz rapor içeriği.");
+  }
+  return null;
+}
+
 // The page is markup from the renderer, so it prints with scripts off and every request other than the page
 // itself cancelled. A temp file, because Chromium caps a URL at 2 MB. Paper and footer come from its own CSS.
 async function printReportPdf(html) {
@@ -113,6 +133,21 @@ async function saveReportFile(payload) {
   return { success: true, message: filePath };
 }
 
+// The workbook arrives finished, so there is nothing to convert: the bytes go straight to the chosen path.
+async function saveReportExcel(payload) {
+  const { filename, data } = payload;
+  const { filePath, canceled } = await dialog.showSaveDialog(getMainWindow(), {
+    title: SAVE_DIALOG_TITLES.report,
+    defaultPath: filename,
+    filters: [{ name: "Excel Dosyası", extensions: ["xlsx"] }],
+  });
+
+  if (canceled || !filePath) return { success: false, cancelled: true, message: "İptal edildi." };
+
+  await fs.promises.writeFile(filePath, data);
+  return { success: true, message: filePath };
+}
+
 function registerReportHandlers(ipcMain) {
   const handle = createHandle(ipcMain, "report");
 
@@ -125,6 +160,12 @@ function registerReportHandlers(ipcMain) {
     CH.REPORT.SAVE_FILE,
     (payload) => validatePayload(payload) ?? validateSaveFileFields(payload),
     saveReportFile,
+    "Dosya kaydedilemedi.",
+  );
+  handle(
+    CH.REPORT.SAVE_EXCEL,
+    (payload) => validatePayload(payload) ?? validateExcelFields(payload),
+    saveReportExcel,
     "Dosya kaydedilemedi.",
   );
 }
