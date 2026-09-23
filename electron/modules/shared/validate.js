@@ -5,11 +5,11 @@ const { currentPeriod, toPeriod } = require("./trTime");
 // Same list as the schema CHECK and APARTMENT_TYPES in src/utils/constants.js.
 const APARTMENT_TYPES = ["0+1", "1+1", "2+1", "3+1", "4+1"];
 
-// Used by dues and financial. Same list as the due_payments and incomes CHECKs and
+// Used by dues and cashbook. Same list as the due_payments and incomes CHECKs and
 // PAYMENT_METHOD_LABELS in src/utils/constants.js.
 const PAYMENT_METHODS = ["cash", "bank_transfer", "card", "other"];
 
-// The two accounts of the main cash, used by financial and severance. Same list as the account CHECKs and
+// The two accounts of the main cash, used by cashbook and staff. Same list as the account CHECKs and
 // CASH_ACCOUNT_LABELS in src/utils/constants.js.
 const CASH_ACCOUNTS = ["cash", "bank"];
 
@@ -75,7 +75,7 @@ function validateCancelReason(payload) {
   return null;
 }
 
-// Used by financial and severance, both with the same sentence.
+// Used by cashbook and staff, both with the same sentence.
 function validateCashAccount(value) {
   return CASH_ACCOUNTS.includes(value) ? null : fail("Geçersiz hesap.");
 }

@@ -38,8 +38,8 @@ const TOTAL_STEPS = SETUP_STEPS.length;
 function Setup() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  const [managerName, setManagerName] = useState("");
-  const [username, setUsername] = useState("");
+  const [managerNameInput, setManagerNameInput] = useState("");
+  const [usernameInput, setUsernameInput] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,13 +60,14 @@ function Setup() {
   };
 
   const goNext = () => {
-    const trimmedManagerName = managerName.trim();
-    if (trimmedManagerName.length < 2 || trimmedManagerName.length > 60) {
+    const managerName = managerNameInput.trim();
+    if (managerName.length < 2 || managerName.length > 60) {
       setError("Ad soyad 2 ile 60 karakter arasında olmalıdır.");
       return;
     }
-    if (!USERNAME_RE.test(username.trim())) {
-      setError("Kullanıcı adı 3-30 karakter olmalı, yalnızca İngilizce harf, rakam ve alt çizgi içermelidir.");
+    const username = usernameInput.trim();
+    if (!USERNAME_RE.test(username)) {
+      setError("Kullanıcı adı 3-30 karakter, İngilizce harf, rakam ve alt çizgi olmalıdır.");
       return;
     }
     setError("");
@@ -86,17 +87,17 @@ function Setup() {
     setIsSubmitting(true);
     setError("");
 
-    const trimmedUsername = username.trim();
-    const trimmedManagerName = managerName.trim();
+    const username = usernameInput.trim();
+    const managerName = managerNameInput.trim();
 
     // The try wraps the call alone, deliberately breaking the usual shape: the success branch puts a value on
     // screen that is never shown again, and a throw inside it would report a failure and lose the code.
     let res;
     try {
       res = await window.electronAPI.completeSetup({
-        username: trimmedUsername,
+        username,
         password,
-        managerName: trimmedManagerName,
+        managerName,
       });
     } catch (err) {
       console.error("[Setup] completeSetup:", err);
@@ -111,8 +112,8 @@ function Setup() {
       return;
     }
 
-    markSetupComplete(trimmedUsername);
-    setCreatedAccount({ recoveryCode: res.recoveryCode, username: trimmedUsername });
+    markSetupComplete(username);
+    setCreatedAccount({ recoveryCode: res.recoveryCode, username });
   };
 
   const handleRestore = async () => {
@@ -248,9 +249,9 @@ function Setup() {
                     placeholder="Örn. Ahmet Yılmaz"
                     autoComplete="name"
                     autoFocus
-                    value={managerName}
+                    value={managerNameInput}
                     onChange={(e) => {
-                      setManagerName(e.target.value);
+                      setManagerNameInput(e.target.value);
                       setError("");
                     }}
                     errorId={error ? ERROR_ID : undefined}
@@ -264,9 +265,9 @@ function Setup() {
                     placeholder="Örn. ahmetyilmaz"
                     autoComplete="username"
                     spellCheck={false}
-                    value={username}
+                    value={usernameInput}
                     onChange={(e) => {
-                      setUsername(e.target.value);
+                      setUsernameInput(e.target.value);
                       setError("");
                     }}
                     errorId={error ? ERROR_ID : undefined}
@@ -314,35 +315,39 @@ function Setup() {
                 </>
               )}
 
-              {error && (
-                <div className="setup-error" id={ERROR_ID} role="alert">
-                  <FiAlertCircle className="setup-error-icon" size={15} />
-                  {error}
-                </div>
-              )}
-
-              <div className="setup-actions">
-                {step > 1 && (
-                  <button type="button" className="setup-btn-back" onClick={goBack} disabled={isSubmitting}>
-                    <FiArrowLeft size={18} strokeWidth={2.5} />
-                    Geri
-                  </button>
+              {/* The error rides with the buttons at the bottom of the panel, so it lands right above them
+                  instead of under the last field with the panel's free space in between. */}
+              <div className="setup-submit">
+                {error && (
+                  <div className="setup-error" id={ERROR_ID} role="alert">
+                    <FiAlertCircle className="setup-error-icon" size={15} />
+                    {error}
+                  </div>
                 )}
-                <button type="submit" className="setup-btn auth-shine" disabled={isSubmitting}>
-                  {step < TOTAL_STEPS ? (
-                    <>
-                      İleri
-                      <FiArrowRight className="setup-btn-arrow" size={18} strokeWidth={2.5} />
-                    </>
-                  ) : isSubmitting ? (
-                    "Hesabınız oluşturuluyor..."
-                  ) : (
-                    <>
-                      Hesabı Oluştur
-                      <FiArrowRight className="setup-btn-arrow" size={18} strokeWidth={2.5} />
-                    </>
+
+                <div className="setup-actions">
+                  {step > 1 && (
+                    <button type="button" className="setup-btn-back" onClick={goBack} disabled={isSubmitting}>
+                      <FiArrowLeft size={18} strokeWidth={2.5} />
+                      Geri
+                    </button>
                   )}
-                </button>
+                  <button type="submit" className="setup-btn auth-shine" disabled={isSubmitting}>
+                    {step < TOTAL_STEPS ? (
+                      <>
+                        İleri
+                        <FiArrowRight className="setup-btn-arrow" size={18} strokeWidth={2.5} />
+                      </>
+                    ) : isSubmitting ? (
+                      "Hesabınız oluşturuluyor..."
+                    ) : (
+                      <>
+                        Hesabı Oluştur
+                        <FiArrowRight className="setup-btn-arrow" size={18} strokeWidth={2.5} />
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </form>
 

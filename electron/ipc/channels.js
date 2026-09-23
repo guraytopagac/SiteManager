@@ -33,6 +33,18 @@ const CHANNELS = {
     REMOVE: "building:remove",
   },
 
+  CASHBOOK: {
+    ADD_INCOME: "cashbook:add-income",
+    ADD_EXPENSE: "cashbook:add-expense",
+    GET_TRANSACTIONS: "cashbook:get-transactions",
+    CANCEL_INCOME: "cashbook:cancel-income",
+    CANCEL_EXPENSE: "cashbook:cancel-expense",
+    ADD_TRANSFER: "cashbook:add-transfer",
+    CANCEL_TRANSFER: "cashbook:cancel-transfer",
+    GET_DOCUMENT: "cashbook:get-document",
+    SAVE_DOCUMENT_INFO: "cashbook:save-document-info",
+  },
+
   DASHBOARD: {
     GET_STATS: "dashboard:get-stats",
   },
@@ -48,18 +60,6 @@ const CHANNELS = {
 
   EVENTS: {
     TOGGLE_THEME: "events:toggle-theme",
-  },
-
-  FINANCIAL: {
-    ADD_INCOME: "financial:add-income",
-    ADD_EXPENSE: "financial:add-expense",
-    GET_TRANSACTIONS: "financial:get-transactions",
-    CANCEL_INCOME: "financial:cancel-income",
-    CANCEL_EXPENSE: "financial:cancel-expense",
-    ADD_TRANSFER: "financial:add-transfer",
-    CANCEL_TRANSFER: "financial:cancel-transfer",
-    GET_DOCUMENT: "financial:get-document",
-    SAVE_DOCUMENT_INFO: "financial:save-document-info",
   },
 
   INVESTMENT: {
@@ -83,16 +83,16 @@ const CHANNELS = {
     CANCEL_MOVE_OUT: "resident:cancel-move-out",
   },
 
-  SEVERANCE: {
-    GET_OVERVIEW: "severance:get-overview",
-    GET_EMPLOYEES: "severance:get-employees",
-    SETUP_FUND: "severance:setup-fund",
-    UPDATE_FUND: "severance:update-fund",
-    ADD_EMPLOYEE: "severance:add-employee",
-    UPDATE_EMPLOYEE: "severance:update-employee",
-    DELETE_EMPLOYEE: "severance:delete-employee",
-    RECORD_PAYOUT: "severance:record-payout",
-    CANCEL_PAYOUT: "severance:cancel-payout",
+  STAFF: {
+    GET_OVERVIEW: "staff:get-overview",
+    GET_EMPLOYEES: "staff:get-employees",
+    SETUP_FUND: "staff:setup-fund",
+    UPDATE_FUND: "staff:update-fund",
+    ADD_EMPLOYEE: "staff:add-employee",
+    UPDATE_EMPLOYEE: "staff:update-employee",
+    DELETE_EMPLOYEE: "staff:delete-employee",
+    RECORD_PAYOUT: "staff:record-payout",
+    CANCEL_PAYOUT: "staff:cancel-payout",
   },
 
   SYSTEM: {

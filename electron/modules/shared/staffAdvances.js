@@ -1,6 +1,6 @@
 // The open advance of an employee. An advance is a staff_advance expense and a repayment an advance_repayment
 // income, both naming the employee, so the balance is derived and never stored. More than one module reads it:
-// the ledger checks a repayment and a cancel against it, the severance page shows it.
+// the cash book checks a repayment and a cancel against it, the staff page shows it.
 const { getDb } = require("../../../database/db");
 
 const BALANCE_SQL = `

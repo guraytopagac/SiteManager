@@ -13,7 +13,7 @@ const {
   validateCashAccount,
   validateId,
 } = require("../shared/validate");
-const financialService = require("./service");
+const cashbookService = require("./service");
 
 // The two collected categories are valid in the schema but not here, because only recordPayment writes
 // them: one for the monthly dues and one for the investment fund. A severance_fund expense is a transfer
@@ -62,7 +62,7 @@ const DOCUMENT_TYPES = ["income", "expense"];
 const EMPLOYEE_CATEGORIES = ["staff_advance", "advance_repayment"];
 
 // Trims and turns an empty description into null. The category gets no default, an empty one is rejected.
-function normalizeFinancialData(payload) {
+function normalizeRecordData(payload) {
   if (typeof payload.description === "string") {
     payload.description = payload.description.trim();
   }
@@ -144,7 +144,7 @@ function validatePaymentMethod(value) {
 
 // A manual income has to say how it was paid, because its receipt has no payment row to read it from.
 function validateIncomeFields(payload) {
-  normalizeFinancialData(payload);
+  normalizeRecordData(payload);
   if (COLLECTED_INCOME_CATEGORIES.includes(payload.category)) {
     return fail("Aidat gelirleri elle eklenemez; daire üzerinden tahsil edilir.");
   }
@@ -174,7 +174,7 @@ function validateInvestmentFlag(payload) {
 
 // An expense says which account paid it. An income needs no account, its payment method decides.
 function validateExpenseFields(payload) {
-  normalizeFinancialData(payload);
+  normalizeRecordData(payload);
   return (
     validateRecordFields(payload, EXPENSE_CATEGORIES) ??
     validateEmployeeLink(payload) ??
@@ -265,51 +265,51 @@ function validateDocumentFields(payload) {
   return payload.type === "income" ? validateReceiptFields(payload) : validateVoucherFields(payload);
 }
 
-function registerFinancialHandlers(ipcMain) {
-  const handle = createHandle(ipcMain, "financial");
+function registerCashBookHandlers(ipcMain) {
+  const handle = createHandle(ipcMain, "cashbook");
 
   handle(
-    CH.FINANCIAL.ADD_INCOME,
+    CH.CASHBOOK.ADD_INCOME,
     (payload) => validateBuildingScope(payload) ?? validateIncomeFields(payload),
-    financialService.addIncome,
+    cashbookService.addIncome,
   );
   handle(
-    CH.FINANCIAL.ADD_EXPENSE,
+    CH.CASHBOOK.ADD_EXPENSE,
     (payload) => validateBuildingScope(payload) ?? validateExpenseFields(payload),
-    financialService.addExpense,
+    cashbookService.addExpense,
   );
   handle(
-    CH.FINANCIAL.GET_TRANSACTIONS,
+    CH.CASHBOOK.GET_TRANSACTIONS,
     (payload) => validateBuildingScope(payload) ?? validateOptionalPeriod(payload.period),
-    financialService.getTransactions,
+    cashbookService.getTransactions,
   );
   handle(
-    CH.FINANCIAL.CANCEL_INCOME,
+    CH.CASHBOOK.CANCEL_INCOME,
     (payload) => validateCancelScope(payload) ?? validateCancelReason(payload),
-    financialService.cancelIncome,
+    cashbookService.cancelIncome,
   );
   handle(
-    CH.FINANCIAL.CANCEL_EXPENSE,
+    CH.CASHBOOK.CANCEL_EXPENSE,
     (payload) => validateCancelScope(payload) ?? validateCancelReason(payload),
-    financialService.cancelExpense,
+    cashbookService.cancelExpense,
   );
   handle(
-    CH.FINANCIAL.ADD_TRANSFER,
+    CH.CASHBOOK.ADD_TRANSFER,
     (payload) =>
       validateBuildingScope(payload) ?? validateId(payload.userId, "kullanıcı ID") ?? validateTransferFields(payload),
-    financialService.addTransfer,
+    cashbookService.addTransfer,
   );
   handle(
-    CH.FINANCIAL.CANCEL_TRANSFER,
+    CH.CASHBOOK.CANCEL_TRANSFER,
     (payload) => validateCancelScope(payload) ?? validateCancelReason(payload),
-    financialService.cancelTransfer,
+    cashbookService.cancelTransfer,
   );
-  handle(CH.FINANCIAL.GET_DOCUMENT, validateDocumentScope, financialService.getDocument);
+  handle(CH.CASHBOOK.GET_DOCUMENT, validateDocumentScope, cashbookService.getDocument);
   handle(
-    CH.FINANCIAL.SAVE_DOCUMENT_INFO,
+    CH.CASHBOOK.SAVE_DOCUMENT_INFO,
     (payload) => validateDocumentScope(payload) ?? validateDocumentFields(payload),
-    financialService.saveDocumentInfo,
+    cashbookService.saveDocumentInfo,
   );
 }
 
-module.exports = registerFinancialHandlers;
+module.exports = registerCashBookHandlers;

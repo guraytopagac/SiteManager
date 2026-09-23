@@ -51,7 +51,7 @@ function withDbError(name, context, run) {
     try {
       return run(payload);
     } catch (err) {
-      console.error(`[financial.service] ${name}:`, err);
+      console.error(`[cashbook.service] ${name}:`, err);
       return { success: false, message: resolveDbError(err, context) };
     }
   };
@@ -311,7 +311,7 @@ function getTransactions(payload) {
       balances: cashBalances(buildingId),
     };
   } catch (err) {
-    console.error("[financial.service] getTransactions:", err);
+    console.error("[cashbook.service] getTransactions:", err);
     return { success: false, message: "İşlem geçmişi alınamadı." };
   }
 }
@@ -422,7 +422,7 @@ function getDocument(payload) {
   try {
     return type === "income" ? readReceipt(id, buildingId) : readVoucher(id, buildingId);
   } catch (err) {
-    console.error("[financial.service] getDocument:", err);
+    console.error("[cashbook.service] getDocument:", err);
     return { success: false, message: "Belge bilgileri alınamadı." };
   }
 }

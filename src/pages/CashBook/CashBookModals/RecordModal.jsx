@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { FiX } from "react-icons/fi";
-import "./TransactionsModals.css";
+import "./CashBookModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import {
   ADVANCE_CATEGORIES,
@@ -48,7 +48,7 @@ const TYPES = {
       legend: "Ödeme Şekli",
       field: "payment_method",
       labels: PAYMENT_METHOD_LABELS,
-      listClass: "tx-method-list",
+      listClass: "cb-method-list",
     },
   },
   expense: {
@@ -76,7 +76,7 @@ const TYPES = {
       legend: "Ödeme Tipi",
       field: "account",
       labels: CASH_ACCOUNT_LABELS,
-      listClass: "tx-account-list",
+      listClass: "cb-account-list",
       // Same sentence the transfer modal writes for its source account.
       hint: (account, balances) =>
         `${CASH_ACCOUNT_LABELS[account]} hesabında şu an ${formatCurrency(balances[account])} görünüyor.`,
@@ -103,7 +103,7 @@ function CategoryList({ labelId, value, onChange, groups, otherHint }) {
     <button
       key={option.value}
       type="button"
-      className={option.value === value ? "tx-pick-option tx-pick-option--active" : "tx-pick-option"}
+      className={option.value === value ? "cb-pick-option cb-pick-option--active" : "cb-pick-option"}
       aria-pressed={option.value === value}
       onClick={() => onChange(option.value)}
     >
@@ -114,31 +114,31 @@ function CategoryList({ labelId, value, onChange, groups, otherHint }) {
   const isGrouped = groups.some((group) => group.label);
 
   return (
-    <div className="tx-pick-panel" role="group" aria-labelledby={labelId}>
-      <div className={isGrouped ? "tx-pick-groups tx-pick-groups--columns" : "tx-pick-groups"}>
+    <div className="cb-pick-panel" role="group" aria-labelledby={labelId}>
+      <div className={isGrouped ? "cb-pick-groups cb-pick-groups--columns" : "cb-pick-groups"}>
         {groups.map((group) => (
-          <div key={group.label ?? "loose"} className="tx-pick-group">
-            {group.label ? <span className="tx-pick-group-title">{group.label}</span> : null}
+          <div key={group.label ?? "loose"} className="cb-pick-group">
+            {group.label ? <span className="cb-pick-group-title">{group.label}</span> : null}
             {group.categories.map(renderOption)}
           </div>
         ))}
       </div>
-      <div className="tx-pick-other">
+      <div className="cb-pick-other">
         <button
           type="button"
-          className={value === OTHER_CATEGORY.value ? "tx-pick-option tx-pick-option--active" : "tx-pick-option"}
+          className={value === OTHER_CATEGORY.value ? "cb-pick-option cb-pick-option--active" : "cb-pick-option"}
           aria-pressed={value === OTHER_CATEGORY.value}
           onClick={() => onChange(OTHER_CATEGORY.value)}
         >
           {OTHER_CATEGORY.label}
-          <span className="tx-pick-other-hint">{otherHint}</span>
+          <span className="cb-pick-other-hint">{otherHint}</span>
         </button>
       </div>
     </div>
   );
 }
 
-function TransactionModal({ type, building, balances, onClose, onSaved }) {
+function RecordModal({ type, building, balances, onClose, onSaved }) {
   const text = TYPES[type];
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
@@ -157,12 +157,12 @@ function TransactionModal({ type, building, balances, onClose, onSaved }) {
   useEffect(() => {
     let isActive = true;
     window.electronAPI
-      .getSeveranceEmployees({ buildingId: building.id })
+      .getEmployees({ buildingId: building.id })
       .then((res) => {
         if (isActive) setEmployees(res.success ? res.data : []);
       })
       .catch((err) => {
-        console.error("[TransactionModal] getSeveranceEmployees:", err);
+        console.error("[RecordModal] getEmployees:", err);
         if (isActive) setEmployees([]);
       });
     return () => {
@@ -226,7 +226,7 @@ function TransactionModal({ type, building, balances, onClose, onSaved }) {
         showDialog.error("Hata", res.message || text.errorMessage);
       }
     } catch (err) {
-      console.error("[TransactionModal] saveTransaction:", err);
+      console.error("[RecordModal] saveTransaction:", err);
       showDialog.error("Hata", UNEXPECTED_ERROR_MESSAGE);
     } finally {
       setIsSubmitting(false);
@@ -241,18 +241,18 @@ function TransactionModal({ type, building, balances, onClose, onSaved }) {
   useEscapeKey(handleClose);
 
   return (
-    <div className="tx-md-overlay">
-      <form className="tx-md-box tx-md-box--split" onSubmit={handleSubmit}>
-        <div className="tx-md-head">
-          <div className="tx-md-identity">
-            <h2 className="tx-md-title">{text.title}</h2>
-            <span className="tx-md-scope" title={building.name}>
+    <div className="cb-md-overlay">
+      <form className="cb-md-box cb-md-box--split" onSubmit={handleSubmit}>
+        <div className="cb-md-head">
+          <div className="cb-md-identity">
+            <h2 className="cb-md-title">{text.title}</h2>
+            <span className="cb-md-scope" title={building.name}>
               {building.name}
             </span>
           </div>
           <button
             type="button"
-            className="tx-md-close"
+            className="cb-md-close"
             onClick={handleClose}
             disabled={isSubmitting}
             aria-label="Kapat"
@@ -261,13 +261,13 @@ function TransactionModal({ type, building, balances, onClose, onSaved }) {
           </button>
         </div>
 
-        <div className="tx-md-body tx-md-split">
-          <div className="tx-md-main">
-            <div className="tx-md-form-grid">
-              <div className="tx-md-field">
-                <label htmlFor="tx-amount">{text.amountLabel}</label>
+        <div className="cb-md-body cb-md-split">
+          <div className="cb-md-main">
+            <div className="cb-md-form-grid">
+              <div className="cb-md-field">
+                <label htmlFor="cb-amount">{text.amountLabel}</label>
                 <input
-                  id="tx-amount"
+                  id="cb-amount"
                   type="number"
                   step="0.01"
                   min="0.01"
@@ -281,10 +281,10 @@ function TransactionModal({ type, building, balances, onClose, onSaved }) {
                 />
               </div>
 
-              <div className="tx-md-field">
-                <label htmlFor="tx-date">Tarih</label>
+              <div className="cb-md-field">
+                <label htmlFor="cb-date">Tarih</label>
                 <input
-                  id="tx-date"
+                  id="cb-date"
                   type="date"
                   value={date}
                   min={getMinDate()}
@@ -295,53 +295,53 @@ function TransactionModal({ type, building, balances, onClose, onSaved }) {
               </div>
             </div>
 
-            <div className="tx-md-field">
-              <span className="tx-md-legend" id="tx-choice-label">
+            <div className="cb-md-field">
+              <span className="cb-md-legend" id="cb-choice-label">
                 {text.choice.legend}
               </span>
               <div
-                className={`tx-cat-list ${text.choice.listClass}`}
+                className={`cb-cat-list ${text.choice.listClass}`}
                 role="radiogroup"
-                aria-labelledby="tx-choice-label"
+                aria-labelledby="cb-choice-label"
               >
                 {Object.entries(text.choice.labels).map(([value, label]) => (
-                  <label key={value} className={choice === value ? "tx-cat tx-cat--active" : "tx-cat"}>
-                    <input type="radio" name="tx-choice" checked={choice === value} onChange={() => setChoice(value)} />
+                  <label key={value} className={choice === value ? "cb-cat cb-cat--active" : "cb-cat"}>
+                    <input type="radio" name="cb-choice" checked={choice === value} onChange={() => setChoice(value)} />
                     {label}
                   </label>
                 ))}
               </div>
-              {text.choice.hint ? <p className="tx-md-hint">{text.choice.hint(choice, balances)}</p> : null}
+              {text.choice.hint ? <p className="cb-md-hint">{text.choice.hint(choice, balances)}</p> : null}
             </div>
 
             {text.fund ? (
-              <div className="tx-md-field">
-                <span className="tx-md-legend">{text.fund.legend}</span>
+              <div className="cb-md-field">
+                <span className="cb-md-legend">{text.fund.legend}</span>
                 <button
                   type="button"
-                  className={isFromFund ? "tx-switch tx-switch--on" : "tx-switch"}
+                  className={isFromFund ? "cb-switch cb-switch--on" : "cb-switch"}
                   role="switch"
                   aria-checked={isFromFund}
                   onClick={() => setFundChecked((value) => !value)}
                   disabled={isFundLocked}
                 >
-                  <span className="tx-switch-track" aria-hidden="true">
-                    <span className="tx-switch-knob" />
+                  <span className="cb-switch-track" aria-hidden="true">
+                    <span className="cb-switch-knob" />
                   </span>
                   {isFromFund ? text.fund.onLabel : text.fund.offLabel}
                 </button>
-                {isFundLocked ? <span className="tx-md-hint">{text.fund.lockedNote}</span> : null}
+                {isFundLocked ? <span className="cb-md-hint">{text.fund.lockedNote}</span> : null}
               </div>
             ) : null}
 
             {isAdvance ? (
-              <div className="tx-md-field">
-                <label htmlFor="tx-employee">{text.employee.label}</label>
+              <div className="cb-md-field">
+                <label htmlFor="cb-employee">{text.employee.label}</label>
                 {employees !== null && listedEmployees.length === 0 ? (
-                  <p className="tx-md-hint">{text.employee.emptyNote}</p>
+                  <p className="cb-md-hint">{text.employee.emptyNote}</p>
                 ) : (
                   <select
-                    id="tx-employee"
+                    id="cb-employee"
                     value={employeeId}
                     onChange={(e) => setEmployeeId(e.target.value)}
                     disabled={employees === null}
@@ -357,10 +357,10 @@ function TransactionModal({ type, building, balances, onClose, onSaved }) {
               </div>
             ) : null}
 
-            <div className="tx-md-field tx-md-field--grow">
-              <label htmlFor="tx-description">Açıklama (isteğe bağlı)</label>
+            <div className="cb-md-field cb-md-field--grow">
+              <label htmlFor="cb-description">Açıklama (isteğe bağlı)</label>
               <textarea
-                id="tx-description"
+                id="cb-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder={text.descriptionPlaceholder}
@@ -369,12 +369,12 @@ function TransactionModal({ type, building, balances, onClose, onSaved }) {
             </div>
           </div>
 
-          <div className="tx-md-side">
-            <span className="tx-md-legend" id="tx-category-label">
+          <div className="cb-md-side">
+            <span className="cb-md-legend" id="cb-category-label">
               Kategori
             </span>
             <CategoryList
-              labelId="tx-category-label"
+              labelId="cb-category-label"
               value={category}
               onChange={setCategory}
               groups={text.categoryGroups}
@@ -382,7 +382,7 @@ function TransactionModal({ type, building, balances, onClose, onSaved }) {
             />
           </div>
 
-          <button type="submit" className="tx-md-btn-solid tx-md-submit" disabled={isSubmitting}>
+          <button type="submit" className="cb-md-btn-solid cb-md-submit" disabled={isSubmitting}>
             {isSubmitting ? "Kaydediliyor..." : text.submitLabel}
           </button>
         </div>
@@ -391,4 +391,4 @@ function TransactionModal({ type, building, balances, onClose, onSaved }) {
   );
 }
 
-export default TransactionModal;
+export default RecordModal;

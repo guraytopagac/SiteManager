@@ -7,7 +7,7 @@
 // employee and prints nothing as well.
 
 import { FiX } from "react-icons/fi";
-import "./TransactionsModals.css";
+import "./CashBookModals.css";
 import DetailRow from "@/components/DetailRow/DetailRow";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { ADVANCE_CATEGORIES, CASH_ACCOUNT_LABELS, TRANSACTION_CATEGORY_LABELS } from "@/utils/constants";
@@ -47,7 +47,7 @@ const FUND_TRANSFER_NOTE = "Bu kayıt ana kasadan tazminat kasasına yapılan bi
 const FUND_PAYOUT_NOTE =
   "Bu ödeme tazminat kasasından yapıldı ve ana kasanın toplamına girmez. Ödemeyi iptal etmek için Personel sayfasını kullanın.";
 
-function DetailModal({ transaction, description, building, onClose, onCreateDocument, onCancel }) {
+function RecordDetailModal({ transaction, description, building, onClose, onCreateDocument, onCancel }) {
   const text = TYPES[transaction.type];
   const isCancelled = Boolean(transaction.is_cancelled);
   const collectedNote = COLLECTED_INCOME_NOTES[transaction.category];
@@ -63,22 +63,22 @@ function DetailModal({ transaction, description, building, onClose, onCreateDocu
   useEscapeKey(onClose);
 
   return (
-    <div className="tx-md-overlay">
-      <div className="tx-md-box">
-        <div className="tx-md-head">
-          <div className="tx-md-identity">
-            <h2 className="tx-md-title">{text.title}</h2>
-            <span className="tx-md-scope" title={building.name}>
+    <div className="cb-md-overlay">
+      <div className="cb-md-box">
+        <div className="cb-md-head">
+          <div className="cb-md-identity">
+            <h2 className="cb-md-title">{text.title}</h2>
+            <span className="cb-md-scope" title={building.name}>
               {building.name}
             </span>
           </div>
-          <button type="button" className="tx-md-close" onClick={onClose} aria-label="Kapat">
+          <button type="button" className="cb-md-close" onClick={onClose} aria-label="Kapat">
             <FiX />
           </button>
         </div>
 
-        <div className="tx-md-body">
-          <dl className="tx-detail-list">
+        <div className="cb-md-body">
+          <dl className="cb-detail-list">
             <DetailRow label="Tarih" value={formatDate(transaction.date)} />
             <DetailRow
               label="Kategori"
@@ -93,20 +93,20 @@ function DetailModal({ transaction, description, building, onClose, onCreateDocu
             {isCancelled ? <DetailRow label="İptal Nedeni" value={transaction.cancel_reason} /> : null}
           </dl>
 
-          {collectedNote && !isCancelled ? <p className="tx-detail-note">{collectedNote}</p> : null}
-          {isInvestmentExpense && !isCancelled ? <p className="tx-detail-note">{INVESTMENT_EXPENSE_NOTE}</p> : null}
-          {isFundPayout && !isCancelled ? <p className="tx-detail-note">{FUND_PAYOUT_NOTE}</p> : null}
-          {isFundTransfer && !isCancelled ? <p className="tx-detail-note">{FUND_TRANSFER_NOTE}</p> : null}
+          {collectedNote && !isCancelled ? <p className="cb-detail-note">{collectedNote}</p> : null}
+          {isInvestmentExpense && !isCancelled ? <p className="cb-detail-note">{INVESTMENT_EXPENSE_NOTE}</p> : null}
+          {isFundPayout && !isCancelled ? <p className="cb-detail-note">{FUND_PAYOUT_NOTE}</p> : null}
+          {isFundTransfer && !isCancelled ? <p className="cb-detail-note">{FUND_TRANSFER_NOTE}</p> : null}
 
           {isCancelled || isFundPayout ? null : (
-            <div className="tx-md-actions">
+            <div className="cb-md-actions">
               {hasDocument ? (
-                <button type="button" className="tx-md-btn-solid" onClick={onCreateDocument}>
+                <button type="button" className="cb-md-btn-solid" onClick={onCreateDocument}>
                   {text.documentLabel}
                 </button>
               ) : null}
               {collectedNote ? null : (
-                <button type="button" className="tx-md-btn-danger" onClick={onCancel}>
+                <button type="button" className="cb-md-btn-danger" onClick={onCancel}>
                   {isFundTransfer ? "Aktarımı İptal Et" : text.cancelLabel}
                 </button>
               )}
@@ -118,4 +118,4 @@ function DetailModal({ transaction, description, building, onClose, onCreateDocu
   );
 }
 
-export default DetailModal;
+export default RecordDetailModal;

@@ -1,19 +1,18 @@
-// Adds one apartment, opened from a floor slot with that floor prefilled or from the empty state. The floor
-// stays editable, the only route to a floor that is not drawn yet.
+// Edits the identity of an apartment only. No due amount: the figure on this page is the frozen amount of the
+// viewed month, and sending it would silently pull the current amount back to an old one.
 
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
 import "./BuildingViewModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { showDialog } from "@/components/Dialog/dialogStore";
-import { APARTMENT_TYPES, MAX_DUE_AMOUNT } from "@/utils/constants";
+import { APARTMENT_TYPES } from "@/utils/constants";
 
-function AddModal({ building, initialFloor, onClose, onSaved }) {
-  const [apartmentNo, setApartmentNo] = useState("");
-  const [floor, setFloor] = useState(initialFloor);
-  const [type, setType] = useState("");
-  const [squareMeters, setSquareMeters] = useState("");
-  const [dueAmount, setDueAmount] = useState("");
+function ApartmentEditModal({ apartment, building, onClose, onSaved }) {
+  const [apartmentNo, setApartmentNo] = useState(apartment.apartment_no || "");
+  const [floor, setFloor] = useState(apartment.floor);
+  const [type, setType] = useState(apartment.type || "1+1");
+  const [squareMeters, setSquareMeters] = useState(apartment.square_meters ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -21,13 +20,13 @@ function AddModal({ building, initialFloor, onClose, onSaved }) {
     setIsSubmitting(true);
 
     try {
-      const res = await window.electronAPI.addApartment({
+      const res = await window.electronAPI.updateApartment({
+        id: apartment.apartment_id,
         buildingId: building.id,
         apartment_no: apartmentNo,
         floor: Number(floor),
         type,
-        square_meters: squareMeters !== "" ? Number(squareMeters) : null,
-        due_amount: Number(dueAmount),
+        square_meters: squareMeters ? Number(squareMeters) : null,
       });
 
       if (res.success) {
@@ -37,8 +36,8 @@ function AddModal({ building, initialFloor, onClose, onSaved }) {
         showDialog.error("Hata", res.message);
       }
     } catch (err) {
-      console.error("[AddModal] addApartment:", err);
-      showDialog.error("Hata", "Daire eklenemedi.");
+      console.error("[ApartmentEditModal] updateApartment:", err);
+      showDialog.error("Hata", "Daire güncellenemedi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -56,10 +55,8 @@ function AddModal({ building, initialFloor, onClose, onSaved }) {
       <form className="bv-md-box" onSubmit={handleSubmit}>
         <div className="bv-md-head">
           <div className="bv-md-identity">
-            <h2 className="bv-md-title">Yeni Daire Ekle</h2>
-            <span className="bv-md-scope" title={building.name}>
-              {building.name}
-            </span>
+            <h2 className="bv-md-title">Daireyi Düzenle</h2>
+            <span className="bv-md-scope">Daire {apartment.apartment_no}</span>
           </div>
           <button
             type="button"
@@ -75,12 +72,11 @@ function AddModal({ building, initialFloor, onClose, onSaved }) {
         <div className="bv-md-body">
           <div className="bv-md-form-grid">
             <div className="bv-md-field">
-              <label htmlFor="add-no">Daire No</label>
+              <label htmlFor="edit-apartment-no">Daire No</label>
               <input
-                id="add-no"
+                id="edit-apartment-no"
                 type="text"
                 maxLength={10}
-                placeholder="Örn. 5"
                 value={apartmentNo}
                 onChange={(e) => setApartmentNo(e.target.value)}
                 required
@@ -89,14 +85,13 @@ function AddModal({ building, initialFloor, onClose, onSaved }) {
             </div>
 
             <div className="bv-md-field">
-              <label htmlFor="add-floor">Kat</label>
+              <label htmlFor="edit-floor">Kat</label>
               <input
-                id="add-floor"
+                id="edit-floor"
                 type="number"
                 min="-2"
                 max="99"
                 step="1"
-                placeholder="Örn. 2"
                 value={floor}
                 onChange={(e) => setFloor(e.target.value)}
                 required
@@ -104,9 +99,8 @@ function AddModal({ building, initialFloor, onClose, onSaved }) {
             </div>
 
             <div className="bv-md-field">
-              <label htmlFor="add-type">Tip</label>
-              <select id="add-type" value={type} onChange={(e) => setType(e.target.value)} required>
-                <option value="">Seçiniz</option>
+              <label htmlFor="edit-type">Tip</label>
+              <select id="edit-type" value={type} onChange={(e) => setType(e.target.value)}>
                 {APARTMENT_TYPES.map((apartmentType) => (
                   <option key={apartmentType} value={apartmentType}>
                     {apartmentType}
@@ -116,42 +110,28 @@ function AddModal({ building, initialFloor, onClose, onSaved }) {
             </div>
 
             <div className="bv-md-field">
-              <label htmlFor="add-square-meters">
+              <label htmlFor="edit-square-meters">
                 Alan (m²) <span className="bv-md-optional">isteğe bağlı</span>
               </label>
               <input
-                id="add-square-meters"
+                id="edit-square-meters"
                 type="number"
                 min="0.1"
                 max="1000"
                 step="0.1"
-                placeholder="Örn. 85"
                 value={squareMeters}
                 onChange={(e) => setSquareMeters(e.target.value)}
               />
             </div>
 
-            <div className="bv-md-field bv-md-field--wide">
-              <label htmlFor="add-due-amount">Aylık Aidat (₺)</label>
-              <input
-                id="add-due-amount"
-                type="number"
-                min="0.01"
-                max={MAX_DUE_AMOUNT}
-                step="0.01"
-                placeholder="Örn. 1500"
-                value={dueAmount}
-                onChange={(e) => setDueAmount(e.target.value)}
-                required
-              />
-              <p className="bv-md-note">
-                Aidat tahakkuku <b>bu aydan itibaren</b> başlar. Tutarı sonradan daire bazında değiştirebilirsiniz.
-              </p>
-            </div>
+            <p className="bv-md-note bv-md-field--wide">
+              Bu form yalnızca daireyi değiştirir. Aidat tutarı <b>Aidat Takibi</b>, sakin bilgileri <b>Sakinler</b>{" "}
+              sayfasından güncellenir.
+            </p>
           </div>
 
           <button type="submit" className="bv-md-btn-solid bv-md-submit" disabled={isSubmitting}>
-            {isSubmitting ? "Kaydediliyor..." : "Daireyi Kaydet"}
+            {isSubmitting ? "Kaydediliyor..." : "Kaydet"}
           </button>
         </div>
       </form>
@@ -159,4 +139,4 @@ function AddModal({ building, initialFloor, onClose, onSaved }) {
   );
 }
 
-export default AddModal;
+export default ApartmentEditModal;

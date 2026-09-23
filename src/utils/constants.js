@@ -12,7 +12,7 @@ export const MAX_BUILDING_NAME_LENGTH = 60;
 export const MAX_DUE_AMOUNT = 50000;
 
 // The opening balance a fund can be started with. Same limit as the two opening_balance CHECKs, read by
-// the severance page and the investment page.
+// the staff page and the investment page.
 export const MAX_OPENING_BALANCE = 100000000;
 
 // is_occupant travels as a form field rather than a separate state, so ResidentFieldset needs only form and
@@ -65,7 +65,7 @@ export const INCOME_CATEGORY_GROUPS = [
   },
 ];
 
-// Mirrors EXPENSE_CATEGORIES in financial/handlers.js. The list is long enough to need groups. The value
+// Mirrors EXPENSE_CATEGORIES in cashbook/handlers.js. The list is long enough to need groups. The value
 // utility predates the split of the bills and now reads as the other bills, staff as the salary.
 export const EXPENSE_CATEGORY_GROUPS = [
   {

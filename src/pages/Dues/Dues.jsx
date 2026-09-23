@@ -22,8 +22,8 @@ import PaymentModal from "@/components/SharedModals/PaymentModal/PaymentModal";
 import PeriodSelector from "@/components/PeriodSelector/PeriodSelector";
 import SearchBox from "@/components/SearchBox/SearchBox";
 import UnitCell from "@/components/UnitCell/UnitCell";
-import BulkUpdateModal from "./DuesModals/BulkUpdateModal";
-import SingleUpdateModal from "./DuesModals/SingleUpdateModal";
+import BulkDueAmountModal from "./DuesModals/BulkDueAmountModal";
+import SingleDueAmountModal from "./DuesModals/SingleDueAmountModal";
 import { useIpcData } from "@/hooks/useIpcData";
 import { usePagination } from "@/hooks/usePagination";
 import { useSession, useCurrentBuilding } from "@/hooks/useSession";
@@ -452,7 +452,7 @@ function Dues() {
       )}
 
       {showBulkUpdate && (
-        <BulkUpdateModal
+        <BulkDueAmountModal
           building={building}
           onClose={() => setShowBulkUpdate(false)}
           onSaved={() => {
@@ -463,7 +463,7 @@ function Dues() {
       )}
 
       {showSingleUpdate && (
-        <SingleUpdateModal
+        <SingleDueAmountModal
           dues={dues}
           building={building}
           onClose={() => setShowSingleUpdate(false)}

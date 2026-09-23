@@ -14,9 +14,9 @@ let isCapsLockOn = false;
 const capsLockListeners = new Set();
 
 function syncCapsLock(e) {
-  const next = e.getModifierState("CapsLock");
-  if (next === isCapsLockOn) return;
-  isCapsLockOn = next;
+  const isOn = e.getModifierState("CapsLock");
+  if (isOn === isCapsLockOn) return;
+  isCapsLockOn = isOn;
   capsLockListeners.forEach((listener) => listener(isCapsLockOn));
 }
 

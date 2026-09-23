@@ -54,8 +54,9 @@
 .setup-welcome {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 52px 44px;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 44px 32px;
   background: var(--auth-accent-wash);
   border-right: 1px solid var(--auth-border);
 }
@@ -73,7 +74,7 @@
 }
 
 .setup-welcome-title {
-  font-size: 2.05rem;
+  font-size: 1.95rem;
   font-weight: 800;
   letter-spacing: -0.5px;
   line-height: 1.1;
@@ -91,7 +92,6 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-top: 38px;
   font-size: 1.05rem;
   font-weight: 600;
   color: var(--auth-secondary);
@@ -115,7 +115,7 @@
 
 .setup-overview {
   list-style: none;
-  margin: 32px 0 0;
+  margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -126,9 +126,9 @@
   display: flex;
   align-items: flex-start;
   gap: 18px;
-  padding: 20px;
+  padding: 18px 20px;
   border-radius: 14px;
-  border: 1px solid transparent;
+  border: 1px solid var(--auth-border);
   transition:
     background 0.25s ease,
     border-color 0.25s ease;
@@ -167,6 +167,7 @@
   font-size: 1.05rem;
   line-height: 1.5;
   color: var(--auth-secondary);
+  text-wrap: balance;
 }
 
 .setup-overview li.is-active {
@@ -193,8 +194,7 @@
 }
 
 .setup-welcome-note {
-  margin-top: auto;
-  padding-top: 30px;
+  padding-top: 22px;
   border-top: 1px solid var(--auth-border);
   font-size: 1.05rem;
   line-height: 1.5;
@@ -206,8 +206,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 22px;
-  padding-top: 18px;
+  margin-top: 20px;
+  padding-top: 16px;
   border-top: 1px solid var(--auth-border);
 }
 
@@ -253,7 +253,8 @@
 .setup-form-panel {
   display: flex;
   flex-direction: column;
-  padding: 52px 48px;
+  min-height: 578px;
+  padding: 44px 48px;
 }
 
 .setup-form-title {
@@ -272,16 +273,17 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 38px;
-  margin-top: 34px;
+  justify-content: space-evenly;
+  gap: 22px;
+  margin-top: 28px;
   animation: setupStepFade 0.28s ease;
 }
 
 .setup-password-meter {
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  margin-top: -16px;
+  gap: 20px;
+  margin-top: -8px;
 }
 
 @keyframes setupStepFade {
@@ -293,6 +295,17 @@
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+.setup-submit {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.setup-submit .setup-actions {
+  margin-top: 0;
+  padding-top: 0;
 }
 
 .setup-error {

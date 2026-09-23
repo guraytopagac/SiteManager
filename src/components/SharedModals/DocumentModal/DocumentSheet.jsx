@@ -169,7 +169,7 @@ function VoucherBody({ voucher }) {
   );
 }
 
-function TransactionDocument({ type, data, buildingName, managerName }) {
+function DocumentSheet({ type, data, buildingName, managerName }) {
   return (
     <Sheet type={type} date={data.date} buildingName={buildingName} amount={data.amount} managerName={managerName}>
       {type === "income" ? <ReceiptBody receipt={data} /> : <VoucherBody voucher={data} />}
@@ -177,4 +177,4 @@ function TransactionDocument({ type, data, buildingName, managerName }) {
   );
 }
 
-export default TransactionDocument;
+export default DocumentSheet;

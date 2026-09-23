@@ -1,5 +1,5 @@
 // Severance fund rules. The fund is filled by transfers from the main cash, entered by hand as expenses on
-// the transactions page, and pays the staff's severance when they leave. Payouts are never deleted, a payout
+// the cash book page, and pays the staff's severance when they leave. Payouts are never deleted, a payout
 // is cancelled instead.
 const { getDb } = require("../../../database/db");
 const { accountBlocker } = require("../shared/cashAccounts");
@@ -166,7 +166,7 @@ function getOverview(payload) {
       },
     };
   } catch (err) {
-    console.error("[severance.service] getOverview:", err);
+    console.error("[staff.service] getOverview:", err);
     return { success: false, message: "Personel bilgileri alınamadı." };
   }
 }
@@ -186,7 +186,7 @@ function getEmployees(payload) {
       .map((employee) => ({ ...employee, advance_balance: advances.get(employee.id) ?? 0 }));
     return { success: true, data: employees };
   } catch (err) {
-    console.error("[severance.service] getEmployees:", err);
+    console.error("[staff.service] getEmployees:", err);
     return { success: false, message: "Çalışan listesi alınamadı." };
   }
 }
@@ -208,7 +208,7 @@ function setupFund(payload) {
 
     return { success: true, message: "Tazminat kasası başlatıldı." };
   } catch (err) {
-    console.error("[severance.service] setupFund:", err);
+    console.error("[staff.service] setupFund:", err);
     return { success: false, message: resolveDbError(err, "Tazminat kasası başlatma") };
   }
 }
@@ -226,7 +226,7 @@ function updateFund(payload) {
 
     return { success: true, message: "Tazminat kasası ayarları güncellendi." };
   } catch (err) {
-    console.error("[severance.service] updateFund:", err);
+    console.error("[staff.service] updateFund:", err);
     return { success: false, message: resolveDbError(err, "Tazminat kasası güncelleme") };
   }
 }
@@ -246,7 +246,7 @@ function addEmployee(payload) {
 
     return { success: true, id: result.lastInsertRowid, message: `${fullName} eklendi.` };
   } catch (err) {
-    console.error("[severance.service] addEmployee:", err);
+    console.error("[staff.service] addEmployee:", err);
     return { success: false, message: resolveDbError(err, "Çalışan ekleme") };
   }
 }
@@ -280,7 +280,7 @@ function updateEmployee(payload) {
 
     return { success: true, message: `${fullName} güncellendi.` };
   } catch (err) {
-    console.error("[severance.service] updateEmployee:", err);
+    console.error("[staff.service] updateEmployee:", err);
     return { success: false, message: resolveDbError(err, "Çalışan güncelleme") };
   }
 }
@@ -304,7 +304,7 @@ function deleteEmployee(payload) {
     getDb().prepare(`DELETE FROM employees WHERE id = ? AND building_id = ?`).run(employeeId, buildingId);
     return { success: true, message: `${employee.full_name} silindi.` };
   } catch (err) {
-    console.error("[severance.service] deleteEmployee:", err);
+    console.error("[staff.service] deleteEmployee:", err);
     return { success: false, message: resolveDbError(err, "Çalışan silme") };
   }
 }
@@ -372,7 +372,7 @@ function recordPayout(payload) {
 
     return { success: true, topUpAmount, message: `${employee.full_name} için tazminat ödemesi kaydedildi.` };
   } catch (err) {
-    console.error("[severance.service] recordPayout:", err);
+    console.error("[staff.service] recordPayout:", err);
     return { success: false, message: resolveDbError(err, "Tazminat ödemesi") };
   }
 }
@@ -414,7 +414,7 @@ function cancelPayout(payload) {
 
     return { success: true, message: "Tazminat ödemesi iptal edildi." };
   } catch (err) {
-    console.error("[severance.service] cancelPayout:", err);
+    console.error("[staff.service] cancelPayout:", err);
     return { success: false, message: resolveDbError(err, "Ödeme iptali") };
   }
 }

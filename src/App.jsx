@@ -16,10 +16,10 @@ const Dashboard = lazy(() => import("./pages/Dashboard/Dashboard.jsx"));
 const BuildingView = lazy(() => import("./pages/BuildingView/BuildingView.jsx"));
 const Dues = lazy(() => import("./pages/Dues/Dues.jsx"));
 const Residents = lazy(() => import("./pages/Residents/Residents.jsx"));
-const Transactions = lazy(() => import("./pages/Transactions/Transactions.jsx"));
+const CashBook = lazy(() => import("./pages/CashBook/CashBook.jsx"));
 const Profile = lazy(() => import("./pages/Profile/Profile.jsx"));
 const Reports = lazy(() => import("./pages/Reports/Reports.jsx"));
-const SeveranceFund = lazy(() => import("./pages/SeveranceFund/SeveranceFund.jsx"));
+const Staff = lazy(() => import("./pages/Staff/Staff.jsx"));
 const Investment = lazy(() => import("./pages/Investment/Investment.jsx"));
 const SelectBuilding = lazy(() => import("./pages/SelectBuilding/SelectBuilding.jsx"));
 const NewBuilding = lazy(() => import("./pages/NewBuilding/NewBuilding.jsx"));
@@ -85,9 +85,9 @@ function App() {
                 <Route path="/building-view" element={<BuildingView />} />
                 <Route path="/dues" element={<Dues />} />
                 <Route path="/residents" element={<Residents />} />
-                <Route path="/transactions" element={<Transactions />} />
+                <Route path="/cash-book" element={<CashBook />} />
                 <Route path="/reports" element={<Reports />} />
-                <Route path="/severance-fund" element={<SeveranceFund />} />
+                <Route path="/staff" element={<Staff />} />
                 <Route path="/investment" element={<Investment />} />
               </Route>
             </Route>

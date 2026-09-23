@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
-import "./SeveranceFundModals.css";
+import "./StaffModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import { showDialog } from "@/components/Dialog/dialogStore";
@@ -11,7 +11,7 @@ import { getToday } from "@/utils/date";
 
 const MAX_WAGE = 1000000;
 
-function EmployeeModal({ building, employee, onClose, onSaved }) {
+function EmployeeFormModal({ building, employee, onClose, onSaved }) {
   const isEdit = Boolean(employee);
   const isPaid = Boolean(employee?.payout_id);
 
@@ -63,7 +63,7 @@ function EmployeeModal({ building, employee, onClose, onSaved }) {
         showDialog.error("Hata", res.message);
       }
     } catch (err) {
-      console.error("[EmployeeModal] saveEmployee:", err);
+      console.error("[EmployeeFormModal] saveEmployee:", err);
       showDialog.error("Hata", UNEXPECTED_ERROR_MESSAGE);
     } finally {
       setIsSubmitting(false);
@@ -89,7 +89,7 @@ function EmployeeModal({ building, employee, onClose, onSaved }) {
         showDialog.error("Hata", res.message);
       }
     } catch (err) {
-      console.error("[EmployeeModal] deleteEmployee:", err);
+      console.error("[EmployeeFormModal] deleteEmployee:", err);
       showDialog.error("Hata", UNEXPECTED_ERROR_MESSAGE);
     } finally {
       setIsSubmitting(false);
@@ -104,18 +104,18 @@ function EmployeeModal({ building, employee, onClose, onSaved }) {
   useEscapeKey(handleClose);
 
   return (
-    <div className="sf-md-overlay">
-      <form className="sf-md-box" onSubmit={handleSubmit}>
-        <div className="sf-md-head">
-          <div className="sf-md-identity">
-            <h2 className="sf-md-title">{isEdit ? "Çalışanı Düzenle" : "Çalışan Ekle"}</h2>
-            <span className="sf-md-scope" title={building.name}>
+    <div className="st-md-overlay">
+      <form className="st-md-box" onSubmit={handleSubmit}>
+        <div className="st-md-head">
+          <div className="st-md-identity">
+            <h2 className="st-md-title">{isEdit ? "Çalışanı Düzenle" : "Çalışan Ekle"}</h2>
+            <span className="st-md-scope" title={building.name}>
               {building.name}
             </span>
           </div>
           <button
             type="button"
-            className="sf-md-close"
+            className="st-md-close"
             onClick={handleClose}
             disabled={isSubmitting}
             aria-label="Kapat"
@@ -124,12 +124,12 @@ function EmployeeModal({ building, employee, onClose, onSaved }) {
           </button>
         </div>
 
-        <div className="sf-md-body">
-          <div className="sf-md-grid">
-            <div className="sf-md-field">
-              <label htmlFor="sf-md-name">Ad Soyad</label>
+        <div className="st-md-body">
+          <div className="st-md-grid">
+            <div className="st-md-field">
+              <label htmlFor="st-md-name">Ad Soyad</label>
               <input
-                id="sf-md-name"
+                id="st-md-name"
                 type="text"
                 maxLength={60}
                 placeholder="Örn. Hasan Kılıç"
@@ -140,10 +140,10 @@ function EmployeeModal({ building, employee, onClose, onSaved }) {
               />
             </div>
 
-            <div className="sf-md-field">
-              <label htmlFor="sf-md-role">Görev</label>
+            <div className="st-md-field">
+              <label htmlFor="st-md-role">Görev</label>
               <input
-                id="sf-md-role"
+                id="st-md-role"
                 type="text"
                 maxLength={40}
                 placeholder="Örn. Kapıcı"
@@ -153,10 +153,10 @@ function EmployeeModal({ building, employee, onClose, onSaved }) {
               />
             </div>
 
-            <div className="sf-md-field">
-              <label htmlFor="sf-md-start">İşe Giriş Tarihi</label>
+            <div className="st-md-field">
+              <label htmlFor="st-md-start">İşe Giriş Tarihi</label>
               <input
-                id="sf-md-start"
+                id="st-md-start"
                 type="date"
                 max={getToday()}
                 value={form.start_date}
@@ -165,10 +165,10 @@ function EmployeeModal({ building, employee, onClose, onSaved }) {
               />
             </div>
 
-            <div className="sf-md-field">
-              <label htmlFor="sf-md-wage">Aylık Brüt Ücret (₺)</label>
+            <div className="st-md-field">
+              <label htmlFor="st-md-wage">Aylık Brüt Ücret (₺)</label>
               <input
-                id="sf-md-wage"
+                id="st-md-wage"
                 type="number"
                 step="0.01"
                 min="0.01"
@@ -182,10 +182,10 @@ function EmployeeModal({ building, employee, onClose, onSaved }) {
             </div>
 
             {isEdit ? (
-              <div className="sf-md-field sf-md-field--wide">
-                <label htmlFor="sf-md-end">Ayrılış Tarihi (isteğe bağlı)</label>
+              <div className="st-md-field st-md-field--wide">
+                <label htmlFor="st-md-end">Ayrılış Tarihi (isteğe bağlı)</label>
                 <input
-                  id="sf-md-end"
+                  id="st-md-end"
                   type="date"
                   min={form.start_date || undefined}
                   max={getToday()}
@@ -193,7 +193,7 @@ function EmployeeModal({ building, employee, onClose, onSaved }) {
                   onChange={setField("end_date")}
                   disabled={isPaid}
                 />
-                <span className="sf-md-hint">
+                <span className="st-md-hint">
                   {isPaid
                     ? "Tazminatı ödenmiş çalışanın ayrılış tarihi ödeme iptal edilmeden değiştirilemez."
                     : "Tazminat ödenmeden ayrılan çalışan için girilir. Tazminat ödenecekse Öde butonunu kullanın."}
@@ -202,13 +202,13 @@ function EmployeeModal({ building, employee, onClose, onSaved }) {
             ) : null}
           </div>
 
-          <div className="sf-md-actions">
+          <div className="st-md-actions">
             {isEdit ? (
-              <button type="button" className="sf-md-btn-danger" onClick={handleDelete} disabled={isSubmitting}>
+              <button type="button" className="st-md-btn-danger" onClick={handleDelete} disabled={isSubmitting}>
                 Çalışanı Sil
               </button>
             ) : null}
-            <button type="submit" className="sf-btn-solid" disabled={isSubmitting}>
+            <button type="submit" className="st-btn-solid" disabled={isSubmitting}>
               {isSubmitting ? "Kaydediliyor..." : isEdit ? "Değişiklikleri Kaydet" : "Çalışanı Ekle"}
             </button>
           </div>
@@ -218,4 +218,4 @@ function EmployeeModal({ building, employee, onClose, onSaved }) {
   );
 }
 
-export default EmployeeModal;
+export default EmployeeFormModal;

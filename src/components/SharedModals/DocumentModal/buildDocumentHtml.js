@@ -4,8 +4,8 @@
 import { createElement } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
-import TransactionDocument from "./TransactionDocument";
-import pdfCss from "./transactionPdf.css?raw";
+import DocumentSheet from "./DocumentSheet";
+import pdfCss from "./documentPdf.css?raw";
 
 const TITLES = {
   income: "Tahsilat Makbuzu",
@@ -16,14 +16,14 @@ function renderBody(props) {
   const container = document.createElement("div");
   const root = createRoot(container);
   flushSync(() => {
-    root.render(createElement(TransactionDocument, props));
+    root.render(createElement(DocumentSheet, props));
   });
   const body = container.innerHTML;
   root.unmount();
   return body;
 }
 
-export function buildTransactionDocumentHtml({ type, data, buildingName, managerName }) {
+export function buildDocumentHtml({ type, data, buildingName, managerName }) {
   const body = renderBody({ type, data, buildingName, managerName });
 
   const titleTag = document.createElement("title");

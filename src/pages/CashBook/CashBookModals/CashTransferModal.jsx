@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
-import "./TransactionsModals.css";
+import "./CashBookModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { CASH_ACCOUNT_LABELS, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import { formatCurrency } from "@/utils/currency";
@@ -20,7 +20,7 @@ const DIRECTIONS = {
   cash: { label: "Bankadan Çek", source: "bank" },
 };
 
-function TransferModal({ building, userId, balances, onClose, onSaved }) {
+function CashTransferModal({ building, userId, balances, onClose, onSaved }) {
   const [toAccount, setToAccount] = useState("bank");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(() => getToday());
@@ -62,7 +62,7 @@ function TransferModal({ building, userId, balances, onClose, onSaved }) {
         showDialog.error("Hata", res.message);
       }
     } catch (err) {
-      console.error("[TransferModal] addCashTransfer:", err);
+      console.error("[CashTransferModal] addCashTransfer:", err);
       showDialog.error("Hata", UNEXPECTED_ERROR_MESSAGE);
     } finally {
       setIsSubmitting(false);
@@ -77,18 +77,18 @@ function TransferModal({ building, userId, balances, onClose, onSaved }) {
   useEscapeKey(handleClose);
 
   return (
-    <div className="tx-md-overlay">
-      <form className="tx-md-box" onSubmit={handleSubmit}>
-        <div className="tx-md-head">
-          <div className="tx-md-identity">
-            <h2 className="tx-md-title">Hesaplar Arası Aktarım</h2>
-            <span className="tx-md-scope" title={building.name}>
+    <div className="cb-md-overlay">
+      <form className="cb-md-box" onSubmit={handleSubmit}>
+        <div className="cb-md-head">
+          <div className="cb-md-identity">
+            <h2 className="cb-md-title">Hesaplar Arası Aktarım</h2>
+            <span className="cb-md-scope" title={building.name}>
               {building.name}
             </span>
           </div>
           <button
             type="button"
-            className="tx-md-close"
+            className="cb-md-close"
             onClick={handleClose}
             disabled={isSubmitting}
             aria-label="Kapat"
@@ -97,18 +97,18 @@ function TransferModal({ building, userId, balances, onClose, onSaved }) {
           </button>
         </div>
 
-        <div className="tx-md-body">
-          <div className="tx-md-main">
-            <div className="tx-md-field">
-              <span className="tx-md-legend" id="tx-transfer-direction">
+        <div className="cb-md-body">
+          <div className="cb-md-main">
+            <div className="cb-md-field">
+              <span className="cb-md-legend" id="cb-transfer-direction">
                 Aktarım Yönü
               </span>
-              <div className="tx-cat-list tx-account-list" role="radiogroup" aria-labelledby="tx-transfer-direction">
+              <div className="cb-cat-list cb-account-list" role="radiogroup" aria-labelledby="cb-transfer-direction">
                 {Object.entries(DIRECTIONS).map(([value, direction]) => (
-                  <label key={value} className={toAccount === value ? "tx-cat tx-cat--active" : "tx-cat"}>
+                  <label key={value} className={toAccount === value ? "cb-cat cb-cat--active" : "cb-cat"}>
                     <input
                       type="radio"
-                      name="tx-transfer-direction"
+                      name="cb-transfer-direction"
                       checked={toAccount === value}
                       onChange={() => setToAccount(value)}
                     />
@@ -116,16 +116,16 @@ function TransferModal({ building, userId, balances, onClose, onSaved }) {
                   </label>
                 ))}
               </div>
-              <p className="tx-md-hint">
+              <p className="cb-md-hint">
                 {CASH_ACCOUNT_LABELS[source]} hesabında şu an {formatCurrency(balances[source])} görünüyor.
               </p>
             </div>
 
-            <div className="tx-md-form-grid">
-              <div className="tx-md-field">
-                <label htmlFor="tx-transfer-amount">Tutar (₺)</label>
+            <div className="cb-md-form-grid">
+              <div className="cb-md-field">
+                <label htmlFor="cb-transfer-amount">Tutar (₺)</label>
                 <input
-                  id="tx-transfer-amount"
+                  id="cb-transfer-amount"
                   type="number"
                   step="0.01"
                   min="0.01"
@@ -139,10 +139,10 @@ function TransferModal({ building, userId, balances, onClose, onSaved }) {
                 />
               </div>
 
-              <div className="tx-md-field">
-                <label htmlFor="tx-transfer-date">Tarih</label>
+              <div className="cb-md-field">
+                <label htmlFor="cb-transfer-date">Tarih</label>
                 <input
-                  id="tx-transfer-date"
+                  id="cb-transfer-date"
                   type="date"
                   value={date}
                   min={getMinDate()}
@@ -153,10 +153,10 @@ function TransferModal({ building, userId, balances, onClose, onSaved }) {
               </div>
             </div>
 
-            <div className="tx-md-field">
-              <label htmlFor="tx-transfer-description">Açıklama (isteğe bağlı)</label>
+            <div className="cb-md-field">
+              <label htmlFor="cb-transfer-description">Açıklama (isteğe bağlı)</label>
               <textarea
-                id="tx-transfer-description"
+                id="cb-transfer-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Örn. Eylül tahsilatları bankaya yatırıldı"
@@ -165,7 +165,7 @@ function TransferModal({ building, userId, balances, onClose, onSaved }) {
             </div>
           </div>
 
-          <button type="submit" className="tx-md-btn-solid tx-md-submit" disabled={isSubmitting}>
+          <button type="submit" className="cb-md-btn-solid cb-md-submit" disabled={isSubmitting}>
             {isSubmitting ? "Kaydediliyor..." : "Aktarımı Kaydet"}
           </button>
         </div>
@@ -174,4 +174,4 @@ function TransferModal({ building, userId, balances, onClose, onSaved }) {
   );
 }
 
-export default TransferModal;
+export default CashTransferModal;

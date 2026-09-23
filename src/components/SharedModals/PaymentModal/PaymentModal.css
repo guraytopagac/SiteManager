@@ -255,7 +255,6 @@
 }
 
 .pay-paid-body {
-  max-width: 320px;
   margin: 0;
   color: var(--text-secondary);
   font-size: 1rem;

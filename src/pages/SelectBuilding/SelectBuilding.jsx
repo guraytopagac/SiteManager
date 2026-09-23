@@ -66,7 +66,7 @@ function SelectBuilding() {
   };
 
   const startEdit = (building) => {
-    setEditing({ building, name: building.name });
+    setEditing({ building, nameInput: building.name });
     setEditError("");
   };
 
@@ -80,14 +80,14 @@ function SelectBuilding() {
   const submitEdit = async (event) => {
     event.preventDefault();
     const renamedBuilding = editing.building;
-    const trimmedName = editing.name.trim();
+    const buildingName = editing.nameInput.trim();
 
-    const nameError = validateBuildingName(trimmedName);
+    const nameError = validateBuildingName(buildingName);
     if (nameError) {
       setEditError(nameError);
       return;
     }
-    if (trimmedName === renamedBuilding.name) {
+    if (buildingName === renamedBuilding.name) {
       cancelEdit();
       return;
     }
@@ -98,12 +98,12 @@ function SelectBuilding() {
       const res = await window.electronAPI.renameBuilding({
         buildingId: renamedBuilding.id,
         ownerId,
-        name: trimmedName,
+        name: buildingName,
       });
 
       if (res.success) {
         if (selectedBuilding?.id === renamedBuilding.id) {
-          setCurrentBuilding({ id: renamedBuilding.id, name: trimmedName });
+          setCurrentBuilding({ id: renamedBuilding.id, name: buildingName });
         }
         showDialog.toast(res.message);
         cancelEdit();
@@ -197,14 +197,14 @@ function SelectBuilding() {
       <div className="sb-name-row">
         <input
           className="sb-input"
-          value={editing.name}
+          value={editing.nameInput}
           maxLength={MAX_BUILDING_NAME_LENGTH}
           aria-label="Bina adı"
           aria-invalid={editError ? true : undefined}
           aria-describedby={editError ? ERROR_ID : undefined}
           autoFocus
           onChange={(e) => {
-            setEditing({ ...editing, name: e.target.value });
+            setEditing({ ...editing, nameInput: e.target.value });
             setEditError("");
           }}
           onKeyDown={(e) => {

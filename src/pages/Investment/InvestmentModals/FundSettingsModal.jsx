@@ -13,7 +13,7 @@ function roundToCents(value) {
   return Math.round(Number(value) * 100) / 100;
 }
 
-function FundModal({ fund, building, onClose, onSaved }) {
+function FundSettingsModal({ fund, building, onClose, onSaved }) {
   const [monthlyInput, setMonthlyInput] = useState(String(fund.monthly_amount));
   const [openingInput, setOpeningInput] = useState(String(fund.opening_balance));
   const [isCollecting, setIsCollecting] = useState(fund.is_collecting === 1);
@@ -60,7 +60,7 @@ function FundModal({ fund, building, onClose, onSaved }) {
         showDialog.error("Hata", res.message);
       }
     } catch (err) {
-      console.error("[FundModal] updateInvestmentFund:", err);
+      console.error("[FundSettingsModal] updateInvestmentFund:", err);
       showDialog.error("Hata", UNEXPECTED_ERROR_MESSAGE);
     }
     setIsSubmitting(false);
@@ -157,4 +157,4 @@ function FundModal({ fund, building, onClose, onSaved }) {
   );
 }
 
-export default FundModal;
+export default FundSettingsModal;

@@ -4,7 +4,7 @@
 
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
-import "./SeveranceFundModals.css";
+import "./StaffModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { CASH_ACCOUNT_LABELS, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import { formatCurrency } from "@/utils/currency";
@@ -18,7 +18,7 @@ function toCents(value) {
   return Math.round(Number(value) * 100);
 }
 
-function PayoutModal({ building, employee, balance, userId, onClose, onSaved }) {
+function SeverancePayoutModal({ building, employee, balance, userId, onClose, onSaved }) {
   const estimatedAmount = Math.round(employee.liability * 100) / 100;
   const [amountInput, setAmountInput] = useState(estimatedAmount > 0 ? String(estimatedAmount) : "");
   const [date, setDate] = useState(() => getToday());
@@ -71,7 +71,7 @@ function PayoutModal({ building, employee, balance, userId, onClose, onSaved }) 
         showDialog.error("Hata", res.message);
       }
     } catch (err) {
-      console.error("[PayoutModal] recordSeverancePayout:", err);
+      console.error("[SeverancePayoutModal] recordSeverancePayout:", err);
       showDialog.error("Hata", UNEXPECTED_ERROR_MESSAGE);
     } finally {
       setIsSubmitting(false);
@@ -86,18 +86,18 @@ function PayoutModal({ building, employee, balance, userId, onClose, onSaved }) 
   useEscapeKey(handleClose);
 
   return (
-    <div className="sf-md-overlay">
-      <form className="sf-md-box" onSubmit={handleSubmit}>
-        <div className="sf-md-head">
-          <div className="sf-md-identity">
-            <h2 className="sf-md-title">Tazminat Öde</h2>
-            <span className="sf-md-scope" title={employee.full_name}>
+    <div className="st-md-overlay">
+      <form className="st-md-box" onSubmit={handleSubmit}>
+        <div className="st-md-head">
+          <div className="st-md-identity">
+            <h2 className="st-md-title">Tazminat Öde</h2>
+            <span className="st-md-scope" title={employee.full_name}>
               {employee.full_name}
             </span>
           </div>
           <button
             type="button"
-            className="sf-md-close"
+            className="st-md-close"
             onClick={handleClose}
             disabled={isSubmitting}
             aria-label="Kapat"
@@ -106,8 +106,8 @@ function PayoutModal({ building, employee, balance, userId, onClose, onSaved }) 
           </button>
         </div>
 
-        <div className="sf-md-body">
-          <div className="sf-md-sum">
+        <div className="st-md-body">
+          <div className="st-md-sum">
             <div>
               <span>Tahmini Tazminat</span>
               <b>{employee.is_eligible ? formatCurrency(employee.liability) : "Hak doğmadı"}</b>
@@ -118,11 +118,11 @@ function PayoutModal({ building, employee, balance, userId, onClose, onSaved }) 
             </div>
           </div>
 
-          <div className="sf-md-grid">
-            <div className="sf-md-field sf-md-field--wide">
-              <label htmlFor="sf-md-amount">Ödenen Tutar (₺)</label>
+          <div className="st-md-grid">
+            <div className="st-md-field st-md-field--wide">
+              <label htmlFor="st-md-amount">Ödenen Tutar (₺)</label>
               <input
-                id="sf-md-amount"
+                id="st-md-amount"
                 type="number"
                 step="0.01"
                 min="0.01"
@@ -133,26 +133,26 @@ function PayoutModal({ building, employee, balance, userId, onClose, onSaved }) 
                 required
                 autoFocus
               />
-              <span className="sf-md-hint">
+              <span className="st-md-hint">
                 Tahmini tazminat yasal tavanı, ihbar tazminatını ve kesintileri içermez.
               </span>
               {employee.advance_balance > 0 ? (
-                <span className="sf-md-hint">
+                <span className="st-md-hint">
                   Çalışanın {formatCurrency(employee.advance_balance)} açık avansı var. Tutardan kendiliğinden düşülmez.
                 </span>
               ) : null}
               {shortfall > 0 ? (
-                <span className="sf-md-warning">
+                <span className="st-md-warning">
                   Tazminat kasası yetmiyor. Eksik kalan {formatCurrency(shortfall)} ana kasadan aktarılacak.
                 </span>
               ) : null}
             </div>
 
             {shortfall > 0 ? (
-              <div className="sf-md-field sf-md-field--wide">
-                <label htmlFor="sf-md-top-up-account">Eksik Tutarın Çıkacağı Hesap</label>
+              <div className="st-md-field st-md-field--wide">
+                <label htmlFor="st-md-top-up-account">Eksik Tutarın Çıkacağı Hesap</label>
                 <select
-                  id="sf-md-top-up-account"
+                  id="st-md-top-up-account"
                   value={topUpAccount}
                   onChange={(e) => setTopUpAccount(e.target.value)}
                 >
@@ -165,10 +165,10 @@ function PayoutModal({ building, employee, balance, userId, onClose, onSaved }) 
               </div>
             ) : null}
 
-            <div className="sf-md-field">
-              <label htmlFor="sf-md-end-date">Ayrılış Tarihi</label>
+            <div className="st-md-field">
+              <label htmlFor="st-md-end-date">Ayrılış Tarihi</label>
               <input
-                id="sf-md-end-date"
+                id="st-md-end-date"
                 type="date"
                 min={employee.start_date}
                 max={getToday()}
@@ -178,10 +178,10 @@ function PayoutModal({ building, employee, balance, userId, onClose, onSaved }) 
               />
             </div>
 
-            <div className="sf-md-field">
-              <label htmlFor="sf-md-date">Ödeme Tarihi</label>
+            <div className="st-md-field">
+              <label htmlFor="st-md-date">Ödeme Tarihi</label>
               <input
-                id="sf-md-date"
+                id="st-md-date"
                 type="date"
                 max={getToday()}
                 value={date}
@@ -190,10 +190,10 @@ function PayoutModal({ building, employee, balance, userId, onClose, onSaved }) 
               />
             </div>
 
-            <div className="sf-md-field sf-md-field--wide">
-              <label htmlFor="sf-md-note">Not (isteğe bağlı)</label>
+            <div className="st-md-field st-md-field--wide">
+              <label htmlFor="st-md-note">Not (isteğe bağlı)</label>
               <textarea
-                id="sf-md-note"
+                id="st-md-note"
                 maxLength={MAX_NOTE_LENGTH}
                 placeholder="Örn. Emeklilik nedeniyle ayrıldı"
                 value={note}
@@ -202,7 +202,7 @@ function PayoutModal({ building, employee, balance, userId, onClose, onSaved }) 
             </div>
           </div>
 
-          <button type="submit" className="sf-btn-solid sf-md-submit" disabled={isSubmitting}>
+          <button type="submit" className="st-btn-solid st-md-submit" disabled={isSubmitting}>
             {isSubmitting ? "Kaydediliyor..." : "Ödemeyi Kaydet"}
           </button>
         </div>
@@ -211,4 +211,4 @@ function PayoutModal({ building, employee, balance, userId, onClose, onSaved }) 
   );
 }
 
-export default PayoutModal;
+export default SeverancePayoutModal;

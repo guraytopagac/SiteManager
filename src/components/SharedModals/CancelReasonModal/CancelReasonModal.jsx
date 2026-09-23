@@ -11,7 +11,7 @@ const ERROR_ID = "cancel-reason-error";
 const MAX_REASON_LENGTH = 300;
 
 function CancelReasonModal({ title, scope, onClose, onConfirm }) {
-  const [reason, setReason] = useState("");
+  const [reasonInput, setReasonInput] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fieldRef = useRef(null);
@@ -31,22 +31,22 @@ function CancelReasonModal({ title, scope, onClose, onConfirm }) {
   useEscapeKey(handleClose);
 
   const handleChange = (e) => {
-    setReason(e.target.value);
+    setReasonInput(e.target.value);
     if (error) setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const trimmed = reason.trim();
-    if (!trimmed) {
+    const reason = reasonInput.trim();
+    if (!reason) {
       setError("İptal nedeni zorunludur.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const isDone = await onConfirm(trimmed);
+      const isDone = await onConfirm(reason);
       if (isDone) return;
     } catch (err) {
       console.error("[CancelReasonModal] onConfirm:", err);
@@ -84,7 +84,7 @@ function CancelReasonModal({ title, scope, onClose, onConfirm }) {
             <textarea
               id="cancel-reason"
               ref={fieldRef}
-              value={reason}
+              value={reasonInput}
               onChange={handleChange}
               maxLength={MAX_REASON_LENGTH}
               placeholder="Örn. Ödeme yanlış daireye işlendi"

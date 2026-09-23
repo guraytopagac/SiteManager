@@ -4,13 +4,13 @@
 // movements list.
 
 import { FiX } from "react-icons/fi";
-import "./SeveranceFundModals.css";
+import "./StaffModals.css";
 import DetailRow from "@/components/DetailRow/DetailRow";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { formatCurrency } from "@/utils/currency";
 import { formatDate } from "@/utils/date";
 
-function DetailModal({ employee, building, canPay, onClose, onEdit, onPay }) {
+function EmployeeDetailModal({ employee, building, canPay, onClose, onEdit, onPay }) {
   const hasLeft = Boolean(employee.end_date);
 
   useEscapeKey(onClose);
@@ -35,24 +35,24 @@ function DetailModal({ employee, building, canPay, onClose, onEdit, onPay }) {
   }
 
   return (
-    <div className="sf-md-overlay">
-      <div className="sf-md-box">
-        <div className="sf-md-head">
-          <div className="sf-md-identity">
-            <h2 className="sf-md-title" title={employee.full_name}>
+    <div className="st-md-overlay">
+      <div className="st-md-box">
+        <div className="st-md-head">
+          <div className="st-md-identity">
+            <h2 className="st-md-title" title={employee.full_name}>
               {employee.full_name}
             </h2>
-            <span className="sf-md-scope" title={building.name}>
+            <span className="st-md-scope" title={building.name}>
               {building.name}
             </span>
           </div>
-          <button type="button" className="sf-md-close" onClick={onClose} aria-label="Kapat">
+          <button type="button" className="st-md-close" onClick={onClose} aria-label="Kapat">
             <FiX />
           </button>
         </div>
 
-        <div className="sf-md-body">
-          <dl className="sf-md-details">
+        <div className="st-md-body">
+          <dl className="st-md-details">
             <DetailRow label="Görev" value={employee.role} />
             <DetailRow label="İşe Giriş" value={formatDate(employee.start_date)} />
             {hasLeft ? <DetailRow label="Ayrılış" value={formatDate(employee.end_date)} /> : null}
@@ -65,12 +65,12 @@ function DetailModal({ employee, building, canPay, onClose, onEdit, onPay }) {
             />
           </dl>
 
-          <div className="sf-md-actions">
-            <button type="button" className="sf-md-btn-outline" onClick={onEdit}>
+          <div className="st-md-actions">
+            <button type="button" className="st-md-btn-outline" onClick={onEdit}>
               Çalışanı Düzenle
             </button>
             {hasLeft || !canPay ? null : (
-              <button type="button" className="sf-btn-solid" onClick={onPay}>
+              <button type="button" className="st-btn-solid" onClick={onPay}>
                 Tazminatı Öde
               </button>
             )}
@@ -81,4 +81,4 @@ function DetailModal({ employee, building, canPay, onClose, onEdit, onPay }) {
   );
 }
 
-export default DetailModal;
+export default EmployeeDetailModal;

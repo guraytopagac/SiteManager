@@ -14,20 +14,14 @@ const TONES = {
 
 function DialogBox({ dialog }) {
   const confirmRef = useRef(null);
-  const openerRef = useRef(null);
   const tone = TONES[dialog.tone];
   const isConfirm = Boolean(dialog.confirmText);
 
-  // Focus moves to the confirming button and returns to whatever opened the dialog, because a dialog raised
-  // from inside a modal must not leave the focus on the body when it closes. The dialog itself is the
-  // dependency, so a queued one that takes over this box runs the same handover instead of keeping the focus
-  // the box it replaced had left behind.
+  // Focus moves into the box so Enter answers it and the alert is announced. The dialog itself is the
+  // dependency, so a queued one that takes over this box gets the focus too instead of leaving it on the
+  // button the box it replaced had drawn.
   useEffect(() => {
-    openerRef.current = document.activeElement;
     confirmRef.current.focus();
-    return () => {
-      if (openerRef.current instanceof HTMLElement) openerRef.current.focus();
-    };
   }, [dialog]);
 
   // Escape answers with the cancelling result, clicking the backdrop answers with nothing: a stray click must

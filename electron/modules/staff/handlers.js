@@ -11,7 +11,7 @@ const {
   validateId,
   validateOpeningBalance,
 } = require("../shared/validate");
-const severanceService = require("./service");
+const staffService = require("./service");
 
 // Trims an optional text field and turns an empty or missing value into null.
 function normalizeOptionalText(payload, field) {
@@ -101,42 +101,42 @@ function validatePayoutCancelScope(payload) {
   );
 }
 
-function registerSeveranceHandlers(ipcMain) {
-  const handle = createHandle(ipcMain, "severance");
+function registerStaffHandlers(ipcMain) {
+  const handle = createHandle(ipcMain, "staff");
 
-  handle(CH.SEVERANCE.GET_OVERVIEW, validateBuildingScope, severanceService.getOverview);
-  handle(CH.SEVERANCE.GET_EMPLOYEES, validateBuildingScope, severanceService.getEmployees);
+  handle(CH.STAFF.GET_OVERVIEW, validateBuildingScope, staffService.getOverview);
+  handle(CH.STAFF.GET_EMPLOYEES, validateBuildingScope, staffService.getEmployees);
   handle(
-    CH.SEVERANCE.SETUP_FUND,
+    CH.STAFF.SETUP_FUND,
     (payload) => validateBuildingScope(payload) ?? validateOpeningBalance(payload.openingBalance),
-    severanceService.setupFund,
+    staffService.setupFund,
   );
   handle(
-    CH.SEVERANCE.UPDATE_FUND,
+    CH.STAFF.UPDATE_FUND,
     (payload) => validateBuildingScope(payload) ?? validateOpeningBalance(payload.openingBalance),
-    severanceService.updateFund,
+    staffService.updateFund,
   );
   handle(
-    CH.SEVERANCE.ADD_EMPLOYEE,
+    CH.STAFF.ADD_EMPLOYEE,
     (payload) => validateBuildingScope(payload) ?? validateEmployeeFields(payload),
-    severanceService.addEmployee,
+    staffService.addEmployee,
   );
   handle(
-    CH.SEVERANCE.UPDATE_EMPLOYEE,
+    CH.STAFF.UPDATE_EMPLOYEE,
     (payload) => validateEmployeeScope(payload) ?? validateEmployeeFields(payload) ?? validateEmployeeEndDate(payload),
-    severanceService.updateEmployee,
+    staffService.updateEmployee,
   );
-  handle(CH.SEVERANCE.DELETE_EMPLOYEE, validateEmployeeScope, severanceService.deleteEmployee);
+  handle(CH.STAFF.DELETE_EMPLOYEE, validateEmployeeScope, staffService.deleteEmployee);
   handle(
-    CH.SEVERANCE.RECORD_PAYOUT,
+    CH.STAFF.RECORD_PAYOUT,
     (payload) => validatePayoutScope(payload) ?? validatePayoutFields(payload),
-    severanceService.recordPayout,
+    staffService.recordPayout,
   );
   handle(
-    CH.SEVERANCE.CANCEL_PAYOUT,
+    CH.STAFF.CANCEL_PAYOUT,
     (payload) => validatePayoutCancelScope(payload) ?? validateCancelReason(payload),
-    severanceService.cancelPayout,
+    staffService.cancelPayout,
   );
 }
 
-module.exports = registerSeveranceHandlers;
+module.exports = registerStaffHandlers;

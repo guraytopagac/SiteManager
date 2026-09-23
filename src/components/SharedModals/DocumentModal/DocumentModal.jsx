@@ -6,7 +6,7 @@ import { FiX } from "react-icons/fi";
 import "./DocumentModal.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useSession } from "@/hooks/useSession";
-import { buildTransactionDocumentHtml } from "./buildTransactionDocumentHtml";
+import { buildDocumentHtml } from "./buildDocumentHtml";
 import { documentFileName, receiptDescription, receiptPayerName, voucherDescription } from "./documentFigures";
 import { PAYMENT_METHOD_LABELS, UNEXPECTED_ERROR_MESSAGE } from "@/utils/constants";
 import { formatCurrency, formatCurrencyInWords } from "@/utils/currency";
@@ -105,7 +105,7 @@ function DocumentModal({ transaction, building, onClose, onSaved }) {
 
       if (res.success) {
         const filename = documentFileName(transaction.type, res.data, building.name);
-        const html = buildTransactionDocumentHtml({
+        const html = buildDocumentHtml({
           type: transaction.type,
           data: res.data,
           buildingName: building.name,
@@ -214,9 +214,7 @@ function DocumentModal({ transaction, building, onClose, onSaved }) {
       <>
         <dl className="doc-list">{isReceipt ? renderReceiptRows() : renderVoucherRows()}</dl>
         {isDuesReceipt ? (
-          <p className="doc-note">
-            Ödeyen o ayın daire sakinidir. Dairenin bu aya yaptığı bütün tahsilatlar tek makbuzda birleşir.
-          </p>
+          <p className="doc-note">Dairenin bu aya yaptığı bütün tahsilatlar tek makbuzda birleşir.</p>
         ) : null}
         <button type="submit" className="doc-md-btn-solid doc-md-submit" disabled={isSubmitting}>
           {isSubmitting ? "Hazırlanıyor..." : "PDF Oluştur"}

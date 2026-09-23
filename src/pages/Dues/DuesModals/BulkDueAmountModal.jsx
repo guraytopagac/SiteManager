@@ -9,7 +9,7 @@ import { showDialog } from "@/components/Dialog/dialogStore";
 import { MAX_DUE_AMOUNT } from "@/utils/constants";
 import { formatCurrency } from "@/utils/currency";
 
-function BulkUpdateModal({ building, onClose, onSaved }) {
+function BulkDueAmountModal({ building, onClose, onSaved }) {
   const [amount, setAmount] = useState("");
   const [applyCurrentMonth, setApplyCurrentMonth] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,7 +51,7 @@ function BulkUpdateModal({ building, onClose, onSaved }) {
         showDialog.error("Hata", res.message);
       }
     } catch (err) {
-      console.error("[BulkUpdateModal] bulkUpdateDueAmount:", err);
+      console.error("[BulkDueAmountModal] bulkUpdateDueAmount:", err);
       showDialog.error("Hata", "Aidat tutarları güncellenemedi.");
     } finally {
       setIsSubmitting(false);
@@ -141,4 +141,4 @@ function BulkUpdateModal({ building, onClose, onSaved }) {
   );
 }
 
-export default BulkUpdateModal;
+export default BulkDueAmountModal;

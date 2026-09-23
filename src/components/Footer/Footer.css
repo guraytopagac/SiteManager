@@ -34,7 +34,7 @@
   border-top: 1px solid var(--footer-border);
   box-shadow: 0 -2px 12px var(--shadow-soft);
   z-index: 1000;
-  animation: slideUp 0.3s ease-out 0.4s both;
+  animation: slideUp 0.3s ease-out 0.4s backwards;
 }
 
 .footer-copyright {

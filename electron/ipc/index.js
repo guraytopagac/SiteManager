@@ -3,13 +3,13 @@ const registrars = [
   require("../modules/auth/handlers"),
   require("../modules/backup/handlers"),
   require("../modules/building/handlers"),
+  require("../modules/cashbook/handlers"),
   require("../modules/dashboard/handlers"),
   require("../modules/dues/handlers"),
-  require("../modules/financial/handlers"),
   require("../modules/investment/handlers"),
   require("../modules/report/handlers"),
   require("../modules/resident/handlers"),
-  require("../modules/severance/handlers"),
+  require("../modules/staff/handlers"),
   require("../modules/system/handlers"),
 ];
 

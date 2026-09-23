@@ -110,7 +110,7 @@ function StatusMetrics({ stats, navigate }) {
         icon={<FiDollarSign />}
         label="Kasa"
         ariaLabel="Kasa, gelir ve gider listesini aç"
-        onOpen={() => navigate("/transactions")}
+        onOpen={() => navigate("/cash-book")}
       >
         <span className="db-metric-value">{formatCurrency(stats.cash)}</span>
       </MetricTile>
@@ -192,8 +192,8 @@ function Dashboard() {
         <div className="db-group">
           <div className="db-group-label">Kasa ve Personel</div>
           <div className="db-actions">
-            <ActionTile icon={<FiBookOpen />} label="Kasa Defteri" onClick={() => navigate("/transactions")} />
-            <ActionTile icon={<FiBriefcase />} label="Personel" onClick={() => navigate("/severance-fund")} />
+            <ActionTile icon={<FiBookOpen />} label="Kasa Defteri" onClick={() => navigate("/cash-book")} />
+            <ActionTile icon={<FiBriefcase />} label="Personel" onClick={() => navigate("/staff")} />
             <ActionTile icon={<FiFileText />} label="Raporlar" onClick={() => navigate("/reports")} />
           </div>
         </div>

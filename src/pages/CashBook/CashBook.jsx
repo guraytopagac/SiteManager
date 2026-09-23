@@ -16,7 +16,7 @@ import {
   FiSkipBack,
   FiTrendingUp,
 } from "react-icons/fi";
-import "./Transactions.css";
+import "./CashBook.css";
 import CancelReasonModal from "@/components/SharedModals/CancelReasonModal/CancelReasonModal";
 import { showDialog } from "@/components/Dialog/dialogStore";
 import DocumentModal from "@/components/SharedModals/DocumentModal/DocumentModal";
@@ -24,9 +24,9 @@ import PageHeader from "@/components/PageHeader/PageHeader";
 import Pager from "@/components/Pager/Pager";
 import PeriodSelector from "@/components/PeriodSelector/PeriodSelector";
 import SearchBox from "@/components/SearchBox/SearchBox";
-import DetailModal from "./TransactionsModals/DetailModal";
-import TransactionModal from "./TransactionsModals/TransactionModal";
-import TransferModal from "./TransactionsModals/TransferModal";
+import CashTransferModal from "./CashBookModals/CashTransferModal";
+import RecordDetailModal from "./CashBookModals/RecordDetailModal";
+import RecordModal from "./CashBookModals/RecordModal";
 import { useIpcData } from "@/hooks/useIpcData";
 import { usePagination } from "@/hooks/usePagination";
 import { useCurrentBuilding, useSession } from "@/hooks/useSession";
@@ -61,7 +61,7 @@ const CANCEL_TEXT = {
   transfer: { title: "Aktarımı İptal Et", method: "cancelCashTransfer" },
 };
 
-function useTransactions(buildingId, year, month) {
+function useCashBook(buildingId, year, month) {
   const [res, loadTransactions] = useIpcData("getTransactions", { buildingId, period: { year, month } });
 
   return {
@@ -80,17 +80,17 @@ function TableShell({ overlay, spacerCount = 0, children }) {
 
   for (let index = 0; index < spacerCount; index += 1) {
     spacers.push(
-      <tr className="tx-row-spacer" aria-hidden="true" key={`spacer-${index}`}>
+      <tr className="cb-row-spacer" aria-hidden="true" key={`spacer-${index}`}>
         <td colSpan={COLUMNS.length}>
-          <span className="tx-slot">&nbsp;</span>
+          <span className="cb-slot">&nbsp;</span>
         </td>
       </tr>,
     );
   }
 
   return (
-    <div className={isPlaceholder ? "tx-table-surface tx-table-placeholder" : "tx-table-surface"}>
-      <table className="tx-table" aria-hidden={isPlaceholder ? "true" : undefined}>
+    <div className={isPlaceholder ? "cb-table-surface cb-table-placeholder" : "cb-table-surface"}>
+      <table className="cb-table" aria-hidden={isPlaceholder ? "true" : undefined}>
         <thead>
           <tr>
             {COLUMNS.map((label) => (
@@ -117,8 +117,8 @@ function rowAmount(transaction) {
 }
 
 function rowClass(transaction) {
-  if (transaction.is_cancelled) return "tx-row--cancelled";
-  if (transaction.type === "severance_payout") return "tx-row--fund";
+  if (transaction.is_cancelled) return "cb-row--cancelled";
+  if (transaction.type === "severance_payout") return "cb-row--fund";
   return undefined;
 }
 
@@ -148,19 +148,19 @@ function TransactionRow({ transaction, onOpen }) {
 
   return (
     <tr className={rowClass(transaction)}>
-      <td className="tx-date">{formatDate(transaction.date)}</td>
-      <td className="tx-category">{TRANSACTION_CATEGORY_LABELS[transaction.category] ?? transaction.category}</td>
-      <td className="tx-desc" title={description || undefined}>
-        {transaction.is_cancelled ? <span className="tx-cancelled-tag">İptal edildi ·</span> : null}
-        {isFundPayout && !transaction.is_cancelled ? <span className="tx-fund-tag">Tazminat kasasından ·</span> : null}
+      <td className="cb-date">{formatDate(transaction.date)}</td>
+      <td className="cb-category">{TRANSACTION_CATEGORY_LABELS[transaction.category] ?? transaction.category}</td>
+      <td className="cb-desc" title={description || undefined}>
+        {transaction.is_cancelled ? <span className="cb-cancelled-tag">İptal edildi ·</span> : null}
+        {isFundPayout && !transaction.is_cancelled ? <span className="cb-fund-tag">Tazminat kasasından ·</span> : null}
         {transaction.is_investment === 1 && !transaction.is_cancelled ? (
-          <span className="tx-investment-tag">Yatırım fonundan ·</span>
+          <span className="cb-investment-tag">Yatırım fonundan ·</span>
         ) : null}
         {description || "—"}
       </td>
-      <td className={`tx-amount tx-amount--${transaction.type}`}>{rowAmount(transaction)}</td>
+      <td className={`cb-amount cb-amount--${transaction.type}`}>{rowAmount(transaction)}</td>
       <td>
-        <button type="button" className="tx-detail-btn" onClick={onOpen}>
+        <button type="button" className="cb-detail-btn" onClick={onOpen}>
           Detay
         </button>
       </td>
@@ -172,17 +172,17 @@ function ListPlaceholder({ icon, tone, title, body, actionIcon, actionLabel, onA
   return (
     <TableShell
       overlay={
-        <div className="tx-placeholder-body">
-          <div className="tx-state" role={role}>
-            <span className={tone ? `tx-state-mark tx-state-mark--${tone}` : "tx-state-mark"} aria-hidden="true">
+        <div className="cb-placeholder-body">
+          <div className="cb-state" role={role}>
+            <span className={tone ? `cb-state-mark cb-state-mark--${tone}` : "cb-state-mark"} aria-hidden="true">
               {icon}
             </span>
-            <span className="tx-state-text">
-              <span className="tx-state-title">{title}</span>
-              <span className="tx-state-body">{body}</span>
+            <span className="cb-state-text">
+              <span className="cb-state-title">{title}</span>
+              <span className="cb-state-body">{body}</span>
             </span>
             {onAction && (
-              <button type="button" className="tx-state-action" onClick={onAction}>
+              <button type="button" className="cb-state-action" onClick={onAction}>
                 {actionIcon}
                 {actionLabel}
               </button>
@@ -199,9 +199,9 @@ function ListPlaceholder({ icon, tone, title, body, actionIcon, actionLabel, onA
 // measurement, so zero reads as neutral there.
 function NetRow({ label, tone, amount, isBlank }) {
   return (
-    <div className="tx-net-row">
+    <div className="cb-net-row">
       <span>{label}</span>
-      <b className={isBlank ? "tx-net--zero" : `tx-net--${tone}`}>{isBlank ? "—" : formatSignedCurrency(amount)}</b>
+      <b className={isBlank ? "cb-net--zero" : `cb-net--${tone}`}>{isBlank ? "—" : formatSignedCurrency(amount)}</b>
     </div>
   );
 }
@@ -210,53 +210,53 @@ function NetSummary({ totals, hasError, hasSeverancePayouts }) {
   const isBlank = hasError;
 
   return (
-    <section className="tx-card tx-net" aria-label="Dönem özeti">
-      <div className="tx-net-top">
-        <span className="tx-net-label">
-          <span className="tx-net-mark" aria-hidden="true">
+    <section className="cb-card cb-net" aria-label="Dönem özeti">
+      <div className="cb-net-top">
+        <span className="cb-net-label">
+          <span className="cb-net-mark" aria-hidden="true">
             <FiTrendingUp />
           </span>
           Net
         </span>
-        <span className={isBlank ? "tx-net-value tx-net--zero" : `tx-net-value ${netToneClass(totals.net)}`}>
+        <span className={isBlank ? "cb-net-value cb-net--zero" : `cb-net-value ${netToneClass(totals.net)}`}>
           {isBlank ? "—" : formatSignedCurrency(totals.net)}
         </span>
       </div>
 
-      <div className="tx-net-split">
+      <div className="cb-net-split">
         <NetRow label="Gelir" tone="positive" amount={totals.totalIncome} isBlank={isBlank} />
         <NetRow label="Gider" tone="negative" amount={-totals.totalExpense} isBlank={isBlank} />
       </div>
 
       {hasSeverancePayouts ? (
-        <p className="tx-net-note">Tazminat kasasından yapılan ödemeler toplama dahil değildir.</p>
+        <p className="cb-net-note">Tazminat kasasından yapılan ödemeler toplama dahil değildir.</p>
       ) : null}
     </section>
   );
 }
 
 function netToneClass(amount) {
-  if (amount > 0) return "tx-net--positive";
-  if (amount < 0) return "tx-net--negative";
-  return "tx-net--zero";
+  if (amount > 0) return "cb-net--positive";
+  if (amount < 0) return "cb-net--negative";
+  return "cb-net--zero";
 }
 
 function CardAction({ icon, label, onClick }) {
   return (
-    <button type="button" className="tx-card-action" onClick={onClick}>
-      <span className="tx-card-action-mark" aria-hidden="true">
+    <button type="button" className="cb-card-action" onClick={onClick}>
+      <span className="cb-card-action-mark" aria-hidden="true">
         {icon}
       </span>
-      <span className="tx-card-action-title">{label}</span>
+      <span className="cb-card-action-title">{label}</span>
     </button>
   );
 }
 
 function ActionsCard({ onAdd }) {
   return (
-    <section className="tx-card tx-actions" aria-label="İlgili işlemler">
-      <span className="tx-card-title">İlgili İşlemler</span>
-      <div className="tx-card-actions">
+    <section className="cb-card cb-actions" aria-label="İlgili işlemler">
+      <span className="cb-card-title">İlgili İşlemler</span>
+      <div className="cb-card-actions">
         <CardAction icon={<FiArrowUpCircle />} label="Gelir Ekle" onClick={() => onAdd("income")} />
         <CardAction icon={<FiArrowDownCircle />} label="Gider Ekle" onClick={() => onAdd("expense")} />
       </div>
@@ -273,16 +273,16 @@ const ACCOUNT_ICONS = {
 // split of older records is off, so it is printed with its sign and a transfer corrects it.
 function AccountsCard({ balances, hasError, onTransfer }) {
   return (
-    <section className="tx-card tx-accounts" aria-label="Ana kasa">
-      <span className="tx-card-title">Ana Kasa</span>
-      <div className="tx-account-rows">
+    <section className="cb-card cb-accounts" aria-label="Ana kasa">
+      <span className="cb-card-title">Ana Kasa</span>
+      <div className="cb-account-rows">
         {Object.entries(CASH_ACCOUNT_LABELS).map(([account, label]) => (
-          <div key={account} className="tx-account-row">
-            <span className="tx-account-mark" aria-hidden="true">
+          <div key={account} className="cb-account-row">
+            <span className="cb-account-mark" aria-hidden="true">
               {ACCOUNT_ICONS[account]}
             </span>
-            <span className="tx-account-label">{label}</span>
-            <b className={balances[account] < 0 ? "tx-net--negative" : undefined}>
+            <span className="cb-account-label">{label}</span>
+            <b className={balances[account] < 0 ? "cb-net--negative" : undefined}>
               {hasError ? "—" : formatCurrency(balances[account])}
             </b>
           </div>
@@ -293,7 +293,7 @@ function AccountsCard({ balances, hasError, onTransfer }) {
   );
 }
 
-function TransactionsControlBar({
+function CashBookControlBar({
   transactions,
   selectedMonth,
   selectedYear,
@@ -313,22 +313,22 @@ function TransactionsControlBar({
   );
 
   return (
-    <section className="page-band tx-control-row" aria-label="Dönem, filtre ve arama">
+    <section className="page-band cb-control-row" aria-label="Dönem, filtre ve arama">
       {FILTER_PILLS.map((pill) => {
         const isActive = typeFilter === pill.key;
-        const modifier = pill.key === "all" ? "" : ` tx-pill--${pill.key}`;
+        const modifier = pill.key === "all" ? "" : ` cb-pill--${pill.key}`;
 
         return (
           <button
             key={pill.key}
             type="button"
-            className={`tx-pill${modifier}${isActive ? " tx-pill--active" : ""}`}
+            className={`cb-pill${modifier}${isActive ? " cb-pill--active" : ""}`}
             onClick={() => onFilterChange(pill.key)}
             aria-pressed={isActive}
           >
-            {pill.key !== "all" && <span className="tx-pill-dot" aria-hidden="true" />}
+            {pill.key !== "all" && <span className="cb-pill-dot" aria-hidden="true" />}
             {pill.label}
-            <span className="tx-pill-count">{filterCounts[pill.key]}</span>
+            <span className="cb-pill-count">{filterCounts[pill.key]}</span>
           </button>
         );
       })}
@@ -345,7 +345,7 @@ function TransactionsControlBar({
   );
 }
 
-function Transactions() {
+function CashBook() {
   const session = useSession();
   const building = useCurrentBuilding();
 
@@ -359,7 +359,7 @@ function Transactions() {
   const [documentTarget, setDocumentTarget] = useState(null);
   const [cancelTarget, setCancelTarget] = useState(null);
 
-  const { transactions, totals, balances, start, errorMessage, loadTransactions } = useTransactions(
+  const { transactions, totals, balances, start, errorMessage, loadTransactions } = useCashBook(
     building.id,
     selectedYear,
     selectedMonth,
@@ -403,15 +403,10 @@ function Transactions() {
       }
       showDialog.error("Hata", res.message);
     } catch (err) {
-      console.error("[Transactions] cancelTransaction:", err);
+      console.error("[CashBook] cancelTransaction:", err);
       showDialog.error("Hata", UNEXPECTED_ERROR_MESSAGE);
     }
     return false;
-  };
-
-  const openDocument = () => {
-    setDocumentTarget(detailTarget);
-    setDetailTarget(null);
   };
 
   const term = searchKey(searchTerm);
@@ -500,10 +495,10 @@ function Transactions() {
   };
 
   return (
-    <div className="transactions-container">
+    <div className="cashbook-container">
       <PageHeader title="Kasa Defteri" />
 
-      <TransactionsControlBar
+      <CashBookControlBar
         transactions={transactions}
         selectedMonth={selectedMonth}
         selectedYear={selectedYear}
@@ -516,10 +511,10 @@ function Transactions() {
       />
 
       <section className="page-band" aria-label="İşlem listesi">
-        <div className="tx-list-split">
-          <div className="tx-list-main">{renderList()}</div>
+        <div className="cb-list-split">
+          <div className="cb-list-main">{renderList()}</div>
 
-          <div className="tx-rail">
+          <div className="cb-rail">
             <NetSummary
               totals={totals}
               hasError={Boolean(errorMessage)}
@@ -538,7 +533,7 @@ function Transactions() {
       </section>
 
       {addType && (
-        <TransactionModal
+        <RecordModal
           type={addType}
           building={building}
           balances={balances}
@@ -551,7 +546,7 @@ function Transactions() {
       )}
 
       {isTransferOpen && (
-        <TransferModal
+        <CashTransferModal
           building={building}
           userId={session.id}
           balances={balances}
@@ -564,15 +559,15 @@ function Transactions() {
       )}
 
       {detailTarget && (
-        <DetailModal
+        <RecordDetailModal
           transaction={detailTarget}
           description={detailTarget.description ?? advanceSentence(detailTarget)}
           building={building}
           onClose={() => {
-            // The reason box sits on top, and one Escape must close only that layer.
-            if (!cancelTarget) setDetailTarget(null);
+            // The document and reason boxes sit on top, and one Escape must close only that layer.
+            if (!documentTarget && !cancelTarget) setDetailTarget(null);
           }}
-          onCreateDocument={openDocument}
+          onCreateDocument={() => setDocumentTarget(detailTarget)}
           onCancel={() => setCancelTarget(detailTarget)}
         />
       )}
@@ -598,4 +593,4 @@ function Transactions() {
   );
 }
 
-export default Transactions;
+export default CashBook;

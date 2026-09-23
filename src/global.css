@@ -227,10 +227,10 @@ body {
 .dashboard-container,
 .dues-container,
 .residents-container,
-.transactions-container,
+.cashbook-container,
 .reports-container,
 .profile-container,
-.severance-container,
+.staff-container,
 .investment-container,
 .bv-container {
   background: linear-gradient(180deg, var(--page-surface-2), var(--page-surface-1));
@@ -269,10 +269,10 @@ body {
 
 .du-md-overlay,
 .rs-md-overlay,
-.tx-md-overlay,
+.cb-md-overlay,
 .bv-md-overlay,
 .pf-md-overlay,
-.sf-md-overlay,
+.st-md-overlay,
 .iv-md-overlay,
 .pay-md-overlay,
 .doc-md-overlay,
@@ -283,10 +283,10 @@ body {
 
 .du-md-box,
 .rs-md-box,
-.tx-md-box,
+.cb-md-box,
 .bv-md-box,
 .pf-md-box,
-.sf-md-box,
+.st-md-box,
 .iv-md-box,
 .pay-md-box,
 .doc-md-box,

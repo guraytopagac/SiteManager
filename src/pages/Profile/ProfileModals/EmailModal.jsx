@@ -18,8 +18,8 @@ function validateEmail(value) {
   return null;
 }
 
-function EmailModal({ userId, username, email, onClose, onSaved }) {
-  const [value, setValue] = useState(email || "");
+function EmailModal({ userId, username, email: savedEmail, onClose, onSaved }) {
+  const [emailInput, setEmailInput] = useState(savedEmail || "");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fieldRef = useRef(null);
@@ -37,15 +37,15 @@ function EmailModal({ userId, username, email, onClose, onSaved }) {
   useEscapeKey(handleClose);
 
   const handleChange = (e) => {
-    setValue(e.target.value);
+    setEmailInput(e.target.value);
     if (error) setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const trimmed = value.trim();
-    const validationError = validateEmail(trimmed);
+    const email = emailInput.trim();
+    const validationError = validateEmail(email);
     if (validationError) {
       setError(validationError);
       return;
@@ -53,7 +53,7 @@ function EmailModal({ userId, username, email, onClose, onSaved }) {
 
     setIsSubmitting(true);
     try {
-      const res = await window.electronAPI.updateEmail({ userId, email: trimmed });
+      const res = await window.electronAPI.updateEmail({ userId, email });
       if (res.success) {
         showDialog.toast(res.message);
         onSaved(res.email);
@@ -99,7 +99,7 @@ function EmailModal({ userId, username, email, onClose, onSaved }) {
               spellCheck={false}
               maxLength={MAX_EMAIL_LENGTH}
               placeholder="Örn. ahmet@example.com"
-              value={value}
+              value={emailInput}
               onChange={handleChange}
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? ERROR_ID : undefined}

@@ -5,7 +5,7 @@ const SUFFIX = " ₺";
 const EMPTY = "—";
 
 // Built once at module level. toLocaleString with an options object builds a fresh formatter on every call, and
-// the Transactions and Reports tables run this per cell.
+// the cash book and report tables run this per cell.
 const FORMATTER = new Intl.NumberFormat(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export const formatCurrency = (value) => {

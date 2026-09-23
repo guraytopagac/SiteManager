@@ -10,7 +10,7 @@ import { MAX_DUE_AMOUNT } from "@/utils/constants";
 import { formatCurrency } from "@/utils/currency";
 import { searchKey } from "@/utils/searchKey";
 
-function SingleUpdateModal({ dues, building, onClose, onSaved }) {
+function SingleDueAmountModal({ dues, building, onClose, onSaved }) {
   const [apartmentId, setApartmentId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [amount, setAmount] = useState("");
@@ -70,7 +70,7 @@ function SingleUpdateModal({ dues, building, onClose, onSaved }) {
         showDialog.error("Hata", res.message);
       }
     } catch (err) {
-      console.error("[SingleUpdateModal] updateApartment:", err);
+      console.error("[SingleDueAmountModal] updateApartment:", err);
       showDialog.error("Hata", "Aidat tutarı güncellenemedi.");
     } finally {
       setIsSubmitting(false);
@@ -196,4 +196,4 @@ function SingleUpdateModal({ dues, building, onClose, onSaved }) {
   );
 }
 
-export default SingleUpdateModal;
+export default SingleDueAmountModal;

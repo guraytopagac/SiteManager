@@ -20,8 +20,8 @@ import DetailRow from "@/components/DetailRow/DetailRow";
 import { showDialog } from "@/components/Dialog/dialogStore";
 import PageHeader from "@/components/PageHeader/PageHeader";
 import PeriodSelector from "@/components/PeriodSelector/PeriodSelector";
-import AddModal from "./BuildingViewModals/AddModal";
-import EditModal from "./BuildingViewModals/EditModal";
+import ApartmentAddModal from "./BuildingViewModals/ApartmentAddModal";
+import ApartmentEditModal from "./BuildingViewModals/ApartmentEditModal";
 import { useIpcData } from "@/hooks/useIpcData";
 import { useCurrentBuilding } from "@/hooks/useSession";
 import {
@@ -437,7 +437,7 @@ function BuildingView() {
       </section>
 
       {addTarget && (
-        <AddModal
+        <ApartmentAddModal
           building={building}
           initialFloor={addTarget.floor}
           onClose={() => setAddTarget(null)}
@@ -449,7 +449,7 @@ function BuildingView() {
       )}
 
       {isEditModalOpen && selectedUnit && (
-        <EditModal
+        <ApartmentEditModal
           apartment={selectedUnit}
           building={building}
           onClose={() => setIsEditModalOpen(false)}

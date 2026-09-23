@@ -24,7 +24,7 @@ import PaymentModal from "@/components/SharedModals/PaymentModal/PaymentModal";
 import PeriodSelector from "@/components/PeriodSelector/PeriodSelector";
 import SearchBox from "@/components/SearchBox/SearchBox";
 import UnitCell from "@/components/UnitCell/UnitCell";
-import FundModal from "./InvestmentModals/FundModal";
+import FundSettingsModal from "./InvestmentModals/FundSettingsModal";
 import { useIpcData } from "@/hooks/useIpcData";
 import { usePagination } from "@/hooks/usePagination";
 import { useCurrentBuilding, useSession } from "@/hooks/useSession";
@@ -263,7 +263,7 @@ function PagesCard({ onNavigate }) {
           <FiCalendar aria-hidden="true" />
           Aidat Takibi
         </button>
-        <button type="button" className="iv-shortcut" onClick={() => onNavigate("/transactions")}>
+        <button type="button" className="iv-shortcut" onClick={() => onNavigate("/cash-book")}>
           <FiBookOpen aria-hidden="true" />
           Kasa Defteri
         </button>
@@ -607,7 +607,7 @@ function Investment() {
       )}
 
       {showSettings && (
-        <FundModal
+        <FundSettingsModal
           fund={fund}
           building={building}
           onClose={() => setShowSettings(false)}

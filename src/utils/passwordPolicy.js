@@ -53,7 +53,8 @@ const STRENGTH = [
   { label: "Güçlü", variant: "strong" },
 ];
 
-const MAX_SCORE = STRENGTH.length - 1;
+// The meter draws one segment per graded level, so the neutral entry is left out.
+export const STRENGTH_LEVELS = STRENGTH.slice(1);
 
 function collapseRepeats(password) {
   return password.replace(/(.)\1{4,}/gu, "$1$1");
@@ -164,7 +165,6 @@ function buildMeter(length, score) {
         ? `${MIN_PASSWORD_LENGTH - length} karakter daha`
         : STRENGTH[score].label,
     score,
-    max: MAX_SCORE,
   };
 }
 
