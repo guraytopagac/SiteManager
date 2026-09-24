@@ -32,7 +32,13 @@ const NO_ACCOUNT_MESSAGE =
 
 // The alphabet has no I, O, 0 or 1, so a written code cannot be misread.
 function randomCode(length) {
-  return Array.from({ length }, () => CODE_ALPHABET[crypto.randomInt(CODE_ALPHABET.length)]).join("");
+  let code = "";
+
+  for (let index = 0; index < length; index += 1) {
+    code += CODE_ALPHABET[crypto.randomInt(CODE_ALPHABET.length)];
+  }
+
+  return code;
 }
 
 function generateRecoveryCode() {

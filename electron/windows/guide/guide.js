@@ -23,7 +23,7 @@ function initHeader() {
 }
 
 function initScrollSpy(sidebarLinks) {
-  const sectionHeadings = Array.from(document.querySelectorAll("h2[id]"));
+  const sectionHeadings = document.querySelectorAll("h2[id]");
 
   const setActiveSection = (id) => {
     const activeHash = `#${id}`;
@@ -171,7 +171,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const nav = document.querySelector(".guide-sidebar nav");
 
   initHeader();
-  initScrollSpy(Array.from(nav.querySelectorAll("a")));
-  initSearch(Array.from(nav.children));
+  initScrollSpy(nav.querySelectorAll("a"));
+  initSearch(nav.querySelectorAll(":scope > *"));
   initToTop();
 });
