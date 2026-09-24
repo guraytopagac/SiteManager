@@ -83,7 +83,7 @@
   margin-bottom: 12px;
 }
 
-.sb-deleted-open {
+.sb-list-head .sb-deleted-open {
   min-width: 0;
   min-height: 44px;
 }
@@ -101,7 +101,6 @@
   align-content: stretch;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
   gap: 10px;
 }
 

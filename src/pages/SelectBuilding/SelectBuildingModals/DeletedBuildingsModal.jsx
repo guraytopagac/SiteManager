@@ -127,7 +127,7 @@ function DeletedBuildingsModal({ buildings, onClose, onChanged }) {
                 </div>
               ))}
             </div>
-            {buildings.length === 0 && <p className="sb-md-empty">Silinen bina kalmadı.</p>}
+            {buildings.length === 0 && <p className="sb-md-empty">Silinen bina yok.</p>}
           </div>
           <Pager currentPage={currentPage} pageCount={pageCount} onChange={setPage} />
         </div>

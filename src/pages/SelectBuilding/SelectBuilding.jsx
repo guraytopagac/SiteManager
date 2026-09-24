@@ -185,8 +185,6 @@ function SelectBuilding() {
     }
   };
 
-  const showDeleted = res.success && deleted.length > 0;
-
   const openWizard = () => navigate("/new-building", { state: { fromList: true } });
 
   const renderNameForm = () => (
@@ -277,12 +275,11 @@ function SelectBuilding() {
                 Binalarınız
                 <span className="sb-band-count">{buildings.length} bina</span>
               </h2>
-              {showDeleted ? (
-                <button type="button" className="sb-btn-secondary sb-deleted-open" onClick={() => setDeletedOpen(true)}>
-                  <FiArchive size={18} />
-                  Silinen Binalar ({deleted.length})
-                </button>
-              ) : null}
+              {/* Always drawn, even at zero, so the header never changes height when the first building is deleted. */}
+              <button type="button" className="sb-btn-secondary sb-deleted-open" onClick={() => setDeletedOpen(true)}>
+                <FiArchive size={18} />
+                Silinen Binalar ({deleted.length})
+              </button>
             </div>
             <div className="sb-list" ref={listRef}>
               {pageItems.map((building) =>
