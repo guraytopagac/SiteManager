@@ -2,7 +2,7 @@
 // stays editable, the only route to a floor that is not drawn yet.
 
 import { useState } from "react";
-import { FiX } from "react-icons/fi";
+import { FiChevronDown, FiInfo, FiX } from "react-icons/fi";
 import "./BuildingViewModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { showDialog } from "@/components/Dialog/dialogStore";
@@ -105,14 +105,17 @@ function ApartmentAddModal({ building, initialFloor, onClose, onSaved }) {
 
             <div className="bv-md-field">
               <label htmlFor="add-type">Tip</label>
-              <select id="add-type" value={type} onChange={(e) => setType(e.target.value)} required>
-                <option value="">Seçiniz</option>
-                {APARTMENT_TYPES.map((apartmentType) => (
-                  <option key={apartmentType} value={apartmentType}>
-                    {apartmentType}
-                  </option>
-                ))}
-              </select>
+              <div className="bv-select">
+                <select id="add-type" value={type} onChange={(e) => setType(e.target.value)} required>
+                  <option value="">Seçiniz</option>
+                  {APARTMENT_TYPES.map((apartmentType) => (
+                    <option key={apartmentType} value={apartmentType}>
+                      {apartmentType}
+                    </option>
+                  ))}
+                </select>
+                <FiChevronDown aria-hidden="true" />
+              </div>
             </div>
 
             <div className="bv-md-field">
@@ -144,7 +147,13 @@ function ApartmentAddModal({ building, initialFloor, onClose, onSaved }) {
                 onChange={(e) => setDueAmount(e.target.value)}
                 required
               />
-              <p className="bv-md-note">
+            </div>
+
+            <div className="bv-md-note bv-md-field--wide">
+              <span className="bv-md-note-icon" aria-hidden="true">
+                <FiInfo />
+              </span>
+              <p>
                 Aidat tahakkuku <b>bu aydan itibaren</b> başlar. Tutarı sonradan daire bazında değiştirebilirsiniz.
               </p>
             </div>

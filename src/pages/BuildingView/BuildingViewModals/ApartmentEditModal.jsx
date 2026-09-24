@@ -2,7 +2,7 @@
 // viewed month, and sending it would silently pull the current amount back to an old one.
 
 import { useState } from "react";
-import { FiX } from "react-icons/fi";
+import { FiChevronDown, FiInfo, FiX } from "react-icons/fi";
 import "./BuildingViewModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { showDialog } from "@/components/Dialog/dialogStore";
@@ -77,6 +77,7 @@ function ApartmentEditModal({ apartment, building, onClose, onSaved }) {
                 id="edit-apartment-no"
                 type="text"
                 maxLength={10}
+                placeholder="Örn. 5"
                 value={apartmentNo}
                 onChange={(e) => setApartmentNo(e.target.value)}
                 required
@@ -92,6 +93,7 @@ function ApartmentEditModal({ apartment, building, onClose, onSaved }) {
                 min="-2"
                 max="99"
                 step="1"
+                placeholder="Örn. 2"
                 value={floor}
                 onChange={(e) => setFloor(e.target.value)}
                 required
@@ -100,13 +102,16 @@ function ApartmentEditModal({ apartment, building, onClose, onSaved }) {
 
             <div className="bv-md-field">
               <label htmlFor="edit-type">Tip</label>
-              <select id="edit-type" value={type} onChange={(e) => setType(e.target.value)}>
-                {APARTMENT_TYPES.map((apartmentType) => (
-                  <option key={apartmentType} value={apartmentType}>
-                    {apartmentType}
-                  </option>
-                ))}
-              </select>
+              <div className="bv-select">
+                <select id="edit-type" value={type} onChange={(e) => setType(e.target.value)}>
+                  {APARTMENT_TYPES.map((apartmentType) => (
+                    <option key={apartmentType} value={apartmentType}>
+                      {apartmentType}
+                    </option>
+                  ))}
+                </select>
+                <FiChevronDown aria-hidden="true" />
+              </div>
             </div>
 
             <div className="bv-md-field">
@@ -119,15 +124,21 @@ function ApartmentEditModal({ apartment, building, onClose, onSaved }) {
                 min="0.1"
                 max="1000"
                 step="0.1"
+                placeholder="Örn. 85"
                 value={squareMeters}
                 onChange={(e) => setSquareMeters(e.target.value)}
               />
             </div>
 
-            <p className="bv-md-note bv-md-field--wide">
-              Bu form yalnızca daireyi değiştirir. Aidat tutarı <b>Aidat Takibi</b>, sakin bilgileri <b>Sakinler</b>{" "}
-              sayfasından güncellenir.
-            </p>
+            <div className="bv-md-note bv-md-field--wide">
+              <span className="bv-md-note-icon" aria-hidden="true">
+                <FiInfo />
+              </span>
+              <p>
+                Bu form yalnızca daireyi değiştirir. Aidat tutarı <b>Aidat Takibi</b>, sakin bilgileri <b>Sakinler</b>{" "}
+                sayfasından güncellenir.
+              </p>
+            </div>
           </div>
 
           <button type="submit" className="bv-md-btn-solid bv-md-submit" disabled={isSubmitting}>

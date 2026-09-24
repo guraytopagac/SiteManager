@@ -46,16 +46,11 @@ function ActionCard({ icon, title, text, actionIcon, actionLabel, onAction, isBu
 }
 
 // Who held the account and when. A handover rewrites the account in place, so this list is the only place
-// that still names the earlier managers. Short pages are topped up with hidden rows to keep one height.
+// that still names the earlier managers. The list is only as tall as its rows, so a single term takes a single row.
 function ManagerTerms() {
   const [res] = useIpcData("getManagerTerms", {});
   const terms = res.success ? res.data : [];
   const { pageItems, currentPage, pageCount, setPage } = usePagination(terms, TERMS_PAGE_SIZE);
-  const spacers = [];
-
-  for (let index = 0; index < TERMS_PAGE_SIZE - pageItems.length; index += 1) {
-    spacers.push(<li key={`spacer-${index}`} className="pf-term pf-term--spacer" aria-hidden="true" />);
-  }
 
   return (
     <section className="page-band" aria-label="Yönetim dönemleri">
@@ -63,8 +58,8 @@ function ManagerTerms() {
         <h2 className="pf-terms-title">Yönetim Dönemleri</h2>
         <Pager currentPage={currentPage} pageCount={pageCount} onChange={setPage} />
       </div>
-      <div className="pf-terms-slot">
-        <ul className="pf-terms" aria-hidden={res.success ? undefined : true}>
+      {res.success ? (
+        <ul className="pf-terms">
           {pageItems.map((term) => (
             <li key={term.id} className="pf-term">
               <span className="pf-term-mark" aria-hidden="true">
@@ -81,10 +76,10 @@ function ManagerTerms() {
               </span>
             </li>
           ))}
-          {spacers}
         </ul>
-        {res.success ? null : <p className="pf-terms-error">{res.message}</p>}
-      </div>
+      ) : (
+        <p className="pf-terms-error">{res.message}</p>
+      )}
     </section>
   );
 }

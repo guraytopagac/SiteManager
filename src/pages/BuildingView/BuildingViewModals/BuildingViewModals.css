@@ -13,7 +13,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 460px;
+  max-width: 540px;
   max-height: calc(100vh - 60px);
   border: 1px solid var(--border-default);
   border-radius: 18px;
@@ -133,11 +133,59 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--button-color) 18%, transparent);
 }
 
+.bv-select {
+  position: relative;
+  display: grid;
+}
+
+.bv-md-field .bv-select select {
+  padding-right: 42px;
+  appearance: none;
+  cursor: pointer;
+}
+
+.bv-select svg {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
 .bv-md-field input::placeholder {
   color: var(--text-disabled);
 }
 
 .bv-md-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 11px;
+  background: var(--background-color-1);
+}
+
+.bv-md-note-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-tint);
+  color: var(--button-color);
+}
+
+.bv-md-note-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.bv-md-note p {
   margin: 0;
   color: var(--text-secondary);
   font-size: 1rem;
@@ -146,6 +194,7 @@
 
 .bv-md-note b {
   color: var(--text-color);
+  white-space: nowrap;
 }
 
 .bv-md-btn-solid {

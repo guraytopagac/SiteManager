@@ -12,10 +12,10 @@ import {
   FiAlertTriangle,
   FiBookOpen,
   FiBriefcase,
+  FiCalendar,
   FiChevronRight,
   FiClock,
   FiDollarSign,
-  FiEye,
   FiFileText,
   FiGrid,
   FiHome,
@@ -188,16 +188,16 @@ function Dashboard() {
 
       <ActionGroup title="Daireler">
         <ActionTile
-          icon={<FiEye />}
+          icon={<FiCalendar />}
           label="Aidat Takibi"
           description="Aylık aidat ve tahsilat"
           onClick={() => navigate("/dues")}
         />
         <ActionTile
-          icon={<FiGrid />}
-          label="Bina Görünümü"
-          description="Daireler ve kat planı"
-          onClick={() => navigate("/building-view")}
+          icon={<FiPieChart />}
+          label="Yatırım Aidatı"
+          description="Fon, tahakkuk ve bakiye"
+          onClick={() => navigate("/investment")}
         />
         <ActionTile
           icon={<FiUsers />}
@@ -206,10 +206,10 @@ function Dashboard() {
           onClick={() => navigate("/residents")}
         />
         <ActionTile
-          icon={<FiPieChart />}
-          label="Yatırım Aidatı"
-          description="Fon, tahakkuk ve bakiye"
-          onClick={() => navigate("/investment")}
+          icon={<FiGrid />}
+          label="Bina Görünümü"
+          description="Daireler ve kat planı"
+          onClick={() => navigate("/building-view")}
         />
       </ActionGroup>
 

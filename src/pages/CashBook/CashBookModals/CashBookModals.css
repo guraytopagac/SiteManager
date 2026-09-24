@@ -336,14 +336,42 @@
 }
 
 .cb-detail-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   margin: 18px 0 0;
   padding: 12px 14px;
   border: 1px solid var(--border-default);
   border-radius: 11px;
   background: var(--background-color-1);
+}
+
+.cb-detail-note-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-tint);
+  color: var(--button-color);
+}
+
+.cb-detail-note-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.cb-detail-note p {
+  margin: 0;
   color: var(--text-secondary);
   font-size: 1rem;
   line-height: 1.5;
+}
+
+.cb-detail-note b {
+  color: var(--text-color);
+  white-space: nowrap;
 }
 
 .cb-md-actions {

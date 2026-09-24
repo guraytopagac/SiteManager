@@ -240,10 +240,6 @@
   font-weight: 750;
 }
 
-.pf-terms-slot {
-  position: relative;
-}
-
 .pf-terms {
   display: grid;
   grid-auto-rows: 48px;
@@ -261,10 +257,6 @@
   padding: 0 16px;
   border-radius: 12px;
   background: var(--background-color-1);
-}
-
-.pf-term--spacer {
-  visibility: hidden;
 }
 
 .pf-term-mark {
@@ -309,10 +301,9 @@
 }
 
 .pf-terms-error {
-  position: absolute;
-  inset: 0;
   display: grid;
   place-items: center;
+  min-height: 48px;
   margin: 0;
   color: var(--color-danger-text);
   font-size: 1rem;

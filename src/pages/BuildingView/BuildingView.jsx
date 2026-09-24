@@ -57,7 +57,8 @@ async function deleteApartmentFlow(unit, buildingId, onDone) {
   const confirmed = await showDialog.confirmDanger(
     "Daireyi Sil",
     <>
-      <b>Daire {unit.apartment_no}</b> silinecek. Bu işlem geri alınamaz.
+      <b>Daire {unit.apartment_no}</b> apartmanınızdan silinecek. Yalnızca bu daire apartmanınızda bulunmuyorsa bu
+      işlemi gerçekleştiriniz. Bu işlem geri alınamaz.
     </>,
     "Vazgeç",
     "Evet, Sil",

@@ -7,7 +7,7 @@
 // employee and prints nothing as well. A dues refund can be neither cancelled nor printed, and a dues income
 // whose payment was refunded stays in the ledger but has nothing left to cancel or print.
 
-import { FiX } from "react-icons/fi";
+import { FiInfo, FiX } from "react-icons/fi";
 import "./CashBookModals.css";
 import DetailRow from "@/components/DetailRow/DetailRow";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
@@ -36,23 +36,51 @@ const TYPES = {
 };
 
 const COLLECTED_INCOME_NOTES = {
-  dues: "Bu kayıt bir aidat tahsilatından oluşturuldu ve buradan iptal edilemez. Geri almak için Aidat Takibi sayfasından ilgili tahsilatı iptal edin.",
-  investment_dues:
-    "Bu kayıt bir yatırım aidatı tahsilatından oluşturuldu ve buradan iptal edilemez. Geri almak için Yatırım Aidatı sayfasından ilgili tahsilatı iptal edin.",
+  dues: (
+    <>
+      Bu kayıt bir aidat tahsilatından oluşturuldu ve buradan iptal edilemez. Geri almak için <b>Aidat Takibi</b>{" "}
+      sayfasından ilgili tahsilatı iptal edin.
+    </>
+  ),
+  investment_dues: (
+    <>
+      Bu kayıt bir yatırım aidatı tahsilatından oluşturuldu ve buradan iptal edilemez. Geri almak için{" "}
+      <b>Yatırım Aidatı</b> sayfasından ilgili tahsilatı iptal edin.
+    </>
+  ),
 };
 
 const INVESTMENT_EXPENSE_NOTE = "Bu gider yatırım fonundan ödendi ve fonun bakiyesinden düşülür.";
 
-const REFUND_NOTE =
-  "Bu kayıt bir peşin aidat iadesidir ve iptal edilemez. Yanlış bir iade, Aidat Takibi'nden peşin tahsilat olarak yeniden girilmelidir.";
+const REFUND_NOTE = (
+  <>
+    Bu kayıt bir peşin aidat iadesidir ve iptal edilemez. Yanlış bir iade, <b>Aidat Takibi</b>&apos;nden peşin tahsilat
+    olarak yeniden girilmelidir.
+  </>
+);
 
 const REFUNDED_INCOME_NOTE =
   "Bu tahsilat daha sonra iade edildi. Para bu tarihte kasaya girdi, iade günü ayrı bir gider olarak kasadan çıktı.";
 
 const FUND_TRANSFER_NOTE = "Bu kayıt ana kasadan tazminat kasasına yapılan bir aktarımdır.";
 
-const FUND_PAYOUT_NOTE =
-  "Bu ödeme tazminat kasasından yapıldı ve ana kasanın toplamına girmez. Ödemeyi iptal etmek için Personel sayfasını kullanın.";
+const FUND_PAYOUT_NOTE = (
+  <>
+    Bu ödeme tazminat kasasından yapıldı ve ana kasanın toplamına girmez. Ödemeyi iptal etmek için <b>Personel</b>{" "}
+    sayfasını kullanın.
+  </>
+);
+
+function DetailNote({ children }) {
+  return (
+    <div className="cb-detail-note">
+      <span className="cb-detail-note-icon" aria-hidden="true">
+        <FiInfo />
+      </span>
+      <p>{children}</p>
+    </div>
+  );
+}
 
 function RecordDetailModal({ transaction, description, building, onClose, onCreateDocument, onCancel }) {
   const text = TYPES[transaction.type];
@@ -108,12 +136,12 @@ function RecordDetailModal({ transaction, description, building, onClose, onCrea
             {isCancelled ? <DetailRow label="İptal Eden" value={transaction.cancelled_by_name} /> : null}
           </dl>
 
-          {collectedNote && !isCancelled && !isRefunded ? <p className="cb-detail-note">{collectedNote}</p> : null}
-          {isRefunded ? <p className="cb-detail-note">{REFUNDED_INCOME_NOTE}</p> : null}
-          {isRefund && !isCancelled ? <p className="cb-detail-note">{REFUND_NOTE}</p> : null}
-          {isInvestmentExpense && !isCancelled ? <p className="cb-detail-note">{INVESTMENT_EXPENSE_NOTE}</p> : null}
-          {isFundPayout && !isCancelled ? <p className="cb-detail-note">{FUND_PAYOUT_NOTE}</p> : null}
-          {isFundTransfer && !isCancelled ? <p className="cb-detail-note">{FUND_TRANSFER_NOTE}</p> : null}
+          {collectedNote && !isCancelled && !isRefunded ? <DetailNote>{collectedNote}</DetailNote> : null}
+          {isRefunded ? <DetailNote>{REFUNDED_INCOME_NOTE}</DetailNote> : null}
+          {isRefund && !isCancelled ? <DetailNote>{REFUND_NOTE}</DetailNote> : null}
+          {isInvestmentExpense && !isCancelled ? <DetailNote>{INVESTMENT_EXPENSE_NOTE}</DetailNote> : null}
+          {isFundPayout && !isCancelled ? <DetailNote>{FUND_PAYOUT_NOTE}</DetailNote> : null}
+          {isFundTransfer && !isCancelled ? <DetailNote>{FUND_TRANSFER_NOTE}</DetailNote> : null}
 
           {hasActions ? (
             <div className="cb-md-actions">
