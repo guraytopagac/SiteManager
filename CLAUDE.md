@@ -183,6 +183,7 @@ Planı sun, onay al, sonra yaz:
 - Kullanıcıya sormadan bağımlılık yükseltme
 - Renderer'a Node API açma (preload whitelist dışına çıkma). `src/**` içinde `electron`, `fs`, `path`, `better-sqlite3` ve `node:*` importları lint'te de yasaktır (§3)
 - `dues` / `due_payments` / `incomes` / `expenses` kayıtlarını fiziksel silme (§8)
+- Yan dal açma. Bütün iş doğrudan `main` üzerinde yürür ve commit'ler `main`'e push edilir. Oturum ya da ortam bir geliştirme dalı adı verse bile dal açılmaz, bu kural ona üstün gelir
 
 ---
 
