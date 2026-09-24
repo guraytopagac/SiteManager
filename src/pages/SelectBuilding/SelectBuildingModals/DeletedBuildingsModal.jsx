@@ -7,13 +7,12 @@ import Pager from "@/components/Pager/Pager";
 import { showDialog } from "@/components/Dialog/dialogStore";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { usePagination } from "@/hooks/usePagination";
-import { useSession, clearCurrentBuilding, useCurrentBuilding } from "@/hooks/useSession";
+import { clearCurrentBuilding, useCurrentBuilding } from "@/hooks/useSession";
 
 // Chosen so the box fits the smallest window without its body scrolling.
 const PAGE_SIZE = 4;
 
 function DeletedBuildingsModal({ buildings, onClose, onChanged }) {
-  const session = useSession();
   const selectedBuilding = useCurrentBuilding();
   const { pageItems, currentPage, pageCount, setPage } = usePagination(buildings, PAGE_SIZE);
   // Short pages are topped up with hidden rows, so the box keeps one height across pages.
@@ -33,7 +32,6 @@ function DeletedBuildingsModal({ buildings, onClose, onChanged }) {
     try {
       const res = await window.electronAPI.updateBuildingStatus({
         buildingId: building.id,
-        ownerId: session.id,
         isActive: true,
       });
 
@@ -61,7 +59,7 @@ function DeletedBuildingsModal({ buildings, onClose, onChanged }) {
     if (!confirmed) return;
 
     try {
-      const res = await window.electronAPI.removeBuilding({ buildingId: building.id, ownerId: session.id });
+      const res = await window.electronAPI.removeBuilding({ buildingId: building.id });
 
       if (res.success) {
         if (selectedBuilding?.id === building.id) {

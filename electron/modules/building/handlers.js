@@ -1,12 +1,13 @@
-// Building IPC entry points. Data here is kept apart by ownerId, not by buildingId.
+// Building IPC entry points. There is a single account, so no request carries an owner: the service fills
+// owner_id itself and every building on the machine belongs to that account.
 const { CHANNELS: CH } = require("../../ipc/channels");
 const { createHandle } = require("../../ipc/createHandle");
 const {
   fail,
+  noValidation,
   validateApartmentType,
   validateBuildingScope,
   validateDueAmount,
-  validateId,
   validatePayload,
 } = require("../shared/validate");
 const buildingService = require("./service");
@@ -14,14 +15,6 @@ const buildingService = require("./service");
 // A floor never goes past the -2..99 CHECK on apartments, because the lowest one here is 0.
 const MAX_FLOORS = 30;
 const MAX_PER_FLOOR = 20;
-
-function validateOwnerScope(payload) {
-  return validatePayload(payload) ?? validateId(payload.ownerId, "hesap ID");
-}
-
-function validateOwnedBuildingScope(payload) {
-  return validateBuildingScope(payload) ?? validateId(payload.ownerId, "hesap ID");
-}
 
 // Trims first and writes the value back only when it is valid. The service checks whether the
 // name is already taken, because that needs a query.
@@ -66,23 +59,23 @@ function validateStatus(payload) {
 function registerBuildingHandlers(ipcMain) {
   const handle = createHandle(ipcMain, "building");
 
-  handle(CH.BUILDING.LIST, validateOwnerScope, buildingService.listBuildings);
+  handle(CH.BUILDING.LIST, noValidation, buildingService.listBuildings);
   handle(
     CH.BUILDING.CREATE,
-    (payload) => validateOwnerScope(payload) ?? validateBuildingName(payload) ?? validateLayout(payload),
+    (payload) => validatePayload(payload) ?? validateBuildingName(payload) ?? validateLayout(payload),
     buildingService.createBuilding,
   );
   handle(
     CH.BUILDING.RENAME,
-    (payload) => validateOwnedBuildingScope(payload) ?? validateBuildingName(payload),
+    (payload) => validateBuildingScope(payload) ?? validateBuildingName(payload),
     buildingService.renameBuilding,
   );
   handle(
     CH.BUILDING.UPDATE_STATUS,
-    (payload) => validateOwnedBuildingScope(payload) ?? validateStatus(payload),
+    (payload) => validateBuildingScope(payload) ?? validateStatus(payload),
     buildingService.updateBuildingStatus,
   );
-  handle(CH.BUILDING.REMOVE, validateOwnedBuildingScope, buildingService.removeBuilding);
+  handle(CH.BUILDING.REMOVE, validateBuildingScope, buildingService.removeBuilding);
 }
 
 module.exports = registerBuildingHandlers;

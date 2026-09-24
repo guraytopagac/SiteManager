@@ -10,15 +10,14 @@ const COLUMN_LABELS = {
   name: "Bina adı",
 };
 
-// One message for both cases, so it does not reveal whether the building belongs to someone else.
-const NOT_FOUND_MESSAGE = "Bina bulunamadı veya bu işlem için yetkiniz yok.";
+const NOT_FOUND_MESSAGE = "Bina bulunamadı.";
 
 const resolveDbError = createDbErrorResolver(COLUMN_LABELS);
 
 // The two counts are subqueries rather than a second round trip, since the picker draws one meta line per
 // building. person_count sums household_size of the single occupant row, because one row stands for a whole
 // household and an owner who rented the flat out keeps the flag. SUM skips a household of unknown size.
-function listBuildings(payload) {
+function listBuildings() {
   try {
     applyResidentSchedule();
 
@@ -30,10 +29,10 @@ function listBuildings(payload) {
                 (SELECT COALESCE(SUM(occ.household_size), 0) FROM apartments a
                   JOIN residents occ ON occ.id = ${ACTIVE_OCCUPANT_ID_SQL}
                   WHERE a.building_id = b.id AND a.is_active = 1) AS person_count
-         FROM buildings b WHERE b.owner_id = ? AND b.is_removed = 0
+         FROM buildings b WHERE b.is_removed = 0
          ORDER BY b.is_active DESC, b.name COLLATE NOCASE ASC`,
       )
-      .all(payload.ownerId);
+      .all();
     return { success: true, data };
   } catch (err) {
     console.error("[building.service] listBuildings:", err);
@@ -41,16 +40,15 @@ function listBuildings(payload) {
   }
 }
 
-// Name check inside the account, ignoring upper and lower case. The partial unique index is the
-// last line of defence.
-function findDuplicateName(ownerId, name, excludeId = null) {
+// Name check ignoring upper and lower case. The partial unique index is the last line of defence.
+function findDuplicateName(name, excludeId = null) {
   return getDb()
     .prepare(
       `SELECT id, is_active FROM buildings
-       WHERE owner_id = ? AND is_removed = 0 AND name = ? COLLATE NOCASE AND id IS NOT ?
+       WHERE is_removed = 0 AND name = ? COLLATE NOCASE AND id IS NOT ?
        LIMIT 1`,
     )
-    .get(ownerId, name, excludeId);
+    .get(name, excludeId);
 }
 
 function duplicateNameMessage(duplicate) {
@@ -76,14 +74,15 @@ function layoutRows(layout) {
 // The layout is optional. When it is there the apartments are written in the same transaction as
 // the building, so a half created building with no apartments cannot be left behind.
 function createBuilding(payload) {
-  const { ownerId, name, layout } = payload;
+  const { name, layout } = payload;
   try {
     const db = getDb();
 
-    const owner = db.prepare(`SELECT id FROM users WHERE id = ? AND is_active = 1`).get(ownerId);
+    // owner_id is still a NOT NULL column, so it is filled from the single account rather than the request.
+    const owner = db.prepare(`SELECT id FROM users WHERE is_active = 1 ORDER BY id LIMIT 1`).get();
     if (!owner) return { success: false, message: "Hesap bulunamadı." };
 
-    const duplicate = findDuplicateName(ownerId, name);
+    const duplicate = findDuplicateName(name);
     if (duplicate) return { success: false, message: duplicateNameMessage(duplicate) };
 
     const rows = layout ? layoutRows(layout) : [];
@@ -94,7 +93,7 @@ function createBuilding(payload) {
           `INSERT INTO buildings (owner_id, name, created_at, updated_at)
            VALUES (?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
         )
-        .run(ownerId, name);
+        .run(owner.id, name);
 
       const insertApartment = db.prepare(
         `INSERT INTO apartments (building_id, apartment_no, floor, type, due_amount, created_at, updated_at)
@@ -115,17 +114,17 @@ function createBuilding(payload) {
 }
 
 function renameBuilding(payload) {
-  const { buildingId, ownerId, name } = payload;
+  const { buildingId, name } = payload;
   try {
-    const duplicate = findDuplicateName(ownerId, name, buildingId);
+    const duplicate = findDuplicateName(name, buildingId);
     if (duplicate) return { success: false, message: duplicateNameMessage(duplicate) };
 
     const result = getDb()
       .prepare(
         `UPDATE buildings SET name = ?, updated_at = ${TR_NOW_SQL}
-         WHERE id = ? AND owner_id = ? AND is_removed = 0`,
+         WHERE id = ? AND is_removed = 0`,
       )
-      .run(name, buildingId, ownerId);
+      .run(name, buildingId);
     if (result.changes === 0) return { success: false, message: NOT_FOUND_MESSAGE };
     return { success: true, message: "Bina adı güncellendi." };
   } catch (err) {
@@ -136,14 +135,14 @@ function renameBuilding(payload) {
 
 // Archive and bring back. The UI calls these Sil and Geri Getir, so the messages use those words.
 function updateBuildingStatus(payload) {
-  const { buildingId, ownerId, isActive } = payload;
+  const { buildingId, isActive } = payload;
   try {
     const result = getDb()
       .prepare(
         `UPDATE buildings SET is_active = ?, updated_at = ${TR_NOW_SQL}
-         WHERE id = ? AND owner_id = ? AND is_removed = 0`,
+         WHERE id = ? AND is_removed = 0`,
       )
-      .run(isActive ? 1 : 0, buildingId, ownerId);
+      .run(isActive ? 1 : 0, buildingId);
     if (result.changes === 0) return { success: false, message: NOT_FOUND_MESSAGE };
     return { success: true, message: isActive ? "Bina geri getirildi." : "Bina silindi." };
   } catch (err) {
@@ -154,11 +153,9 @@ function updateBuildingStatus(payload) {
 
 // Remove for good, which is still a soft delete. Only an archived building can get here.
 function removeBuilding(payload) {
-  const { buildingId, ownerId } = payload;
+  const { buildingId } = payload;
   try {
-    const building = getDb()
-      .prepare(`SELECT is_active FROM buildings WHERE id = ? AND owner_id = ? AND is_removed = 0`)
-      .get(buildingId, ownerId);
+    const building = getDb().prepare(`SELECT is_active FROM buildings WHERE id = ? AND is_removed = 0`).get(buildingId);
     if (!building) return { success: false, message: NOT_FOUND_MESSAGE };
     if (building.is_active === 1) {
       return {

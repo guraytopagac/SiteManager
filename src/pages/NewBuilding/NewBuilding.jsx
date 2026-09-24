@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import "./NewBuilding.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import { showDialog } from "@/components/Dialog/dialogStore";
-import { useSession, setCurrentBuilding } from "@/hooks/useSession";
+import { setCurrentBuilding } from "@/hooks/useSession";
 import { APARTMENT_TYPES, MAX_BUILDING_NAME_LENGTH, MAX_DUE_AMOUNT } from "@/utils/constants";
 import { floorLabel } from "@/utils/floorLabel";
 import { FiHome, FiArrowLeft, FiArrowRight, FiCheck, FiAlertCircle, FiInfo } from "react-icons/fi";
@@ -191,7 +191,6 @@ function BuildingPreview({ name, notice, isWarning, rows, cellCount, isBlank }) 
 function NewBuilding() {
   const navigate = useNavigate();
   const location = useLocation();
-  const session = useSession();
   const [step, setStep] = useState(1);
   const [nameInput, setNameInput] = useState("");
   const [layout, setLayout] = useState(INITIAL_LAYOUT);
@@ -244,7 +243,6 @@ function NewBuilding() {
 
     try {
       const res = await window.electronAPI.createBuilding({
-        ownerId: session.id,
         name: buildingName,
         layout: withLayout ? { floors, perFloor, groundFloor: layout.groundFloor, dueAmount, type: layout.type } : null,
       });

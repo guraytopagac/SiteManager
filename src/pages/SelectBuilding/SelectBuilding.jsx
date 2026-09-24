@@ -10,7 +10,7 @@ import Pager from "@/components/Pager/Pager";
 import { showDialog } from "@/components/Dialog/dialogStore";
 import { useIpcData } from "@/hooks/useIpcData";
 import { usePagination } from "@/hooks/usePagination";
-import { useSession, setCurrentBuilding, clearCurrentBuilding, useCurrentBuilding } from "@/hooks/useSession";
+import { setCurrentBuilding, clearCurrentBuilding, useCurrentBuilding } from "@/hooks/useSession";
 import { MAX_BUILDING_NAME_LENGTH } from "@/utils/constants";
 import { FiHome, FiPlus, FiAlertCircle, FiChevronRight, FiEdit2, FiTrash2, FiArchive } from "react-icons/fi";
 
@@ -37,7 +37,6 @@ function validateBuildingName(value) {
 function SelectBuilding() {
   const navigate = useNavigate();
   const location = useLocation();
-  const session = useSession();
   const selectedBuilding = useCurrentBuilding();
   const [deletedOpen, setDeletedOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -47,8 +46,7 @@ function SelectBuilding() {
   // menu disables that, and so does every action that reloads the list, or a delete would throw the user out.
   const [autoEnterAllowed, setAutoEnterAllowed] = useState(() => !location.state?.manual);
 
-  const ownerId = session.id;
-  const [res, reload] = useIpcData("listBuildings", { ownerId });
+  const [res, reload] = useIpcData("listBuildings", {});
   const allBuildings = res.success ? res.data : [];
   const buildings = allBuildings.filter((b) => b.is_active === 1);
   const deleted = allBuildings.filter((b) => b.is_active === 0);
@@ -106,7 +104,6 @@ function SelectBuilding() {
     try {
       const res = await window.electronAPI.renameBuilding({
         buildingId: renamedBuilding.id,
-        ownerId,
         name: buildingName,
       });
 
@@ -140,7 +137,6 @@ function SelectBuilding() {
     try {
       const res = await window.electronAPI.updateBuildingStatus({
         buildingId: building.id,
-        ownerId,
         isActive: false,
       });
 
