@@ -5,6 +5,20 @@ const RELEASE_NOTES_SEEN_KEY = "releaseNotesSeenVersion";
 
 export const RELEASE_NOTES = [
   {
+    version: "2.3.0",
+    date: "2026-09-24",
+    title: "Peşin aidat ve yönetim dönemleri",
+    changes: [
+      "Peşin aidat eklendi. Aidat, bu ay dahil 12 aya kadar peşin tahsil edilebiliyor. Başlangıç ve bitiş ayı seçiliyor, gerektiğinde peşin ödeme iade edilebiliyor.",
+      "Profilim sayfasında Yönetim Dönemleri listesi yer alıyor. Hesabı kimin ne zaman tuttuğu görünüyor, devirden önceki kayıtlar önceki yöneticinin adıyla gösteriliyor.",
+      "Aidat Takibi'nde birden fazla dairenin aidatı tek işlemde güncellenebiliyor.",
+      "Pano yenilendi. Ölçümler ayrı kartlarda gösteriliyor, sayfalara giden kartlar iki grupta ve kullanım sıklığına göre sıralanıyor.",
+      "Bina seçimi ekranı sayfalara bölündü. Silinen binalar ayrı bir pencerede listeleniyor.",
+      "Yeni bina sihirbazında bina önizlemesi iki adımda da görünüyor.",
+      "Zemin katlı binada en üst katın girilen kat sayısından bir eksik oluşturulması düzeltildi.",
+    ],
+  },
+  {
     version: "2.2.0",
     date: "2026-09-23",
     title: "Excel çıktısı ve yenilenen rapor PDF'i",
@@ -28,19 +42,6 @@ export const RELEASE_NOTES = [
       "Rapor PDF'ine Yatırım Aidatı bölümü eklendi. Dönem başı bakiye, fona giren, fondan harcanan ve dönem sonu bakiye gösteriliyor.",
       "Profil sayfasının şifre değiştirme, kurtarma kodu, e-posta ve hesap devri işlemleri kendi pencerelerine taşındı.",
       "Uygulama içindeki bilgi ve onay kutuları yenilendi. Başarı bildirimleri artık kutu yerine kısa süreli bildirim olarak gösteriliyor.",
-    ],
-  },
-  {
-    version: "2.0.3",
-    date: "2026-09-19",
-    title: "Nakit ve banka hesapları, personel avansı",
-    changes: [
-      "Ana kasa Nakit ve Banka olarak ikiye ayrıldı. Gelirin hesabı ödeme şeklinden belirleniyor, giderde ödeme tipi soruluyor.",
-      "Nakit ile banka arasında aktarım yapılabiliyor. Aktarım gelir ya da gider sayılmıyor ve gerektiğinde iptal edilebiliyor.",
-      "Personel avansı eklendi. Çalışana verilen avans gider, geri ödemesi avans iadesi olarak kaydediliyor ve açık avans çalışan listesinde görünüyor.",
-      "Gelir ve Gider sayfasının adı Kasa Defteri, Tazminat Kasası sayfasının adı Personel oldu. Panodaki işlemler iki grupta toplandı.",
-      "Aidat makbuzu tahsilat penceresinden de oluşturulabiliyor.",
-      "Rapor PDF'inin kasa özeti dönem sonundaki nakit ve banka tutarlarını gösteriyor.",
     ],
   },
 ];
