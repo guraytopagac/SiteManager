@@ -1,7 +1,7 @@
 // The building picker, plus renaming, deleting and restoring. Creating one belongs to the wizard alone,
 // this screen only leads there.
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import "./SelectBuilding.css";
 import DeletedBuildingsModal from "./SelectBuildingModals/DeletedBuildingsModal";
@@ -15,32 +15,8 @@ import { MAX_BUILDING_NAME_LENGTH } from "@/utils/constants";
 import { FiHome, FiPlus, FiAlertCircle, FiChevronRight, FiEdit2, FiTrash2, FiArchive } from "react-icons/fi";
 
 const ERROR_ID = "sb-name-error";
-// The card height follows the window and the page size follows the card, so the list never pushes the page
-// into scrolling. Both numbers mirror the list rules in SelectBuilding.css: the row floor and the row gap.
-const ROW_MIN_HEIGHT = 80;
-const ROW_GAP = 10;
-const INITIAL_PAGE_SIZE = 3;
-
-// Counts the rows the list box can hold at their floor height. One of them always belongs to the create card.
-function usePageSizeFor(listRef, isListShown) {
-  const [pageSize, setPageSize] = useState(INITIAL_PAGE_SIZE);
-
-  // Measured before paint, so the first frame already shows the right number of rows.
-  useLayoutEffect(() => {
-    const list = listRef.current;
-    if (!list) return;
-    const measure = () => {
-      const rows = Math.floor((list.clientHeight + ROW_GAP) / (ROW_MIN_HEIGHT + ROW_GAP));
-      setPageSize(Math.max(1, rows - 1));
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(list);
-    return () => observer.disconnect();
-  }, [listRef, isListShown]);
-
-  return pageSize;
-}
+// Three buildings plus the create card make four rows on every page.
+const PAGE_SIZE = 3;
 
 // Three distinct sentences rather than one with zeroes in it: a building with no apartments yet, one whose
 // apartments are all empty, and a populated one are different facts to the reader.
@@ -64,7 +40,6 @@ function SelectBuilding() {
   const session = useSession();
   const selectedBuilding = useCurrentBuilding();
   const [deletedOpen, setDeletedOpen] = useState(false);
-  const listRef = useRef(null);
   const [editing, setEditing] = useState(null);
   const [editError, setEditError] = useState("");
   const [isBusy, setIsBusy] = useState(false);
@@ -78,11 +53,10 @@ function SelectBuilding() {
   const buildings = allBuildings.filter((b) => b.is_active === 1);
   const deleted = allBuildings.filter((b) => b.is_active === 0);
   const autoEnterTarget = autoEnterAllowed && buildings.length === 1 ? buildings[0] : null;
-  const pageSize = usePageSizeFor(listRef, res.success);
-  const { pageItems, currentPage, pageCount, setPage } = usePagination(buildings, pageSize);
+  const { pageItems, currentPage, pageCount, setPage } = usePagination(buildings, PAGE_SIZE);
   // Every page is topped up with hidden rows after the create card, so rows keep their size and the create
   // card stays right under the buildings instead of stretching into the empty space.
-  const spacerCount = pageSize - pageItems.length;
+  const spacerCount = PAGE_SIZE - pageItems.length;
 
   const loadBuildings = () => {
     setAutoEnterAllowed(false);
@@ -281,7 +255,7 @@ function SelectBuilding() {
                 Silinen Binalar ({deleted.length})
               </button>
             </div>
-            <div className="sb-list" ref={listRef}>
+            <div className="sb-list">
               {pageItems.map((building) =>
                 editing?.building?.id === building.id ? (
                   <div key={building.id} className="sb-item sb-item--edit">
