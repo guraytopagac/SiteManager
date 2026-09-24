@@ -1,9 +1,10 @@
 // The building picker, plus renaming, deleting and restoring. Creating one belongs to the wizard alone,
 // this screen only leads there.
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import "./SelectBuilding.css";
+import DeletedBuildingsModal from "./SelectBuildingModals/DeletedBuildingsModal";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
 import Pager from "@/components/Pager/Pager";
 import { showDialog } from "@/components/Dialog/dialogStore";
@@ -11,12 +12,35 @@ import { useIpcData } from "@/hooks/useIpcData";
 import { usePagination } from "@/hooks/usePagination";
 import { useSession, setCurrentBuilding, clearCurrentBuilding, useCurrentBuilding } from "@/hooks/useSession";
 import { MAX_BUILDING_NAME_LENGTH } from "@/utils/constants";
-import { FiHome, FiPlus, FiAlertCircle, FiChevronRight, FiEdit2, FiTrash2 } from "react-icons/fi";
+import { FiHome, FiPlus, FiAlertCircle, FiChevronRight, FiEdit2, FiTrash2, FiArchive } from "react-icons/fi";
 
 const ERROR_ID = "sb-name-error";
-// Three rows plus the create card keep the card inside a laptop screen, a longer list pages instead of
-// stretching the page.
-const PAGE_SIZE = 3;
+// The card height follows the window and the page size follows the card, so the list never pushes the page
+// into scrolling. Both numbers mirror the list rules in SelectBuilding.css: the row floor and the row gap.
+const ROW_MIN_HEIGHT = 80;
+const ROW_GAP = 10;
+const INITIAL_PAGE_SIZE = 3;
+
+// Counts the rows the list box can hold at their floor height. One of them always belongs to the create card.
+function usePageSizeFor(listRef, isListShown) {
+  const [pageSize, setPageSize] = useState(INITIAL_PAGE_SIZE);
+
+  // Measured before paint, so the first frame already shows the right number of rows.
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const measure = () => {
+      const rows = Math.floor((list.clientHeight + ROW_GAP) / (ROW_MIN_HEIGHT + ROW_GAP));
+      setPageSize(Math.max(1, rows - 1));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [listRef, isListShown]);
+
+  return pageSize;
+}
 
 // Three distinct sentences rather than one with zeroes in it: a building with no apartments yet, one whose
 // apartments are all empty, and a populated one are different facts to the reader.
@@ -40,6 +64,7 @@ function SelectBuilding() {
   const session = useSession();
   const selectedBuilding = useCurrentBuilding();
   const [deletedOpen, setDeletedOpen] = useState(false);
+  const listRef = useRef(null);
   const [editing, setEditing] = useState(null);
   const [editError, setEditError] = useState("");
   const [isBusy, setIsBusy] = useState(false);
@@ -53,10 +78,11 @@ function SelectBuilding() {
   const buildings = allBuildings.filter((b) => b.is_active === 1);
   const deleted = allBuildings.filter((b) => b.is_active === 0);
   const autoEnterTarget = autoEnterAllowed && buildings.length === 1 ? buildings[0] : null;
-  const { pageItems, currentPage, pageCount, setPage } = usePagination(buildings, PAGE_SIZE);
-  // Only a paged list is topped up with hidden rows, so the card keeps one height across pages. A short
-  // single-page list keeps stretching its rows as before.
-  const spacerCount = pageCount > 1 ? PAGE_SIZE - pageItems.length : 0;
+  const pageSize = usePageSizeFor(listRef, res.success);
+  const { pageItems, currentPage, pageCount, setPage } = usePagination(buildings, pageSize);
+  // Every page is topped up with hidden rows after the create card, so rows keep their size and the create
+  // card stays right under the buildings instead of stretching into the empty space.
+  const spacerCount = pageSize - pageItems.length;
 
   const loadBuildings = () => {
     setAutoEnterAllowed(false);
@@ -128,17 +154,21 @@ function SelectBuilding() {
     setIsBusy(false);
   };
 
-  const handleRemove = async (building) => {
+  const handleDelete = async (building) => {
     const confirmed = await showDialog.confirmDanger(
-      "Binayı Kalıcı Olarak Sil",
-      `"${building.name}" listeden tamamen kaldırılacak ve bir daha geri getirilemeyecek.`,
+      "Binayı Sil",
+      `"${building.name}" bina listesinden kaldırılacak. Silinen binalar bölümünden geri getirebilirsiniz.`,
       "Vazgeç",
       "Evet, Sil",
     );
     if (!confirmed) return;
 
     try {
-      const res = await window.electronAPI.removeBuilding({ buildingId: building.id, ownerId });
+      const res = await window.electronAPI.updateBuildingStatus({
+        buildingId: building.id,
+        ownerId,
+        isActive: false,
+      });
 
       if (res.success) {
         if (selectedBuilding?.id === building.id) {
@@ -150,50 +180,8 @@ function SelectBuilding() {
         showDialog.error("Hata", res.message);
       }
     } catch (err) {
-      console.error("[SelectBuilding] removeBuilding:", err);
-      showDialog.error("Hata", "Bina kalıcı olarak silinemedi. Lütfen tekrar deneyin.");
-    }
-  };
-
-  const handleToggleStatus = async (building) => {
-    const willActivate = building.is_active === 0;
-    const confirmed = willActivate
-      ? await showDialog.confirm(
-          "Binayı Geri Getir",
-          `"${building.name}" yeniden bina listesine eklenecek.`,
-          "Vazgeç",
-          "Geri Getir",
-        )
-      : await showDialog.confirmDanger(
-          "Binayı Sil",
-          `"${building.name}" bina listesinden kaldırılacak. Silinen binalar bölümünden geri getirebilirsiniz.`,
-          "Vazgeç",
-          "Evet, Sil",
-        );
-    if (!confirmed) return;
-
-    try {
-      const res = await window.electronAPI.updateBuildingStatus({
-        buildingId: building.id,
-        ownerId,
-        isActive: willActivate,
-      });
-
-      if (res.success) {
-        if (!willActivate && selectedBuilding?.id === building.id) {
-          clearCurrentBuilding();
-        }
-        loadBuildings();
-        showDialog.toast(res.message);
-      } else {
-        showDialog.error("Hata", res.message);
-      }
-    } catch (err) {
       console.error("[SelectBuilding] updateBuildingStatus:", err);
-      showDialog.error(
-        "Hata",
-        willActivate ? "Bina geri getirilemedi. Lütfen tekrar deneyin." : "Bina silinemedi. Lütfen tekrar deneyin.",
-      );
+      showDialog.error("Hata", "Bina silinemedi. Lütfen tekrar deneyin.");
     }
   };
 
@@ -284,11 +272,19 @@ function SelectBuilding() {
 
         {res.success && (
           <section className="sb-band sb-band--fill">
-            <h2 className="sb-band-title">
-              Binalarınız
-              <span className="sb-band-count">{buildings.length} bina</span>
-            </h2>
-            <div className="sb-list">
+            <div className="sb-list-head">
+              <h2 className="sb-band-title">
+                Binalarınız
+                <span className="sb-band-count">{buildings.length} bina</span>
+              </h2>
+              {showDeleted ? (
+                <button type="button" className="sb-btn-secondary sb-deleted-open" onClick={() => setDeletedOpen(true)}>
+                  <FiArchive size={18} />
+                  Silinen Binalar ({deleted.length})
+                </button>
+              ) : null}
+            </div>
+            <div className="sb-list" ref={listRef}>
               {pageItems.map((building) =>
                 editing?.building?.id === building.id ? (
                   <div key={building.id} className="sb-item sb-item--edit">
@@ -324,7 +320,7 @@ function SelectBuilding() {
                       <button
                         type="button"
                         className="sb-icon-btn sb-icon-btn--danger"
-                        onClick={() => handleToggleStatus(building)}
+                        onClick={() => handleDelete(building)}
                         title="Sil"
                         aria-label={`${building.name} binasını sil`}
                       >
@@ -335,10 +331,6 @@ function SelectBuilding() {
                 ),
               )}
 
-              {Array.from({ length: spacerCount }, (_, index) => (
-                <div key={`spacer-${index}`} className="sb-item sb-item--spacer" aria-hidden="true" />
-              ))}
-
               <button type="button" className="sb-item sb-item--add" onClick={openWizard}>
                 <span className="sb-item-mark">
                   <FiPlus size={22} />
@@ -348,52 +340,19 @@ function SelectBuilding() {
                   <span className="sb-item-meta">Aynı hesapta istediğiniz kadar bina tutabilirsiniz</span>
                 </span>
               </button>
+
+              {Array.from({ length: spacerCount }, (_, index) => (
+                <div key={`spacer-${index}`} className="sb-item sb-item--spacer" aria-hidden="true" />
+              ))}
             </div>
             <Pager currentPage={currentPage} pageCount={pageCount} onChange={setPage} />
           </section>
         )}
-
-        {showDeleted && (
-          <section className="sb-band">
-            <div className="sb-deleted-head">
-              <h2 className="sb-band-title sb-band-title--flush">
-                Silinen Binalar
-                <span className="sb-band-count">{deleted.length} bina</span>
-              </h2>
-              <button type="button" className="sb-btn-secondary" onClick={() => setDeletedOpen((open) => !open)}>
-                {deletedOpen ? "Gizle" : "Göster"}
-              </button>
-            </div>
-            {deletedOpen && (
-              <div className="sb-deleted-list">
-                {deleted.map((building) => (
-                  <div key={building.id} className="sb-deleted-row">
-                    <span className="sb-deleted-name">{building.name}</span>
-                    <span className="sb-deleted-actions">
-                      <button
-                        type="button"
-                        className="sb-btn-secondary"
-                        onClick={() => handleToggleStatus(building)}
-                        aria-label={`${building.name} binasını geri getir`}
-                      >
-                        Geri Getir
-                      </button>
-                      <button
-                        type="button"
-                        className="sb-btn-secondary sb-btn-secondary--danger"
-                        onClick={() => handleRemove(building)}
-                        aria-label={`${building.name} binasını kalıcı olarak sil`}
-                      >
-                        Kalıcı Sil
-                      </button>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
       </main>
+
+      {deletedOpen && (
+        <DeletedBuildingsModal buildings={deleted} onClose={() => setDeletedOpen(false)} onChanged={loadBuildings} />
+      )}
     </div>
   );
 }

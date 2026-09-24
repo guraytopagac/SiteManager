@@ -277,7 +277,8 @@ body {
 .pay-md-overlay,
 .doc-md-overlay,
 .cr-md-overlay,
-.rn-md-overlay {
+.rn-md-overlay,
+.sb-md-overlay {
   animation: modalOverlayIn 0.16s ease-out backwards;
 }
 
@@ -291,7 +292,8 @@ body {
 .pay-md-box,
 .doc-md-box,
 .cr-md-box,
-.rn-md-box {
+.rn-md-box,
+.sb-md-box {
   animation: modalBoxIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
