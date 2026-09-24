@@ -1,5 +1,5 @@
-// Sets the due amount of one apartment, with the same period cards as the bulk modal. No confirmation step:
-// undoing one apartment is just another edit.
+// Sets the due amount of one or more selected apartments, with the same period cards as the bulk modal.
+// No confirmation step: undoing a selection is just another edit.
 
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
@@ -11,14 +11,14 @@ import { formatCurrency } from "@/utils/currency";
 import { searchKey } from "@/utils/searchKey";
 
 function SingleDueAmountModal({ dues, building, onClose, onSaved }) {
-  const [apartmentId, setApartmentId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [amount, setAmount] = useState("");
   const [applyCurrentMonth, setApplyCurrentMonth] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // The amount label names the selected apartment, since the row can drop out of the list as the search narrows.
-  const selectedDue = dues.find((due) => due.apartment_id === apartmentId) || null;
+  // The amount label names the selection, since selected rows can drop out of the list as the search narrows.
+  const selectedDues = dues.filter((due) => selectedIds.includes(due.apartment_id));
 
   // A searchable list instead of a dropdown, which meant scrolling through fifty entries. The fixed height
   // keeps the box from resizing on every keystroke.
@@ -28,16 +28,29 @@ function SingleDueAmountModal({ dues, building, onClose, onSaved }) {
     return searchKey(due.apartment_no).includes(term) || searchKey(due.resident_name).includes(term);
   });
 
+  // A second click removes the apartment from the selection. The first pick still fills in its current amount.
   const handleSelect = (due) => {
-    setApartmentId(due.apartment_id);
-    setAmount(String(due.due_amount));
+    if (selectedIds.includes(due.apartment_id)) {
+      setSelectedIds(selectedIds.filter((id) => id !== due.apartment_id));
+      return;
+    }
+    if (selectedIds.length === 0) {
+      setAmount(String(due.due_amount));
+    }
+    setSelectedIds([...selectedIds, due.apartment_id]);
+  };
+
+  const amountLabel = () => {
+    if (selectedDues.length === 0) return "Yeni Aidat Tutarı (₺)";
+    if (selectedDues.length === 1) return `Daire ${selectedDues[0].apartment_no} için yeni tutar (₺)`;
+    return `${selectedDues.length} daire için yeni tutar (₺)`;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!selectedDue) {
-      showDialog.warning("Daire Seçilmedi", "Lütfen aidatını güncelleyeceğiniz daireyi seçin.");
+    if (selectedDues.length === 0) {
+      showDialog.warning("Daire Seçilmedi", "Lütfen aidatını güncelleyeceğiniz daireleri seçin.");
       return;
     }
 
@@ -50,24 +63,48 @@ function SingleDueAmountModal({ dues, building, onClose, onSaved }) {
     setIsSubmitting(true);
 
     try {
-      // Identity fields travel straight from the row: they come from the apartment and do not vary by period,
-      // unlike the amount next to them.
-      const res = await window.electronAPI.updateApartment({
-        id: selectedDue.apartment_id,
-        buildingId: building.id,
-        apartment_no: selectedDue.apartment_no,
-        floor: selectedDue.floor,
-        type: selectedDue.type,
-        square_meters: selectedDue.square_meters,
-        due_amount: dueAmount,
-        applyCurrentMonth,
-      });
+      // One request per apartment, since updateApartment takes a single row. A failure does not stop the rest,
+      // the failed apartments are listed at the end.
+      const failures = [];
+      let lastMessage = "";
+      for (const due of selectedDues) {
+        // Identity fields travel straight from the row: they come from the apartment and do not vary by period,
+        // unlike the amount next to them.
+        const res = await window.electronAPI.updateApartment({
+          id: due.apartment_id,
+          buildingId: building.id,
+          apartment_no: due.apartment_no,
+          floor: due.floor,
+          type: due.type,
+          square_meters: due.square_meters,
+          due_amount: dueAmount,
+          applyCurrentMonth,
+        });
+        if (res.success) {
+          lastMessage = res.message;
+        } else {
+          failures.push(`Daire ${due.apartment_no}: ${res.message}`);
+        }
+      }
 
-      if (res.success) {
-        showDialog.toast(res.message);
-        onSaved();
+      const savedCount = selectedDues.length - failures.length;
+      if (failures.length > 0) {
+        showDialog.error(
+          "Bazı Daireler Güncellenemedi",
+          failures.map((line) => (
+            <span key={line}>
+              {line}
+              <br />
+            </span>
+          )),
+        );
+      } else if (savedCount === 1) {
+        showDialog.toast(lastMessage);
       } else {
-        showDialog.error("Hata", res.message);
+        showDialog.toast(`${savedCount} dairenin aidatı güncellendi.`);
+      }
+      if (savedCount > 0) {
+        onSaved();
       }
     } catch (err) {
       console.error("[SingleDueAmountModal] updateApartment:", err);
@@ -125,9 +162,11 @@ function SingleDueAmountModal({ dues, building, onClose, onSaved }) {
                     key={due.apartment_id}
                     type="button"
                     className={
-                      due.apartment_id === apartmentId ? "du-unit-option du-unit-option--active" : "du-unit-option"
+                      selectedIds.includes(due.apartment_id)
+                        ? "du-unit-option du-unit-option--active"
+                        : "du-unit-option"
                     }
-                    aria-pressed={due.apartment_id === apartmentId}
+                    aria-pressed={selectedIds.includes(due.apartment_id)}
                     onClick={() => handleSelect(due)}
                   >
                     <span className="du-unit-option-no">Daire {due.apartment_no}</span>
@@ -170,9 +209,7 @@ function SingleDueAmountModal({ dues, building, onClose, onSaved }) {
           </div>
 
           <div className="du-md-field">
-            <label htmlFor="single-amount">
-              {selectedDue ? `Daire ${selectedDue.apartment_no} için yeni tutar (₺)` : "Yeni Aidat Tutarı (₺)"}
-            </label>
+            <label htmlFor="single-amount">{amountLabel()}</label>
             <div className="du-amount-row">
               <input
                 id="single-amount"
