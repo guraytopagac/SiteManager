@@ -185,21 +185,25 @@
   font-size: 1rem;
 }
 
-.db-meter {
-  display: block;
-  height: 10px;
-  margin: auto 0 2px;
-  border-radius: 999px;
-  background: var(--border-default);
-  overflow: hidden;
+.db-metric-mark .db-ring {
+  width: 28px;
+  height: 28px;
+  transform: rotate(-90deg);
 }
 
-.db-meter span {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: var(--button-color);
-  transition: width 0.4s ease;
+.db-ring circle {
+  fill: none;
+  stroke-width: 3.5;
+}
+
+.db-ring-track {
+  stroke: color-mix(in srgb, var(--button-color) 25%, transparent);
+}
+
+.db-ring-fill {
+  stroke: var(--button-color);
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.4s ease;
 }
 
 .db-state {
@@ -207,7 +211,7 @@
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-  min-height: 170px;
+  min-height: 144px;
   padding: 22px 24px;
   border: 1px solid var(--border-default);
   border-radius: 16px;
