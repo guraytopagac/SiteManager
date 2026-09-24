@@ -225,6 +225,7 @@
 
 .du-collect-note {
   color: var(--text-secondary);
+  text-align: center;
   font-size: 1rem;
   font-variant-numeric: tabular-nums;
 }
@@ -362,8 +363,8 @@
 
 .du-pay-amounts {
   display: flex;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: center;
+  gap: 6px;
   font-variant-numeric: tabular-nums;
 }
 
