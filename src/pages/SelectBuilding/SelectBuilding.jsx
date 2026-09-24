@@ -38,7 +38,7 @@ function SelectBuilding() {
   const navigate = useNavigate();
   const location = useLocation();
   const selectedBuilding = useCurrentBuilding();
-  const [deletedOpen, setDeletedOpen] = useState(false);
+  const [isDeletedModalOpen, setIsDeletedModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [editError, setEditError] = useState("");
   const [isBusy, setIsBusy] = useState(false);
@@ -48,10 +48,10 @@ function SelectBuilding() {
 
   const [res, reload] = useIpcData("listBuildings", {});
   const allBuildings = res.success ? res.data : [];
-  const buildings = allBuildings.filter((b) => b.is_active === 1);
-  const deleted = allBuildings.filter((b) => b.is_active === 0);
-  const autoEnterTarget = autoEnterAllowed && buildings.length === 1 ? buildings[0] : null;
-  const { pageItems, currentPage, pageCount, setPage } = usePagination(buildings, PAGE_SIZE);
+  const activeBuildings = allBuildings.filter((b) => b.is_active === 1);
+  const deletedBuildings = allBuildings.filter((b) => b.is_active === 0);
+  const autoEnterTarget = autoEnterAllowed && activeBuildings.length === 1 ? activeBuildings[0] : null;
+  const { pageItems, currentPage, pageCount, setPage } = usePagination(activeBuildings, PAGE_SIZE);
   // Every page is topped up with hidden rows after the create card, so rows keep their size and the create
   // card stays right under the buildings instead of stretching into the empty space.
   const spacerCount = PAGE_SIZE - pageItems.length;
@@ -243,12 +243,16 @@ function SelectBuilding() {
             <div className="sb-list-head">
               <h2 className="sb-band-title">
                 Binalarınız
-                <span className="sb-band-count">{buildings.length} bina</span>
+                <span className="sb-band-count">{activeBuildings.length} bina</span>
               </h2>
               {/* Always drawn, even at zero, so the header never changes height when the first building is deleted. */}
-              <button type="button" className="sb-btn-secondary sb-deleted-open" onClick={() => setDeletedOpen(true)}>
+              <button
+                type="button"
+                className="sb-btn-secondary sb-deleted-open"
+                onClick={() => setIsDeletedModalOpen(true)}
+              >
                 <FiArchive size={18} />
-                Silinen Binalar ({deleted.length})
+                Silinen Binalar ({deletedBuildings.length})
               </button>
             </div>
             <div className="sb-list">
@@ -317,8 +321,12 @@ function SelectBuilding() {
         )}
       </main>
 
-      {deletedOpen && (
-        <DeletedBuildingsModal buildings={deleted} onClose={() => setDeletedOpen(false)} onChanged={loadBuildings} />
+      {isDeletedModalOpen && (
+        <DeletedBuildingsModal
+          buildings={deletedBuildings}
+          onClose={() => setIsDeletedModalOpen(false)}
+          onChanged={loadBuildings}
+        />
       )}
     </div>
   );
