@@ -14,7 +14,6 @@ import {
   FiSearch,
   FiSkipBack,
   FiTrendingUp,
-  FiUsers,
 } from "react-icons/fi";
 import "./Dues.css";
 import PageHeader from "@/components/PageHeader/PageHeader";
@@ -183,26 +182,8 @@ function ActionsCard({ onPrepayment, onBulkUpdate, onSingleUpdate }) {
   );
 }
 
-function PagesCard({ onNavigate }) {
-  return (
-    <section className="du-card du-pages" aria-label="İlgili sayfalar">
-      <span className="du-card-title">İlgili Sayfalar</span>
-      <div className="du-shortcuts">
-        <button type="button" className="du-shortcut" onClick={() => onNavigate("/building-view")}>
-          <FiGrid aria-hidden="true" />
-          Bina Görünümü
-        </button>
-        <button type="button" className="du-shortcut" onClick={() => onNavigate("/residents")}>
-          <FiUsers aria-hidden="true" />
-          Sakinler
-        </button>
-      </div>
-    </section>
-  );
-}
-
 // Reads the whole period and ignores the filters, since it reports the building rather than the list. The
-// meter is only hidden when empty, never removed: the rail sets the row height and the card would shrink.
+// meter is only hidden when empty, never removed, so the card keeps its height between periods.
 function CollectSummary({ dues, hasError }) {
   const totalDue = dues.reduce((sum, due) => sum + due.due_amount, 0);
   const totalPaid = dues.reduce((sum, due) => sum + due.paid_amount, 0);
@@ -436,7 +417,6 @@ function Dues() {
               onBulkUpdate={() => setShowBulkUpdate(true)}
               onSingleUpdate={() => setShowSingleUpdate(true)}
             />
-            <PagesCard onNavigate={navigate} />
           </div>
 
           <Pager currentPage={currentPage} pageCount={pageCount} onChange={setPage} />

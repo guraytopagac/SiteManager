@@ -240,57 +240,13 @@
 
 .du-rail {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  align-content: start;
   gap: 12px;
 }
 
 .du-actions {
   display: grid;
   gap: 14px;
-}
-
-.du-pages {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 14px;
-}
-
-.du-shortcuts {
-  display: grid;
-  grid-auto-rows: minmax(36px, 1fr);
-  gap: 10px;
-}
-
-.du-shortcut {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border: 1px solid var(--border-default);
-  border-radius: 11px;
-  background: var(--card-background-1);
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: 1rem;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    border-color 0.15s ease,
-    color 0.15s ease,
-    background-color 0.15s ease;
-}
-
-.du-shortcut:hover {
-  border-color: var(--button-color);
-  background: var(--accent-tint);
-  color: var(--button-color);
-}
-
-.du-shortcut svg {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
 }
 
 .du-table-surface {
