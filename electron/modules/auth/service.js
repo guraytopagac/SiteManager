@@ -62,13 +62,13 @@ function findAccount() {
     .get();
 }
 
-// Used by reset and verify. It returns a code field, because the renderer checks that field.
+// Shared by reset and verify, so both steps of /recover reject a wrong code with the same message.
 function checkRecoveryCode(account, recoveryCode) {
   if (!account) {
     return { success: false, message: NO_ACCOUNT_MESSAGE };
   }
   if (!bcrypt.compareSync(normalizeRecoveryCode(recoveryCode), account.recovery_hash)) {
-    return { success: false, code: "INVALID_RECOVERY_CODE", message: INVALID_RECOVERY_MESSAGE };
+    return { success: false, message: INVALID_RECOVERY_MESSAGE };
   }
   return null;
 }

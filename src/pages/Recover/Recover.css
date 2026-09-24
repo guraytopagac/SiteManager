@@ -1,5 +1,8 @@
 .recover-container {
+  display: flex;
+  flex-direction: column;
   width: 660px;
+  min-height: 745px;
   padding: 36px 48px 40px;
   text-align: left;
 }
@@ -9,7 +12,18 @@
 }
 
 .recover-step {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
   animation: recoverStepFade 0.28s ease;
+}
+
+.recover-step > .recover-band:not(.recover-actions),
+.recover-band.recover-step {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  justify-content: center;
 }
 
 @keyframes recoverStepFade {
@@ -24,7 +38,7 @@
 }
 
 .recover-band {
-  padding: 26px 0;
+  padding: 20px 0;
 }
 
 .recover-band + .recover-band {
@@ -35,7 +49,7 @@
   padding-top: 0;
 }
 
-.recover-band--note {
+.recover-band:last-child {
   padding-bottom: 0;
 }
 
@@ -155,6 +169,7 @@
   display: flex;
   flex-direction: column;
   gap: 22px;
+  margin-top: 10px;
 }
 
 .recover-code-wrapper {
@@ -222,7 +237,7 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  margin-top: 20px;
+  margin-top: 14px;
   padding: 11px 14px;
   border: 1px solid var(--danger-border);
   border-radius: 12px;

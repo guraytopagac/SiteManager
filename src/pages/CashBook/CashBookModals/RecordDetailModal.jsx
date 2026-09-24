@@ -4,7 +4,8 @@
 // fund says so and is cancelled here like any other. A payout belongs to the fund page and offers nothing, a
 // transfer into the severance fund can be cancelled but prints no voucher. A transfer between cash and bank
 // prints nothing either, it only moves money inside the main cash, and an advance or its repayment names the
-// employee and prints nothing as well.
+// employee and prints nothing as well. A dues refund can be neither cancelled nor printed, and a dues income
+// whose payment was refunded stays in the ledger but has nothing left to cancel or print.
 
 import { FiX } from "react-icons/fi";
 import "./CashBookModals.css";
@@ -42,6 +43,12 @@ const COLLECTED_INCOME_NOTES = {
 
 const INVESTMENT_EXPENSE_NOTE = "Bu gider yatırım fonundan ödendi ve fonun bakiyesinden düşülür.";
 
+const REFUND_NOTE =
+  "Bu kayıt bir peşin aidat iadesidir ve iptal edilemez. Yanlış bir iade, Aidat Takibi'nden peşin tahsilat olarak yeniden girilmelidir.";
+
+const REFUNDED_INCOME_NOTE =
+  "Bu tahsilat daha sonra iade edildi. Para bu tarihte kasaya girdi, iade günü ayrı bir gider olarak kasadan çıktı.";
+
 const FUND_TRANSFER_NOTE = "Bu kayıt ana kasadan tazminat kasasına yapılan bir aktarımdır.";
 
 const FUND_PAYOUT_NOTE =
@@ -55,8 +62,14 @@ function RecordDetailModal({ transaction, description, building, onClose, onCrea
   const isFundPayout = transaction.type === "severance_payout";
   const isFundTransfer = transaction.category === "severance_fund";
   const isAdvance = ADVANCE_CATEGORIES.includes(transaction.category);
+  const isRefund = transaction.category === "dues_refund";
+  const isRefunded = transaction.is_refunded === 1;
   const hasDocument =
-    !isAdvance && (transaction.type === "income" || (transaction.type === "expense" && !isFundTransfer));
+    !isAdvance &&
+    !isRefunded &&
+    (transaction.type === "income" || (transaction.type === "expense" && !isFundTransfer && !isRefund));
+  // A refund is final, and a refunded income has no payment left to cancel through the dues page either.
+  const hasActions = !isCancelled && !isFundPayout && !isRefund && !isRefunded;
   // Only income and expense name an account. A transfer says its direction in the category.
   const hasAccount = transaction.type === "income" || transaction.type === "expense";
 
@@ -93,12 +106,14 @@ function RecordDetailModal({ transaction, description, building, onClose, onCrea
             {isCancelled ? <DetailRow label="İptal Nedeni" value={transaction.cancel_reason} /> : null}
           </dl>
 
-          {collectedNote && !isCancelled ? <p className="cb-detail-note">{collectedNote}</p> : null}
+          {collectedNote && !isCancelled && !isRefunded ? <p className="cb-detail-note">{collectedNote}</p> : null}
+          {isRefunded ? <p className="cb-detail-note">{REFUNDED_INCOME_NOTE}</p> : null}
+          {isRefund && !isCancelled ? <p className="cb-detail-note">{REFUND_NOTE}</p> : null}
           {isInvestmentExpense && !isCancelled ? <p className="cb-detail-note">{INVESTMENT_EXPENSE_NOTE}</p> : null}
           {isFundPayout && !isCancelled ? <p className="cb-detail-note">{FUND_PAYOUT_NOTE}</p> : null}
           {isFundTransfer && !isCancelled ? <p className="cb-detail-note">{FUND_TRANSFER_NOTE}</p> : null}
 
-          {isCancelled || isFundPayout ? null : (
+          {hasActions ? (
             <div className="cb-md-actions">
               {hasDocument ? (
                 <button type="button" className="cb-md-btn-solid" onClick={onCreateDocument}>
@@ -111,7 +126,7 @@ function RecordDetailModal({ transaction, description, building, onClose, onCrea
                 </button>
               )}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

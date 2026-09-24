@@ -204,6 +204,13 @@ function cancelRecord(table, payload, label) {
     .get(id, buildingId);
   if (!record) return { success: false, message: "Kayıt bulunamadı." };
   if (record.is_cancelled) return { success: false, message: "Bu kayıt zaten iptal edilmiş." };
+  // A refund already closed the payments it paid back, and a closed payment cannot be opened again.
+  if (record.category === "dues_refund") {
+    return {
+      success: false,
+      message: "Aidat iadesi iptal edilemez. Yanlış bir iade, peşin tahsilat olarak yeniden girilmelidir.",
+    };
+  }
   if (record.category === "severance_fund") {
     const blocker = transferCancelBlocker(record, buildingId);
     if (blocker) return blocker;
@@ -256,24 +263,28 @@ function getTransactions(payload) {
       .prepare(
         `SELECT id, amount, date, description, category, 'income' AS type, created_at,
                 is_cancelled, cancelled_at, cancel_reason, account, 0 AS sort_rank, 0 AS is_investment,
-                (SELECT full_name FROM employees WHERE id = incomes.employee_id) AS employee_name
+                (SELECT full_name FROM employees WHERE id = incomes.employee_id) AS employee_name,
+                (is_cancelled = 0 AND EXISTS (
+                  SELECT 1 FROM payment_cancellations pc WHERE pc.payment_id = incomes.due_payment_id
+                )) AS is_refunded
          FROM incomes WHERE building_id = ? ${dateFilter}
          UNION ALL
          SELECT id, amount, date, description, category, 'expense' AS type, created_at,
                 is_cancelled, cancelled_at, cancel_reason, account, 0 AS sort_rank, is_investment,
-                (SELECT full_name FROM employees WHERE id = expenses.employee_id) AS employee_name
+                (SELECT full_name FROM employees WHERE id = expenses.employee_id) AS employee_name,
+                0 AS is_refunded
          FROM expenses WHERE building_id = ? ${dateFilter}
          UNION ALL
          SELECT id, amount, date, full_name AS description, 'severance_payout' AS category, 'severance_payout' AS type,
                 created_at, is_cancelled, cancelled_at, cancel_reason, NULL AS account, 1 AS sort_rank,
-                0 AS is_investment, NULL AS employee_name
+                0 AS is_investment, NULL AS employee_name, 0 AS is_refunded
          FROM (SELECT p.*, e.full_name FROM severance_payouts p JOIN employees e ON e.id = p.employee_id)
          WHERE building_id = ? ${dateFilter}
          UNION ALL
          SELECT id, amount, date, description,
                 CASE to_account WHEN 'bank' THEN 'to_bank' ELSE 'to_cash' END AS category, 'transfer' AS type,
                 created_at, is_cancelled, cancelled_at, cancel_reason, to_account AS account, 0 AS sort_rank,
-                0 AS is_investment, NULL AS employee_name
+                0 AS is_investment, NULL AS employee_name, 0 AS is_refunded
          FROM cash_transfers WHERE building_id = ? ${dateFilter}
          ORDER BY date DESC, created_at DESC, sort_rank DESC, id DESC`,
       )
@@ -325,6 +336,10 @@ function documentBlocker(record) {
   if (record.category === "severance_fund") {
     return { success: false, message: "Tazminat kasası aktarımı için gider pusulası oluşturulamaz." };
   }
+  // A refund hands prepaid dues back to a person, there is no service and no vendor to print.
+  if (record.category === "dues_refund") {
+    return { success: false, message: "Aidat iadesi için gider pusulası oluşturulamaz." };
+  }
   // An advance and its repayment only lend money to the building's own staff and print no document yet.
   if (record.category === "staff_advance" || record.category === "advance_repayment") {
     return { success: false, message: "Personel avansı ve avans iadesi için belge oluşturulamaz." };
@@ -343,8 +358,8 @@ function residentNameForPaidMonth(receipt) {
     .get(cutoff, cutoff, receipt.apartment_id).full_name;
 }
 
-// One row per payment method, summed over the month's live payments. Cancelled payments are left out,
-// since their income rows are cancelled with them.
+// One row per payment method, summed over the month's live payments. Cancelled and refunded payments are
+// left out, neither is money the month still holds.
 function livePaymentsForDue(dueId) {
   return getDb()
     .prepare(
@@ -364,9 +379,11 @@ function readReceipt(id, buildingId) {
   const receipt = getDb()
     .prepare(
       `SELECT i.id, i.amount, i.date, i.description, i.category, i.is_cancelled, i.payer_name, i.payment_method,
-              dp.due_id, d.apartment_id, a.apartment_no, d.year, d.month, d.due_type
+              dp.due_id, d.apartment_id, a.apartment_no, d.year, d.month, d.due_type,
+              pc.id AS payment_cancellation_id
        FROM incomes i
        LEFT JOIN due_payments dp ON dp.id = i.due_payment_id
+       LEFT JOIN payment_cancellations pc ON pc.payment_id = dp.id
        LEFT JOIN dues d ON d.id = dp.due_id
        LEFT JOIN apartments a ON a.id = d.apartment_id
        WHERE i.id = ? AND i.building_id = ?`,
@@ -374,6 +391,11 @@ function readReceipt(id, buildingId) {
     .get(id, buildingId);
   const blocker = documentBlocker(receipt);
   if (blocker) return blocker;
+  // Only a refund closes a payment and leaves its income standing: the money did come in, and went back out
+  // as an expense on the refund day. The month owes nothing on that payment any more, so it prints nothing.
+  if (receipt.payment_cancellation_id != null) {
+    return { success: false, message: "İade edilmiş bir tahsilat için makbuz oluşturulamaz." };
+  }
 
   if (receipt.due_id == null) {
     const payments = receipt.payment_method ? [{ payment_method: receipt.payment_method, amount: receipt.amount }] : [];

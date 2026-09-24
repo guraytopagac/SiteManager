@@ -52,6 +52,9 @@ const CHANNELS = {
   DUES: {
     GET_FOR_MONTH: "dues:get-for-month",
     RECORD_PAYMENT: "dues:record-payment",
+    GET_PREPAYMENT_PLAN: "dues:get-prepayment-plan",
+    RECORD_PREPAYMENT: "dues:record-prepayment",
+    REFUND_PREPAYMENT: "dues:refund-prepayment",
     CANCEL_PAYMENT: "dues:cancel-payment",
     GET_PAYMENT_HISTORY: "dues:get-payment-history",
     ATTACH_RECEIPT: "dues:attach-receipt",

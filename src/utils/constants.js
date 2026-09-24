@@ -115,12 +115,13 @@ export const ADVANCE_CATEGORIES = ["staff_advance", "advance_repayment"];
 // Derived rather than written out: the same label prints on the selection chip and in the table cell, and two
 // hand-kept copies drift the moment one of them is renamed.
 // The payout and the two transfers are never picked by hand, they are list rows of their own, not records
-// of a category.
+// of a category. A dues refund is a real expense category, but only the prepayment refund writes it.
 export const TRANSACTION_CATEGORY_LABELS = {
   dues: "Aidat",
   investment_dues: "Yatırım Aidatı",
   [OTHER_CATEGORY.value]: OTHER_CATEGORY.label,
   severance_payout: "Tazminat Ödemesi",
+  dues_refund: "Aidat İadesi",
   to_bank: "Bankaya Yatırma",
   to_cash: "Bankadan Çekme",
 };

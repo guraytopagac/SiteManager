@@ -4,11 +4,14 @@ const fs = require("fs");
 const path = require("path");
 const { app, shell } = require("electron");
 const { getDb } = require("../../../database/db");
-const { accountCancelBlocker, accountForMethod } = require("../shared/cashAccounts");
+const { accountBlocker, accountCancelBlocker, accountForMethod } = require("../shared/cashAccounts");
 const { createDbErrorResolver } = require("../shared/dbError");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
 const { RESIDENT_NAME_FOR_PERIOD_SQL, periodCutoff } = require("../shared/residentPeriod");
-const { TR_NOW_SQL, createdPeriodSql, toPeriod } = require("../shared/trTime");
+const { TR_NOW_SQL, createdPeriodSql, currentPeriod, fromPeriod, toPeriod } = require("../shared/trTime");
+
+// How far a prepayment reaches past the current month. The handler holds the same limit next to its message.
+const PREPAYMENT_MONTHS = 12;
 
 const COLUMN_LABELS = {
   amount: "Ödeme tutarı",
@@ -154,56 +157,166 @@ function recordPayment(payload) {
       };
     }
 
-    const { amount, payment_method, payment_date, note, collector_name, collected_by, receipt } = paymentData;
-
     getDb().transaction(() => {
-      const { lastInsertRowid: paymentId } = getDb()
-        .prepare(
-          `INSERT INTO due_payments
-             (due_id, amount, payment_method, payment_date, note, collector_name, receipt_name, receipt_blob,
-              collected_by, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ${TR_NOW_SQL})`,
-        )
-        .run(
-          due.id,
-          amount,
-          payment_method,
-          payment_date,
-          note || null,
-          collector_name || null,
-          receipt?.name ?? null,
-          receipt ? Buffer.from(receipt.data) : null,
-          collected_by,
-        );
-
-      // The matching income row. This is the only place a dues or investment income is written. Its account
-      // follows the payment method, the same rule a manual income uses.
-      getDb()
-        .prepare(
-          `INSERT INTO incomes
-             (amount, date, description, category, building_id, due_payment_id, account, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
-        )
-        .run(
-          amount,
-          payment_date,
-          charge.describe(apartment.apartment_no),
-          charge.category,
-          apartment.building_id,
-          paymentId,
-          accountForMethod(payment_method),
-        );
-
-      const newPaidAmount = (roundCents(due.paid_amount) + amountCents) / 100;
-      getDb()
-        .prepare(`UPDATE dues SET paid_amount = ?, status = ?, updated_at = ${TR_NOW_SQL} WHERE id = ?`)
-        .run(newPaidAmount, calcDueStatus(due.due_amount, newPaidAmount), due.id);
+      writePayment(due, amountCents, paymentData, {
+        buildingId: apartment.building_id,
+        category: charge.category,
+        description: charge.describe(apartment.apartment_no),
+      });
     })();
 
     return { success: true, message: "Ödeme kaydedildi." };
   } catch (err) {
     console.error("[dues.service] recordPayment:", err);
     return { success: false, message: resolveDbError(err, "Ödeme kaydetme") };
+  }
+}
+
+// The three writes of one payment: the payment row, its income row and the due's new paid amount. The caller
+// wraps it in a transaction. The income row is written only here, for dues and investment alike, and its
+// account follows the payment method, the same rule a manual income uses.
+function writePayment(due, amountCents, paymentData, income) {
+  const { payment_method, payment_date, note, collector_name, collected_by, receipt } = paymentData;
+  const amount = amountCents / 100;
+
+  const { lastInsertRowid: paymentId } = getDb()
+    .prepare(
+      `INSERT INTO due_payments
+         (due_id, amount, payment_method, payment_date, note, collector_name, receipt_name, receipt_blob,
+          collected_by, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ${TR_NOW_SQL})`,
+    )
+    .run(
+      due.id,
+      amount,
+      payment_method,
+      payment_date,
+      note || null,
+      collector_name || null,
+      receipt?.name ?? null,
+      receipt ? Buffer.from(receipt.data) : null,
+      collected_by,
+    );
+
+  getDb()
+    .prepare(
+      `INSERT INTO incomes
+         (amount, date, description, category, building_id, due_payment_id, account, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
+    )
+    .run(
+      amount,
+      payment_date,
+      income.description,
+      income.category,
+      income.buildingId,
+      paymentId,
+      accountForMethod(payment_method),
+    );
+
+  const newPaidAmount = (roundCents(due.paid_amount) + amountCents) / 100;
+  getDb()
+    .prepare(`UPDATE dues SET paid_amount = ?, status = ?, updated_at = ${TR_NOW_SQL} WHERE id = ?`)
+    .run(newPaidAmount, calcDueStatus(due.due_amount, newPaidAmount), due.id);
+}
+
+function findActiveApartment(apartmentId, buildingId) {
+  return getDb()
+    .prepare(`SELECT id, apartment_no, due_amount FROM apartments WHERE id = ? AND building_id = ? AND is_active = 1`)
+    .get(apartmentId, buildingId);
+}
+
+// The current month and the twelve after it, each with what is owed and what is paid. A month with no row
+// yet is shown at the apartment's amount today, which is the amount it would be accrued at.
+function prepaymentMonths(apartment) {
+  const firstPeriod = currentPeriod();
+  const { year, month } = fromPeriod(firstPeriod);
+  const rows = getDb()
+    .prepare(
+      `SELECT id, year, month, due_amount, paid_amount FROM dues
+       WHERE apartment_id = ? AND due_type = 'regular' AND (year > ? OR (year = ? AND month >= ?))`,
+    )
+    .all(apartment.id, year, year, month);
+  const rowsByPeriod = new Map(rows.map((row) => [toPeriod(row.year, row.month), row]));
+
+  const months = [];
+  for (let period = firstPeriod; period <= firstPeriod + PREPAYMENT_MONTHS; period += 1) {
+    const row = rowsByPeriod.get(period);
+    const dueAmount = row ? row.due_amount : apartment.due_amount;
+    const paidAmount = row ? row.paid_amount : 0;
+    months.push({
+      ...fromPeriod(period),
+      due_amount: dueAmount,
+      paid_amount: paidAmount,
+      remaining: floorCents(dueAmount - paidAmount) / 100,
+    });
+  }
+  return months;
+}
+
+function getPrepaymentPlan(payload) {
+  const { apartmentId, buildingId } = payload;
+  try {
+    const apartment = findActiveApartment(apartmentId, buildingId);
+    if (!apartment) return { success: false, message: "Daire bulunamadı veya bu işlem için yetkiniz yok." };
+
+    return { success: true, data: prepaymentMonths(apartment) };
+  } catch (err) {
+    console.error("[dues.service] getPrepaymentPlan:", err);
+    return { success: false, message: "Peşin ödeme bilgileri alınamadı." };
+  }
+}
+
+// Pays every month from the current one to the chosen last month in full, skipping the ones already paid.
+// Each month gets its own payment and income row, so cancelling, receipts and the history work month by
+// month exactly as they do for a single payment. The income is dated the day the money came in.
+function recordPrepayment(payload) {
+  const { apartmentId, buildingId, endYear, endMonth, paymentData } = payload;
+  try {
+    const apartment = findActiveApartment(apartmentId, buildingId);
+    if (!apartment) return { success: false, message: "Daire bulunamadı veya bu işlem için yetkiniz yok." };
+
+    const endPeriod = toPeriod(endYear, endMonth);
+    const openMonths = prepaymentMonths(apartment).filter(
+      (item) => toPeriod(item.year, item.month) <= endPeriod && item.remaining > 0,
+    );
+    if (openMonths.length === 0) {
+      return { success: false, message: "Seçilen ayların tamamı zaten ödenmiş." };
+    }
+
+    getDb().transaction(() => {
+      for (const { year, month } of openMonths) {
+        // A future month is accrued here, ahead of ensureMonthlyDues, at today's amount. A later rise
+        // reaches it through the apartment service and leaves the difference as debt.
+        getDb()
+          .prepare(
+            `INSERT OR IGNORE INTO dues (apartment_id, year, month, due_type, due_amount)
+             VALUES (?, ?, ?, 'regular', ?)`,
+          )
+          .run(apartment.id, year, month, apartment.due_amount);
+
+        const due = getDb()
+          .prepare(
+            `SELECT id, due_amount, paid_amount FROM dues
+             WHERE apartment_id = ? AND year = ? AND month = ? AND due_type = 'regular'`,
+          )
+          .get(apartment.id, year, month);
+
+        writePayment(due, floorCents(due.due_amount - due.paid_amount), paymentData, {
+          buildingId,
+          category: DUE_TYPES.regular.category,
+          description: `Peşin Aidat Ödemesi - Daire ${apartment.apartment_no}, ${month}/${year}`,
+        });
+      }
+    })();
+
+    return {
+      success: true,
+      message: `Daire ${apartment.apartment_no} için ${openMonths.length} aylık peşin aidat kaydedildi.`,
+    };
+  } catch (err) {
+    console.error("[dues.service] recordPrepayment:", err);
+    return { success: false, message: resolveDbError(err, "Peşin ödeme kaydetme") };
   }
 }
 
@@ -367,4 +480,90 @@ async function openReceipt(payload) {
   }
 }
 
-module.exports = { getDuesForMonth, recordPayment, cancelPayment, getPaymentHistory, attachReceipt, openReceipt };
+// Hands prepaid dues back, from the chosen month to the last one paid. The payments of those months are closed
+// with an audit row the way a cancellation closes them, but their incomes stay: the money did come in on the
+// day it was paid. What goes back out is one expense on the refund day, so the ledger shows both movements on
+// their own dates. The months return to unpaid and are owed again by whoever lives there when they come.
+function refundPrepayment(payload) {
+  const { apartmentId, buildingId, userId, startYear, startMonth, refund } = payload;
+  try {
+    const apartment = findActiveApartment(apartmentId, buildingId);
+    if (!apartment) return { success: false, message: "Daire bulunamadı veya bu işlem için yetkiniz yok." };
+
+    const startPeriod = toPeriod(startYear, startMonth);
+    const paidMonths = prepaymentMonths(apartment).filter(
+      (item) => toPeriod(item.year, item.month) >= startPeriod && item.paid_amount > 0,
+    );
+    if (paidMonths.length === 0) {
+      return { success: false, message: "Seçilen aylarda iade edilecek ödeme yok." };
+    }
+
+    const totalCents = paidMonths.reduce((sum, item) => sum + roundCents(item.paid_amount), 0);
+    const blocker = accountBlocker(buildingId, refund.account, totalCents / 100);
+    if (blocker) return blocker;
+
+    const first = paidMonths[0];
+    const last = paidMonths[paidMonths.length - 1];
+    const span =
+      paidMonths.length === 1
+        ? `${first.month}/${first.year}`
+        : `${first.month}/${first.year} - ${last.month}/${last.year}`;
+    const reason = `Peşin ödeme iadesi: ${refund.payee_name}`;
+
+    getDb().transaction(() => {
+      getDb()
+        .prepare(
+          `INSERT INTO expenses
+             (building_id, amount, date, description, category, vendor_name, account, created_at, updated_at)
+           VALUES (?, ?, ?, ?, 'dues_refund', ?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
+        )
+        .run(
+          buildingId,
+          totalCents / 100,
+          refund.date,
+          `Peşin aidat iadesi - Daire ${apartment.apartment_no}, ${span}, iade edilen: ${refund.payee_name}`,
+          refund.payee_name,
+          refund.account,
+        );
+
+      for (const { year, month } of paidMonths) {
+        const due = getDb()
+          .prepare(`SELECT id FROM dues WHERE apartment_id = ? AND year = ? AND month = ? AND due_type = 'regular'`)
+          .get(apartment.id, year, month);
+
+        getDb()
+          .prepare(
+            `INSERT INTO payment_cancellations (payment_id, cancel_reason, cancelled_by, cancelled_at)
+             SELECT dp.id, ?, ?, ${TR_NOW_SQL} FROM due_payments dp
+             WHERE dp.due_id = ?
+               AND NOT EXISTS (SELECT 1 FROM payment_cancellations pc WHERE pc.payment_id = dp.id)`,
+          )
+          .run(reason, userId, due.id);
+
+        getDb()
+          .prepare(`UPDATE dues SET paid_amount = 0, status = 'unpaid', updated_at = ${TR_NOW_SQL} WHERE id = ?`)
+          .run(due.id);
+      }
+    })();
+
+    return {
+      success: true,
+      message: `Daire ${apartment.apartment_no} için ${paidMonths.length} aylık aidat iadesi kaydedildi.`,
+    };
+  } catch (err) {
+    console.error("[dues.service] refundPrepayment:", err);
+    return { success: false, message: resolveDbError(err, "Aidat iadesi") };
+  }
+}
+
+module.exports = {
+  getDuesForMonth,
+  recordPayment,
+  getPrepaymentPlan,
+  recordPrepayment,
+  refundPrepayment,
+  cancelPayment,
+  getPaymentHistory,
+  attachReceipt,
+  openReceipt,
+};

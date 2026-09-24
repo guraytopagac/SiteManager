@@ -96,6 +96,27 @@ function ResidentChangeModal({
     return data;
   };
 
+  // A tenant who paid ahead and leaves is usually owed money back. The refund itself belongs to the dues page,
+  // so this only points there. A failure here is logged and never blocks the move-out that already succeeded.
+  const remindPrepaidMonths = async () => {
+    try {
+      const res = await window.electronAPI.getPrepaymentPlan({
+        apartmentId: apartment.apartment_id,
+        buildingId: building.id,
+      });
+      if (!res.success) return;
+      const prepaidCount = res.data.slice(1).filter((item) => item.paid_amount > 0).length;
+      if (prepaidCount > 0) {
+        showDialog.warning(
+          "Peşin Ödenmiş Aylar",
+          `Daire ${apartment.apartment_no} için ileriki ${prepaidCount} ayın aidatı peşin ödenmiş. İade gerekiyorsa Aidat Takibi sayfasındaki Peşin Aidat penceresinden yapılabilir.`,
+        );
+      }
+    } catch (err) {
+      console.error("[ResidentChangeModal] getPrepaymentPlan:", err);
+    }
+  };
+
   const save = async (next) => {
     setIsSubmitting(true);
     try {
@@ -107,6 +128,7 @@ function ResidentChangeModal({
       if (res.success) {
         showDialog.toast(res.message);
         onSaved();
+        if (!isOwner && !isScheduleEdit) remindPrepaidMonths();
       } else {
         showDialog.error("Hata", res.message);
       }

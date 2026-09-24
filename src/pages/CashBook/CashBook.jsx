@@ -152,6 +152,7 @@ function TransactionRow({ transaction, onOpen }) {
       <td className="cb-category">{TRANSACTION_CATEGORY_LABELS[transaction.category] ?? transaction.category}</td>
       <td className="cb-desc" title={description || undefined}>
         {transaction.is_cancelled ? <span className="cb-cancelled-tag">İptal edildi ·</span> : null}
+        {transaction.is_refunded ? <span className="cb-refunded-tag">İade edildi ·</span> : null}
         {isFundPayout && !transaction.is_cancelled ? <span className="cb-fund-tag">Tazminat kasasından ·</span> : null}
         {transaction.is_investment === 1 && !transaction.is_cancelled ? (
           <span className="cb-investment-tag">Yatırım fonundan ·</span>

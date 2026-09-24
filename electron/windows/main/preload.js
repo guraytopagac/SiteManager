@@ -57,6 +57,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   getDuesForMonth: (payload) => safeInvoke(CH.DUES.GET_FOR_MONTH, payload),
   recordPayment: (payload) => safeInvoke(CH.DUES.RECORD_PAYMENT, payload),
+  getPrepaymentPlan: (payload) => safeInvoke(CH.DUES.GET_PREPAYMENT_PLAN, payload),
+  recordPrepayment: (payload) => safeInvoke(CH.DUES.RECORD_PREPAYMENT, payload),
+  refundPrepayment: (payload) => safeInvoke(CH.DUES.REFUND_PREPAYMENT, payload),
   cancelPayment: (payload) => safeInvoke(CH.DUES.CANCEL_PAYMENT, payload),
   getPaymentHistory: (payload) => safeInvoke(CH.DUES.GET_PAYMENT_HISTORY, payload),
   attachReceipt: (payload) => safeInvoke(CH.DUES.ATTACH_RECEIPT, payload),

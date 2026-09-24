@@ -1,4 +1,5 @@
-// Dues IPC entry points. Every channel that takes a period rejects a future one.
+// Dues IPC entry points. Every channel that takes a period rejects a future one, except the prepayment,
+// which may reach twelve months ahead.
 const { CHANNELS: CH } = require("../../ipc/channels");
 const { createHandle } = require("../../ipc/createHandle");
 const { formatPersonName } = require("../shared/personName");
@@ -7,13 +8,16 @@ const {
   fail,
   isValidDate,
   isValidFileName,
+  isValidMonth,
+  isValidYear,
   validateBuildingScope,
   validateCancelReason,
+  validateCashAccount,
   validateId,
   validatePayload,
   validatePeriod,
 } = require("../shared/validate");
-const { trToday } = require("../shared/trTime");
+const { currentPeriod, toPeriod, trToday } = require("../shared/trTime");
 const duesService = require("./service");
 
 const FUTURE_PERIOD_MESSAGE = "Gelecek bir dönem için aidat işlemi yapılamaz.";
@@ -83,6 +87,12 @@ function validatePaymentData(paymentData) {
   if (paymentData.amount > 1000000) {
     return fail("Ödeme tutarı 1.000.000₺'yi aşamaz.");
   }
+  return validatePaymentDetails(paymentData);
+}
+
+// Everything on the form except the amount. A prepayment shares it, but its amount is worked out by the
+// service from the months it covers and a receipt is never attached to twelve rows at once.
+function validatePaymentDetails(paymentData) {
   if (paymentData.note != null) {
     if (typeof paymentData.note !== "string") {
       return fail("Geçersiz not.");
@@ -119,6 +129,58 @@ function validateDueType(value) {
   return DUE_TYPES.includes(value) ? null : fail("Geçersiz aidat türü.");
 }
 
+// A prepayment always starts with the current month, so only its last month is asked for, and a refund only
+// its first. These are the two channels allowed past the current period, and only by twelve months.
+function validateAdvanceMonth(year, month) {
+  if (!isValidYear(year) || !isValidMonth(month)) {
+    return fail("Geçersiz dönem bilgisi.");
+  }
+  const period = toPeriod(year, month);
+  if (period < currentPeriod()) {
+    return fail("Peşin ödeme işlemi bu aydan önceki bir ayı kapsayamaz.");
+  }
+  if (period > currentPeriod() + 12) {
+    return fail("Peşin ödeme işlemi en fazla 12 ay ilerisini kapsayabilir.");
+  }
+  return null;
+}
+
+// Who got the money back is asked every time, since the payer may have been the tenant or the owner.
+function validateRefundData(refund) {
+  const payloadError = validatePayload(refund);
+  if (payloadError) {
+    return payloadError;
+  }
+  if (typeof refund.payee_name !== "string") {
+    return fail("İade edilen kişi girilmelidir.");
+  }
+  refund.payee_name = formatPersonName(refund.payee_name);
+  if (refund.payee_name.length < 2) {
+    return fail("İade edilen kişi girilmelidir.");
+  }
+  if (refund.payee_name.length > 100) {
+    return fail("İade edilen kişi en fazla 100 karakter olabilir.");
+  }
+  if (!isValidDate(refund.date)) {
+    return fail("Geçersiz iade tarihi.");
+  }
+  if (refund.date > trToday()) {
+    return fail("İleri bir tarih seçilemez.");
+  }
+  return validateCashAccount(refund.account);
+}
+
+function validatePrepaymentData(paymentData) {
+  const payloadError = validatePayload(paymentData);
+  if (payloadError) {
+    return payloadError;
+  }
+  if (paymentData.receipt != null) {
+    return fail("Peşin ödemeye dekont eklenemez.");
+  }
+  return validatePaymentDetails(paymentData);
+}
+
 function registerDuesHandlers(ipcMain) {
   const handle = createHandle(ipcMain, "dues");
 
@@ -136,6 +198,30 @@ function registerDuesHandlers(ipcMain) {
       validateDueType(payload.dueType) ??
       validatePaymentData(payload.paymentData),
     duesService.recordPayment,
+  );
+  handle(
+    CH.DUES.GET_PREPAYMENT_PLAN,
+    (payload) => validateBuildingScope(payload) ?? validateId(payload.apartmentId, "daire ID"),
+    duesService.getPrepaymentPlan,
+  );
+  handle(
+    CH.DUES.RECORD_PREPAYMENT,
+    (payload) =>
+      validateBuildingScope(payload) ??
+      validateId(payload.apartmentId, "daire ID") ??
+      validateAdvanceMonth(payload.endYear, payload.endMonth) ??
+      validatePrepaymentData(payload.paymentData),
+    duesService.recordPrepayment,
+  );
+  handle(
+    CH.DUES.REFUND_PREPAYMENT,
+    (payload) =>
+      validateBuildingScope(payload) ??
+      validateId(payload.apartmentId, "daire ID") ??
+      validateId(payload.userId, "kullanıcı ID") ??
+      validateAdvanceMonth(payload.startYear, payload.startMonth) ??
+      validateRefundData(payload.refund),
+    duesService.refundPrepayment,
   );
   handle(
     CH.DUES.CANCEL_PAYMENT,

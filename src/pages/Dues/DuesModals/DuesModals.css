@@ -323,3 +323,184 @@
 .du-md-box--sm {
   max-width: 460px;
 }
+
+.du-md-box--wide {
+  max-width: 900px;
+}
+
+.du-pre-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+}
+
+.du-pre-side {
+  display: flex;
+  flex-direction: column;
+  height: 0;
+  min-height: 100%;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: var(--background-color-1);
+}
+
+.du-pre-side-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.du-pre-side-title {
+  color: var(--text-color);
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.du-pre-side-hint {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.du-pre-list {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.du-pre-month {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.du-pre-month:hover {
+  border-color: var(--border-default);
+  opacity: 1;
+}
+
+.du-pre-month--collect {
+  background: var(--accent-tint);
+  color: var(--text-color);
+}
+
+.du-pre-month--refund {
+  background: color-mix(in srgb, var(--color-warning-text) 14%, transparent);
+  color: var(--text-color);
+}
+
+.du-pre-month--edge {
+  border-color: var(--button-color);
+}
+
+.du-pre-month-name {
+  font-weight: 600;
+}
+
+.du-pre-month-amount {
+  font-variant-numeric: tabular-nums;
+}
+
+.du-pre-month--collect .du-pre-month-amount {
+  color: var(--button-color);
+  font-weight: 650;
+}
+
+.du-pre-month--refund .du-pre-month-amount {
+  color: var(--color-warning-text);
+  font-weight: 650;
+}
+
+.du-pre-month-none {
+  color: var(--text-disabled);
+}
+
+.du-pre-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: var(--background-color-1);
+}
+
+.du-pre-mode {
+  height: 38px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.du-pre-mode:hover:not(:disabled) {
+  color: var(--text-color);
+  opacity: 1;
+}
+
+.du-pre-mode--active {
+  border-color: var(--button-color);
+  background: var(--accent-tint);
+  color: var(--button-color);
+}
+
+.du-pre-month-paid {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-success-text);
+  font-weight: 600;
+}
+
+.du-pre-empty {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 16px;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  text-align: center;
+}
+
+.du-pre-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.du-pre-total b {
+  color: var(--text-color);
+  font-size: 1.25rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}

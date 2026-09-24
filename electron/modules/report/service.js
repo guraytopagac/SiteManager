@@ -6,7 +6,7 @@ const { ensureMonthlyDues } = require("../shared/duesAccrual");
 const { investmentBalance } = require("../shared/investmentFund");
 const { RESIDENT_NAME_FOR_PERIOD_SQL, periodCutoff } = require("../shared/residentPeriod");
 const { estimatedLiability, severanceBalance } = require("../shared/severanceFund");
-const { createdPeriodSql, monthBounds, toPeriod, trToday } = require("../shared/trTime");
+const { createdPeriodSql, monthBounds, toPeriod, trToday, trYearMonth } = require("../shared/trTime");
 
 // The natural apartment order. This text has to stay identical to the copies in dues/service.js,
 // investment/service.js and resident/service.js.
@@ -80,6 +80,15 @@ function fetchOpeningBalance(buildingId, start) {
     .get(buildingId, start, buildingId, start).balance;
 }
 
+// A month after this one has a row only when it was paid ahead. It is not due yet, so no report counts it:
+// a yearly total would otherwise show one apartment's accrual for a month nobody else owes yet.
+const DUE_SO_FAR_SQL = "(d.year < ? OR (d.year = ? AND d.month <= ?))";
+
+function dueSoFarParams() {
+  const { year, month } = trYearMonth();
+  return [year, year, month];
+}
+
 // The yearly report's month by month dues line. Only active apartments count, like every other dues
 // figure in the report, and only the monthly charge: the fund has a section of its own.
 function fetchMonthlyDues(buildingId, year) {
@@ -88,11 +97,11 @@ function fetchMonthlyDues(buildingId, year) {
       `SELECT d.month, SUM(d.due_amount) AS due_amount, SUM(d.paid_amount) AS paid_amount
        FROM dues d
        JOIN apartments a ON a.id = d.apartment_id
-       WHERE a.building_id = ? AND a.is_active = 1 AND d.year = ? AND d.due_type = 'regular'
+       WHERE a.building_id = ? AND a.is_active = 1 AND d.year = ? AND d.due_type = 'regular' AND ${DUE_SO_FAR_SQL}
        GROUP BY d.month
        ORDER BY d.month ASC`,
     )
-    .all(buildingId, year);
+    .all(buildingId, year, ...dueSoFarParams());
 }
 
 // Same resident subquery, same month filter, same ordering and same binding order as
@@ -118,7 +127,7 @@ function fetchMonthDues(buildingId, year, month, cutoff) {
 // status is derived from the sums with the same rule the CHECK on dues uses.
 function fetchAggregatedDues(buildingId, year, cutoff) {
   const yearFilter = year === null ? "" : "AND d.year = ?";
-  const params = year === null ? [cutoff, cutoff, buildingId] : [cutoff, cutoff, year, buildingId];
+  const params = year === null ? [cutoff, cutoff] : [cutoff, cutoff, year];
 
   return getDb()
     .prepare(
@@ -132,12 +141,12 @@ function fetchAggregatedDues(buildingId, year, cutoff) {
                 ELSE 'unpaid'
               END AS status
        FROM apartments a
-       JOIN dues d ON d.apartment_id = a.id AND d.due_type = 'regular' ${yearFilter}
+       JOIN dues d ON d.apartment_id = a.id AND d.due_type = 'regular' ${yearFilter} AND ${DUE_SO_FAR_SQL}
        WHERE a.building_id = ? AND a.is_active = 1
        GROUP BY a.id
        ${UNIT_ORDER_SQL}`,
     )
-    .all(...params);
+    .all(...params, ...dueSoFarParams(), buildingId);
 }
 
 // The fund's own section. The balances are taken on both edges of the range, so whatever entered the fund

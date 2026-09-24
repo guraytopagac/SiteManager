@@ -69,6 +69,29 @@ function addApartment(payload) {
   }
 }
 
+// Months after this one exist only when they were paid ahead. A new amount reaches them in full, so a rise
+// leaves the difference as debt when the month comes. A cut never goes below what was paid, the CHECK on dues
+// would refuse it and nothing is paid back here. Returns how many months changed.
+function repriceAdvanceDues(amount, apartmentFilterSql, params) {
+  const { year, month } = trYearMonth();
+  return getDb()
+    .prepare(
+      `UPDATE dues
+       SET due_amount = MAX(?, paid_amount),
+           status = CASE WHEN paid_amount >= MAX(?, paid_amount) THEN 'paid'
+                         WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END,
+           updated_at = ${TR_NOW_SQL}
+       WHERE due_type = 'regular' AND (year > ? OR (year = ? AND month > ?))
+         AND due_amount <> MAX(?, paid_amount) AND ${apartmentFilterSql}`,
+    )
+    .run(amount, amount, year, year, month, amount, ...params).changes;
+}
+
+// Appended to an amount update when months paid ahead were touched too.
+function advanceNote(repriced) {
+  return repriced > 0 ? ` Peşin ödenen ${repriced} ayın tutarı da güncellendi.` : "";
+}
+
 function hasPaymentThisMonth(apartmentId, year, month) {
   return !!getDb()
     .prepare(
@@ -104,8 +127,13 @@ function updateApartment(payload) {
         )
         .run(...apartmentValues(payload), payload.id, payload.buildingId).changes;
 
-      if (updated === 0 || dueAmount == null || !payload.applyCurrentMonth) {
-        return { updated, accrued: 0 };
+      if (updated === 0 || dueAmount == null) {
+        return { updated, accrued: 0, repriced: 0 };
+      }
+
+      const repriced = repriceAdvanceDues(dueAmount, "apartment_id = ?", [payload.id]);
+      if (!payload.applyCurrentMonth) {
+        return { updated, accrued: 0, repriced };
       }
 
       const accrued = getDb()
@@ -115,10 +143,10 @@ function updateApartment(payload) {
         )
         .run(dueAmount, payload.id, year, month).changes;
 
-      return { updated, accrued };
+      return { updated, accrued, repriced };
     });
 
-    const { updated, accrued } = applyUpdate();
+    const { updated, accrued, repriced } = applyUpdate();
 
     if (updated === 0) {
       return { success: false, message: NOT_FOUND_MESSAGE };
@@ -133,18 +161,18 @@ function updateApartment(payload) {
     if (payload.applyCurrentMonth && accrued === 0 && hasPaymentThisMonth(payload.id, year, month)) {
       return {
         success: true,
-        message: `Daire ${payload.apartment_no} aidatı güncellendi, bu ay ödeme alındığı için bu ayın aidatı değişmedi.`,
+        message: `Daire ${payload.apartment_no} aidatı güncellendi, bu ay ödeme alındığı için bu ayın aidatı değişmedi.${advanceNote(repriced)}`,
       };
     }
 
     if (payload.applyCurrentMonth && accrued > 0) {
       return {
         success: true,
-        message: `Daire ${payload.apartment_no} aidatı güncellendi, yeni tutar bu aya da işlendi.`,
+        message: `Daire ${payload.apartment_no} aidatı güncellendi, yeni tutar bu aya da işlendi.${advanceNote(repriced)}`,
       };
     }
 
-    return { success: true, message: `Daire ${payload.apartment_no} aidatı güncellendi.` };
+    return { success: true, message: `Daire ${payload.apartment_no} aidatı güncellendi.${advanceNote(repriced)}` };
   } catch (err) {
     console.error("[apartment.service] updateApartment:", err);
     return { success: false, message: resolveDbError(err, "Daire güncelleme") };
@@ -174,12 +202,15 @@ function deleteApartment(payload) {
       ensureMonthlyDues(payload.buildingId);
       ensureInvestmentDues(payload.buildingId);
 
+      // A month paid ahead and later repriced is partial, but that difference is not due yet.
+      const today = trYearMonth();
+
       const { unpaidTotal } = db
         .prepare(
           `SELECT COALESCE(SUM(due_amount - paid_amount), 0) AS unpaidTotal
-           FROM dues WHERE apartment_id = ? AND status != 'paid'`,
+           FROM dues WHERE apartment_id = ? AND status != 'paid' AND (year < ? OR (year = ? AND month <= ?))`,
         )
-        .get(payload.id);
+        .get(payload.id, today.year, today.year, today.month);
 
       if (unpaidTotal > 0) {
         return {
@@ -241,8 +272,17 @@ function bulkUpdateDueAmount(payload) {
         )
         .run(payload.amount, payload.buildingId).changes;
 
-      if (updated === 0 || !payload.applyCurrentMonth) {
-        return { updated, skipped: 0 };
+      if (updated === 0) {
+        return { updated, skipped: 0, repriced: 0 };
+      }
+
+      const repriced = repriceAdvanceDues(
+        payload.amount,
+        "apartment_id IN (SELECT id FROM apartments WHERE building_id = ? AND is_active = 1)",
+        [payload.buildingId],
+      );
+      if (!payload.applyCurrentMonth) {
+        return { updated, skipped: 0, repriced };
       }
 
       getDb()
@@ -253,10 +293,10 @@ function bulkUpdateDueAmount(payload) {
         )
         .run(payload.amount, year, month, payload.buildingId);
 
-      return { updated, skipped: countPaidThisMonth(payload.buildingId, year, month) };
+      return { updated, skipped: countPaidThisMonth(payload.buildingId, year, month), repriced };
     });
 
-    const { updated, skipped } = applyAmount();
+    const { updated, skipped, repriced } = applyAmount();
 
     if (updated === 0) {
       return { success: false, message: "Güncellenecek aktif daire bulunamadı." };
@@ -264,14 +304,17 @@ function bulkUpdateDueAmount(payload) {
     if (skipped > 0) {
       return {
         success: true,
-        message: `${updated} dairenin aidatı güncellendi, bu ay ödeme alınan ${skipped} daire eski tutarda kaldı.`,
+        message: `${updated} dairenin aidatı güncellendi, bu ay ödeme alınan ${skipped} daire eski tutarda kaldı.${advanceNote(repriced)}`,
       };
     }
     if (payload.applyCurrentMonth) {
-      return { success: true, message: `${updated} dairenin aidatı güncellendi, yeni tutar bu aya da işlendi.` };
+      return {
+        success: true,
+        message: `${updated} dairenin aidatı güncellendi, yeni tutar bu aya da işlendi.${advanceNote(repriced)}`,
+      };
     }
 
-    return { success: true, message: `${updated} dairenin aidatı güncellendi.` };
+    return { success: true, message: `${updated} dairenin aidatı güncellendi.${advanceNote(repriced)}` };
   } catch (err) {
     console.error("[apartment.service] bulkUpdateDueAmount:", err);
     return { success: false, message: "Toplu güncelleme sırasında beklenmeyen bir hata oluştu." };

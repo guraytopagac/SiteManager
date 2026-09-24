@@ -7,6 +7,7 @@ import {
   FiAlertTriangle,
   FiCalendar,
   FiEdit2,
+  FiFastForward,
   FiGrid,
   FiHome,
   FiRefreshCw,
@@ -23,6 +24,7 @@ import PeriodSelector from "@/components/PeriodSelector/PeriodSelector";
 import SearchBox from "@/components/SearchBox/SearchBox";
 import UnitCell from "@/components/UnitCell/UnitCell";
 import BulkDueAmountModal from "./DuesModals/BulkDueAmountModal";
+import PrepaymentModal from "./DuesModals/PrepaymentModal";
 import SingleDueAmountModal from "./DuesModals/SingleDueAmountModal";
 import { useIpcData } from "@/hooks/useIpcData";
 import { usePagination } from "@/hooks/usePagination";
@@ -168,11 +170,12 @@ function CardAction({ icon, label, onClick }) {
   );
 }
 
-function ActionsCard({ onBulkUpdate, onSingleUpdate }) {
+function ActionsCard({ onPrepayment, onBulkUpdate, onSingleUpdate }) {
   return (
     <section className="du-card du-actions" aria-label="İlgili işlemler">
       <span className="du-card-title">İlgili İşlemler</span>
       <div className="du-card-actions">
+        <CardAction icon={<FiFastForward />} label="Peşin Aidat" onClick={onPrepayment} />
         <CardAction icon={<FiRefreshCw />} label="Toplu Aidat Güncelle" onClick={onBulkUpdate} />
         <CardAction icon={<FiEdit2 />} label="Daire Aidatı Güncelle" onClick={onSingleUpdate} />
       </div>
@@ -302,6 +305,7 @@ function Dues() {
   const [selectedApartmentId, setSelectedApartmentId] = useState(null);
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
   const [showSingleUpdate, setShowSingleUpdate] = useState(false);
+  const [showPrepayment, setShowPrepayment] = useState(false);
 
   const { dues, start, errorMessage, loadDues } = useDues(building.id, selectedYear, selectedMonth);
 
@@ -428,6 +432,7 @@ function Dues() {
           <div className="du-rail">
             <CollectSummary dues={dues} hasError={Boolean(errorMessage)} />
             <ActionsCard
+              onPrepayment={() => setShowPrepayment(true)}
               onBulkUpdate={() => setShowBulkUpdate(true)}
               onSingleUpdate={() => setShowSingleUpdate(true)}
             />
@@ -457,6 +462,19 @@ function Dues() {
           onClose={() => setShowBulkUpdate(false)}
           onSaved={() => {
             setShowBulkUpdate(false);
+            loadDues();
+          }}
+        />
+      )}
+
+      {showPrepayment && (
+        <PrepaymentModal
+          dues={dues}
+          session={session}
+          building={building}
+          onClose={() => setShowPrepayment(false)}
+          onSaved={() => {
+            setShowPrepayment(false);
             loadDues();
           }}
         />

@@ -137,11 +137,6 @@ function Recover() {
         return;
       }
 
-      // Branching on the machine readable field rather than on the message, which is free to be reworded.
-      // The code can go stale between the two steps, and the user is sent back to enter it again.
-      if (res.code === "INVALID_RECOVERY_CODE") {
-        setStep(1);
-      }
       setError(res.message);
     } catch (err) {
       console.error("[Recover] resetAccountPassword:", err);
@@ -306,7 +301,7 @@ function Recover() {
               </button>
             </div>
 
-            <div className="recover-band recover-band--note">
+            <div className="recover-band">
               <aside className="recover-note">
                 <span className="recover-note-icon" aria-hidden="true">
                   <FiInfo size={18} />
@@ -327,9 +322,6 @@ function Recover() {
           <form className="recover-step" onSubmit={handlePasswordSubmit}>
             <div className="recover-band">
               <h2 className="recover-task-title">Yeni şifrenizi belirleyin.</h2>
-              <p className="recover-task-note">
-                Kimliğiniz doğrulandı. Yeni şifrenizi girin ve hesabınıza yeniden erişin.
-              </p>
 
               <div className="recover-fields">
                 <AuthField

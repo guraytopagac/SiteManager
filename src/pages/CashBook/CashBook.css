@@ -464,6 +464,12 @@
   font-weight: 600;
 }
 
+.cb-refunded-tag {
+  margin-right: 5px;
+  color: var(--color-warning-text);
+  font-weight: 600;
+}
+
 .cb-table-placeholder {
   position: relative;
 }

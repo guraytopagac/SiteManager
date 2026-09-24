@@ -1,5 +1,13 @@
--- Expense ledger of a building. Same cancel rules as incomes, without the dues link.
-CREATE TABLE IF NOT EXISTS expenses (
+-- Adds the dues_refund expense category: prepaid dues handed back to whoever paid them, written only by
+-- refundPrepayment. SQLite cannot alter a CHECK in place, so the table is rebuilt the same way as in
+-- 016_transaction_category_set.sql. The new table is filled and then renamed over the old one, because
+-- renaming the old table away would also rewrite the foreign keys pointing at it. Indexes and triggers go
+-- with the dropped table and are created again.
+
+DROP TRIGGER IF EXISTS trg_expenses_prevent_update_after_cancel;
+DROP TRIGGER IF EXISTS trg_expenses_no_delete;
+
+CREATE TABLE expenses_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   building_id INTEGER NOT NULL,
   amount REAL NOT NULL CHECK(amount > 0 AND amount <= 1000000),
@@ -52,6 +60,13 @@ CREATE TABLE IF NOT EXISTS expenses (
   FOREIGN KEY(cancelled_by) REFERENCES users(id) ON DELETE RESTRICT,
   FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE RESTRICT
 );
+
+INSERT INTO expenses_new (id, building_id, amount, date, description, category, is_cancelled, cancelled_at, cancel_reason, cancelled_by, created_at, updated_at, vendor_name, vendor_address, account, is_investment, employee_id)
+SELECT id, building_id, amount, date, description, category, is_cancelled, cancelled_at, cancel_reason, cancelled_by, created_at, updated_at, vendor_name, vendor_address, account, is_investment, employee_id
+FROM expenses;
+
+DROP TABLE expenses;
+ALTER TABLE expenses_new RENAME TO expenses;
 
 CREATE INDEX IF NOT EXISTS idx_expenses_building_date ON expenses(building_id, date);
 -- Partial index for the common case. Reports and totals read only non-cancelled rows.
