@@ -267,25 +267,30 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 18px;
-  border: none;
-  border-radius: 10px;
-  background: var(--button-color);
-  color: var(--button-text);
+  height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--border-default);
+  border-radius: 11px;
+  background: var(--card-background-1);
+  color: var(--text-color);
   font: inherit;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .db-retry:hover {
-  background: var(--button-hover);
+  border-color: var(--button-color);
+  color: var(--button-color);
+  opacity: 1;
 }
 
 .db-retry svg {
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
 }
 
 .db-group {
