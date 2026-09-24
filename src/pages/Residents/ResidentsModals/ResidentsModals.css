@@ -469,6 +469,14 @@
   visibility: hidden;
 }
 
+.rs-history-scroll {
+  position: absolute;
+  inset: 0;
+  grid-auto-rows: max-content;
+  align-content: start;
+  overflow-y: auto;
+}
+
 .rs-history-item {
   overflow: hidden;
   border: 1px solid var(--border-default);

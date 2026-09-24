@@ -1,7 +1,7 @@
 // Every record an apartment has had, owners and tenants on one timeline, the role shown by a leading icon.
 // A card expands in place and only one stays open, so a long history does not scroll for metres.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FiChevronDown, FiHome, FiUser, FiX } from "react-icons/fi";
 import "./ResidentsModals.css";
 import DetailRow from "@/components/DetailRow/DetailRow";
@@ -21,15 +21,24 @@ function householdText(resident) {
   return `${resident.household_size} kişi`;
 }
 
-// The slot always holds a full page and the paging row is always drawn, so the box keeps one height in every
-// state. A filler is a span while a card is a button, so two measured stylesheet rules match their height.
-function PlaceholderCard() {
+// The slot is sized by a hidden page of fillers with one of them expanded, so neither a short page nor an
+// open card changes the box height. A filler is a span while a card is a button, so two measured stylesheet
+// rules match their height.
+function PlaceholderCard({ isExpanded = false }) {
   return (
-    <li className="rs-history-item rs-history-spacer" aria-hidden="true">
+    <li className="rs-history-item rs-history-spacer">
       <span className="rs-history-toggle">
         <span className="rs-history-top" />
         <span className="rs-history-meta">&nbsp;</span>
       </span>
+      {isExpanded ? (
+        <dl className="rs-history-detail">
+          <DetailRow label="Telefon" />
+          <DetailRow label="E-posta" />
+          <DetailRow label="TC Kimlik" />
+          <DetailRow label="Yaşayan Kişi" />
+        </dl>
+      ) : null}
     </li>
   );
 }
@@ -39,6 +48,7 @@ function ResidentHistoryModal({ apartment, building, onClose }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
+  const listRef = useRef(null);
 
   useEffect(() => {
     (async () => {
@@ -62,14 +72,20 @@ function ResidentHistoryModal({ apartment, building, onClose }) {
 
   useEscapeKey(onClose);
 
+  // Only a wrapped long value outgrows the reserved space, and the card should then still come into view.
+  useEffect(() => {
+    if (expandedId == null) return;
+    listRef.current?.querySelector('[aria-expanded="true"]')?.closest("li")?.scrollIntoView({ block: "nearest" });
+  }, [expandedId]);
+
   const { pageItems: visible, currentPage, pageCount, setPage } = usePagination(history, PAGE_SIZE);
   const message = loading
     ? "Yükleniyor..."
     : errorMessage || (history.length === 0 ? "Bu daire için sakin kaydı yok." : null);
-  const spacers = [];
+  const fillers = [];
 
-  for (let index = 0; index < PAGE_SIZE - visible.length; index += 1) {
-    spacers.push(<PlaceholderCard key={`spacer-${index}`} />);
+  for (let index = 0; index < PAGE_SIZE; index += 1) {
+    fillers.push(<PlaceholderCard key={index} isExpanded={index === 0} />);
   }
 
   const changePage = (next) => {
@@ -92,7 +108,10 @@ function ResidentHistoryModal({ apartment, building, onClose }) {
 
         <div className="rs-md-body">
           <div className="rs-history-slot">
-            <ul className="rs-history-list" aria-hidden={message ? "true" : undefined}>
+            <ul className="rs-history-list" aria-hidden="true">
+              {fillers}
+            </ul>
+            <ul ref={listRef} className="rs-history-list rs-history-scroll" aria-hidden={message ? "true" : undefined}>
               {visible.map((resident) => {
                 const isActive = Boolean(resident.is_active);
                 const isPending = !isActive && !resident.move_out_date;
@@ -144,7 +163,6 @@ function ResidentHistoryModal({ apartment, building, onClose }) {
                   </li>
                 );
               })}
-              {spacers}
             </ul>
             {message && <p className="rs-history-empty">{message}</p>}
           </div>

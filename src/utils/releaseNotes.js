@@ -5,6 +5,15 @@ const RELEASE_NOTES_SEEN_KEY = "releaseNotesSeenVersion";
 
 export const RELEASE_NOTES = [
   {
+    version: "2.3.1",
+    date: "2026-09-24",
+    title: "Sakin pencereleri yenilendi",
+    changes: [
+      "Sakin ekleme ve düzenleme penceresi yenilendi. Alanlar Kişi Bilgileri, İletişim ve Hane bölümlerine ayrıldı, her alanın yanında ne istendiğini gösteren bir işaret var.",
+      "Daire geçmişinde bir kaydın bilgileri açıldığında pencerenin boyu artık değişmiyor.",
+    ],
+  },
+  {
     version: "2.3.0",
     date: "2026-09-24",
     title: "Peşin aidat ve yönetim dönemleri",
@@ -28,20 +37,6 @@ export const RELEASE_NOTES = [
       "Rapor PDF'ine Banka Hareketleri bölümü eklendi. Banka hesabına giren ve çıkan kayıtlar ile hesaplar arası aktarımlar tek tabloda listeleniyor.",
       "Uzun dönemli raporlarda hareket tabloları ay ay ayrılıyor. Uzun tablolar yeni sayfada başlıyor.",
       "Harfle başlayan daire numaraları doğru sırada listeleniyor. A10 artık A8'in önüne düşmüyor.",
-    ],
-  },
-  {
-    version: "2.1.0",
-    date: "2026-09-22",
-    title: "Yatırım aidatı",
-    changes: [
-      "Yatırım Aidatı sayfası eklendi. Çatı, asansör, mantolama gibi büyük işler için aylık aidatın üstüne toplanan katkı daire bazında takip ediliyor.",
-      "Yatırım katkısının muhatabı dairenin malikidir. Liste, tahsilat penceresi ve makbuz o dönemin malikini gösteriyor.",
-      "Toplanan para ana kasaya giriyor. Fondan yapılan harcama gider kaydında Yatırım fonundan işaretiyle ayrılıyor ve fon bakiyesinden düşüyor.",
-      "Fonun aylık tutarı değiştirilebiliyor, toplama istenildiği zaman durdurulup yeniden başlatılabiliyor.",
-      "Rapor PDF'ine Yatırım Aidatı bölümü eklendi. Dönem başı bakiye, fona giren, fondan harcanan ve dönem sonu bakiye gösteriliyor.",
-      "Profil sayfasının şifre değiştirme, kurtarma kodu, e-posta ve hesap devri işlemleri kendi pencerelerine taşındı.",
-      "Uygulama içindeki bilgi ve onay kutuları yenilendi. Başarı bildirimleri artık kutu yerine kısa süreli bildirim olarak gösteriliyor.",
     ],
   },
 ];
