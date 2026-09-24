@@ -3,7 +3,7 @@
 // the right in both modes, so the manager sees what the total covers before saving.
 
 import { useEffect, useState } from "react";
-import { FiCheck, FiX } from "react-icons/fi";
+import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
 import "./DuesModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { showDialog } from "@/components/Dialog/dialogStore";
@@ -363,13 +363,20 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
                 <div className="du-amount-row">
                   <div className="du-md-field">
                     <label htmlFor="prepay-method">Ödeme Yöntemi</label>
-                    <select id="prepay-method" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-                      {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="du-select">
+                      <select
+                        id="prepay-method"
+                        value={paymentMethod}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                      >
+                        {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                      <FiChevronDown aria-hidden="true" />
+                    </div>
                   </div>
                   <div className="du-md-field">
                     <label htmlFor="prepay-date">Ödeme Tarihi</label>
@@ -398,27 +405,19 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
               </>
             ) : (
               <>
-                <div className="du-md-field">
-                  <label htmlFor="refund-payee">İade Edilen Kişi</label>
-                  <input
-                    id="refund-payee"
-                    type="text"
-                    maxLength={100}
-                    placeholder="Örn. Ahmet Yılmaz"
-                    value={payee}
-                    onChange={(e) => setPayee(e.target.value)}
-                  />
-                </div>
                 <div className="du-amount-row">
                   <div className="du-md-field">
-                    <label htmlFor="refund-account">Ödeme Tipi</label>
-                    <select id="refund-account" value={account} onChange={(e) => setAccount(e.target.value)}>
-                      {Object.entries(CASH_ACCOUNT_LABELS).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
+                    <label htmlFor="refund-account">Ödeme Yöntemi</label>
+                    <div className="du-select">
+                      <select id="refund-account" value={account} onChange={(e) => setAccount(e.target.value)}>
+                        {Object.entries(CASH_ACCOUNT_LABELS).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                      <FiChevronDown aria-hidden="true" />
+                    </div>
                   </div>
                   <div className="du-md-field">
                     <label htmlFor="refund-date">İade Tarihi</label>
@@ -432,6 +431,17 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
                       max={getToday()}
                     />
                   </div>
+                </div>
+                <div className="du-md-field">
+                  <label htmlFor="refund-payee">İade Edilen Kişi</label>
+                  <input
+                    id="refund-payee"
+                    type="text"
+                    maxLength={100}
+                    placeholder="Örn. Ahmet Yılmaz"
+                    value={payee}
+                    onChange={(e) => setPayee(e.target.value)}
+                  />
                 </div>
               </>
             )}

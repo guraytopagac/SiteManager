@@ -137,6 +137,28 @@
   color: var(--text-disabled);
 }
 
+.du-select {
+  position: relative;
+  display: grid;
+}
+
+.du-md-field .du-select select {
+  padding-right: 42px;
+  appearance: none;
+  cursor: pointer;
+}
+
+.du-select svg {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
 .du-md-btn-solid {
   flex-shrink: 0;
   height: 46px;
@@ -383,7 +405,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 8px 12px;
+  padding: 6px 12px;
   border: 1px solid transparent;
   border-radius: 10px;
   background: transparent;
