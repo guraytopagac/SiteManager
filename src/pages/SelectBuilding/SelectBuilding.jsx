@@ -86,15 +86,15 @@ function SelectBuilding() {
   // clears it. The guard only checks the store, so a stale entry keeps letting records into a gone building.
   const submitEdit = async (event) => {
     event.preventDefault();
-    const renamedBuilding = editing.building;
-    const buildingName = editing.nameInput.trim();
+    const targetBuilding = editing.building;
+    const newName = editing.nameInput.trim();
 
-    const nameError = validateBuildingName(buildingName);
+    const nameError = validateBuildingName(newName);
     if (nameError) {
       setEditError(nameError);
       return;
     }
-    if (buildingName === renamedBuilding.name) {
+    if (newName === targetBuilding.name) {
       cancelEdit();
       return;
     }
@@ -103,13 +103,13 @@ function SelectBuilding() {
 
     try {
       const res = await window.electronAPI.renameBuilding({
-        buildingId: renamedBuilding.id,
-        name: buildingName,
+        buildingId: targetBuilding.id,
+        name: newName,
       });
 
       if (res.success) {
-        if (selectedBuilding?.id === renamedBuilding.id) {
-          setCurrentBuilding({ id: renamedBuilding.id, name: buildingName });
+        if (selectedBuilding?.id === targetBuilding.id) {
+          setCurrentBuilding({ id: targetBuilding.id, name: newName });
         }
         showDialog.toast(res.message);
         cancelEdit();
