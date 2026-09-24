@@ -185,34 +185,6 @@
   font-size: 1rem;
 }
 
-.db-metric-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.db-ring {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  transform: rotate(-90deg);
-}
-
-.db-ring circle {
-  fill: none;
-  stroke-width: 3.5;
-}
-
-.db-ring-track {
-  stroke: color-mix(in srgb, var(--button-color) 25%, transparent);
-}
-
-.db-ring-fill {
-  stroke: var(--button-color);
-  stroke-linecap: round;
-  transition: stroke-dasharray 0.4s ease;
-}
-
 .db-state {
   display: flex;
   align-items: center;

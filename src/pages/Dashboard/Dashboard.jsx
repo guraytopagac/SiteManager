@@ -110,17 +110,6 @@ function StatusEmpty({ onAdd }) {
   );
 }
 
-// The rate is drawn as a ring beside the figure, so this card keeps the same height as the two beside it.
-// pathLength lets the dash length be the percentage itself.
-function RateRing({ value }) {
-  return (
-    <svg className="db-ring" viewBox="0 0 28 28">
-      <circle className="db-ring-track" cx="14" cy="14" r="11" />
-      <circle className="db-ring-fill" cx="14" cy="14" r="11" pathLength="100" strokeDasharray={`${value} 100`} />
-    </svg>
-  );
-}
-
 function StatusMetrics({ stats, navigate }) {
   const hasRate = stats.collections !== null;
 
@@ -143,11 +132,8 @@ function StatusMetrics({ stats, navigate }) {
         ariaLabel="Tahsilat, aidat listesini aç"
         onOpen={() => navigate("/dues")}
       >
-        <span className="db-metric-row">
-          <span className={hasRate ? "db-metric-value" : "db-metric-value db-metric-value--blank"}>
-            {hasRate ? `%${stats.collections}` : "—"}
-          </span>
-          {hasRate ? <RateRing value={stats.collections} /> : null}
+        <span className={hasRate ? "db-metric-value" : "db-metric-value db-metric-value--blank"}>
+          {hasRate ? `%${stats.collections}` : "—"}
         </span>
         {hasRate ? null : <span className="db-metric-meta">Bu ay için tahakkuk yok</span>}
       </MetricTile>
