@@ -3,6 +3,7 @@ const { getDb } = require("../../../database/db");
 const { accountBlocker, accountCancelBlocker, accountForMethod, cashBalances } = require("../shared/cashAccounts");
 const { createDbErrorResolver } = require("../shared/dbError");
 const { investmentBalance } = require("../shared/investmentFund");
+const { managerAtSql } = require("../shared/managerTerms");
 const { OWNER_NAME_FOR_PERIOD_SQL, periodCutoff, RESIDENT_NAME_FOR_PERIOD_SQL } = require("../shared/residentPeriod");
 const { severanceBalance } = require("../shared/severanceFund");
 const { advanceBalance } = require("../shared/staffAdvances");
@@ -259,9 +260,13 @@ function getTransactions(payload) {
 
     // A payout and its top-up are written in the same second, so sort_rank puts the payout above it, the same
     // order the fund page uses. A compound select can only sort by result columns, hence the extra column.
+    // The outer select names who entered and who cancelled each row once, instead of in every branch.
     const transactions = getDb()
       .prepare(
-        `SELECT id, amount, date, description, category, 'income' AS type, created_at,
+        `SELECT t.*, ${managerAtSql("t.created_at")} AS entered_by,
+                CASE WHEN t.is_cancelled = 1 THEN ${managerAtSql("t.cancelled_at")} END AS cancelled_by_name
+         FROM (
+         SELECT id, amount, date, description, category, 'income' AS type, created_at,
                 is_cancelled, cancelled_at, cancel_reason, account, 0 AS sort_rank, 0 AS is_investment,
                 (SELECT full_name FROM employees WHERE id = incomes.employee_id) AS employee_name,
                 (is_cancelled = 0 AND EXISTS (
@@ -286,7 +291,8 @@ function getTransactions(payload) {
                 created_at, is_cancelled, cancelled_at, cancel_reason, to_account AS account, 0 AS sort_rank,
                 0 AS is_investment, NULL AS employee_name, 0 AS is_refunded
          FROM cash_transfers WHERE building_id = ? ${dateFilter}
-         ORDER BY date DESC, created_at DESC, sort_rank DESC, id DESC`,
+         ) t
+         ORDER BY t.date DESC, t.created_at DESC, t.sort_rank DESC, t.id DESC`,
       )
       .all(...params, ...params, ...params, ...params);
 

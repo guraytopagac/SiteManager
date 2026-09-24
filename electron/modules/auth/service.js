@@ -345,6 +345,31 @@ function completeSetup(payload) {
   }
 }
 
+// The account's terms of office, newest first. A database that has not seen a handover since the terms table
+// arrived has none, and then the account holder is shown as the one running term, from the account's start.
+function getManagerTerms() {
+  try {
+    const data = getDb()
+      .prepare(
+        `SELECT id, manager_name, username, started_at, ended_at FROM manager_terms
+         ORDER BY started_at DESC, id DESC`,
+      )
+      .all();
+    if (data.length > 0) return { success: true, data };
+
+    const holder = getDb()
+      .prepare(
+        `SELECT 0 AS id, manager_name, username, created_at AS started_at, NULL AS ended_at
+         FROM users ORDER BY id LIMIT 1`,
+      )
+      .get();
+    return { success: true, data: holder ? [holder] : [] };
+  } catch (err) {
+    console.error("[auth.service] getManagerTerms:", err);
+    return { success: false, message: "Yönetim dönemleri alınamadı." };
+  }
+}
+
 module.exports = {
   login,
   transferAccount,
@@ -355,4 +380,5 @@ module.exports = {
   regenerateRecoveryCode,
   getSetupState,
   completeSetup,
+  getManagerTerms,
 };

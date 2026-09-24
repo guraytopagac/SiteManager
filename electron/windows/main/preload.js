@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   regenerateRecoveryCode: (payload) => safeInvoke(CH.AUTH.REGENERATE_RECOVERY_CODE, payload),
   getSetupState: () => safeInvoke(CH.AUTH.GET_SETUP_STATE),
   completeSetup: (payload) => safeInvoke(CH.AUTH.COMPLETE_SETUP, payload),
+  getManagerTerms: () => safeInvoke(CH.AUTH.GET_MANAGER_TERMS),
 
   runBackup: () => safeInvoke(CH.BACKUP.RUN),
   restoreOnSetup: () => safeInvoke(CH.BACKUP.RESTORE_ON_SETUP),

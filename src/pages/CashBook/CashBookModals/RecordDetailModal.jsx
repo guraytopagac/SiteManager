@@ -102,8 +102,10 @@ function RecordDetailModal({ transaction, description, building, onClose, onCrea
             {isInvestmentExpense ? <DetailRow label="Ödeme Kaynağı" value="Yatırım fonu" /> : null}
             {isAdvance ? <DetailRow label="Çalışan" value={transaction.employee_name} /> : null}
             <DetailRow label={transaction.type === "severance_payout" ? "Çalışan" : "Açıklama"} value={description} />
+            <DetailRow label="Kaydı Giren" value={transaction.entered_by} />
             {isCancelled ? <DetailRow label="İptal Tarihi" value={formatDate(transaction.cancelled_at)} /> : null}
             {isCancelled ? <DetailRow label="İptal Nedeni" value={transaction.cancel_reason} /> : null}
+            {isCancelled ? <DetailRow label="İptal Eden" value={transaction.cancelled_by_name} /> : null}
           </dl>
 
           {collectedNote && !isCancelled && !isRefunded ? <p className="cb-detail-note">{collectedNote}</p> : null}

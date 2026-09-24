@@ -1,16 +1,23 @@
-// The account settings screen: identity on top, then four equal cards for the actions that change something
-// lasting. Not a list page, so no table, rail or paging, and its height is not padded out.
+// The account settings screen: identity on top, four equal cards for the actions that change something
+// lasting, then the terms of office. Not a list page, so no table or rail, only the short terms list pages.
 
 import { useState } from "react";
 import { FiDatabase, FiDownload, FiEdit2, FiKey, FiLock, FiRefreshCw, FiRepeat, FiUserCheck } from "react-icons/fi";
 import "./Profile.css";
 import { showDialog } from "@/components/Dialog/dialogStore";
 import PageHeader from "@/components/PageHeader/PageHeader";
+import Pager from "@/components/Pager/Pager";
+import { useIpcData } from "@/hooks/useIpcData";
+import { usePagination } from "@/hooks/usePagination";
 import { useSession, setSession } from "@/hooks/useSession";
+import { formatDate } from "@/utils/date";
 import EmailModal from "./ProfileModals/EmailModal";
 import PasswordModal from "./ProfileModals/PasswordModal";
 import RecoveryCodeModal from "./ProfileModals/RecoveryCodeModal";
 import TransferModal from "./ProfileModals/TransferModal";
+
+// Three single-line rows keep the page as tall as the list pages.
+const TERMS_PAGE_SIZE = 3;
 
 function initialsOf(name) {
   const words = name.trim().split(/\s+/);
@@ -35,6 +42,48 @@ function ActionCard({ icon, title, text, actionIcon, actionLabel, onAction, isBu
         {actionLabel}
       </button>
     </div>
+  );
+}
+
+// Who held the account and when. A handover rewrites the account in place, so this list is the only place
+// that still names the earlier managers. Short pages are topped up with hidden rows to keep one height.
+function ManagerTerms() {
+  const [res] = useIpcData("getManagerTerms", {});
+  const terms = res.success ? res.data : [];
+  const { pageItems, currentPage, pageCount, setPage } = usePagination(terms, TERMS_PAGE_SIZE);
+  const spacerCount = TERMS_PAGE_SIZE - pageItems.length;
+
+  return (
+    <section className="page-band" aria-label="Yönetim dönemleri">
+      <div className="pf-terms-head">
+        <h2 className="pf-terms-title">Yönetim Dönemleri</h2>
+        <Pager currentPage={currentPage} pageCount={pageCount} onChange={setPage} />
+      </div>
+      <div className="pf-terms-slot">
+        <ul className="pf-terms" aria-hidden={res.success ? undefined : true}>
+          {pageItems.map((term) => (
+            <li key={term.id} className="pf-term">
+              <span className="pf-term-mark" aria-hidden="true">
+                {initialsOf(term.manager_name)}
+              </span>
+              <span className="pf-term-name" title={term.manager_name}>
+                {term.manager_name}
+              </span>
+              <span className="pf-term-user">{term.username}</span>
+              <span className="pf-term-dates">
+                {formatDate(term.started_at)}
+                {" – "}
+                {term.ended_at ? formatDate(term.ended_at) : <span className="pf-term-current">Devam ediyor</span>}
+              </span>
+            </li>
+          ))}
+          {Array.from({ length: spacerCount }, (_, index) => (
+            <li key={`spacer-${index}`} className="pf-term pf-term--spacer" aria-hidden="true" />
+          ))}
+        </ul>
+        {res.success ? null : <p className="pf-terms-error">{res.message}</p>}
+      </div>
+    </section>
   );
 }
 
@@ -146,6 +195,8 @@ function Profile() {
           />
         </div>
       </section>
+
+      <ManagerTerms />
 
       {isPasswordOpen && (
         <PasswordModal userId={session.id} username={session.username} onClose={() => setIsPasswordOpen(false)} />

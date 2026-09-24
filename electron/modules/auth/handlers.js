@@ -171,6 +171,7 @@ function registerAuthHandlers(ipcMain) {
     (payload) => validatePayload(payload) ?? validateSetupFields(payload),
     authService.completeSetup,
   );
+  handle(CH.AUTH.GET_MANAGER_TERMS, noValidation, authService.getManagerTerms);
 }
 
 module.exports = registerAuthHandlers;

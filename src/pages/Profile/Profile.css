@@ -225,3 +225,95 @@
   cursor: default;
   opacity: 1;
 }
+
+.pf-terms-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.pf-terms-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 750;
+}
+
+.pf-terms-slot {
+  position: relative;
+}
+
+.pf-terms {
+  display: grid;
+  grid-auto-rows: 48px;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pf-term {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 180px 260px;
+  align-items: center;
+  gap: 14px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: var(--background-color-1);
+}
+
+.pf-term--spacer {
+  visibility: hidden;
+}
+
+.pf-term-mark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-tint);
+  color: var(--button-color);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.pf-term-name,
+.pf-term-user {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pf-term-name {
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.pf-term-user {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.pf-term-dates {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.pf-term-current {
+  color: var(--button-color);
+  font-weight: 600;
+}
+
+.pf-terms-error {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--color-danger-text);
+  font-size: 1rem;
+}

@@ -18,6 +18,7 @@ const CHANNELS = {
     REGENERATE_RECOVERY_CODE: "auth:regenerate-recovery-code",
     GET_SETUP_STATE: "auth:get-setup-state",
     COMPLETE_SETUP: "auth:complete-setup",
+    GET_MANAGER_TERMS: "auth:get-manager-terms",
   },
 
   BACKUP: {

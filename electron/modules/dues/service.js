@@ -7,6 +7,7 @@ const { getDb } = require("../../../database/db");
 const { accountBlocker, accountCancelBlocker, accountForMethod } = require("../shared/cashAccounts");
 const { createDbErrorResolver } = require("../shared/dbError");
 const { ensureMonthlyDues } = require("../shared/duesAccrual");
+const { managerAtSql } = require("../shared/managerTerms");
 const { RESIDENT_NAME_FOR_PERIOD_SQL, periodCutoff } = require("../shared/residentPeriod");
 const { TR_NOW_SQL, createdPeriodSql, currentPeriod, fromPeriod, toPeriod } = require("../shared/trTime");
 
@@ -386,6 +387,8 @@ function cancelPayment(payload) {
   }
 }
 
+// An empty collector falls back to the manager whose term the payment was made in, not to today's account
+// holder, who after a handover is someone else.
 function getPaymentHistory(payload) {
   const { dueId, buildingId } = payload;
   try {
@@ -393,10 +396,9 @@ function getPaymentHistory(payload) {
       .prepare(
         `SELECT dp.id, dp.amount, dp.payment_method, dp.payment_date, dp.note, dp.created_at,
                 dp.receipt_name,
-                COALESCE(dp.collector_name, u.manager_name) AS collector_name,
+                COALESCE(dp.collector_name, ${managerAtSql("dp.created_at")}) AS collector_name,
                 pc.cancel_reason, pc.cancelled_at, i.id AS income_id
          FROM due_payments dp
-         JOIN users u ON dp.collected_by = u.id
          JOIN dues d ON dp.due_id = d.id
          JOIN apartments a ON d.apartment_id = a.id
          LEFT JOIN payment_cancellations pc ON pc.payment_id = dp.id
