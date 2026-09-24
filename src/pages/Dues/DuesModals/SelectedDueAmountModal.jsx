@@ -124,7 +124,7 @@ function SelectedDueAmountModal({ dues, building, onClose, onSaved }) {
               onChange={(e) => setSearchTerm(e.target.value)}
               autoFocus
             />
-            <div className="du-unit-list">
+            <div className="du-unit-list du-unit-list--tall">
               {matches.length === 0 ? (
                 <p className="du-unit-empty">Eşleşen daire yok.</p>
               ) : (

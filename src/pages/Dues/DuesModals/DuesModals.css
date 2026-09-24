@@ -264,6 +264,10 @@
   background: var(--background-color-1);
 }
 
+.du-unit-list--tall {
+  height: 268px;
+}
+
 .du-unit-option {
   display: flex;
   align-items: center;
