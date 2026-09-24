@@ -146,6 +146,7 @@
 
 .cb-net-value {
   margin-left: auto;
+  white-space: nowrap;
   font-size: 1.5rem;
   font-weight: 750;
   line-height: 1.1;
@@ -187,6 +188,7 @@
 
 .cb-net-row b {
   margin-left: auto;
+  white-space: nowrap;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
@@ -294,6 +296,7 @@
 
 .cb-account-row b {
   margin-left: auto;
+  white-space: nowrap;
   font-size: 1.15rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
