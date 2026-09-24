@@ -2,7 +2,6 @@
 // The wizard's facade shares the look but no code, since this one is built from real, irregular rows.
 
 import { useState } from "react";
-import { useLocation } from "react-router-dom";
 import {
   FiAlertTriangle,
   FiCalendar,
@@ -322,13 +321,10 @@ function DetailPanel({ unit, onClear, onEdit, onDelete }) {
 }
 
 function BuildingView() {
-  const location = useLocation();
   const building = useCurrentBuilding();
   const [year, setYear] = useState(getCurrentYear());
   const [month, setMonth] = useState(getCurrentMonth());
-  // The one deep link into this page. The dashboard sends this flag from its empty book panel, and it is
-  // read once at mount so the add modal starts open. The named tile arrives without it.
-  const [addTarget, setAddTarget] = useState(location.state?.openAdd ? { floor: "" } : null);
+  const [addTarget, setAddTarget] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
