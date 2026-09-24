@@ -118,6 +118,33 @@ function login(credentials) {
 const TRANSFER_SQL = `UPDATE users SET username = ?, email = NULL, password_hash = ?, manager_name = ?,
   recovery_hash = ?, password_changed_at = ${TR_NOW_SQL}, updated_at = ${TR_NOW_SQL} WHERE id = ?`;
 
+const OPEN_TERM_SQL = `INSERT INTO manager_terms (user_id, manager_name, username, started_at, created_at, updated_at)
+  VALUES (?, ?, ?, ${TR_NOW_SQL}, ${TR_NOW_SQL}, ${TR_NOW_SQL})`;
+
+// A database from before the terms table has no running term. The outgoing manager then gets one from the
+// day the account was created, so their records are not left without an owner once the handover closes it.
+const SEED_TERM_SQL = `INSERT INTO manager_terms (user_id, manager_name, username, started_at, created_at, updated_at)
+  SELECT id, manager_name, username, created_at, ${TR_NOW_SQL}, ${TR_NOW_SQL} FROM users
+  WHERE id = ? AND NOT EXISTS (SELECT 1 FROM manager_terms WHERE user_id = ? AND ended_at IS NULL)`;
+
+const CLOSE_TERM_SQL = `UPDATE manager_terms SET ended_at = ${TR_NOW_SQL}, updated_at = ${TR_NOW_SQL}
+  WHERE user_id = ? AND ended_at IS NULL`;
+
+// The same four writes land in the handover file and on this computer, so both carry the same history.
+// Returns false when the account row is missing.
+function writeTransfer(db, { userId, newPerson, newUsername, temporaryPasswordHash, newRecoveryHash }) {
+  return db.transaction(() => {
+    db.prepare(SEED_TERM_SQL).run(userId, userId);
+    const changes = db
+      .prepare(TRANSFER_SQL)
+      .run(newUsername, temporaryPasswordHash, newPerson, newRecoveryHash, userId).changes;
+    if (changes !== 1) return false;
+    db.prepare(CLOSE_TERM_SQL).run(userId);
+    db.prepare(OPEN_TERM_SQL).run(userId, newPerson, newUsername);
+    return true;
+  })();
+}
+
 // Hands the account to another person. Buildings and data stay where they are, while the username, email
 // and recovery code go with the person, or the previous holder could sign in or reset their way back in.
 // The new credentials land in a copy of the database first, so the file never carries the old password.
@@ -137,22 +164,20 @@ async function transferAccount(payload, mainWindow) {
     const temporaryPasswordHash = bcrypt.hashSync(temporaryPassword, BCRYPT_ROUNDS);
     const newRecoveryCode = generateRecoveryCode();
     const newRecoveryHash = bcrypt.hashSync(newRecoveryCode.rawCode, BCRYPT_ROUNDS);
-    const params = [newUsername, temporaryPasswordHash, newPerson, newRecoveryHash, userId];
+    const transfer = { userId, newPerson, newUsername, temporaryPasswordHash, newRecoveryHash };
 
     filePath = await saveDatabaseCopy(mainWindow, {
       title: "Devir Dosyasını Kaydet",
       defaultPath: `mavikent-devir-${trToday()}.db`,
       editCopy: (copyDb) => {
-        if (copyDb.prepare(TRANSFER_SQL).run(...params).changes !== 1) {
+        if (!writeTransfer(copyDb, transfer)) {
           throw new Error("transferAccount: account row missing in the copy");
         }
       },
     });
     if (!filePath) return { success: false, cancelled: true, message: "İptal edildi." };
 
-    getDb()
-      .prepare(TRANSFER_SQL)
-      .run(...params);
+    if (!writeTransfer(getDb(), transfer)) throw new Error("transferAccount: account row missing");
 
     return {
       success: true,
@@ -301,12 +326,17 @@ function completeSetup(payload) {
     const newRecoveryCode = generateRecoveryCode();
     const newRecoveryHash = bcrypt.hashSync(newRecoveryCode.rawCode, BCRYPT_ROUNDS);
 
-    getDb()
-      .prepare(
-        `INSERT INTO users (username, password_hash, manager_name, recovery_hash, is_active, password_changed_at, created_at, updated_at)
-         VALUES (?, ?, ?, ?, 1, ${TR_NOW_SQL}, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
-      )
-      .run(username, newPasswordHash, managerName, newRecoveryHash);
+    // The first term opens together with the account, so no record is ever made outside a term.
+    const db = getDb();
+    db.transaction(() => {
+      const result = db
+        .prepare(
+          `INSERT INTO users (username, password_hash, manager_name, recovery_hash, is_active, password_changed_at, created_at, updated_at)
+           VALUES (?, ?, ?, ?, 1, ${TR_NOW_SQL}, ${TR_NOW_SQL}, ${TR_NOW_SQL})`,
+        )
+        .run(username, newPasswordHash, managerName, newRecoveryHash);
+      db.prepare(OPEN_TERM_SQL).run(result.lastInsertRowid, managerName, username);
+    })();
 
     return { success: true, message: "Hesabınız kuruldu.", recoveryCode: newRecoveryCode.displayCode };
   } catch (err) {
