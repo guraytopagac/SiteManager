@@ -174,7 +174,7 @@ function Dashboard() {
 
       <section className="db-band" aria-label="Bina durumu">
         {!stats && <StatusError onRetry={reload} />}
-        {isEmptyBook && <StatusEmpty onAdd={() => navigate("/building-view", { state: { openAdd: true } })} />}
+        {isEmptyBook && <StatusEmpty onAdd={() => navigate("/building-view")} />}
         {stats && !isEmptyBook && <StatusMetrics stats={stats} navigate={navigate} />}
       </section>
 
