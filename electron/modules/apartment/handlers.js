@@ -42,15 +42,6 @@ function validateCurrentMonthScope(payload) {
   return null;
 }
 
-// The amount belongs to the dues page, so an update that leaves it out keeps the current one. Sending one
-// also means answering which period it starts from, the same question the bulk endpoint asks.
-function validateDueAmountChange(payload) {
-  if (payload.due_amount == null) {
-    return null;
-  }
-  return validateDueAmount(payload.due_amount) ?? validateCurrentMonthScope(payload);
-}
-
 // Every id must be valid and listed once, so the service can compare the count with the rows it finds.
 function validateApartmentIds(payload) {
   const ids = payload.apartmentIds;
@@ -74,8 +65,7 @@ function registerApartmentHandlers(ipcMain) {
   );
   handle(
     CH.APARTMENT.UPDATE,
-    (payload) =>
-      validateOwnedApartmentScope(payload) ?? validateApartmentFields(payload) ?? validateDueAmountChange(payload),
+    (payload) => validateOwnedApartmentScope(payload) ?? validateApartmentFields(payload),
     apartmentService.updateApartment,
   );
   handle(CH.APARTMENT.DELETE, validateOwnedApartmentScope, apartmentService.deleteApartment);

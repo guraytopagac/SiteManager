@@ -37,7 +37,6 @@ function findActiveApartmentByNo(buildingId, apartmentNo, excludeId) {
     .get(buildingId, apartmentNo, excludeId ?? null);
 }
 
-// due_amount is nullable on the update path, where COALESCE keeps the amount already stored.
 function apartmentValues(payload) {
   return [payload.apartment_no, payload.floor, payload.type, payload.square_meters ?? null, payload.due_amount ?? null];
 }
@@ -92,17 +91,8 @@ function advanceNote(repriced) {
   return repriced > 0 ? ` Peşin ödenen ${repriced} ayın tutarı da güncellendi.` : "";
 }
 
-function hasPaymentThisMonth(apartmentId, year, month) {
-  return !!getDb()
-    .prepare(
-      `SELECT 1 FROM dues
-       WHERE apartment_id = ? AND year = ? AND month = ? AND due_type = 'regular' AND paid_amount > 0`,
-    )
-    .get(apartmentId, year, month);
-}
-
-// Never touches residents or past months. An amount is written only when the caller sends one, and then
-// only for a month with no payment: a lower amount breaks the CHECK on dues and rewrites a closed month.
+// Never touches residents or the due amount. The amount belongs to the dues page, which writes it through
+// bulkUpdateDueAmount and updateDueAmounts.
 function updateApartment(payload) {
   try {
     const buildingError = checkBuildingUsable(payload.buildingId);
@@ -114,65 +104,26 @@ function updateApartment(payload) {
       return { success: false, message: DUPLICATE_ACTIVE_MESSAGE };
     }
 
-    const { year, month } = trYearMonth();
-    const dueAmount = payload.due_amount ?? null;
-
-    const applyUpdate = getDb().transaction(() => {
-      const updated = getDb()
-        .prepare(
-          `UPDATE apartments
-           SET apartment_no = ?, floor = ?, type = ?, square_meters = ?,
-               due_amount = COALESCE(?, due_amount), updated_at = ${TR_NOW_SQL}
-           WHERE id = ? AND building_id = ? AND is_active = 1`,
-        )
-        .run(...apartmentValues(payload), payload.id, payload.buildingId).changes;
-
-      if (updated === 0 || dueAmount == null) {
-        return { updated, accrued: 0, repriced: 0 };
-      }
-
-      const repriced = repriceAdvanceDues(dueAmount, "apartment_id = ?", [payload.id]);
-      if (!payload.applyCurrentMonth) {
-        return { updated, accrued: 0, repriced };
-      }
-
-      const accrued = getDb()
-        .prepare(
-          `UPDATE dues SET due_amount = ?, updated_at = ${TR_NOW_SQL}
-           WHERE apartment_id = ? AND year = ? AND month = ? AND due_type = 'regular' AND paid_amount = 0`,
-        )
-        .run(dueAmount, payload.id, year, month).changes;
-
-      return { updated, accrued, repriced };
-    });
-
-    const { updated, accrued, repriced } = applyUpdate();
+    const updated = getDb()
+      .prepare(
+        `UPDATE apartments
+         SET apartment_no = ?, floor = ?, type = ?, square_meters = ?, updated_at = ${TR_NOW_SQL}
+         WHERE id = ? AND building_id = ? AND is_active = 1`,
+      )
+      .run(
+        payload.apartment_no,
+        payload.floor,
+        payload.type,
+        payload.square_meters ?? null,
+        payload.id,
+        payload.buildingId,
+      ).changes;
 
     if (updated === 0) {
       return { success: false, message: NOT_FOUND_MESSAGE };
     }
 
-    if (dueAmount == null) {
-      return { success: true, message: `Daire ${payload.apartment_no} güncellendi.` };
-    }
-
-    // No row changed means either this month has a payment or it is not accrued yet. Only the first
-    // one is worth a word, the second month will be created with the new amount anyway.
-    if (payload.applyCurrentMonth && accrued === 0 && hasPaymentThisMonth(payload.id, year, month)) {
-      return {
-        success: true,
-        message: `Daire ${payload.apartment_no} aidatı güncellendi, bu ay ödeme alındığı için bu ayın aidatı değişmedi.${advanceNote(repriced)}`,
-      };
-    }
-
-    if (payload.applyCurrentMonth && accrued > 0) {
-      return {
-        success: true,
-        message: `Daire ${payload.apartment_no} aidatı güncellendi, yeni tutar bu aya da işlendi.${advanceNote(repriced)}`,
-      };
-    }
-
-    return { success: true, message: `Daire ${payload.apartment_no} aidatı güncellendi.${advanceNote(repriced)}` };
+    return { success: true, message: `Daire ${payload.apartment_no} güncellendi.` };
   } catch (err) {
     console.error("[apartment.service] updateApartment:", err);
     return { success: false, message: resolveDbError(err, "Daire güncelleme") };
