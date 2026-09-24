@@ -5,13 +5,18 @@ import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import "./SelectBuilding.css";
 import AccountMenu from "@/components/AccountMenu/AccountMenu";
+import Pager from "@/components/Pager/Pager";
 import { showDialog } from "@/components/Dialog/dialogStore";
 import { useIpcData } from "@/hooks/useIpcData";
+import { usePagination } from "@/hooks/usePagination";
 import { useSession, setCurrentBuilding, clearCurrentBuilding, useCurrentBuilding } from "@/hooks/useSession";
 import { MAX_BUILDING_NAME_LENGTH } from "@/utils/constants";
 import { FiHome, FiPlus, FiAlertCircle, FiChevronRight, FiEdit2, FiTrash2 } from "react-icons/fi";
 
 const ERROR_ID = "sb-name-error";
+// Three rows plus the create card keep the card inside a laptop screen, a longer list pages instead of
+// stretching the page.
+const PAGE_SIZE = 3;
 
 // Three distinct sentences rather than one with zeroes in it: a building with no apartments yet, one whose
 // apartments are all empty, and a populated one are different facts to the reader.
@@ -48,6 +53,10 @@ function SelectBuilding() {
   const buildings = allBuildings.filter((b) => b.is_active === 1);
   const deleted = allBuildings.filter((b) => b.is_active === 0);
   const autoEnterTarget = autoEnterAllowed && buildings.length === 1 ? buildings[0] : null;
+  const { pageItems, currentPage, pageCount, setPage } = usePagination(buildings, PAGE_SIZE);
+  // Only a paged list is topped up with hidden rows, so the card keeps one height across pages. A short
+  // single-page list keeps stretching its rows as before.
+  const spacerCount = pageCount > 1 ? PAGE_SIZE - pageItems.length : 0;
 
   const loadBuildings = () => {
     setAutoEnterAllowed(false);
@@ -280,7 +289,7 @@ function SelectBuilding() {
               <span className="sb-band-count">{buildings.length} bina</span>
             </h2>
             <div className="sb-list">
-              {buildings.map((building) =>
+              {pageItems.map((building) =>
                 editing?.building?.id === building.id ? (
                   <div key={building.id} className="sb-item sb-item--edit">
                     <span className="sb-item-mark">
@@ -326,6 +335,10 @@ function SelectBuilding() {
                 ),
               )}
 
+              {Array.from({ length: spacerCount }, (_, index) => (
+                <div key={`spacer-${index}`} className="sb-item sb-item--spacer" aria-hidden="true" />
+              ))}
+
               <button type="button" className="sb-item sb-item--add" onClick={openWizard}>
                 <span className="sb-item-mark">
                   <FiPlus size={22} />
@@ -336,6 +349,7 @@ function SelectBuilding() {
                 </span>
               </button>
             </div>
+            <Pager currentPage={currentPage} pageCount={pageCount} onChange={setPage} />
           </section>
         )}
 
