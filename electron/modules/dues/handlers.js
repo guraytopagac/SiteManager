@@ -1,5 +1,5 @@
 // Dues IPC entry points. Every channel that takes a period rejects a future one, except the prepayment,
-// which may reach twelve months ahead.
+// which may reach eleven months ahead.
 const { CHANNELS: CH } = require("../../ipc/channels");
 const { createHandle } = require("../../ipc/createHandle");
 const { formatPersonName } = require("../shared/personName");
@@ -130,7 +130,8 @@ function validateDueType(value) {
 }
 
 // A prepayment always starts with the current month, so only its last month is asked for, and a refund only
-// its first. These are the two channels allowed past the current period, and only by twelve months.
+// its first. These are the two channels allowed past the current period, and only by eleven months, so the
+// window is twelve months with the current one.
 function validateAdvanceMonth(year, month) {
   if (!isValidYear(year) || !isValidMonth(month)) {
     return fail("Geçersiz dönem bilgisi.");
@@ -139,8 +140,8 @@ function validateAdvanceMonth(year, month) {
   if (period < currentPeriod()) {
     return fail("Peşin ödeme işlemi bu aydan önceki bir ayı kapsayamaz.");
   }
-  if (period > currentPeriod() + 12) {
-    return fail("Peşin ödeme işlemi en fazla 12 ay ilerisini kapsayabilir.");
+  if (period > currentPeriod() + 11) {
+    return fail("Peşin ödeme işlemi bu ay dahil en fazla 12 ayı kapsayabilir.");
   }
   return null;
 }

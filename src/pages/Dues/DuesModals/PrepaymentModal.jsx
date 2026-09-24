@@ -12,9 +12,6 @@ import { formatCurrency } from "@/utils/currency";
 import { formatMonthYear, getMinDate, getToday, toPeriod } from "@/utils/date";
 import { searchKey } from "@/utils/searchKey";
 
-// A year ahead by default: the current month and the eleven after it.
-const DEFAULT_MONTH_COUNT = 12;
-
 // Everything that differs between the two modes. Collecting counts what is still owed up to the chosen month,
 // refunding counts what was paid from the chosen month on.
 const MODES = {
@@ -22,6 +19,7 @@ const MODES = {
     label: "Tahsilat",
     listTitle: "Kapsanan Aylar",
     hint: "Son ayı seçin",
+    missingMessage: "Lütfen listeden son ayı seçin.",
     emptyMessage: "Seçilen ayların tamamı zaten ödenmiş.",
     submitLabel: "Peşin Ödemeyi Kaydet",
     amountOf: (item) => item.remaining,
@@ -31,6 +29,7 @@ const MODES = {
     label: "İade",
     listTitle: "İade Edilecek Aylar",
     hint: "İlk ayı seçin",
+    missingMessage: "Lütfen listeden ilk ayı seçin.",
     emptyMessage: "Seçilen aylarda iade edilecek ödeme yok.",
     submitLabel: "İadeyi Kaydet",
     amountOf: (item) => item.paid_amount,
@@ -38,14 +37,14 @@ const MODES = {
   },
 };
 
-// Collecting defaults to a year ahead. Refunding defaults to the first paid month after this one, since the
-// current month is usually already lived in, and falls back to the first paid month at all.
+// Collecting starts with no month picked, since a preselected year left the manager unsure what to do.
+// Refunding defaults to the first paid month after this one, since the current month is usually already lived
+// in, and falls back to the first paid month at all.
 function defaultSelection(months) {
-  const last = months[Math.min(DEFAULT_MONTH_COUNT, months.length) - 1];
   const currentPeriod = toPeriod(months[0].year, months[0].month);
   const paidPeriods = months.filter((item) => item.paid_amount > 0).map((item) => toPeriod(item.year, item.month));
   return {
-    collect: toPeriod(last.year, last.month),
+    collect: null,
     refund: paidPeriods.find((period) => period > currentPeriod) ?? paidPeriods[0] ?? currentPeriod,
   };
 }
@@ -73,7 +72,7 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
   const [selection, setSelection] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [collector, setCollector] = useState(session.managerName);
-  const [payee, setPayee] = useState("");
+  const [payee, setPayee] = useState(session.managerName);
   const [account, setAccount] = useState("cash");
   const [date, setDate] = useState(getToday());
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -167,6 +166,10 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
 
     if (!selectedDue) {
       showDialog.warning("Daire Seçilmedi", "Lütfen işlem yapılacak daireyi seçin.");
+      return;
+    }
+    if (selected === null) {
+      showDialog.warning("Ay Seçilmedi", text.missingMessage);
       return;
     }
     if (covered.length === 0) {
@@ -331,7 +334,7 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 autoFocus
               />
-              <div className="du-unit-list">
+              <div className="du-unit-list du-unit-list--tall">
                 {matches.length === 0 ? (
                   <p className="du-unit-empty">Eşleşen daire yok.</p>
                 ) : (

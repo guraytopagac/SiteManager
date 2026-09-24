@@ -11,7 +11,8 @@ const { managerAtSql } = require("../shared/managerTerms");
 const { RESIDENT_NAME_FOR_PERIOD_SQL, periodCutoff } = require("../shared/residentPeriod");
 const { TR_NOW_SQL, createdPeriodSql, currentPeriod, fromPeriod, toPeriod } = require("../shared/trTime");
 
-// How far a prepayment reaches past the current month. The handler holds the same limit next to its message.
+// How many months a prepayment spans, the current one included. The handler holds the same limit next to its
+// message.
 const PREPAYMENT_MONTHS = 12;
 
 const COLUMN_LABELS = {
@@ -227,7 +228,7 @@ function findActiveApartment(apartmentId, buildingId) {
     .get(apartmentId, buildingId);
 }
 
-// The current month and the twelve after it, each with what is owed and what is paid. A month with no row
+// The current month and the eleven after it, each with what is owed and what is paid. A month with no row
 // yet is shown at the apartment's amount today, which is the amount it would be accrued at.
 function prepaymentMonths(apartment) {
   const firstPeriod = currentPeriod();
@@ -241,7 +242,7 @@ function prepaymentMonths(apartment) {
   const rowsByPeriod = new Map(rows.map((row) => [toPeriod(row.year, row.month), row]));
 
   const months = [];
-  for (let period = firstPeriod; period <= firstPeriod + PREPAYMENT_MONTHS; period += 1) {
+  for (let period = firstPeriod; period < firstPeriod + PREPAYMENT_MONTHS; period += 1) {
     const row = rowsByPeriod.get(period);
     const dueAmount = row ? row.due_amount : apartment.due_amount;
     const paidAmount = row ? row.paid_amount : 0;
