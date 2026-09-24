@@ -185,12 +185,29 @@
   font-size: 1rem;
 }
 
+.db-meter {
+  display: block;
+  height: 10px;
+  margin: auto 0 2px;
+  border-radius: 999px;
+  background: var(--border-default);
+  overflow: hidden;
+}
+
+.db-meter span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--button-color);
+  transition: width 0.4s ease;
+}
+
 .db-state {
   display: flex;
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-  min-height: 144px;
+  min-height: 170px;
   padding: 22px 24px;
   border: 1px solid var(--border-default);
   border-radius: 16px;

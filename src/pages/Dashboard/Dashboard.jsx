@@ -135,7 +135,13 @@ function StatusMetrics({ stats, navigate }) {
         <span className={hasRate ? "db-metric-value" : "db-metric-value db-metric-value--blank"}>
           {hasRate ? `%${stats.collections}` : "—"}
         </span>
-        {hasRate ? null : <span className="db-metric-meta">Bu ay için tahakkuk yok</span>}
+        {hasRate ? (
+          <span className="db-meter" aria-hidden="true">
+            <span style={{ width: `${stats.collections}%` }} />
+          </span>
+        ) : (
+          <span className="db-metric-meta">Bu ay için tahakkuk yok</span>
+        )}
       </MetricTile>
 
       <MetricTile
