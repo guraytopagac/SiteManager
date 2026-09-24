@@ -183,17 +183,24 @@ function ActionsCard({ onPrepayment, onBulkUpdate, onSingleUpdate }) {
 }
 
 // Reads the whole period and ignores the filters, since it reports the building rather than the list. The
-// meter is only hidden when empty, never removed, so the card keeps its height between periods.
+// meter is only hidden when empty, never removed, so the card keeps its height between periods. The card
+// fills the rail above the actions, so the breakdown rows share whatever height the table leaves.
 function CollectSummary({ dues, hasError }) {
   const totalDue = dues.reduce((sum, due) => sum + due.due_amount, 0);
   const totalPaid = dues.reduce((sum, due) => sum + due.paid_amount, 0);
+  const paidCount = dues.filter((due) => due.status === "paid").length;
   const collectionPercent = totalDue > 0 ? Math.round((totalPaid / totalDue) * 100) : null;
   const isBlank = hasError || collectionPercent === null;
-  const amountsText = hasError
+  const noteText = hasError
     ? "Tahsilat oranı okunamadı"
     : collectionPercent === null
       ? "Bu ay için tahakkuk yok"
-      : `${formatCurrency(totalPaid)} / ${formatCurrency(totalDue)}`;
+      : `${paidCount} / ${dues.length} daire tamamını ödedi`;
+  const rows = [
+    { label: "Tahakkuk", value: totalDue },
+    { label: "Tahsil Edilen", value: totalPaid },
+    { label: "Kalan", value: Math.max(totalDue - totalPaid, 0) },
+  ];
 
   return (
     <section className="du-card du-collect" aria-label="Tahsilat oranı">
@@ -212,7 +219,16 @@ function CollectSummary({ dues, hasError }) {
       <span className={isBlank ? "du-collect-meter du-collect-meter--blank" : "du-collect-meter"} aria-hidden="true">
         <span style={{ width: `${Math.min(collectionPercent ?? 0, 100)}%` }} />
       </span>
-      <span className="du-collect-amounts">{amountsText}</span>
+      <span className="du-collect-note">{noteText}</span>
+
+      <dl className="du-collect-list">
+        {rows.map((row) => (
+          <div key={row.label} className="du-collect-row">
+            <dt>{row.label}</dt>
+            <dd>{hasError ? "—" : formatCurrency(row.value)}</dd>
+          </div>
+        ))}
+      </dl>
     </section>
   );
 }
