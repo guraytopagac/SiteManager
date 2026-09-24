@@ -6,15 +6,17 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiAlertTriangle,
-  FiBookOpen,
   FiCalendar,
+  FiCreditCard,
   FiHome,
   FiPieChart,
   FiRefreshCw,
   FiSearch,
   FiSettings,
   FiSkipBack,
+  FiTool,
   FiTrendingUp,
+  FiUser,
 } from "react-icons/fi";
 import "./Investment.css";
 import { showDialog } from "@/components/Dialog/dialogStore";
@@ -180,13 +182,15 @@ function CardAction({ icon, label, onClick }) {
   );
 }
 
-// The fund in one card: the balance on top, the three figures it is made of, and the way into the settings.
+// The fund in one card: the balance on top, what came in and went out, and the way into the settings. The
+// opening balance is counted in the balance but has no row, it is entered once and never changes.
 // It carries an action, unlike the collection card, the same way the ledger's main cash card does.
 function FundCard({ fund, totals, hasError, onSettings }) {
   const isBlank = hasError || !totals;
+  // Always drawn, in either state, so stopping collection does not change the card's height.
+  const isStopped = fund?.is_collecting === 0;
   const balanceTone = isBlank || totals.balance === 0 ? "" : totals.balance < 0 ? " iv-fund-value--negative" : "";
   const rows = [
-    { label: "Açılış", value: totals?.opening },
     { label: "Toplanan", value: totals?.collected },
     { label: "Harcanan", value: totals?.spent },
   ];
@@ -210,9 +214,13 @@ function FundCard({ fund, totals, hasError, onSettings }) {
             <b>{isBlank ? "—" : formatCurrency(row.value)}</b>
           </div>
         ))}
+        <div className="iv-fund-row">
+          <span>Toplama</span>
+          <b className={isStopped ? "iv-fund-status--stopped" : undefined}>
+            {fund ? (isStopped ? "Durduruldu" : "Sürüyor") : "—"}
+          </b>
+        </div>
       </div>
-
-      {fund && fund.is_collecting === 0 && <span className="iv-fund-note">Toplama durduruldu</span>}
 
       <CardAction icon={<FiSettings />} label="Fon Ayarları" onClick={onSettings} />
     </section>
@@ -220,17 +228,23 @@ function FundCard({ fund, totals, hasError, onSettings }) {
 }
 
 // Reads the whole period and ignores the filters, since it reports the building rather than the list. The
-// meter is only hidden when empty, never removed: the rail sets the row height and the card would shrink.
+// meter is only hidden when empty, never removed, so the card keeps its height between periods. The card
+// fills the rail above the fund card, so the breakdown rows share whatever height the table leaves.
 function CollectSummary({ charges, hasError }) {
   const totalDue = charges.reduce((sum, charge) => sum + charge.due_amount, 0);
   const totalPaid = charges.reduce((sum, charge) => sum + charge.paid_amount, 0);
   const collectionPercent = totalDue > 0 ? Math.round((totalPaid / totalDue) * 100) : null;
   const isBlank = hasError || collectionPercent === null;
-  const amountsText = hasError
+  const noteText = hasError
     ? "Tahsilat oranı okunamadı"
     : collectionPercent === null
       ? "Bu ay için tahakkuk yok"
-      : `${formatCurrency(totalPaid)} / ${formatCurrency(totalDue)}`;
+      : null;
+  const rows = [
+    { label: "Tahakkuk", value: totalDue },
+    { label: "Tahsil Edilen", value: totalPaid },
+    { label: "Kalan", value: Math.max(totalDue - totalPaid, 0) },
+  ];
 
   return (
     <section className="iv-card iv-collect" aria-label="Tahsilat oranı">
@@ -249,25 +263,16 @@ function CollectSummary({ charges, hasError }) {
       <span className={isBlank ? "iv-collect-meter iv-collect-meter--blank" : "iv-collect-meter"} aria-hidden="true">
         <span style={{ width: `${Math.min(collectionPercent ?? 0, 100)}%` }} />
       </span>
-      <span className="iv-collect-amounts">{amountsText}</span>
-    </section>
-  );
-}
+      {noteText ? <span className="iv-collect-note">{noteText}</span> : null}
 
-function PagesCard({ onNavigate }) {
-  return (
-    <section className="iv-card iv-pages" aria-label="İlgili sayfalar">
-      <span className="iv-card-title">İlgili Sayfalar</span>
-      <div className="iv-shortcuts">
-        <button type="button" className="iv-shortcut" onClick={() => onNavigate("/dues")}>
-          <FiCalendar aria-hidden="true" />
-          Aidat Takibi
-        </button>
-        <button type="button" className="iv-shortcut" onClick={() => onNavigate("/cash-book")}>
-          <FiBookOpen aria-hidden="true" />
-          Kasa Defteri
-        </button>
-      </div>
+      <dl className="iv-collect-list">
+        {rows.map((row) => (
+          <div key={row.label} className="iv-collect-row">
+            <dt>{row.label}</dt>
+            <dd>{hasError ? "—" : formatCurrency(row.value)}</dd>
+          </div>
+        ))}
+      </dl>
     </section>
   );
 }
@@ -330,6 +335,31 @@ function InvestmentControlBar({
 }
 
 // Shown in place of the whole page until the fund exists, the same way the staff page asks for its fund.
+// The start screen is the user's first contact with the term, so the facts that shape every later screen
+// are listed next to the form instead of being packed into one paragraph.
+const SETUP_FACTS = [
+  {
+    icon: FiUser,
+    title: "Malike yazılır",
+    body: "Katkının muhatabı dairede oturan kişi değil kat malikidir.",
+  },
+  {
+    icon: FiCalendar,
+    title: "Bu aydan başlar",
+    body: "Tahakkuk içinde bulunulan aydan başlar, geçmiş aylara borç yazılmaz.",
+  },
+  {
+    icon: FiCreditCard,
+    title: "Ana kasaya girer",
+    body: "Tahsilat Kasa Defteri'nde gelir olarak görünür, ayrı bir kasa açılmaz.",
+  },
+  {
+    icon: FiTool,
+    title: "Harcama fondan işaretlenir",
+    body: "Çatı, asansör gibi işlerin gideri Kasa Defteri'nde yatırım fonundan ödendi olarak girilir.",
+  },
+];
+
 function FundStartForm({ building, onStarted }) {
   const [monthlyInput, setMonthlyInput] = useState("");
   const [openingInput, setOpeningInput] = useState("");
@@ -372,22 +402,39 @@ function FundStartForm({ building, onStarted }) {
 
   return (
     <section className="page-band iv-setup-band" aria-label="Yatırım aidatını başlat">
-      <form className="iv-setup" onSubmit={handleSubmit}>
+      <div className="iv-setup">
         <div className="iv-setup-intro">
-          <span className="iv-setup-mark" aria-hidden="true">
-            <FiPieChart />
-          </span>
-          <div>
-            <h2 className="iv-setup-title">Yatırım Aidatını Başlat</h2>
-            <p className="iv-setup-body">
-              Yatırım aidatı, binanın değerini koruyan büyük işler için her daireden aylık aidata ek olarak toplanan
-              paradır ve dairenin malikine yazılır. Tahakkuk bu aydan başlar, daha önce biriken para varsa açılış
-              bakiyesi olarak girilir.
-            </p>
+          <div className="iv-setup-head">
+            <span className="iv-setup-mark" aria-hidden="true">
+              <FiPieChart />
+            </span>
+            <div>
+              <h2 className="iv-setup-title">Yatırım Aidatını Başlat</h2>
+              <p className="iv-setup-body">
+                Binanın değerini koruyan büyük işler için aylık aidata ek olarak toplanan paradır. Demirbaş aidatı ya da
+                yenileme fonu olarak da bilinir.
+              </p>
+            </div>
           </div>
+
+          <ul className="iv-setup-facts">
+            {SETUP_FACTS.map(({ icon: Icon, title, body }) => (
+              <li className="iv-setup-fact" key={title}>
+                <div className="iv-setup-fact-head">
+                  <span className="iv-setup-fact-mark" aria-hidden="true">
+                    <Icon />
+                  </span>
+                  <span className="iv-setup-fact-title">{title}</span>
+                </div>
+                <span className="iv-setup-fact-body">{body}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
-        <div className="iv-setup-grid">
+        <form className="iv-setup-form" onSubmit={handleSubmit}>
+          <h3 className="iv-setup-form-title">Fon Bilgileri</h3>
+
           <div className="iv-field">
             <label htmlFor="iv-monthly">Daire Başına Aylık Tutar (₺)</label>
             <input
@@ -401,6 +448,7 @@ function FundStartForm({ building, onStarted }) {
               onChange={(e) => setMonthlyInput(e.target.value)}
               required
             />
+            <span className="iv-setup-hint">Her daireye her ay aynı tutar yazılır.</span>
           </div>
 
           <div className="iv-field">
@@ -415,13 +463,14 @@ function FundStartForm({ building, onStarted }) {
               value={openingInput}
               onChange={(e) => setOpeningInput(e.target.value)}
             />
+            <span className="iv-setup-hint">Daha önce biriken para yoksa boş bırakılabilir.</span>
           </div>
 
           <button type="submit" className="iv-setup-submit" disabled={isSubmitting}>
             {isSubmitting ? "Başlatılıyor..." : "Başlat"}
           </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </section>
   );
 }
@@ -579,14 +628,13 @@ function Investment() {
           <div className="iv-list-main">{renderList()}</div>
 
           <div className="iv-rail">
+            <CollectSummary charges={charges} hasError={Boolean(errorMessage)} />
             <FundCard
               fund={fund}
               totals={totals}
               hasError={Boolean(errorMessage)}
               onSettings={() => setShowSettings(true)}
             />
-            <CollectSummary charges={charges} hasError={Boolean(errorMessage)} />
-            <PagesCard onNavigate={navigate} />
           </div>
 
           <Pager currentPage={currentPage} pageCount={pageCount} onChange={setPage} />

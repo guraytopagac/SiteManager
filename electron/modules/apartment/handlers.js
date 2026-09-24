@@ -4,6 +4,7 @@ const {
   fail,
   validateApartmentType,
   validateBuildingScope,
+  validateCurrentMonthScope,
   validateDueAmount,
   validateId,
 } = require("../shared/validate");
@@ -33,13 +34,6 @@ function validateApartmentFields(payload) {
   }
 
   return validateApartmentType(payload.type);
-}
-
-function validateCurrentMonthScope(payload) {
-  if (typeof payload.applyCurrentMonth !== "boolean") {
-    return fail("Geçerlilik dönemi bilgisi eksik.");
-  }
-  return null;
 }
 
 // Every id must be valid and listed once, so the service can compare the count with the rows it finds.

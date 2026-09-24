@@ -109,6 +109,32 @@
 }
 
 .rs-md-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 11px;
+  background: var(--background-color-1);
+}
+
+.rs-md-note-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-tint);
+  color: var(--button-color);
+}
+
+.rs-md-note-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.rs-md-note p {
   margin: 0;
   color: var(--text-secondary);
   font-size: 1rem;

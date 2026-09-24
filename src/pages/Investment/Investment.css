@@ -11,17 +11,11 @@
   background: var(--background-color-1);
 }
 
-.iv-card-title {
-  color: var(--text-secondary);
-  font-size: 1rem;
-  font-weight: 650;
-}
-
 .iv-card-action {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px;
+  padding: 8px 12px;
   border: 1px solid var(--border-default);
   border-radius: 12px;
   background: var(--card-background-1);
@@ -148,19 +142,21 @@
 
 .iv-fund {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .iv-fund-top {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
 }
 
 .iv-fund-label {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  white-space: nowrap;
   color: var(--text-secondary);
   font-size: 1rem;
   font-weight: 600;
@@ -182,9 +178,9 @@
 }
 
 .iv-fund-value {
-  margin-left: auto;
+  white-space: nowrap;
   color: var(--text-color);
-  font-size: 1.35rem;
+  font-size: 1.6rem;
   font-weight: 750;
   line-height: 1.1;
   letter-spacing: -0.02em;
@@ -197,8 +193,8 @@
 
 .iv-fund-rows {
   display: grid;
-  gap: 8px;
-  padding-top: 12px;
+  gap: 5px;
+  padding-top: 10px;
   border-top: 1px solid var(--border-default);
 }
 
@@ -212,21 +208,23 @@
 }
 
 .iv-fund-row b {
+  white-space: nowrap;
   color: var(--text-color);
   font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 
-.iv-fund-note {
+.iv-fund-row b.iv-fund-status--stopped {
   color: var(--color-warning-text);
-  font-size: 1rem;
-  font-weight: 600;
 }
 
 .iv-collect {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 6px;
+  min-height: 0;
+  padding-bottom: 18px;
 }
 
 .iv-collect-top {
@@ -261,8 +259,9 @@
 
 .iv-collect-value {
   margin-left: auto;
+  white-space: nowrap;
   color: var(--button-color);
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 750;
   line-height: 1.1;
   letter-spacing: -0.02em;
@@ -275,6 +274,7 @@
 
 .iv-collect-meter {
   display: block;
+  flex-shrink: 0;
   height: 8px;
   border-radius: 999px;
   background: var(--border-default);
@@ -293,9 +293,40 @@
   transition: width 0.4s ease;
 }
 
-.iv-collect-amounts {
+.iv-collect-note {
   color: var(--text-secondary);
+  text-align: center;
   font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.iv-collect-list {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  margin: 8px 0 0;
+}
+
+.iv-collect-row {
+  display: flex;
+  flex: 1 0 28px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid var(--border-default);
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.iv-collect-row dt {
+  color: var(--text-secondary);
+}
+
+.iv-collect-row dd {
+  margin: 0;
+  white-space: nowrap;
+  color: var(--text-color);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -312,52 +343,10 @@
 
 .iv-rail {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: 12px;
-}
-
-.iv-pages {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 14px;
-}
-
-.iv-shortcuts {
-  display: grid;
-  grid-auto-rows: minmax(36px, 1fr);
-  gap: 10px;
-}
-
-.iv-shortcut {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border: 1px solid var(--border-default);
-  border-radius: 11px;
-  background: var(--card-background-1);
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: 1rem;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    border-color 0.15s ease,
-    color 0.15s ease,
-    background-color 0.15s ease;
-}
-
-.iv-shortcut:hover {
-  border-color: var(--button-color);
-  background: var(--accent-tint);
-  color: var(--button-color);
-}
-
-.iv-shortcut svg {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
+  height: 0;
+  min-height: 100%;
 }
 
 .iv-table-surface {
@@ -641,14 +630,21 @@
 
 .iv-setup {
   display: grid;
-  gap: 22px;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 20px;
+}
+
+.iv-setup-intro,
+.iv-setup-form {
+  display: flex;
+  flex-direction: column;
   padding: 26px 28px 28px;
   border: 1px solid var(--border-default);
   border-radius: 16px;
   background: var(--background-color-1);
 }
 
-.iv-setup-intro {
+.iv-setup-head {
   display: flex;
   align-items: flex-start;
   gap: 16px;
@@ -679,17 +675,84 @@
 }
 
 .iv-setup-body {
-  max-width: 720px;
+  max-width: 520px;
   margin: 0;
   color: var(--text-secondary);
   font-size: 1rem;
 }
 
-.iv-setup-grid {
+.iv-setup-facts {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  flex: 1;
+  gap: 12px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.iv-setup-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--border-default);
+  border-radius: 13px;
+  background: var(--card-background-1);
+}
+
+.iv-setup-fact-mark {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--accent-tint);
+  color: var(--button-color);
+}
+
+.iv-setup-fact-mark svg {
+  width: 18px;
+  height: 18px;
+}
+
+.iv-setup-fact-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.iv-setup-fact-title {
+  color: var(--text-color);
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.iv-setup-fact-body {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.iv-setup-form {
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.iv-setup-form-title {
+  margin: 0;
+  color: var(--text-color);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.iv-setup-hint {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.4;
 }
 
 .iv-field {
@@ -726,7 +789,8 @@
 }
 
 .iv-setup-submit {
-  height: 46px;
+  width: 100%;
+  height: 48px;
   padding: 0 32px;
   border: 1px solid var(--button-color);
   border-radius: 11px;

@@ -17,7 +17,6 @@ import {
   FiSkipBack,
   FiUser,
   FiUserPlus,
-  FiUsers,
   FiX,
 } from "react-icons/fi";
 import "./Residents.css";
@@ -296,42 +295,6 @@ function PanelEmpty({ title, body }) {
       </span>
       <span className="rs-panel-empty-title">{title}</span>
       <span className="rs-panel-empty-body">{body}</span>
-    </div>
-  );
-}
-
-// The occupancy figure is the panel's first block rather than its own card, which ate the panel's height.
-// An unknown household size counts as zero, so the total never reports people the user never entered.
-function OccupancySummary({ units, hasError }) {
-  const occupied = units.filter((unit) => unit.occupant_id).length;
-  const people = units.reduce((sum, unit) => sum + (unit.occupant_id ? unit.occupant_household_size || 0 : 0), 0);
-  const occupancyPercent = units.length > 0 ? Math.round((occupied / units.length) * 100) : null;
-  const hasPercent = !hasError && occupancyPercent !== null;
-  const summaryText = hasError
-    ? "Doluluk okunamadı"
-    : occupancyPercent === null
-      ? "Binada kayıtlı daire yok"
-      : `${occupied} / ${units.length} daire dolu · ${people} kişi`;
-
-  return (
-    <div className="rs-summary">
-      <div className="rs-summary-top">
-        <span className="rs-summary-label">
-          <span className="rs-summary-mark" aria-hidden="true">
-            <FiUsers />
-          </span>
-          Doluluk
-        </span>
-        <span className={hasPercent ? "rs-summary-value" : "rs-summary-value rs-summary-value--blank"}>
-          {hasPercent ? `%${occupancyPercent}` : "—"}
-        </span>
-      </div>
-      {hasPercent && (
-        <span className="rs-summary-meter" aria-hidden="true">
-          <span style={{ width: `${Math.min(occupancyPercent, 100)}%` }} />
-        </span>
-      )}
-      <span className="rs-summary-amounts">{summaryText}</span>
     </div>
   );
 }
@@ -660,13 +623,7 @@ function Residents() {
                   onHistory={() => setHistoryTarget(panelUnit)}
                 />
               ) : (
-                <>
-                  <OccupancySummary units={units} hasError={Boolean(errorMessage)} />
-                  <PanelEmpty
-                    title="Daire seçilmedi"
-                    body="Listeden bir daire seçin, sakin bilgileri burada görünür."
-                  />
-                </>
+                <PanelEmpty title="Daire seçilmedi" body="Listeden bir daire seçin, sakin bilgileri burada görünür." />
               )}
             </section>
           </div>

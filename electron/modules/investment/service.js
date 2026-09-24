@@ -118,8 +118,31 @@ function setupFund(payload) {
   }
 }
 
+// Only an unpaid row takes the new amount: a paid one would break the paid_amount <= due_amount CHECK the
+// moment the amount went down, and rewriting what someone already paid against changes their record.
+function repriceCurrentMonth(buildingId, monthlyAmount) {
+  const { year, month } = trYearMonth();
+  const scope = `apartment_id IN (SELECT id FROM apartments WHERE building_id = ? AND is_active = 1)
+     AND year = ? AND month = ? AND due_type = 'investment'`;
+
+  getDb()
+    .prepare(`UPDATE dues SET due_amount = ?, updated_at = ${TR_NOW_SQL} WHERE ${scope} AND paid_amount = 0`)
+    .run(monthlyAmount, buildingId, year, month);
+
+  return getDb()
+    .prepare(`SELECT COUNT(*) AS total FROM dues WHERE ${scope} AND paid_amount > 0`)
+    .get(buildingId, year, month).total;
+}
+
+// A skipped apartment is named in the message, never left out silently.
+function currentMonthNote(skipped) {
+  if (skipped === null) return "";
+  if (skipped > 0) return ` Bu ay ödeme alınan ${skipped} daire eski tutarda kaldı.`;
+  return " Yeni tutar bu aya da işlendi.";
+}
+
 function updateFund(payload) {
-  const { buildingId, monthlyAmount, openingBalance, isCollecting } = payload;
+  const { buildingId, monthlyAmount, applyCurrentMonth, isCollecting } = payload;
   try {
     const blocker = buildingWriteBlocker(buildingId);
     if (blocker) return blocker;
@@ -127,31 +150,27 @@ function updateFund(payload) {
     const fund = findFund(buildingId);
     if (!fund) return { success: false, message: "Yatırım aidatı henüz başlatılmamış." };
 
-    // A new amount is frozen into the months accrued from now on, the ones already accrued keep theirs.
-    // Resuming moves the accrual month forward, so the months collection was stopped never appear.
+    // A new amount is frozen into the months accrued from now on. The month in progress takes it only when
+    // the caller asks, the months before it never do. Resuming moves the accrual month forward, so the
+    // months collection was stopped never appear.
     const wasCollecting = fund.is_collecting === 1;
     const resumes = isCollecting && !wasCollecting;
+    const repricesCurrentMonth = applyCurrentMonth && monthlyAmount !== fund.monthly_amount;
 
-    getDb().transaction(() => {
+    const skipped = getDb().transaction(() => {
       getDb()
         .prepare(
           `UPDATE investment_funds
-           SET monthly_amount = ?, opening_balance = ?, is_collecting = ?, accrual_from = ?,
-               updated_at = ${TR_NOW_SQL}
+           SET monthly_amount = ?, is_collecting = ?, accrual_from = ?, updated_at = ${TR_NOW_SQL}
            WHERE building_id = ?`,
         )
-        .run(
-          monthlyAmount,
-          openingBalance,
-          isCollecting ? 1 : 0,
-          resumes ? currentMonthStart() : fund.accrual_from,
-          buildingId,
-        );
+        .run(monthlyAmount, isCollecting ? 1 : 0, resumes ? currentMonthStart() : fund.accrual_from, buildingId);
 
       if (isCollecting) ensureInvestmentDues(buildingId);
+      return repricesCurrentMonth ? repriceCurrentMonth(buildingId, monthlyAmount) : null;
     })();
 
-    return { success: true, message: updateMessage(wasCollecting, isCollecting) };
+    return { success: true, message: `${updateMessage(wasCollecting, isCollecting)}${currentMonthNote(skipped)}` };
   } catch (err) {
     console.error("[investment.service] updateFund:", err);
     return { success: false, message: resolveDbError(err, "Yatırım aidatı güncelleme") };

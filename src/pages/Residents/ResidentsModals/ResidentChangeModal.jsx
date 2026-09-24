@@ -2,7 +2,7 @@
 // Only a tenant may leave with nobody lined up, since an apartment always belongs to someone.
 
 import { useState } from "react";
-import { FiX } from "react-icons/fi";
+import { FiInfo, FiX } from "react-icons/fi";
 import "./ResidentsModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { showDialog } from "@/components/Dialog/dialogStore";
@@ -216,10 +216,15 @@ function ResidentChangeModal({
         <div className="rs-md-body">
           {step === 1 ? (
             <>
-              <p className="rs-md-note">
-                <b>{resident.full_name || roleText.fallbackName}</b>{" "}
-                {isScheduleEdit ? roleText.editNote : roleText.note}
-              </p>
+              <div className="rs-md-note">
+                <span className="rs-md-note-icon" aria-hidden="true">
+                  <FiInfo />
+                </span>
+                <p>
+                  <b>{resident.full_name || roleText.fallbackName}</b>{" "}
+                  {isScheduleEdit ? roleText.editNote : roleText.note}
+                </p>
+              </div>
 
               <div className="rs-md-field">
                 <label htmlFor="move-out-date">{roleText.dateLabel}</label>

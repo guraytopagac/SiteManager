@@ -92,12 +92,6 @@
   gap: 18px;
 }
 
-.iv-md-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
 .iv-md-field {
   display: grid;
   gap: 7px;
@@ -132,9 +126,112 @@
   color: var(--text-disabled);
 }
 
-.iv-md-hint {
+.iv-scope {
+  display: grid;
+  gap: 8px;
+}
+
+.iv-scope-legend {
   color: var(--text-secondary);
   font-size: 1rem;
+  font-weight: 600;
+}
+
+.iv-scope-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.iv-scope-card {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: var(--background-color-1);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.iv-scope-card:hover {
+  border-color: var(--text-secondary);
+}
+
+.iv-scope-card--active {
+  border-color: var(--button-color);
+  background: var(--accent-tint);
+}
+
+.iv-scope-card:has(input:focus-visible) {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--button-color) 18%, transparent);
+}
+
+.iv-scope-card input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.iv-scope-card b {
+  color: var(--text-color);
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.iv-scope-card--active b {
+  color: var(--button-color);
+}
+
+.iv-scope-card span {
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.iv-md-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 3px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 11px;
+  background: var(--background-color-1);
+}
+
+.iv-md-note-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-tint);
+  color: var(--button-color);
+}
+
+.iv-md-note-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.iv-md-note p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.iv-md-note b {
+  color: var(--text-color);
+  white-space: nowrap;
 }
 
 .iv-switch {

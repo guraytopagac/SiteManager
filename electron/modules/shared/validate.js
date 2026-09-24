@@ -92,6 +92,14 @@ function validateOpeningBalance(value) {
   return null;
 }
 
+// Used by apartment and investment: a new amount either reaches the month in progress or waits for the next one.
+function validateCurrentMonthScope(payload) {
+  if (typeof payload.applyCurrentMonth !== "boolean") {
+    return fail("Geçerlilik dönemi bilgisi eksik.");
+  }
+  return null;
+}
+
 // Used by dues and report. The future-period message differs per domain, so it is a parameter.
 function validatePeriod(payload, futureMessage) {
   if (!isValidYear(payload.year) || !isValidMonth(payload.month)) {
@@ -145,6 +153,7 @@ module.exports = {
   validateBuildingScope,
   validateCancelReason,
   validateCashAccount,
+  validateCurrentMonthScope,
   validateDueAmount,
   validateId,
   validateOpeningBalance,
