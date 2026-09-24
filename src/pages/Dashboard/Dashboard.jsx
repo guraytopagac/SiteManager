@@ -110,7 +110,7 @@ function StatusEmpty({ onAdd }) {
   );
 }
 
-// The rate is drawn inside the icon square, so this card keeps the same shape as the two beside it.
+// The rate is drawn as a ring beside the figure, so this card keeps the same height as the two beside it.
 // pathLength lets the dash length be the percentage itself.
 function RateRing({ value }) {
   return (
@@ -138,13 +138,16 @@ function StatusMetrics({ stats, navigate }) {
 
       <MetricTile
         className="db-metric db-metric--rate"
-        icon={hasRate ? <RateRing value={stats.collections} /> : <FiTrendingUp />}
+        icon={<FiTrendingUp />}
         label="Tahsilat"
         ariaLabel="Tahsilat, aidat listesini aç"
         onOpen={() => navigate("/dues")}
       >
-        <span className={hasRate ? "db-metric-value" : "db-metric-value db-metric-value--blank"}>
-          {hasRate ? `%${stats.collections}` : "—"}
+        <span className="db-metric-row">
+          <span className={hasRate ? "db-metric-value" : "db-metric-value db-metric-value--blank"}>
+            {hasRate ? `%${stats.collections}` : "—"}
+          </span>
+          {hasRate ? <RateRing value={stats.collections} /> : null}
         </span>
         {hasRate ? null : <span className="db-metric-meta">Bu ay için tahakkuk yok</span>}
       </MetricTile>

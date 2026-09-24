@@ -185,9 +185,16 @@
   font-size: 1rem;
 }
 
-.db-metric-mark .db-ring {
-  width: 28px;
-  height: 28px;
+.db-metric-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.db-ring {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
   transform: rotate(-90deg);
 }
 
