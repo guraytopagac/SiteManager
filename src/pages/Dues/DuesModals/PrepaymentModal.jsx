@@ -119,8 +119,8 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
 
   const rangeEnd = range.end ?? range.start;
   const isInRange = (period) => range.start !== null && period >= range.start && period <= rangeEnd;
-  const covered = months.filter((item) => isInRange(toPeriod(item.year, item.month)) && text.amountOf(item) > 0);
-  const total = covered.reduce((sum, item) => sum + Math.round(text.amountOf(item) * 100), 0) / 100;
+  const rangeMonths = months.filter((item) => isInRange(toPeriod(item.year, item.month)) && text.amountOf(item) > 0);
+  const rangeTotal = rangeMonths.reduce((sum, item) => sum + Math.round(text.amountOf(item) * 100), 0) / 100;
 
   const handleSelect = (due) => {
     if (due.apartment_id === apartmentId) return;
@@ -144,14 +144,14 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
     window.electronAPI.recordPrepayment({
       apartmentId: selectedDue.apartment_id,
       buildingId: building.id,
-      startYear: covered[0].year,
-      startMonth: covered[0].month,
-      endYear: covered[covered.length - 1].year,
-      endMonth: covered[covered.length - 1].month,
+      startYear: rangeMonths[0].year,
+      startMonth: rangeMonths[0].month,
+      endYear: rangeMonths[rangeMonths.length - 1].year,
+      endMonth: rangeMonths[rangeMonths.length - 1].month,
       paymentData: {
         payment_method: paymentMethod,
         payment_date: date,
-        note: `Peşin ödeme: ${monthSpan(covered)}`,
+        note: `Peşin ödeme: ${monthSpan(rangeMonths)}`,
         collector_name: collector.trim() || null,
         collected_by: session.id,
       },
@@ -162,10 +162,10 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
       apartmentId: selectedDue.apartment_id,
       buildingId: building.id,
       userId: session.id,
-      startYear: covered[0].year,
-      startMonth: covered[0].month,
-      endYear: covered[covered.length - 1].year,
-      endMonth: covered[covered.length - 1].month,
+      startYear: rangeMonths[0].year,
+      startMonth: rangeMonths[0].month,
+      endYear: rangeMonths[rangeMonths.length - 1].year,
+      endMonth: rangeMonths[rangeMonths.length - 1].month,
       refund: { payee_name: payee, account, date },
     });
 
@@ -180,7 +180,7 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
       showDialog.warning("Ay Seçilmedi", "Lütfen listeden başlangıç ve bitiş ayını seçin.");
       return;
     }
-    if (covered.length === 0) {
+    if (rangeMonths.length === 0) {
       showDialog.warning("Kapsanan Ay Yok", text.emptyMessage);
       return;
     }
@@ -194,8 +194,8 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
         ? await showDialog.confirm(
             "Peşin Ödeme",
             <>
-              <b>Daire {selectedDue.apartment_no}</b> için {coverPhrase(covered)} aidatı <b>{formatCurrency(total)}</b>{" "}
-              olarak tahsil edilecek.
+              <b>Daire {selectedDue.apartment_no}</b> için {coverPhrase(rangeMonths)} aidatı{" "}
+              <b>{formatCurrency(rangeTotal)}</b> olarak tahsil edilecek.
             </>,
             "Vazgeç",
             "Kaydet",
@@ -203,8 +203,9 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
         : await showDialog.confirmDanger(
             "Aidat İadesi",
             <>
-              <b>Daire {selectedDue.apartment_no}</b> için {coverPhrase(covered)} ödemesi,{" "}
-              <b>{formatCurrency(total)}</b> olarak <b>{payee.trim()}</b> adına iade edilecek. Bu işlem geri alınamaz.
+              <b>Daire {selectedDue.apartment_no}</b> için {coverPhrase(rangeMonths)} ödemesi,{" "}
+              <b>{formatCurrency(rangeTotal)}</b> olarak <b>{payee.trim()}</b> adına iade edilecek. Bu işlem geri
+              alınamaz.
             </>,
             "Vazgeç",
             "İade Et",
@@ -467,8 +468,8 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
             </div>
             {renderMonths()}
             <div className="du-pre-total">
-              <span>{covered.length > 0 ? `${covered.length} ay` : "Toplam"}</span>
-              <b>{formatCurrency(total)}</b>
+              <span>{rangeMonths.length > 0 ? `${rangeMonths.length} ay` : "Toplam"}</span>
+              <b>{formatCurrency(rangeTotal)}</b>
             </div>
           </section>
         </div>
