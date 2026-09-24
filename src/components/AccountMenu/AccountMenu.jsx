@@ -53,7 +53,12 @@ function AccountMenu() {
 
   const handleLogout = async () => {
     setIsOpen(false);
-    const confirmed = await showDialog.confirm("Çıkış Yap", "Oturumu kapatmak istiyor musunuz?", "Vazgeç", "Evet, Çık");
+    const confirmed = await showDialog.confirmDanger(
+      "Çıkış Yap",
+      "Oturumu kapatmak istiyor musunuz?",
+      "Vazgeç",
+      "Evet, Çık",
+    );
     if (!confirmed) return;
     clearSession();
     navigate("/", { replace: true });
