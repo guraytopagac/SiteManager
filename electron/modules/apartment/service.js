@@ -321,4 +321,79 @@ function bulkUpdateDueAmount(payload) {
   }
 }
 
-module.exports = { addApartment, updateApartment, deleteApartment, bulkUpdateDueAmount };
+// Writes one amount to the selected apartments in a single transaction: either all of them change or none.
+// Accrued rows follow the same rules as the bulk update.
+function updateDueAmounts(payload) {
+  try {
+    const buildingError = checkBuildingUsable(payload.buildingId);
+    if (buildingError) {
+      return buildingError;
+    }
+
+    const ids = payload.apartmentIds;
+    // Only the placeholders are built here, the ids themselves are always bound.
+    const idListSql = `(${ids.map(() => "?").join(", ")})`;
+
+    const apartments = getDb()
+      .prepare(`SELECT apartment_no FROM apartments WHERE building_id = ? AND is_active = 1 AND id IN ${idListSql}`)
+      .all(payload.buildingId, ...ids);
+    if (apartments.length !== ids.length) {
+      return { success: false, message: "Seçilen dairelerden biri bulunamadı, hiçbir daire güncellenmedi." };
+    }
+
+    const { year, month } = trYearMonth();
+
+    const applyAmount = getDb().transaction(() => {
+      getDb()
+        .prepare(`UPDATE apartments SET due_amount = ?, updated_at = ${TR_NOW_SQL} WHERE id IN ${idListSql}`)
+        .run(payload.amount, ...ids);
+
+      const repriced = repriceAdvanceDues(payload.amount, `apartment_id IN ${idListSql}`, ids);
+      if (!payload.applyCurrentMonth) {
+        return { skipped: 0, repriced };
+      }
+
+      getDb()
+        .prepare(
+          `UPDATE dues SET due_amount = ?, updated_at = ${TR_NOW_SQL}
+           WHERE year = ? AND month = ? AND due_type = 'regular' AND paid_amount = 0 AND apartment_id IN ${idListSql}`,
+        )
+        .run(payload.amount, year, month, ...ids);
+
+      const { skipped } = getDb()
+        .prepare(
+          `SELECT COUNT(*) AS skipped FROM dues
+           WHERE year = ? AND month = ? AND due_type = 'regular' AND paid_amount > 0 AND apartment_id IN ${idListSql}`,
+        )
+        .get(year, month, ...ids);
+
+      return { skipped, repriced };
+    });
+
+    const { skipped, repriced } = applyAmount();
+
+    const subject =
+      apartments.length === 1 ? `Daire ${apartments[0].apartment_no} aidatı` : `${apartments.length} dairenin aidatı`;
+
+    if (skipped > 0) {
+      const skippedNote =
+        apartments.length === 1
+          ? "bu ay ödeme alındığı için bu ayın aidatı değişmedi"
+          : `bu ay ödeme alınan ${skipped} daire eski tutarda kaldı`;
+      return { success: true, message: `${subject} güncellendi, ${skippedNote}.${advanceNote(repriced)}` };
+    }
+    if (payload.applyCurrentMonth) {
+      return {
+        success: true,
+        message: `${subject} güncellendi, yeni tutar bu aya da işlendi.${advanceNote(repriced)}`,
+      };
+    }
+
+    return { success: true, message: `${subject} güncellendi.${advanceNote(repriced)}` };
+  } catch (err) {
+    console.error("[apartment.service] updateDueAmounts:", err);
+    return { success: false, message: "Aidat güncellemesi sırasında beklenmeyen bir hata oluştu." };
+  }
+}
+
+module.exports = { addApartment, updateApartment, deleteApartment, bulkUpdateDueAmount, updateDueAmounts };

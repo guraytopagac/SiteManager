@@ -10,7 +10,7 @@ import { MAX_DUE_AMOUNT } from "@/utils/constants";
 import { formatCurrency } from "@/utils/currency";
 import { searchKey } from "@/utils/searchKey";
 
-function SingleDueAmountModal({ dues, building, onClose, onSaved }) {
+function SelectedDueAmountModal({ dues, building, onClose, onSaved }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [amount, setAmount] = useState("");
@@ -63,51 +63,22 @@ function SingleDueAmountModal({ dues, building, onClose, onSaved }) {
     setIsSubmitting(true);
 
     try {
-      // One request per apartment, since updateApartment takes a single row. A failure does not stop the rest,
-      // the failed apartments are listed at the end.
-      const failures = [];
-      let lastMessage = "";
-      for (const due of selectedDues) {
-        // Identity fields travel straight from the row: they come from the apartment and do not vary by period,
-        // unlike the amount next to them.
-        const res = await window.electronAPI.updateApartment({
-          id: due.apartment_id,
-          buildingId: building.id,
-          apartment_no: due.apartment_no,
-          floor: due.floor,
-          type: due.type,
-          square_meters: due.square_meters,
-          due_amount: dueAmount,
-          applyCurrentMonth,
-        });
-        if (res.success) {
-          lastMessage = res.message;
-        } else {
-          failures.push(`Daire ${due.apartment_no}: ${res.message}`);
-        }
-      }
+      // One request for the whole selection, so the service writes all of them or none.
+      const res = await window.electronAPI.updateDueAmounts({
+        buildingId: building.id,
+        apartmentIds: selectedIds,
+        amount: dueAmount,
+        applyCurrentMonth,
+      });
 
-      const savedCount = selectedDues.length - failures.length;
-      if (failures.length > 0) {
-        showDialog.error(
-          "Bazı Daireler Güncellenemedi",
-          failures.map((line) => (
-            <span key={line}>
-              {line}
-              <br />
-            </span>
-          )),
-        );
-      } else if (savedCount === 1) {
-        showDialog.toast(lastMessage);
-      } else {
-        showDialog.toast(`${savedCount} dairenin aidatı güncellendi.`);
-      }
-      if (savedCount > 0) {
+      if (res.success) {
+        showDialog.toast(res.message);
         onSaved();
+      } else {
+        showDialog.error("Hata", res.message);
       }
     } catch (err) {
-      console.error("[SingleDueAmountModal] updateApartment:", err);
+      console.error("[SelectedDueAmountModal] updateDueAmounts:", err);
       showDialog.error("Hata", "Aidat tutarı güncellenemedi.");
     } finally {
       setIsSubmitting(false);
@@ -233,4 +204,4 @@ function SingleDueAmountModal({ dues, building, onClose, onSaved }) {
   );
 }
 
-export default SingleDueAmountModal;
+export default SelectedDueAmountModal;

@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   updateApartment: (payload) => safeInvoke(CH.APARTMENT.UPDATE, payload),
   deleteApartment: (payload) => safeInvoke(CH.APARTMENT.DELETE, payload),
   bulkUpdateDueAmount: (payload) => safeInvoke(CH.APARTMENT.BULK_UPDATE_DUE_AMOUNT, payload),
+  updateDueAmounts: (payload) => safeInvoke(CH.APARTMENT.UPDATE_DUE_AMOUNTS, payload),
 
   login: (payload) => safeInvoke(CH.AUTH.LOGIN, payload),
   changePassword: (payload) => safeInvoke(CH.AUTH.CHANGE_PASSWORD, payload),

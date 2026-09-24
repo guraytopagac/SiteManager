@@ -24,7 +24,7 @@ import SearchBox from "@/components/SearchBox/SearchBox";
 import UnitCell from "@/components/UnitCell/UnitCell";
 import BulkDueAmountModal from "./DuesModals/BulkDueAmountModal";
 import PrepaymentModal from "./DuesModals/PrepaymentModal";
-import SingleDueAmountModal from "./DuesModals/SingleDueAmountModal";
+import SelectedDueAmountModal from "./DuesModals/SelectedDueAmountModal";
 import { useIpcData } from "@/hooks/useIpcData";
 import { usePagination } from "@/hooks/usePagination";
 import { useSession, useCurrentBuilding } from "@/hooks/useSession";
@@ -476,7 +476,7 @@ function Dues() {
       )}
 
       {showSingleUpdate && (
-        <SingleDueAmountModal
+        <SelectedDueAmountModal
           dues={dues}
           building={building}
           onClose={() => setShowSingleUpdate(false)}

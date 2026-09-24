@@ -51,6 +51,18 @@ function validateDueAmountChange(payload) {
   return validateDueAmount(payload.due_amount) ?? validateCurrentMonthScope(payload);
 }
 
+// Every id must be valid and listed once, so the service can compare the count with the rows it finds.
+function validateApartmentIds(payload) {
+  const ids = payload.apartmentIds;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return fail("En az bir daire seçilmelidir.");
+  }
+  if (!ids.every((id) => Number.isInteger(id) && id > 0) || new Set(ids).size !== ids.length) {
+    return fail("Geçersiz daire seçimi.");
+  }
+  return null;
+}
+
 function registerApartmentHandlers(ipcMain) {
   const handle = createHandle(ipcMain, "apartment");
 
@@ -72,6 +84,15 @@ function registerApartmentHandlers(ipcMain) {
     (payload) =>
       validateBuildingScope(payload) ?? validateDueAmount(payload.amount) ?? validateCurrentMonthScope(payload),
     apartmentService.bulkUpdateDueAmount,
+  );
+  handle(
+    CH.APARTMENT.UPDATE_DUE_AMOUNTS,
+    (payload) =>
+      validateBuildingScope(payload) ??
+      validateApartmentIds(payload) ??
+      validateDueAmount(payload.amount) ??
+      validateCurrentMonthScope(payload),
+    apartmentService.updateDueAmounts,
   );
 }
 

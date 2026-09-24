@@ -6,6 +6,7 @@ const CHANNELS = {
     UPDATE: "apartment:update",
     DELETE: "apartment:delete",
     BULK_UPDATE_DUE_AMOUNT: "apartment:bulk-update-due-amount",
+    UPDATE_DUE_AMOUNTS: "apartment:update-due-amounts",
   },
 
   AUTH: {
