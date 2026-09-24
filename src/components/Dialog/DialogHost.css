@@ -46,8 +46,8 @@
 }
 
 .dlg-mark--warning {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
+  background: var(--danger-soft);
+  color: var(--color-danger-text);
 }
 
 .dlg-mark--danger {
