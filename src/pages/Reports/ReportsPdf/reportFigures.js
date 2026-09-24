@@ -48,15 +48,18 @@ export function buildMonthlyFigures(data, year) {
   const sumMonth = (rows, month) =>
     rows.filter((row) => Number(row.date.slice(5, 7)) === month).reduce((sum, row) => sum + row.amount, 0);
 
-  return Array.from({ length: lastMonth }, (_, index) => {
-    const month = index + 1;
+  const monthlyFigures = [];
+
+  for (let month = 1; month <= lastMonth; month += 1) {
     const dues = data.monthlyDues.find((row) => row.month === month);
-    return {
+    monthlyFigures.push({
       month,
       income: sumMonth(data.incomes, month),
       expense: sumMonth(data.expenses, month),
       due: dues ? dues.due_amount : 0,
       paid: dues ? dues.paid_amount : 0,
-    };
-  });
+    });
+  }
+
+  return monthlyFigures;
 }

@@ -76,7 +76,13 @@ export const setLedgerStartYear = (year) => {
 export const getYearOptions = () => {
   const current = getCurrentYear();
   const first = ledgerStartYear === null ? current - FALLBACK_YEAR_SPAN : Math.min(ledgerStartYear, current);
-  return Array.from({ length: current - first + 1 }, (_, i) => current - i);
+  const years = [];
+
+  for (let year = current; year >= first; year -= 1) {
+    years.push(year);
+  }
+
+  return years;
 };
 
 // Lower bound of the date inputs that feed the period selectors, so no record lands in a month the selector
