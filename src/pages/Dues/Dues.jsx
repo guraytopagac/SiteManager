@@ -188,14 +188,13 @@ function ActionsCard({ onPrepayment, onBulkUpdate, onSingleUpdate }) {
 function CollectSummary({ dues, hasError }) {
   const totalDue = dues.reduce((sum, due) => sum + due.due_amount, 0);
   const totalPaid = dues.reduce((sum, due) => sum + due.paid_amount, 0);
-  const paidCount = dues.filter((due) => due.status === "paid").length;
   const collectionPercent = totalDue > 0 ? Math.round((totalPaid / totalDue) * 100) : null;
   const isBlank = hasError || collectionPercent === null;
   const noteText = hasError
     ? "Tahsilat oranı okunamadı"
     : collectionPercent === null
       ? "Bu ay için tahakkuk yok"
-      : `${paidCount} / ${dues.length} daire tamamını ödedi`;
+      : null;
   const rows = [
     { label: "Tahakkuk", value: totalDue },
     { label: "Tahsil Edilen", value: totalPaid },
@@ -219,7 +218,7 @@ function CollectSummary({ dues, hasError }) {
       <span className={isBlank ? "du-collect-meter du-collect-meter--blank" : "du-collect-meter"} aria-hidden="true">
         <span style={{ width: `${Math.min(collectionPercent ?? 0, 100)}%` }} />
       </span>
-      <span className="du-collect-note">{noteText}</span>
+      {noteText ? <span className="du-collect-note">{noteText}</span> : null}
 
       <dl className="du-collect-list">
         {rows.map((row) => (
