@@ -129,9 +129,9 @@ function validateDueType(value) {
   return DUE_TYPES.includes(value) ? null : fail("Geçersiz aidat türü.");
 }
 
-// A prepayment always starts with the current month, so only its last month is asked for, and a refund only
-// its first. These are the two channels allowed past the current period, and only by eleven months, so the
-// window is twelve months with the current one.
+// A prepayment and its refund both cover a range of months, each end checked here. These are the two channels
+// allowed past the current period, and only by eleven months, so the window is twelve months with the current
+// one.
 function validateAdvanceMonth(year, month) {
   if (!isValidYear(year) || !isValidMonth(month)) {
     return fail("Geçersiz dönem bilgisi.");
@@ -144,6 +144,16 @@ function validateAdvanceMonth(year, month) {
     return fail("Peşin ödeme işlemi bu ay dahil en fazla 12 ayı kapsayabilir.");
   }
   return null;
+}
+
+function validateAdvanceRange(payload) {
+  return (
+    validateAdvanceMonth(payload.startYear, payload.startMonth) ??
+    validateAdvanceMonth(payload.endYear, payload.endMonth) ??
+    (toPeriod(payload.startYear, payload.startMonth) > toPeriod(payload.endYear, payload.endMonth)
+      ? fail("Başlangıç ayı bitiş ayından sonra olamaz.")
+      : null)
+  );
 }
 
 // Who got the money back is asked every time, since the payer may have been the tenant or the owner.
@@ -210,7 +220,7 @@ function registerDuesHandlers(ipcMain) {
     (payload) =>
       validateBuildingScope(payload) ??
       validateId(payload.apartmentId, "daire ID") ??
-      validateAdvanceMonth(payload.endYear, payload.endMonth) ??
+      validateAdvanceRange(payload) ??
       validatePrepaymentData(payload.paymentData),
     duesService.recordPrepayment,
   );
@@ -220,7 +230,7 @@ function registerDuesHandlers(ipcMain) {
       validateBuildingScope(payload) ??
       validateId(payload.apartmentId, "daire ID") ??
       validateId(payload.userId, "kullanıcı ID") ??
-      validateAdvanceMonth(payload.startYear, payload.startMonth) ??
+      validateAdvanceRange(payload) ??
       validateRefundData(payload.refund),
     duesService.refundPrepayment,
   );

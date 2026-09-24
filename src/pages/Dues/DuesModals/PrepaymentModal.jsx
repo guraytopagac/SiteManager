@@ -1,6 +1,6 @@
-// Dues paid ahead of time, both ways. Collecting pays every month from the current one to the chosen last
-// month in full, refunding hands back every paid month from the chosen first one on. The months are listed on
-// the right in both modes, so the manager sees what the total covers before saving.
+// Dues paid ahead of time, both ways. Collecting pays every month of the chosen range in full, refunding hands
+// back every paid month of it. The months are listed on the right in both modes and the range is picked there,
+// first click the start and second click the end, so the manager sees what the total covers before saving.
 
 import { useEffect, useState } from "react";
 import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
@@ -12,41 +12,41 @@ import { formatCurrency } from "@/utils/currency";
 import { formatMonthYear, getMinDate, getToday, toPeriod } from "@/utils/date";
 import { searchKey } from "@/utils/searchKey";
 
-// Everything that differs between the two modes. Collecting counts what is still owed up to the chosen month,
-// refunding counts what was paid from the chosen month on.
+// Everything that differs between the two modes. Collecting counts what is still owed in the chosen range,
+// refunding counts what was paid in it.
 const MODES = {
   collect: {
     label: "Tahsilat",
     listTitle: "Kapsanan Aylar",
-    hint: "Son ayı seçin",
-    missingMessage: "Lütfen listeden son ayı seçin.",
     emptyMessage: "Seçilen ayların tamamı zaten ödenmiş.",
     submitLabel: "Peşin Ödemeyi Kaydet",
     amountOf: (item) => item.remaining,
-    isCovered: (period, selected) => period <= selected,
   },
   refund: {
     label: "İade",
     listTitle: "İade Edilecek Aylar",
-    hint: "İlk ayı seçin",
-    missingMessage: "Lütfen listeden ilk ayı seçin.",
     emptyMessage: "Seçilen aylarda iade edilecek ödeme yok.",
     submitLabel: "İadeyi Kaydet",
     amountOf: (item) => item.paid_amount,
-    isCovered: (period, selected) => period >= selected,
   },
 };
 
-// Collecting starts with no month picked, since a preselected year left the manager unsure what to do.
-// Refunding defaults to the first paid month after this one, since the current month is usually already lived
-// in, and falls back to the first paid month at all.
-function defaultSelection(months) {
-  const currentPeriod = toPeriod(months[0].year, months[0].month);
-  const paidPeriods = months.filter((item) => item.paid_amount > 0).map((item) => toPeriod(item.year, item.month));
-  return {
-    collect: null,
-    refund: paidPeriods.find((period) => period > currentPeriod) ?? paidPeriods[0] ?? currentPeriod,
-  };
+// Both modes start with no month picked, since a preselected range left the manager unsure what to do.
+const EMPTY_RANGE = { start: null, end: null };
+
+// A first click sets the start, a second one the end, and a third starts over. A second click before the start
+// swaps the two, so the range never runs backwards. With only the start picked the range is that one month.
+function nextRange(range, period) {
+  if (range.start === null || range.end !== null) return { start: period, end: null };
+  if (period < range.start) return { start: period, end: range.start };
+  return { start: range.start, end: period };
+}
+
+// Kept short, since the hint shares one line with the list title in a 340px column.
+function rangeHint(range) {
+  if (range.start === null) return "İlk ayı seçin";
+  if (range.end === null) return "Son ayı seçin";
+  return "Aralık seçildi";
 }
 
 // The months as the confirmation reads them: one month by name, a range with its count.
@@ -69,7 +69,7 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [months, setMonths] = useState([]);
   const [planError, setPlanError] = useState("");
-  const [selection, setSelection] = useState(null);
+  const [range, setRange] = useState(EMPTY_RANGE);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [collector, setCollector] = useState(session.managerName);
   const [payee, setPayee] = useState(session.managerName);
@@ -99,7 +99,6 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
         if (res.success) {
           setMonths(res.data);
           setPlanError("");
-          setSelection(defaultSelection(res.data));
         } else {
           setMonths([]);
           setPlanError(res.message || "Peşin ödeme bilgileri alınamadı.");
@@ -118,10 +117,9 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
     };
   }, [apartmentId, building.id]);
 
-  const selected = selection ? selection[mode] : null;
-  const covered = months.filter(
-    (item) => selected !== null && text.isCovered(toPeriod(item.year, item.month), selected) && text.amountOf(item) > 0,
-  );
+  const rangeEnd = range.end ?? range.start;
+  const isInRange = (period) => range.start !== null && period >= range.start && period <= rangeEnd;
+  const covered = months.filter((item) => isInRange(toPeriod(item.year, item.month)) && text.amountOf(item) > 0);
   const total = covered.reduce((sum, item) => sum + Math.round(text.amountOf(item) * 100), 0) / 100;
 
   const handleSelect = (due) => {
@@ -129,17 +127,25 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
     setApartmentId(due.apartment_id);
     setMonths([]);
     setPlanError("");
-    setSelection(null);
+    setRange(EMPTY_RANGE);
+  };
+
+  // The two modes count different amounts, so a range picked for one is not carried over to the other.
+  const changeMode = (key) => {
+    setMode(key);
+    setRange(EMPTY_RANGE);
   };
 
   const selectMonth = (period) => {
-    setSelection((current) => ({ ...current, [mode]: period }));
+    setRange((current) => nextRange(current, period));
   };
 
   const collect = () =>
     window.electronAPI.recordPrepayment({
       apartmentId: selectedDue.apartment_id,
       buildingId: building.id,
+      startYear: covered[0].year,
+      startMonth: covered[0].month,
       endYear: covered[covered.length - 1].year,
       endMonth: covered[covered.length - 1].month,
       paymentData: {
@@ -158,6 +164,8 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
       userId: session.id,
       startYear: covered[0].year,
       startMonth: covered[0].month,
+      endYear: covered[covered.length - 1].year,
+      endMonth: covered[covered.length - 1].month,
       refund: { payee_name: payee, account, date },
     });
 
@@ -168,8 +176,8 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
       showDialog.warning("Daire Seçilmedi", "Lütfen işlem yapılacak daireyi seçin.");
       return;
     }
-    if (selected === null) {
-      showDialog.warning("Ay Seçilmedi", text.missingMessage);
+    if (range.start === null) {
+      showDialog.warning("Ay Seçilmedi", "Lütfen listeden başlangıç ve bitiş ayını seçin.");
       return;
     }
     if (covered.length === 0) {
@@ -264,17 +272,18 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
       <div className="du-pre-list">
         {months.map((item) => {
           const period = toPeriod(item.year, item.month);
-          const isCovered = text.isCovered(period, selected) && text.amountOf(item) > 0;
+          const isCovered = isInRange(period) && text.amountOf(item) > 0;
+          const isEdge = period === range.start || period === range.end;
           const classes = ["du-pre-month"];
           if (isCovered) classes.push(`du-pre-month--${mode}`);
-          if (period === selected) classes.push("du-pre-month--edge");
+          if (isEdge) classes.push("du-pre-month--edge");
 
           return (
             <button
               key={period}
               type="button"
               className={classes.join(" ")}
-              aria-pressed={period === selected}
+              aria-pressed={isEdge}
               onClick={() => selectMonth(period)}
             >
               <span className="du-pre-month-name">{formatMonthYear(item.year, item.month)}</span>
@@ -316,7 +325,7 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
                   type="button"
                   className={key === mode ? "du-pre-mode du-pre-mode--active" : "du-pre-mode"}
                   aria-pressed={key === mode}
-                  onClick={() => setMode(key)}
+                  onClick={() => changeMode(key)}
                   disabled={isSubmitting}
                 >
                   {value.label}
@@ -454,7 +463,7 @@ function PrepaymentModal({ dues, session, building, onClose, onSaved }) {
           <section className="du-pre-side" aria-label="Kapsanan aylar">
             <div className="du-pre-side-head">
               <span className="du-pre-side-title">{text.listTitle}</span>
-              <span className="du-pre-side-hint">{text.hint}</span>
+              <span className="du-pre-side-hint">{rangeHint(range)}</span>
             </div>
             {renderMonths()}
             <div className="du-pre-total">

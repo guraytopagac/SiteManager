@@ -256,6 +256,16 @@ function prepaymentMonths(apartment) {
   return months;
 }
 
+// The months of the plan that fall between the payload's start and end months, both included.
+function monthsInRange(months, { startYear, startMonth, endYear, endMonth }) {
+  const startPeriod = toPeriod(startYear, startMonth);
+  const endPeriod = toPeriod(endYear, endMonth);
+  return months.filter((item) => {
+    const period = toPeriod(item.year, item.month);
+    return period >= startPeriod && period <= endPeriod;
+  });
+}
+
 function getPrepaymentPlan(payload) {
   const { apartmentId, buildingId } = payload;
   try {
@@ -269,19 +279,16 @@ function getPrepaymentPlan(payload) {
   }
 }
 
-// Pays every month from the current one to the chosen last month in full, skipping the ones already paid.
+// Pays every month of the chosen range in full, skipping the ones already paid.
 // Each month gets its own payment and income row, so cancelling, receipts and the history work month by
 // month exactly as they do for a single payment. The income is dated the day the money came in.
 function recordPrepayment(payload) {
-  const { apartmentId, buildingId, endYear, endMonth, paymentData } = payload;
+  const { apartmentId, buildingId, paymentData } = payload;
   try {
     const apartment = findActiveApartment(apartmentId, buildingId);
     if (!apartment) return { success: false, message: "Daire bulunamadı veya bu işlem için yetkiniz yok." };
 
-    const endPeriod = toPeriod(endYear, endMonth);
-    const openMonths = prepaymentMonths(apartment).filter(
-      (item) => toPeriod(item.year, item.month) <= endPeriod && item.remaining > 0,
-    );
+    const openMonths = monthsInRange(prepaymentMonths(apartment), payload).filter((item) => item.remaining > 0);
     if (openMonths.length === 0) {
       return { success: false, message: "Seçilen ayların tamamı zaten ödenmiş." };
     }
@@ -483,20 +490,17 @@ async function openReceipt(payload) {
   }
 }
 
-// Hands prepaid dues back, from the chosen month to the last one paid. The payments of those months are closed
+// Hands prepaid dues back, every paid month of the chosen range. The payments of those months are closed
 // with an audit row the way a cancellation closes them, but their incomes stay: the money did come in on the
 // day it was paid. What goes back out is one expense on the refund day, so the ledger shows both movements on
 // their own dates. The months return to unpaid and are owed again by whoever lives there when they come.
 function refundPrepayment(payload) {
-  const { apartmentId, buildingId, userId, startYear, startMonth, refund } = payload;
+  const { apartmentId, buildingId, userId, refund } = payload;
   try {
     const apartment = findActiveApartment(apartmentId, buildingId);
     if (!apartment) return { success: false, message: "Daire bulunamadı veya bu işlem için yetkiniz yok." };
 
-    const startPeriod = toPeriod(startYear, startMonth);
-    const paidMonths = prepaymentMonths(apartment).filter(
-      (item) => toPeriod(item.year, item.month) >= startPeriod && item.paid_amount > 0,
-    );
+    const paidMonths = monthsInRange(prepaymentMonths(apartment), payload).filter((item) => item.paid_amount > 0);
     if (paidMonths.length === 0) {
       return { success: false, message: "Seçilen aylarda iade edilecek ödeme yok." };
     }
