@@ -240,12 +240,13 @@
 
 .du-rail {
   display: grid;
-  align-content: start;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 12px;
 }
 
 .du-actions {
   display: grid;
+  align-content: start;
   gap: 14px;
 }
 
