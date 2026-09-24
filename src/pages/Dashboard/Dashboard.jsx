@@ -1,6 +1,5 @@
-// The dashboard of the selected building, in three bands: context, status and actions. Each tile is the
-// single entry point of its page, so no action is listed twice. The account page has no tile, the account menu
-// in the corner already opens it.
+// The dashboard of the selected building: a context header, three status cards and two groups of page cards.
+// Each card is the entry point of its page, the account page included, so every page is one click away.
 
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
@@ -24,20 +23,31 @@ import {
   FiPlus,
   FiRefreshCw,
   FiTrendingUp,
+  FiUser,
   FiUsers,
 } from "react-icons/fi";
 
-function ActionTile({ icon, label, onClick }) {
+function ActionTile({ icon, label, description, onClick }) {
   return (
     <button className="db-action" type="button" onClick={onClick}>
       <span className="db-action-mark" aria-hidden="true">
         {icon}
       </span>
       <span className="db-action-title">{label}</span>
+      <span className="db-action-desc">{description}</span>
       <span className="db-action-go" aria-hidden="true">
         <FiChevronRight />
       </span>
     </button>
+  );
+}
+
+function ActionGroup({ title, children }) {
+  return (
+    <section className="db-group" aria-label={title}>
+      <h2 className="db-group-label">{title}</h2>
+      <div className="db-actions">{children}</div>
+    </section>
   );
 }
 
@@ -159,45 +169,76 @@ function Dashboard() {
 
   return (
     <div className="dashboard-container">
-      <header className="db-band">
-        <div className="db-context">
-          <div className="db-identity">
-            <span className="db-eyebrow">Seçili Bina</span>
-            <h1 className="db-title" title={building.name}>
-              {building.name}
-            </h1>
-            <p className="db-subtitle">{period}</p>
-          </div>
-          <AccountMenu />
+      <header className="db-context">
+        <div className="db-identity">
+          <span className="db-eyebrow">Seçili Bina</span>
+          <h1 className="db-title" title={building.name}>
+            {building.name}
+          </h1>
+          <p className="db-subtitle">{period}</p>
         </div>
+        <AccountMenu />
       </header>
 
-      <section className="db-band" aria-label="Bina durumu">
+      <section className="db-status" aria-label="Bina durumu">
         {!stats && <StatusError onRetry={reload} />}
         {isEmptyBook && <StatusEmpty onAdd={() => navigate("/building-view")} />}
         {stats && !isEmptyBook && <StatusMetrics stats={stats} navigate={navigate} />}
       </section>
 
-      <section className="db-band" aria-label="İşlemler">
-        <div className="db-group">
-          <div className="db-group-label">Daireler</div>
-          <div className="db-actions">
-            <ActionTile icon={<FiEye />} label="Aidat Takibi" onClick={() => navigate("/dues")} />
-            <ActionTile icon={<FiGrid />} label="Bina Görünümü" onClick={() => navigate("/building-view")} />
-            <ActionTile icon={<FiUsers />} label="Sakinler" onClick={() => navigate("/residents")} />
-            <ActionTile icon={<FiPieChart />} label="Yatırım Aidatı" onClick={() => navigate("/investment")} />
-          </div>
-        </div>
+      <ActionGroup title="Daireler">
+        <ActionTile
+          icon={<FiEye />}
+          label="Aidat Takibi"
+          description="Aylık aidat ve tahsilat"
+          onClick={() => navigate("/dues")}
+        />
+        <ActionTile
+          icon={<FiGrid />}
+          label="Bina Görünümü"
+          description="Daireler ve kat planı"
+          onClick={() => navigate("/building-view")}
+        />
+        <ActionTile
+          icon={<FiUsers />}
+          label="Sakinler"
+          description="Malik ve kiracı kayıtları"
+          onClick={() => navigate("/residents")}
+        />
+        <ActionTile
+          icon={<FiPieChart />}
+          label="Yatırım Aidatı"
+          description="Fon, tahakkuk ve bakiye"
+          onClick={() => navigate("/investment")}
+        />
+      </ActionGroup>
 
-        <div className="db-group">
-          <div className="db-group-label">Kasa ve Personel</div>
-          <div className="db-actions">
-            <ActionTile icon={<FiBookOpen />} label="Kasa Defteri" onClick={() => navigate("/cash-book")} />
-            <ActionTile icon={<FiBriefcase />} label="Personel" onClick={() => navigate("/staff")} />
-            <ActionTile icon={<FiFileText />} label="Raporlar" onClick={() => navigate("/reports")} />
-          </div>
-        </div>
-      </section>
+      <ActionGroup title="Yönetim">
+        <ActionTile
+          icon={<FiBookOpen />}
+          label="Kasa Defteri"
+          description="Gelir, gider ve aktarımlar"
+          onClick={() => navigate("/cash-book")}
+        />
+        <ActionTile
+          icon={<FiBriefcase />}
+          label="Personel"
+          description="Çalışanlar ve tazminat"
+          onClick={() => navigate("/staff")}
+        />
+        <ActionTile
+          icon={<FiFileText />}
+          label="Raporlar"
+          description="PDF ve Excel dökümleri"
+          onClick={() => navigate("/reports")}
+        />
+        <ActionTile
+          icon={<FiUser />}
+          label="Profilim"
+          description="Hesap, şifre ve yedek"
+          onClick={() => navigate("/profile")}
+        />
+      </ActionGroup>
     </div>
   );
 }
