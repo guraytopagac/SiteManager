@@ -6,7 +6,7 @@ import { showDialog } from "@/components/Dialog/dialogStore";
 import { useSession, setCurrentBuilding } from "@/hooks/useSession";
 import { APARTMENT_TYPES, MAX_BUILDING_NAME_LENGTH, MAX_DUE_AMOUNT } from "@/utils/constants";
 import { floorLabel } from "@/utils/floorLabel";
-import { FiHome, FiArrowLeft, FiArrowRight, FiCheck } from "react-icons/fi";
+import { FiHome, FiArrowLeft, FiArrowRight, FiCheck, FiAlertCircle, FiInfo } from "react-icons/fi";
 
 const MAX_FLOORS = 30;
 const MAX_PER_FLOOR = 20;
@@ -16,8 +16,8 @@ const PREVIEW_FLOOR_LIMIT = 5;
 const PREVIEW_CELL_LIMIT = 4;
 
 const INITIAL_LAYOUT = {
-  floors: "4",
-  perFloor: "2",
+  floors: "6",
+  perFloor: "4",
   groundFloor: true,
   dueAmount: "1000",
   type: "2+1",
@@ -63,7 +63,11 @@ function toPreviewFloors(floors, perFloor, groundFloor) {
     topDown.push(floorIndex);
   }
 
-  const shown = floors > PREVIEW_FLOOR_LIMIT + 1 ? [...topDown.slice(0, PREVIEW_FLOOR_LIMIT - 1), null, 0] : topDown;
+  // The bottom two floors stay visible so the numbering is readable from both ends of the facade.
+  const shown =
+    floors > PREVIEW_FLOOR_LIMIT + 1
+      ? [...topDown.slice(0, PREVIEW_FLOOR_LIMIT - 2), null, ...topDown.slice(-2)]
+      : topDown;
 
   return shown.map((floorIndex) =>
     floorIndex === null
@@ -71,6 +75,15 @@ function toPreviewFloors(floors, perFloor, groundFloor) {
       : toPreviewRow(floorIndex, perFloor, groundFloor ? 0 : 1),
   );
 }
+
+// Step one draws the facade before any count is asked. It follows the current layout, so going back keeps the
+// shape, and falls back to the initial one when step two was left with an invalid count.
+const FALLBACK_PREVIEW_FLOORS = toPreviewFloors(
+  Number(INITIAL_LAYOUT.floors),
+  Number(INITIAL_LAYOUT.perFloor),
+  INITIAL_LAYOUT.groundFloor,
+);
+const FALLBACK_CELL_COUNT = Math.min(Number(INITIAL_LAYOUT.perFloor), PREVIEW_CELL_LIMIT);
 
 function validateName(value) {
   if (!value) return "Bina adı zorunludur.";
@@ -100,38 +113,41 @@ function validateLayout(floors, perFloor, dueAmount) {
 
 // The cell count is handed to CSS as a custom property and the width is computed there, so the geometry
 // stays in the stylesheet and this component only supplies the number.
-function BuildingPreview({ name, notice, rows, cellCount }) {
+// The notice sits under the empty scene rather than under the name, since it explains why no building is drawn.
+// The card stays on screen through both steps, so the stage never changes width and the wizard never moves.
+// A blank facade keeps its floors but hides the windows and floor tags, since no unit exists yet. They stay
+// mounted and only fade, so stepping back fades them out instead of dropping them in a single frame.
+function BuildingPreview({ name, notice, isWarning, rows, cellCount, isBlank }) {
   return (
     <aside className="auth-card nb-preview" aria-label="Bina önizlemesi">
       <div className="nb-preview-head">
         <span className="nb-preview-eyebrow">Önizleme</span>
-        <p className="nb-preview-name" title={name}>
-          {name}
+        <p className={name ? "nb-preview-name" : "nb-preview-name nb-preview-name--empty"} title={name || undefined}>
+          {name || "Bina adı"}
         </p>
-
-        {notice && <p className="nb-preview-meta">{notice}</p>}
       </div>
 
       <div className="nb-scene">
         {rows.length > 0 ? (
           <figure className="nb-building" style={{ "--nb-cells": cellCount }}>
-            <div className="nb-facade">
+            <div className={isBlank ? "nb-facade nb-facade--blank" : "nb-facade"}>
               {rows.map((row) =>
                 row.skippedFloors ? (
                   <div key={row.key} className="nb-skipped">
-                    <span className="nb-skipped-dots" aria-hidden="true">
-                      <span />
-                      <span />
-                      <span />
+                    <span className="nb-unit-detail" aria-hidden={isBlank}>
+                      +{row.skippedFloors} kat
                     </span>
-                    +{row.skippedFloors} kat
                   </div>
                 ) : (
                   <div key={row.key} className="nb-level">
-                    <span className="nb-floor" title={row.floorTitle}>
+                    <span
+                      className="nb-floor nb-unit-detail"
+                      title={isBlank ? undefined : row.floorTitle}
+                      aria-hidden={isBlank}
+                    >
                       {row.floorTag}
                     </span>
-                    <span className="nb-units">
+                    <span className="nb-units" aria-hidden={isBlank}>
                       {row.units.map((unit) => (
                         <span key={unit.key} className={unit.isMore ? "nb-window nb-window--more" : "nb-window"}>
                           {unit.label}
@@ -141,6 +157,9 @@ function BuildingPreview({ name, notice, rows, cellCount }) {
                   </div>
                 ),
               )}
+              <p className="nb-facade-note" aria-hidden={!isBlank}>
+                Daireler bir sonraki adımda burada yer alır.
+              </p>
               <div className="nb-lobby" aria-hidden="true">
                 <span className="nb-door" />
               </div>
@@ -149,7 +168,18 @@ function BuildingPreview({ name, notice, rows, cellCount }) {
             <span className="nb-shadow" aria-hidden="true" />
           </figure>
         ) : (
-          <p className="nb-scene-empty">Önizleme hazır değil.</p>
+          <div className="nb-scene-empty">
+            <div
+              className={isWarning ? "nb-scene-notice nb-scene-notice--warning" : "nb-scene-notice"}
+              role={isWarning ? "status" : undefined}
+            >
+              <p className="nb-scene-notice-title">
+                {isWarning && <FiAlertCircle size={20} aria-hidden="true" />}
+                Önizleme hazır değil.
+              </p>
+              <p className="nb-scene-notice-body">{notice}</p>
+            </div>
+          </div>
         )}
 
         <span className="nb-ground" aria-hidden="true" />
@@ -175,13 +205,12 @@ function NewBuilding() {
   const perFloor = Number(layout.perFloor);
   const dueAmount = Number(layout.dueAmount);
   const countError = validateCounts(floors, perFloor);
-  const previewNotice =
-    layout.floors === "" && layout.perFloor === ""
-      ? "Kat ve daire sayısını girin, binanız burada belirsin."
-      : countError;
+  const isLayoutBlank = layout.floors === "" && layout.perFloor === "";
+  const previewNotice = isLayoutBlank ? "Kat ve daire sayısını girin, binanız burada belirsin." : countError;
   const previewFloors = countError ? [] : toPreviewFloors(floors, perFloor, layout.groundFloor);
   const cellCount = Math.min(perFloor, PREVIEW_CELL_LIMIT);
   const buildingName = nameInput.trim();
+  const isBlankFallback = step === 1 && Boolean(countError);
 
   const updateLayout = (field, value) => {
     setLayout((prev) => ({ ...prev, [field]: value }));
@@ -225,7 +254,7 @@ function NewBuilding() {
         showDialog.toast(
           `"${buildingName}" binası oluşturuldu.`,
           res.apartmentCount > 0
-            ? `${res.apartmentCount} daire eklendi. Aidat tutarını daire bazında değiştirebilirsiniz.`
+            ? `${res.apartmentCount} daire eklendi.`
             : "Daireleri Daire Ekle sayfasından ekleyebilirsiniz.",
         );
         navigate("/dashboard", { replace: true });
@@ -272,8 +301,8 @@ function NewBuilding() {
           </ol>
 
           {step === 1 && (
-            <section className="nb-band nb-band--fill nb-step">
-              <form className="nb-form" onSubmit={handleNameSubmit}>
+            <section className="nb-band nb-band--fill">
+              <form className="nb-form nb-form--name" onSubmit={handleNameSubmit}>
                 <div>
                   <h2 className="nb-task-title">Binanıza bir ad verin.</h2>
                   <p className="nb-task-note">Tüm aidat, gelir ve gider kayıtları bu binanın defterine işlenir.</p>
@@ -302,8 +331,22 @@ function NewBuilding() {
                   </div>
                 </div>
 
+                <aside className="auth-note">
+                  <span className="auth-note-icon" aria-hidden="true">
+                    <FiInfo size={18} />
+                  </span>
+                  <div>
+                    <p className="auth-note-title">Bina adı nerede görünür?</p>
+                    <p className="auth-note-body">
+                      Panoda, raporlarda, makbuz ve gider pusulalarında basılır. Sonradan Bina Seçimi ekranından
+                      değiştirilebilir.
+                    </p>
+                  </div>
+                </aside>
+
                 {error && (
                   <p className="nb-error" role="alert">
+                    <FiAlertCircle size={18} aria-hidden="true" />
                     {error}
                   </p>
                 )}
@@ -324,7 +367,7 @@ function NewBuilding() {
           )}
 
           {step === 2 && (
-            <section className="nb-band nb-band--fill nb-step">
+            <section className="nb-band nb-band--fill">
               <form className="nb-form" onSubmit={handleLayoutSubmit}>
                 <div>
                   <h2 className="nb-task-title">Binada kaç daire var?</h2>
@@ -414,6 +457,7 @@ function NewBuilding() {
 
                 {error && (
                   <p className="nb-error" role="alert">
+                    <FiAlertCircle size={18} aria-hidden="true" />
                     {error}
                   </p>
                 )}
@@ -458,9 +502,14 @@ function NewBuilding() {
           )}
         </main>
 
-        {step === 2 && (
-          <BuildingPreview name={buildingName} notice={previewNotice} rows={previewFloors} cellCount={cellCount} />
-        )}
+        <BuildingPreview
+          name={buildingName}
+          notice={previewNotice}
+          isWarning={!isLayoutBlank}
+          rows={isBlankFallback ? FALLBACK_PREVIEW_FLOORS : previewFloors}
+          cellCount={isBlankFallback ? FALLBACK_CELL_COUNT : cellCount}
+          isBlank={step === 1}
+        />
       </div>
     </div>
   );

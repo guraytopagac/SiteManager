@@ -302,13 +302,13 @@ function Recover() {
             </div>
 
             <div className="recover-band">
-              <aside className="recover-note">
-                <span className="recover-note-icon" aria-hidden="true">
+              <aside className="auth-note">
+                <span className="auth-note-icon" aria-hidden="true">
                   <FiInfo size={18} />
                 </span>
                 <div>
-                  <p className="recover-note-title">Kurtarma kodunuz elinizde değil mi?</p>
-                  <p className="recover-note-body">
+                  <p className="auth-note-title">Kurtarma kodunuz elinizde değil mi?</p>
+                  <p className="auth-note-body">
                     Giriş yapabiliyorsanız Profil sayfasından yeni kod üretebilirsiniz. Şifre ve kurtarma kodu birlikte
                     kaybolursa hesap kurtarılamaz.
                   </p>
