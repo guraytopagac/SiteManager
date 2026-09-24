@@ -58,12 +58,14 @@ function duplicateNameMessage(duplicate) {
 }
 
 // Numbering runs bottom up and is plain 1..N, so the number stays short enough for the
-// apartment_no CHECK no matter how many floors there are.
+// apartment_no CHECK no matter how many floors there are. The floor count covers the upper floors only, so a
+// ground floor adds a level below them and the top floor keeps the number the user typed.
 function layoutRows(layout) {
   const rows = [];
   const firstFloor = layout.groundFloor ? 0 : 1;
+  const levels = layout.groundFloor ? layout.floors + 1 : layout.floors;
 
-  for (let step = 0; step < layout.floors; step += 1) {
+  for (let step = 0; step < levels; step += 1) {
     for (let index = 0; index < layout.perFloor; index += 1) {
       rows.push({ apartmentNo: String(rows.length + 1), floor: firstFloor + step });
     }

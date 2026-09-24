@@ -56,22 +56,25 @@ function toPreviewRow(floorIndex, perFloor, firstFloor) {
   };
 }
 
+// The floor count covers the upper floors only, so a ground floor adds a level below them and the top floor
+// keeps the number the user typed.
 function toPreviewFloors(floors, perFloor, groundFloor) {
+  const levels = groundFloor ? floors + 1 : floors;
   const topDown = [];
 
-  for (let floorIndex = floors - 1; floorIndex >= 0; floorIndex -= 1) {
+  for (let floorIndex = levels - 1; floorIndex >= 0; floorIndex -= 1) {
     topDown.push(floorIndex);
   }
 
   // The bottom two floors stay visible so the numbering is readable from both ends of the facade.
   const shown =
-    floors > PREVIEW_FLOOR_LIMIT + 1
+    levels > PREVIEW_FLOOR_LIMIT + 1
       ? [...topDown.slice(0, PREVIEW_FLOOR_LIMIT - 2), null, ...topDown.slice(-2)]
       : topDown;
 
   return shown.map((floorIndex) =>
     floorIndex === null
-      ? { key: "gap", skippedFloors: floors - PREVIEW_FLOOR_LIMIT }
+      ? { key: "gap", skippedFloors: levels - PREVIEW_FLOOR_LIMIT }
       : toPreviewRow(floorIndex, perFloor, groundFloor ? 0 : 1),
   );
 }
