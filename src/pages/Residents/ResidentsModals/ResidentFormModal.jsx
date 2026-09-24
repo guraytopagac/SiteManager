@@ -2,7 +2,7 @@
 // drawn only without an active tenant, and starts off so it never reports occupancy nobody claimed.
 
 import { useState } from "react";
-import { FiX } from "react-icons/fi";
+import { FiCheck, FiHome, FiUser, FiX } from "react-icons/fi";
 import "./ResidentsModals.css";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { showDialog } from "@/components/Dialog/dialogStore";
@@ -15,6 +15,7 @@ function ResidentFormModal({ apartment, resident, residentType, hasTenant, build
   const isOwnerForm = residentType === "owner";
   const roleLabel = RESIDENT_TYPE_LABELS[residentType];
   const asksOccupancy = isOwnerForm && !hasTenant;
+  const RoleIcon = isOwnerForm ? FiHome : FiUser;
 
   const [form, setForm] = useState(() =>
     resident
@@ -102,9 +103,14 @@ function ResidentFormModal({ apartment, resident, residentType, hasTenant, build
     <div className="rs-md-overlay">
       <form className="rs-md-box" onSubmit={handleSubmit}>
         <div className="rs-md-head">
+          <span className="rs-md-mark" aria-hidden="true">
+            <RoleIcon />
+          </span>
           <div className="rs-md-identity">
             <h2 className="rs-md-title">{isEdit ? `${roleLabel} Bilgilerini Düzenle` : `${roleLabel} Ekle`}</h2>
-            <span className="rs-md-scope">Daire {apartment.apartment_no}</span>
+            <span className="rs-md-scope">
+              Daire {apartment.apartment_no} · {roleLabel} kaydı
+            </span>
           </div>
           <button
             type="button"
@@ -127,7 +133,8 @@ function ResidentFormModal({ apartment, resident, residentType, hasTenant, build
           />
 
           <button type="submit" className="rs-md-btn-solid rs-md-submit" disabled={isSubmitting}>
-            {isSubmitting ? "Kaydediliyor..." : "Kaydet"}
+            <FiCheck aria-hidden="true" />
+            {isSubmitting ? "Kaydediliyor..." : isEdit ? "Değişiklikleri Kaydet" : `${roleLabel} Ekle`}
           </button>
         </div>
       </form>
