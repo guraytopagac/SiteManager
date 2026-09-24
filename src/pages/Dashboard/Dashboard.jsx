@@ -30,10 +30,12 @@ import {
 function ActionTile({ icon, label, description, onClick }) {
   return (
     <button className="db-action" type="button" onClick={onClick}>
-      <span className="db-action-mark" aria-hidden="true">
-        {icon}
+      <span className="db-action-head">
+        <span className="db-action-mark" aria-hidden="true">
+          {icon}
+        </span>
+        <span className="db-action-title">{label}</span>
       </span>
-      <span className="db-action-title">{label}</span>
       <span className="db-action-desc">{description}</span>
       <span className="db-action-go" aria-hidden="true">
         <FiChevronRight />

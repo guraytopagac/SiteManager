@@ -12,7 +12,7 @@ export const RELEASE_NOTES = [
       "Peşin aidat eklendi. Aidat, bu ay dahil 12 aya kadar peşin tahsil edilebiliyor. Başlangıç ve bitiş ayı seçiliyor, gerektiğinde peşin ödeme iade edilebiliyor.",
       "Profilim sayfasında Yönetim Dönemleri listesi yer alıyor. Hesabı kimin ne zaman tuttuğu görünüyor, devirden önceki kayıtlar önceki yöneticinin adıyla gösteriliyor.",
       "Aidat Takibi'nde birden fazla dairenin aidatı tek işlemde güncellenebiliyor.",
-      "Pano yenilendi. Ölçümler ayrı kartlarda gösteriliyor, sayfalara giden kartlar iki grupta ve kullanım sıklığına göre sıralanıyor.",
+      "Pano yenilendi. Ölçümler ayrı kartlarda gösteriliyor, sayfalara giden kartlar iki grupta ve kullanım sıklığına göre sıralanıyor. Kart başlıkları ikonun yanında yer alıyor.",
       "Bina seçimi ekranı sayfalara bölündü. Silinen binalar ayrı bir pencerede listeleniyor.",
       "Yeni bina sihirbazında bina önizlemesi iki adımda da görünüyor.",
       "Zemin katlı binada en üst katın girilen kat sayısından bir eksik oluşturulması düzeltildi.",
