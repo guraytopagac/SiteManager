@@ -16,7 +16,15 @@ function DeletedBuildingsModal({ buildings, onClose, onChanged }) {
   const selectedBuilding = useCurrentBuilding();
   const { pageItems, currentPage, pageCount, setPage } = usePagination(buildings, PAGE_SIZE);
   // Short pages are topped up with hidden rows, so the box keeps one height across pages.
-  const spacerCount = PAGE_SIZE - pageItems.length;
+  const spacers = [];
+
+  for (let index = 0; index < PAGE_SIZE - pageItems.length; index += 1) {
+    spacers.push(
+      <div key={`spacer-${index}`} className="sb-md-row sb-md-row--spacer" aria-hidden="true">
+        <span className="sb-md-btn">&nbsp;</span>
+      </div>,
+    );
+  }
 
   useEscapeKey(onClose);
 
@@ -119,11 +127,7 @@ function DeletedBuildingsModal({ buildings, onClose, onChanged }) {
                   </span>
                 </div>
               ))}
-              {Array.from({ length: spacerCount }, (_, index) => (
-                <div key={`spacer-${index}`} className="sb-md-row sb-md-row--spacer" aria-hidden="true">
-                  <span className="sb-md-btn">&nbsp;</span>
-                </div>
-              ))}
+              {spacers}
             </div>
             {buildings.length === 0 && <p className="sb-md-empty">Silinen bina yok.</p>}
           </div>

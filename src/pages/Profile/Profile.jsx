@@ -51,7 +51,11 @@ function ManagerTerms() {
   const [res] = useIpcData("getManagerTerms", {});
   const terms = res.success ? res.data : [];
   const { pageItems, currentPage, pageCount, setPage } = usePagination(terms, TERMS_PAGE_SIZE);
-  const spacerCount = TERMS_PAGE_SIZE - pageItems.length;
+  const spacers = [];
+
+  for (let index = 0; index < TERMS_PAGE_SIZE - pageItems.length; index += 1) {
+    spacers.push(<li key={`spacer-${index}`} className="pf-term pf-term--spacer" aria-hidden="true" />);
+  }
 
   return (
     <section className="page-band" aria-label="Yönetim dönemleri">
@@ -77,9 +81,7 @@ function ManagerTerms() {
               </span>
             </li>
           ))}
-          {Array.from({ length: spacerCount }, (_, index) => (
-            <li key={`spacer-${index}`} className="pf-term pf-term--spacer" aria-hidden="true" />
-          ))}
+          {spacers}
         </ul>
         {res.success ? null : <p className="pf-terms-error">{res.message}</p>}
       </div>

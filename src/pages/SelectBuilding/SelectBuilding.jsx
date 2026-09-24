@@ -54,7 +54,11 @@ function SelectBuilding() {
   const { pageItems, currentPage, pageCount, setPage } = usePagination(activeBuildings, PAGE_SIZE);
   // Every page is topped up with hidden rows after the create card, so rows keep their size and the create
   // card stays right under the buildings instead of stretching into the empty space.
-  const spacerCount = PAGE_SIZE - pageItems.length;
+  const spacers = [];
+
+  for (let index = 0; index < PAGE_SIZE - pageItems.length; index += 1) {
+    spacers.push(<div key={`spacer-${index}`} className="sb-item sb-item--spacer" aria-hidden="true" />);
+  }
 
   const loadBuildings = () => {
     setAutoEnterAllowed(false);
@@ -312,9 +316,7 @@ function SelectBuilding() {
                 </span>
               </button>
 
-              {Array.from({ length: spacerCount }, (_, index) => (
-                <div key={`spacer-${index}`} className="sb-item sb-item--spacer" aria-hidden="true" />
-              ))}
+              {spacers}
             </div>
             <Pager currentPage={currentPage} pageCount={pageCount} onChange={setPage} />
           </section>
